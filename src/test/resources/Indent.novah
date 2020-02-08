@@ -1,0 +1,9 @@
+
+fun x =
+  let z = 0
+  case true of
+    _ -> \y ->
+      z + y
+  println "hello"
+
+x = 1

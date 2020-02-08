@@ -1,0 +1,11 @@
+module Test
+
+x = (w || (r && (x || p)))
+
+y = (((w || r) && x) || p)
+
+z = bla 3 $ df 4 $ pa
+
+f = (a >> b >> c) 1
+
+f2 = 3 + 4 * 6 * 9
