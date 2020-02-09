@@ -21,11 +21,7 @@ sealed class Decl {
 
     data class VarType(val name: String, val typ: Polytype) : Decl()
 
-    data class VarDecl(
-        val name: String,
-        val args: List<String>,
-        val exprs: List<Expression>
-    ) : Decl()
+    data class VarDecl(val def: Expression.Let) : Decl()
 }
 
 data class DataConstructor(val name: String, val args: List<Monotype>)
@@ -110,7 +106,10 @@ fun Import.show(): String = when (this) {
 
 fun Decl.show(): String = when (this) {
     is Decl.VarType -> "$name :: ${typ.show()}"
-    is Decl.VarDecl -> "$name${args.joinShow(" ")} = " + exprs.joinToString("\n\t") { it.show("\t") }
+    is Decl.VarDecl -> {
+        val let = def.defs[0]
+        "${let.name} = ${let.expr.show()}"
+    }
     is Decl.DataDecl -> {
         val dataCts = dataCtors.joinToString("\n\t| ") { it.show() }
         "data $name${tyVars.map { it.v }.joinShow(" ")} =\n\t$dataCts"

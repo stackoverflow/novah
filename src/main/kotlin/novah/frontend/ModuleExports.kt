@@ -18,7 +18,7 @@ sealed class ModuleExports {
                 when(decl) {
                     is Decl.DataDecl -> decl.name
                     is Decl.VarType -> decl.name
-                    is Decl.VarDecl -> decl.name
+                    is Decl.VarDecl -> decl.def.defs[0].name
                 }
             }.toSet()
 

@@ -3,6 +3,7 @@ package novah.frontend
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import novah.Decl
+import novah.Expression.*
 import novah.Module
 import novah.frontend.TestUtil.parseResource
 import novah.show
@@ -30,7 +31,26 @@ class ParserSpec : StringSpec() {
             ast.byName("r2") shouldBe r2
         }
 
-        "Parser works correctly" {
+        "Parser correctly parse lambdas" {
+            val ast = parseResource("Lambda.novah")
+
+            val simpleL = Lambda("x", listOf(Var("x")))
+            val multiL = Lambda("x", listOf(Lambda("y", listOf(Lambda("z", listOf(IntE(1)))))))
+
+            val simple = ast.decls[0] as Decl.VarDecl
+            val multi = ast.decls[1] as Decl.VarDecl
+            val simple2 = ast.decls[2] as Decl.VarDecl
+            val multi2 = ast.decls[3] as Decl.VarDecl
+
+            simple.def.defs[0].expr shouldBe simpleL
+            multi.def.defs[0].expr shouldBe multiL
+
+            // unsugared versions should be the same as sugared ones
+            simple.def.defs[0].expr shouldBe simple2.def.defs[0].expr
+            multi.def.defs[0].expr shouldBe multi2.def.defs[0].expr
+        }
+
+        "!Parser works correctly" {
             val ast = parseResource("Example.novah")
 
             println(ast.show())
@@ -38,5 +58,5 @@ class ParserSpec : StringSpec() {
     }
 
     private fun Module.byName(name: String) =
-        decls.filterIsInstance<Decl.VarDecl>().find { it.name == name }?.exprs?.get(0)?.show()
+        decls.filterIsInstance<Decl.VarDecl>().map { it.def.defs[0] }.find { it.name == name }?.expr?.show()
 }

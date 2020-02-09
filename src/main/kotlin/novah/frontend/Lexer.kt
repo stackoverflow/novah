@@ -5,7 +5,11 @@ import java.lang.NumberFormatException
 import java.lang.RuntimeException
 import java.util.*
 
+data class Comment(val comment: String, val isMulti: Boolean = false)
+
 sealed class Token {
+
+    var comment: Comment? = null
 
     override fun toString(): String = this.javaClass.simpleName
 
@@ -22,7 +26,6 @@ sealed class Token {
     object Hash : Token()
     object Dot : Token()
     object Comma : Token()
-    object Colon : Token()
     object DoubleColon : Token()
     object Equals : Token()
     object Backslash : Token()
@@ -131,7 +134,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
     override fun next(): Spanned<Token> {
         var start = iter.position
 
-        if(tokenList.isNotEmpty()) {
+        if (tokenList.isNotEmpty()) {
             return Spanned(Span(start, start), tokenList.removeAt(0))
         }
 
@@ -153,6 +156,21 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             '\\' -> Backslash
             '\'' -> char()
             '"' -> string()
+            '/' -> when (iter.peek()) {
+                '/' -> {
+                    val comment = lineComment()
+                    val next = this.next()
+                    next.value.comment = Comment(comment)
+                    next.value
+                }
+                '*' -> {
+                    val comment = multiLineComment()
+                    val next = this.next()
+                    next.value.comment = Comment(comment, true)
+                    next.value
+                }
+                else -> operator('/')
+            }
             '\n' -> {
                 tokenList.clear()
                 tokenList.addAll(indent())
@@ -220,7 +238,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         var c = iter.next()
 
         while (c != '\"') {
-            if(c == '\n') {
+            if (c == '\n') {
                 lexError("Newline is not allowed inside strings")
             }
             if (c == '\\') {
@@ -310,7 +328,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             }
             idLevel == indentLevel.peekFirst() -> tokens += Newline
             else -> {
-                while(idLevel < indentLevel.peekFirst()) {
+                while (idLevel < indentLevel.peekFirst()) {
                     tokens += Dedent
                     indentLevel.removeFirst()
                 }
@@ -318,6 +336,34 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             }
         }
         return tokens
+    }
+
+    private fun lineComment(): String {
+        accept("/")
+        val builder = StringBuilder()
+        while (iter.peek() != '\n') {
+            builder.append(iter.next())
+        }
+        // consume the newline
+        iter.next()
+        return builder.toString().trim()
+    }
+
+    private fun multiLineComment(): String {
+        acceptMany("*")
+        val builder = StringBuilder()
+        var last = ' '
+
+        while (true) {
+            val c = iter.next()
+            if (last == '*' && c == '/') break
+            builder.append(c)
+            last = c
+        }
+        // consume the newline
+        if (iter.hasNext() && iter.peek() == '\n') iter.next()
+
+        return builder.toString().trimMargin("*")
     }
 
     private fun accept(chars: String): Char? {

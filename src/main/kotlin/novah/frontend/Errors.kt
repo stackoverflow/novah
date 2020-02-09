@@ -87,13 +87,15 @@ object Errors {
 
     const val LET_DECL = "Expected variable name after `let`."
 
-    const val EXPRESSION_DEF = "Expected expression definition."
-
     const val CASE_OF = "Expected `of` after a case expression."
 
     const val CASE_ARROW = "Expected arrow symbol: `->` after case pattern."
 
-    val MALFORMED_EXPR = "Malfored expression."
+    const val MALFORMED_EXPR = "Malfored expression."
+
+    val INVALID_DECL = """Invalid variable declaration.
+        |Non-function variable declarations can only have 1 expression.
+    """.trimMargin()
 
     fun literalExpected(name: String) = "Expected $name literal."
 

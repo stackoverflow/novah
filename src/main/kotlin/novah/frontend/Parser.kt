@@ -159,6 +159,16 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     }
 
     private fun parseVarDecl(name: String): Decl.VarDecl {
+        // transforms `fun x y z = 1` into `fun = \x -> \y -> \z -> 1`
+        fun unsugarToLambda(acc: List<String>, exps: List<Expression>): Expression.Lambda {
+            return if (acc.size <= 1) {
+                Expression.Lambda(acc[0], exps)
+            } else {
+                Expression.Lambda(acc[0], listOf(unsugarToLambda(acc.drop(1), exps)))
+            }
+        }
+
+        val tk = iter.peek()
         val vars = tryParseListOf(::tryParseIdent)
 
         return withIndentation {
@@ -170,7 +180,14 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
                     listOf(parseExpression())
                 }
 
-                Decl.VarDecl(name, vars, exps)
+                val def = if (vars.isEmpty()) {
+                    if (exps.size > 1) throwError(withError(E.INVALID_DECL)(tk))
+                    Def(name, exps[0], null)
+                } else {
+                    Def(name, unsugarToLambda(vars, exps), null)
+                }
+
+                Decl.VarDecl(Expression.Let(listOf(def)))
             }
         }
     }
@@ -185,47 +202,36 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     }
 
     private fun parseExpression(parens: Boolean = false): Expression {
-        tailrec fun unrollExpression(exps: List<Expression>): Expression {
-            return when (exps.size) {
-                0 -> throwError(withError(E.EXPRESSION_DEF)(iter.peek()))
-                1 -> exps[0]
-                2 -> Expression.App(exps[0], exps[1])
-                else -> unrollExpression(listOf(Expression.App(exps[0], exps[1])) + exps.drop(2))
-            }
-        }
-
         val tk = iter.peek()
         val exps = tryParseListOf { tryParseAtom(parens) }
 
         val unrolled = Operators.parseApplication(exps)
-        if(unrolled == null) {
+        if (unrolled == null) {
             throwError(withError(E.MALFORMED_EXPR)(tk))
         } else return unrolled
     }
 
-    private fun tryParseAtom(parens: Boolean = false): Expression? {
-        return when (iter.peek().value) {
-            is IntT -> parseInt()
-            is FloatT -> parseFloat()
-            is StringT -> parseString()
-            is CharT -> parseChar()
-            is BoolT -> parseBool()
-            is Ident -> parseVar()
-            is Op -> parseOperator()
-            is LParen -> {
-                iter.next()
-                val exp = parseExpression(true)
-                expect<RParen>(withError(E.rparensExpected("expression")))
-                if (iter.peek().value is Dedent) iter.next()
-                exp
-            }
-            is UpperIdent -> parseDataConstruction(parens)
-            is Backslash -> parseLambda(parens)
-            is IfT -> parseIf(parens)
-            is LetT -> parseLet()
-            is CaseT -> parseMatch(parens)
-            else -> null
+    private fun tryParseAtom(parens: Boolean = false): Expression? = when (iter.peek().value) {
+        is IntT -> parseInt()
+        is FloatT -> parseFloat()
+        is StringT -> parseString()
+        is CharT -> parseChar()
+        is BoolT -> parseBool()
+        is Ident -> parseVar()
+        is Op -> parseOperator()
+        is LParen -> {
+            iter.next()
+            val exp = parseExpression(true)
+            expect<RParen>(withError(E.rparensExpected("expression")))
+            if (iter.peek().value is Dedent) iter.next()
+            exp
         }
+        is UpperIdent -> parseDataConstruction(parens)
+        is Backslash -> parseLambda(parens)
+        is IfT -> parseIf(parens)
+        is LetT -> parseLet()
+        is CaseT -> parseMatch(parens)
+        else -> null
     }
 
     private fun parseInt(): Expression.IntE {
@@ -270,16 +276,21 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return Expression.Construction(ctor, fields)
     }
 
-    private fun parseLambda(parens: Boolean): Expression.Lambda {
-        expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
+    private fun parseLambda(parens: Boolean, multiVar: Boolean = false): Expression.Lambda {
+        if (!multiVar) expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
 
         val bind = expect<Ident>(withError(E.LAMBDA_VAR))
-        expect<Arrow>(withError(E.LAMBDA_ARROW))
-        return withIndentation(parens = parens) { indented ->
-            val exps = if (indented) {
-                between<Newline, Expression> { parseExpression(parens) }
-            } else listOf(parseExpression())
-            Expression.Lambda(bind.value.v, exps)
+
+        return if (iter.peek().value is Ident) {
+            Expression.Lambda(bind.value.v, listOf(parseLambda(parens, true)))
+        } else {
+            expect<Arrow>(withError(E.LAMBDA_ARROW))
+            withIndentation(parens = parens) { indented ->
+                val exps = if (indented) {
+                    between<Newline, Expression> { parseExpression(parens) }
+                } else listOf(parseExpression())
+                Expression.Lambda(bind.value.v, exps)
+            }
         }
     }
 

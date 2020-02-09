@@ -43,6 +43,7 @@ maybe def sm = case sm of
 id :: ∀ a. a -> a
 id x = x
 
+// some comment here
 myFun x = case x of
   None ->
     println "Nothing is true!"
