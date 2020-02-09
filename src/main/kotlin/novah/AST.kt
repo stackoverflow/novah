@@ -7,14 +7,9 @@ data class Module(
     val imports: List<Import>,
     val exports: List<String>,
     val decls: List<Decl>
-) {
+)
 
-    fun fullName() = name.joinToString(".")
-}
-
-sealed class Import(private val module: ModuleName) {
-    fun fullName() = module.joinToString(".")
-
+sealed class Import(val module: ModuleName) {
     data class Raw(val mod: ModuleName) : Import(mod)
     data class As(val mod: ModuleName, val alias: String) : Import(mod)
     data class Exposing(val mod: ModuleName, val defs: List<String>) : Import(mod)
@@ -70,32 +65,133 @@ sealed class LiteralPattern {
     data class FloatLiteral(val f: Double) : LiteralPattern()
 }
 
-data class TypeVar(val v: String) {
-    override fun toString() = v
-}
+data class TypeVar(val v: String)
 
 sealed class Monotype {
-    data class Unknown(val i: Int) : Monotype() {
-        override fun toString(): String = "unknown$i"
-    }
+    data class Unknown(val i: Int) : Monotype()
+    data class Var(val typ: TypeVar) : Monotype()
+    data class Function(val par: Monotype, val ret: Monotype) : Monotype()
+    data class Constructor(val name: String, val vars: List<Monotype>) : Monotype()
+}
 
-    data class Var(val typ: TypeVar) : Monotype() {
-        override fun toString(): String = typ.v
-    }
+data class Polytype(val vars: List<TypeVar>, val type: Monotype)
 
-    data class Function(val par: Monotype, val ret: Monotype) : Monotype() {
-        override fun toString(): String = "($par -> $ret)"
-    }
+////////////////////////////////
+// AST functions
+////////////////////////////////
 
-    data class Constructor(val name: String, val vars: List<Monotype>) : Monotype() {
-        override fun toString(): String = name + if (vars.isEmpty()) "" else " " + vars.joinToString(" ")
+private fun List<String>.joinShow(sep: String): String {
+    return if (isEmpty()) {
+        ""
+    } else {
+        " " + joinToString(sep)
     }
 }
 
-data class Polytype(val vars: List<TypeVar>, val type: Monotype) {
-    override fun toString(): String {
-        return if (vars.isNotEmpty()) {
-            "forall " + vars.joinToString(" ") { it.v } + ". $type"
-        } else "$type"
+fun Module.fullName() = name.joinToString(".")
+
+fun Import.fullName() = module.joinToString(".")
+
+fun Module.show(): String {
+    return """module ${fullName()} (${exports.joinToString(", ")})
+            !
+            !${imports.joinToString("\n") { it.show() }}
+            !
+            !${decls.joinToString("\n\n") { it.show() }}
+        """.trimMargin("!")
+}
+
+fun Import.show(): String = when (this) {
+    is Import.Raw -> "import ${fullName()}"
+    is Import.As -> "import ${fullName()} as $alias"
+    is Import.Exposing -> "import ${fullName()} exposing (${defs.joinToString(", ")})"
+    is Import.Hiding -> "import ${fullName()} hiding (${defs.joinToString(", ")})"
+}
+
+fun Decl.show(): String = when (this) {
+    is Decl.VarType -> "$name :: ${typ.show()}"
+    is Decl.VarDecl -> "$name${args.joinShow(" ")} = " + exprs.joinToString("\n\t") { it.show("\t") }
+    is Decl.DataDecl -> {
+        val dataCts = dataCtors.joinToString("\n\t| ") { it.show() }
+        "data $name${tyVars.map { it.v }.joinShow(" ")} =\n\t$dataCts"
     }
+}
+
+fun DataConstructor.show(): String {
+    return if (args.isEmpty()) {
+        name
+    } else {
+        "$name ${args.joinToString(" ") { it.show() }}"
+    }
+}
+
+fun Expression.show(tab: String = ""): String = when (this) {
+    is Expression.App -> "(${fn.show(tab)} ${arg.show(tab)})"
+    is Expression.Operator -> "`$name`"
+    is Expression.Var -> name
+    is Expression.IntE -> "$i"
+    is Expression.FloatE -> "$f"
+    is Expression.StringE -> "\"$s\""
+    is Expression.CharE -> "'$c'"
+    is Expression.Bool -> "$b"
+    is Expression.Construction -> {
+        if (fields.isEmpty()) ctor
+        else "($ctor ${fields.joinToString(" ") { it.show() }})"
+    }
+    is Expression.Match -> {
+        val cs = cases.joinToString("\n\t") { it.show() }
+        "case ${exp.show()} of\n\t$cs"
+    }
+    is Expression.Lambda -> "(\\$binder -> " + body.joinToString("\n\t" + tab) { it.show(tab) } + ")"
+    is Expression.If -> {
+        val thenC = thenCase.joinToString("\n\t" + tab) { it.show(tab) }
+        val elseC = elseCase.joinToString("\n\t" + tab) { it.show(tab) }
+        "if ${cond.show()} \n\tthen $thenC \n\telse $elseC"
+    }
+    is Expression.Let -> "let " + defs.joinToString("\n\t" + tab) { it.show() }
+}
+
+fun Def.show(): String = "$name = ${expr.show()}" + (type?.show() ?: "")
+
+fun Case.show(): String {
+    val es = exps.joinToString("\n\t\t") { it.show() }
+    return "${pattern.show()} -> $es"
+}
+
+fun Pattern.show(): String = when (this) {
+    is Pattern.Wildcard -> "_"
+    is Pattern.LiteralP -> lit.show()
+    is Pattern.Var -> name
+    is Pattern.Ctor -> if (fields.isEmpty()) {
+        name
+    } else {
+        "($name ${fields.joinToString(" ") { it.show() }})"
+    }
+}
+
+fun LiteralPattern.show(): String = when (this) {
+    is LiteralPattern.BoolLiteral -> "$b"
+    is LiteralPattern.CharLiteral -> "'$c'"
+    is LiteralPattern.StringLiteral -> "\"$s\""
+    is LiteralPattern.IntLiteral -> "$i"
+    is LiteralPattern.FloatLiteral -> "$f"
+}
+
+fun TypeVar.show() = v
+
+fun Monotype.show(): String = when (this) {
+    is Monotype.Unknown -> "u$i"
+    is Monotype.Var -> typ.show()
+    is Monotype.Function -> "(${par.show()} -> ${ret.show()})"
+    is Monotype.Constructor -> if (vars.isEmpty()) {
+        name
+    } else {
+        "($name ${vars.joinToString(" ") { it.show() }})"
+    }
+}
+
+fun Polytype.show(): String {
+    return if (vars.isNotEmpty()) {
+        "forall " + vars.joinToString(" ") { it.show() } + ". ${type.show()}"
+    } else type.show()
 }

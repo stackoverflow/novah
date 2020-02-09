@@ -194,27 +194,13 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             }
         }
 
+        val tk = iter.peek()
         val exps = tryParseListOf { tryParseAtom(parens) }
 
-        return unrollExpression(exps)
-    }
-
-    private fun parseApplication(exps: List<Expression>): Expression {
-        tailrec fun unrollApps(exps: List<Expression>): Expression {
-            return when (exps.size) {
-                0 -> throwError(withError(E.EXPRESSION_DEF)(iter.peek()))
-                1 -> exps[0]
-                2 -> Expression.App(exps[0], exps[1])
-                else -> unrollApps(listOf(Expression.App(exps[0], exps[1])) + exps.drop(2))
-            }
-        }
-        when (exps.size) {
-            0 -> throwError(withError(E.EXPRESSION_DEF)(iter.peek()))
-            1 -> exps[0]
-            2 -> Expression.App(exps[0], exps[1])
-            else -> parseApplication(listOf(Expression.App(exps[0], exps[1])) + exps.drop(2))
-        }
-        TODO()
+        val unrolled = Operators.parseApplication(exps)
+        if(unrolled == null) {
+            throwError(withError(E.MALFORMED_EXPR)(tk))
+        } else return unrolled
     }
 
     private fun tryParseAtom(parens: Boolean = false): Expression? {
@@ -610,22 +596,5 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
          * Represents an error that cannot happen
          */
         private fun noErr() = { _: Spanned<Token> -> "Cannot happen" }
-
-        /**
-         * Get the precedence of some operator
-         */
-        private fun getPrecedence(op: Op): Int {
-            return when(op.op[0]) {
-                '$' -> 0
-                '=' -> 1
-                '<', '>' -> 2
-                '|' -> 3
-                '&' -> 4
-                '+', '-', ':' -> 5
-                '*', '/', '%' -> 6
-                '^', '.' -> 7
-                else -> 8
-            }
-        }
     }
 }

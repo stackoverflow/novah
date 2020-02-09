@@ -24,7 +24,7 @@ num = 0x123efa7c
 
 doub x = 13.87E-12
 
-x = (((fn 3) 4) 5)
+x = fn 3 4 5
 
 stuff
   :: Int
@@ -57,7 +57,7 @@ doIt u =
     x 1) (Some 3)
   let x = 12
       y = x 9
-  if y 2
+  if y == 2
     then
       println "big y"
       1

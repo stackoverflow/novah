@@ -93,6 +93,8 @@ object Errors {
 
     const val CASE_ARROW = "Expected arrow symbol: `->` after case pattern."
 
+    val MALFORMED_EXPR = "Malfored expression."
+
     fun literalExpected(name: String) = "Expected $name literal."
 
     fun newlineExpected(ctx: String) = "Expected new line after $ctx."
