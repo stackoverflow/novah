@@ -1,67 +1,74 @@
-module Novah.Example hiding
-  ( stuff
-  , maybe
-  , id
-  )
+module Novah.Example
+  hiding (maybe, myFun)
 
 import Prelude
 
-import Data.Perhaps exposing
+import Data.Perhaps
   ( Perhaps
   , fun1, stuff
   )
 import Control.Brain as B
 
-data Maybe a
+type Maybe a
   = Nope
   | Just a
 
-data List a =
+type List a =
   Nil
   | Cons a (List a)
 
-num = 0x123efa7c
+val num = 0x123efa7c
 
-doub x = 13.87E-12
+val doub x = 13.87E-12
 
-x = fn 3 4 5
+val x = fn 3 4 5
 
-stuff
+type stuff
   :: Int
   -> Int
   -> String
-stuff val v2 = case val of
-  0 -> "0"
-  1 -> show v2
-  _ -> "oops"
+val stuff v v2 = case v of
+  [ 0 -> "0"
+  | 1 -> show v2
+  | _ -> "oops" ]
 
-maybe :: forall a. a -> Maybe (a -> a)
-maybe def sm = case sm of
-  Some x -> func x
-  Nope -> def
+/**
+ * Some multi line comment
+ * added here
+ */
+type maybe :: forall a. a -> Int -> Maybe (a -> a)
+val maybe def sm = case sm of
+  [ Some x -> B.brain x
+  | Nope -> def ]
 
-id :: ∀ a. a -> a
-id x = x
+type id :: ∀ a. a -> a
+val id x = x
 
 // some comment here
-myFun x = case x of
-  None ->
-    println "Nothing is true!"
-    0
-  Some x -> 9
+val myFun x = case x of
+  [ None -> do {
+      println "Nothing is true!";
+      case 4 of [ x -> x ]
+    }
+  | Some x -> 9 ]
 
-doIt :: Unit -> String
-doIt u =
-  println "not pure"
-  map (\x ->
-    println x
-    x 1) (Some 3)
-  let x = 12
-      y = x 9
-  if y == 2
-    then
-      println "big y"
-      1
-    else
-      println "small y"
-      0
+val ex x =
+  let x = 4 in
+  x * 6
+
+type doIt :: Unit -> String
+val doIt u = do {
+  println "not pure";
+  map (\x -> do {
+    println x;
+    x + 1}) (Some 3);
+  let f x = x
+  and y = f 9 in
+  if y >= 2 then do {
+    println "big y";
+    if x then 1 else 0
+  } else do {
+    println "small y";
+    0
+  }
+}

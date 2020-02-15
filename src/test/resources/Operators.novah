@@ -1,15 +1,15 @@
 module Test
 
-x = w || r && x || p
+val x = w || r && x || p
 
-fl = (a >> b >> c) 1
+val fl = (a >> b >> c) 1
 
-fr = (a << b << c) 1
+val fr = (a << b << c) 1
 
-l1 = 3 + 7 ^ 4 * 6 * 9
+val l1 = 3 + 7 ^ 4 * 6 * 9
 
-l2 = 3 ^ 7 * 4 * 6 + 9
+val l2 = 3 ^ 7 * 4 * 6 + 9
 
-r1 = bla 3 $ df 4 $ pa
+val r1 = bla 3 $ df 4 $ pa
 
-r2 = 3 : 5 : 7 : Nil
+val r2 = 3 : 5 : 7 : Nil

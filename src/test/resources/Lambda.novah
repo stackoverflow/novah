@@ -1,9 +1,9 @@
 module Lambda
 
-simple = \x -> x
+val simple = \x -> x
 
-multi = \x y z -> 1
+val multi = \x y z -> 1
 
-simple2 x = x
+val simple2 x = x
 
-multi2 x y z = 1
+val multi2 x y z = 1

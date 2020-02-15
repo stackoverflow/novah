@@ -13,182 +13,134 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val imports = mutableListOf<Import>()
         while (iter.peek().value is ImportT) {
             imports += parseImport()
-            expect<Newline>(withError(E.newlineExpected("after import declaration")))
         }
 
         val decls = mutableListOf<Decl>()
-        while (iter.hasNext()) {
+        while (iter.peek().value !is EOF) {
             decls += parseDecl()
-            expect<Newline>(withError(E.newlineExpected("after declaration")))
         }
+
         return Module(mname, imports, ModuleExports.consolidate(exports, decls), decls)
     }
 
     private fun parseModule(): Pair<ModuleName, ModuleExports> {
         expect<ModuleT>(withError(E.MODULE_DEFINITION))
-        val mname = parseModuleName()
 
-        val exps = withIndentation {
-            val tk = iter.peek()
-            when (tk.value) {
-                is Hiding -> {
-                    iter.next()
-                    withIndentation {
-                        ModuleExports.Hiding(parseImportExports("module", "exports"))
-                    }
-                }
-                is Exposing -> {
-                    iter.next()
-                    withIndentation {
-                        ModuleExports.Exposing(parseImportExports("module", "exports"))
-                    }
-                }
-                is Newline -> ModuleExports.ExportAll
-                else -> throwError(withError(E.MODULE_END)(tk))
+        val name = parseModuleName()
+
+        val exports = when (iter.peek().value) {
+            is Hiding -> {
+                iter.next()
+                ModuleExports.Hiding(parseImportExports("exports"))
             }
+            is Exposing -> {
+                iter.next()
+                ModuleExports.Exposing(parseImportExports("exports"))
+            }
+            else -> ModuleExports.ExportAll
         }
-
-        expect<Newline>(withError(E.newlineExpected("module definition")))
-        return mname to exps
+        return name to exports
     }
 
-    private fun parseImportExports(ctx: String, listObj: String): List<String> {
-        val exps = mutableListOf<String>()
-
-        expect<LParen>(withError(E.lparensExpected("$ctx exposing/hiding")))
-
-        while (iter.peek().value !is RParen) {
-            exps += parseUpperOrLoweIdent(withError(E.EXPORT_REFER))
-
-            if (iter.peek().value is Newline) iter.next()
-            if (iter.peek().value !is Comma) break
-
-            expect<Comma>(withError(E.commaExpected(listObj)))
+    private fun parseImportExports(ctx: String): List<String> {
+        expect<LParen>(withError(E.lparensExpected(ctx)))
+        if (iter.peek().value is RParen) {
+            iter.next()
+            return listOf()
         }
 
-        expect<RParen>(withError(E.rparensExpected("$ctx exposing/hiding")))
+        val exps = between<Comma, String> { parseUpperOrLoweIdent(withError(E.EXPORT_REFER)) }
+
+        expect<RParen>(withError(E.rparensExpected(ctx)))
         return exps
     }
 
     private fun parseModuleName(): ModuleName {
-        val firstName = expect<UpperIdent>(withError(E.MODULE_NAME))
-        val mname = mutableListOf(firstName.value.v)
-        while (iter.peek().value is Dot) {
-            iter.next()
-            mname.add(expect<UpperIdent>(withError(E.MODULE_NAME)).value.v)
-        }
-        return mname
+        return between<Dot, String> { expect<UpperIdent>(withError(E.MODULE_NAME)).value.v }
     }
 
     private fun parseImport(): Import {
         expect<ImportT>(noErr())
         val mname = parseModuleName()
 
-        return withIndentation {
-            val next = iter.peek()
-            when (next.value) {
-                is Exposing -> {
-                    iter.next()
-                    withIndentation {
-                        Import.Exposing(mname, parseImportExports("import", "definitions"))
-                    }
-                }
-                is Hiding -> {
-                    iter.next()
-                    withIndentation {
-                        Import.Hiding(mname, parseImportExports("import", "definitions"))
-                    }
-                }
-                is As -> {
-                    iter.next()
-                    val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
-                    Import.As(mname, alias.value.v)
-                }
-                is Newline -> Import.Raw(mname)
-                else -> throwError(withError(E.IMPORT_INVALID)(next))
+        val next = iter.peek()
+        return when (next.value) {
+            is LParen -> {
+                Import.Exposing(mname, parseImportExports("import"))
             }
+            is As -> {
+                iter.next()
+                val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
+                Import.As(mname, alias.value.v)
+            }
+            else -> Import.Raw(mname)
         }
     }
 
     private fun parseDecl(): Decl {
-        val tk = iter.next()
-        return when (tk.value) {
-            is Data -> parseDataDecl()
-            is Ident -> {
-                when (iter.peek().value) {
-                    is DoubleColon, is Indent -> parseVarType(tk.value.v)
-                    else -> parseVarDecl(tk.value.v)
-                }
-            }
+        val tk = iter.peek()
+        val comment = tk.value.comment
+        val decl = when (tk.value) {
+            is Type -> parseTypeDecl()
+            is Val -> parseVal()
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
+        decl.comment = comment
+        return decl
     }
 
-    private fun parseDataDecl(): Decl.DataDecl {
+    private fun parseTypeDecl(): Decl {
+        expect<Type>(noErr())
+
+        if(iter.peek().value is Ident) {
+            return parseValTypeDecl()
+        }
         val name = expect<UpperIdent>(withError(E.DATA_NAME))
 
         val tyVars = parseListOf(::parseTypeVar) { it is Ident }
 
-        val ctors = withIndentation { ind1 ->
-            expect<Equals>(withError(E.DATA_EQUALS))
+        expect<Equals>(withError(E.DATA_EQUALS))
 
-            withIndentation { ind2 ->
-                val indented = ind1 || ind2
-
-                parseListOf(::parseDataConstructor) {
-                    if (it is Pipe) iter.next()
-                    if (indented && it is Newline) {
-                        iter.next()
-                        expect<Pipe>(withError(E.PIPE_SEPARATOR))
-                    }
-
-                    if (indented) it !is Dedent
-                    else it !is Newline
-                }
-            }
+        val ctors = mutableListOf<DataConstructor>()
+        while (true) {
+            ctors += parseDataConstructor()
+            if (iter.peek().value is Pipe) {
+                iter.next()
+            } else break
         }
 
         return Decl.DataDecl(name.value.v, tyVars, ctors)
     }
 
-    private fun parseVarType(name: String): Decl.VarType {
-        return withIndentation { indented ->
-            expect<DoubleColon>(withError(E.TYPE_DECL))
-            Decl.VarType(name, parsePolytype(indented))
-        }
+    private fun parseValTypeDecl(): Decl.TypeDecl {
+        val name = expect<Ident>(noErr())
+        expect<DoubleColon>(withError(E.TYPE_DCOLON))
+        return Decl.TypeDecl(name.value.v, parsePolytype())
     }
 
-    private fun parseVarDecl(name: String): Decl.VarDecl {
+    private fun parseVal(): Decl.ValDecl {
         // transforms `fun x y z = 1` into `fun = \x -> \y -> \z -> 1`
-        fun unsugarToLambda(acc: List<String>, exps: List<Expression>): Expression.Lambda {
+        fun desugarToLambda(acc: List<String>, stmt: Statement): Expression.Lambda {
             return if (acc.size <= 1) {
-                Expression.Lambda(acc[0], exps)
+                Expression.Lambda(acc[0], stmt)
             } else {
-                Expression.Lambda(acc[0], listOf(unsugarToLambda(acc.drop(1), exps)))
+                Expression.Lambda(acc[0], Statement.Exp(desugarToLambda(acc.drop(1), stmt)))
             }
         }
 
-        val tk = iter.peek()
+        expect<Val>(noErr())
+
+        val name = expect<Ident>(withError(E.LET_DECL)).value.v
         val vars = tryParseListOf(::tryParseIdent)
 
-        return withIndentation {
-            expect<Equals>(withError(E.EQUALS))
-            withIndentation { indented ->
-                val exps = if (indented) {
-                    between<Newline, Expression> { parseExpression() }
-                } else {
-                    listOf(parseExpression())
-                }
+        expect<Equals>(withError(E.EQUALS))
 
-                val def = if (vars.isEmpty()) {
-                    if (exps.size > 1) throwError(withError(E.INVALID_DECL)(tk))
-                    Def(name, exps[0], null)
-                } else {
-                    Def(name, unsugarToLambda(vars, exps), null)
-                }
+        val stmt = parseStatement()
 
-                Decl.VarDecl(Expression.Let(listOf(def)))
-            }
+        return if(vars.isEmpty()) {
+            Decl.ValDecl(name, stmt)
+        } else {
+            Decl.ValDecl(name, Statement.Exp(desugarToLambda(vars, stmt)))
         }
     }
 
@@ -201,9 +153,28 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
     }
 
-    private fun parseExpression(parens: Boolean = false): Expression {
+    private fun parseStatement(): Statement = when(iter.peek().value) {
+        is Do -> parseDo()
+        else -> Statement.Exp(parseExpression())
+    }
+
+    private fun parseDo(): Statement.Do {
+        expect<Do>(noErr())
+        expect<LBracket>(withError(E.lbracketExpected("do expression")))
+
+        val exps = between<Semicolon, Expression>(::parseExpression)
+
+        // last semicolon is optional
+        if(iter.peek().value is Semicolon) iter.next()
+
+        expect<RBracket>(withError(E.rbracketExpected("do expression")))
+
+        return Statement.Do(exps)
+    }
+
+    private fun parseExpression(): Expression {
         val tk = iter.peek()
-        val exps = tryParseListOf { tryParseAtom(parens) }
+        val exps = tryParseListOf(::tryParseAtom)
 
         val unrolled = Operators.parseApplication(exps)
         if (unrolled == null) {
@@ -211,7 +182,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         } else return unrolled
     }
 
-    private fun tryParseAtom(parens: Boolean = false): Expression? = when (iter.peek().value) {
+    private fun tryParseAtom(): Expression? = when (iter.peek().value) {
         is IntT -> parseInt()
         is FloatT -> parseFloat()
         is StringT -> parseString()
@@ -221,16 +192,15 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         is Op -> parseOperator()
         is LParen -> {
             iter.next()
-            val exp = parseExpression(true)
+            val exp = parseExpression()
             expect<RParen>(withError(E.rparensExpected("expression")))
-            if (iter.peek().value is Dedent) iter.next()
             exp
         }
-        is UpperIdent -> parseDataConstruction(parens)
-        is Backslash -> parseLambda(parens)
-        is IfT -> parseIf(parens)
+        is UpperIdent -> parseDataConstruction()
+        is Backslash -> parseLambda()
+        is IfT -> parseIf()
         is LetT -> parseLet()
-        is CaseT -> parseMatch(parens)
+        is CaseT -> parseMatch()
         else -> null
     }
 
@@ -269,136 +239,91 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return Expression.Operator(op.value.op)
     }
 
-    private fun parseDataConstruction(parens: Boolean): Expression.Construction {
+    private fun parseDataConstruction(): Expression.Construction {
         val ctor = expect<UpperIdent>(withError("")).value.v
 
-        val fields = tryParseListOf { tryParseAtom(parens) }
+        val fields = tryParseListOf(::tryParseAtom)
         return Expression.Construction(ctor, fields)
     }
 
-    private fun parseLambda(parens: Boolean, multiVar: Boolean = false): Expression.Lambda {
+    private fun parseLambda(multiVar: Boolean = false, isLet: Boolean = false): Expression.Lambda {
         if (!multiVar) expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
 
         val bind = expect<Ident>(withError(E.LAMBDA_VAR))
 
         return if (iter.peek().value is Ident) {
-            Expression.Lambda(bind.value.v, listOf(parseLambda(parens, true)))
+            Expression.Lambda(bind.value.v, Statement.Exp(parseLambda(true, isLet)))
         } else {
-            expect<Arrow>(withError(E.LAMBDA_ARROW))
-            withIndentation(parens = parens) { indented ->
-                val exps = if (indented) {
-                    between<Newline, Expression> { parseExpression(parens) }
-                } else listOf(parseExpression())
-                Expression.Lambda(bind.value.v, exps)
-            }
+            if (isLet) expect<Equals>(withError(E.LET_EQUALS))
+            else expect<Arrow>(withError(E.LAMBDA_ARROW))
+
+            val stmt = parseStatement()
+            Expression.Lambda(bind.value.v, stmt)
         }
     }
 
-    private fun parseIf(parens: Boolean): Expression.If {
-        var (indented, newlined) = false to false
+    private fun parseIf(): Expression.If {
         expect<IfT>(noErr())
 
-        val cond = withIndentation {
-            parseExpression()
-        }
-
-        when (iter.peek().value) {
-            is Newline -> {
-                iter.next(); newlined = true
-            }
-            is Indent -> {
-                iter.next(); indented = true
-            }
-        }
+        val cond = parseExpression()
 
         expect<Then>(withError(E.THEN))
 
-        fun thenElse(parens: Boolean): List<Expression> = withIndentation { isIndented ->
-            if (isIndented) {
-                between<Newline, Expression> { parseExpression(parens) }
-            } else {
-                listOf(parseExpression(parens))
-            }
-        }
-
-        val thenE = thenElse(false)
-
-        if (indented || newlined) expect<Newline>(withError(E.newlineExpected("then clause")))
+        val thens = parseStatement()
 
         expect<Else>(withError(E.ELSE))
 
-        val elseE = thenElse(parens)
+        val elses = parseStatement()
 
-        if (parens) {
-            if (iter.peek().value is Dedent) iter.next()
-        } else if (indented) {
-            expect<Dedent>(withError(E.dedentExpected("after if expression")))
-        }
-
-        return Expression.If(cond, thenE, elseE)
+        return Expression.If(cond, thens, elses)
     }
 
     private fun parseLet(): Expression.Let {
         expect<LetT>(noErr())
 
-        val defs = mutableListOf<Def>()
-        defs += parseLetDef()
+        val defs = between<And, Def>(::parseLetDef)
 
-        if (iter.peek().value is Indent) {
-            iter.next()
-            defs += parseLetDef()
-            while (iter.peek().value is Newline) {
-                iter.next()
-                defs += parseLetDef()
-            }
-            expect<Dedent>(withError(E.dedentExpected("let definition")))
-        }
-        return Expression.Let(defs)
+        expect<In>(withError(E.LET_IN))
+
+        val stmt = parseStatement()
+
+        return Expression.Let(defs, stmt)
     }
 
     private fun parseLetDef(): Def {
         val ident = expect<Ident>(withError(E.LET_DECL))
 
-        expect<Equals>(withError(E.LET_EQUALS))
-
-        val exp = parseExpression()
-
-        var type: Polytype? = null
-        if (iter.peek().value is DoubleColon) {
-            iter.next()
-            type = parsePolytype(false)
+        return if (iter.peek().value is Ident) {
+            val exp = parseLambda(multiVar = true, isLet = true)
+            Def(ident.value.v, exp, null)
+        } else {
+            expect<Equals>(withError(E.LET_EQUALS))
+            val exp = parseExpression()
+            Def(ident.value.v, exp, null)
         }
-        return Def(ident.value.v, exp, type)
     }
 
-    private fun parseMatch(parens: Boolean): Expression.Match {
+    private fun parseMatch(): Expression.Match {
         expect<CaseT>(noErr())
 
         val exp = parseExpression()
 
         expect<Of>(withError(E.CASE_OF))
 
-        val cases = withIndentation(required = true, parens = parens) {
-            between<Newline, Case> { parseCase(parens) }
-        }
+        expect<LSBracket>(withError(E.lsbracketExpected("case expression")))
+        val cases = between<Pipe, Case>(::parseCase)
+        expect<RSBracket>(withError(E.rsbracketExpected("case expression")))
+
         return Expression.Match(exp, cases)
     }
 
-    private fun parseCase(parens: Boolean): Case {
+    private fun parseCase(): Case {
         val pat = parsePattern()
 
-        val exps = withIndentation {
-            expect<Arrow>(withError(E.CASE_ARROW))
+        expect<Arrow>(withError(E.CASE_ARROW))
 
-            withIndentation { indented ->
-                if (indented) {
-                    between<Newline, Expression> { parseExpression(parens) }
-                } else {
-                    listOf(parseExpression(parens))
-                }
-            }
-        }
-        return Case(pat, exps)
+        val stmt = parseStatement()
+        return Case(pat, stmt)
     }
 
     private fun parsePattern(): Pattern {
@@ -409,25 +334,32 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val tk = iter.peek()
         return when (tk.value) {
             is Underline -> {
-                iter.next(); Pattern.Wildcard
+                iter.next()
+                Pattern.Wildcard
             }
             is Ident -> {
-                iter.next(); Pattern.Var(tk.value.v)
+                iter.next()
+                Pattern.Var(tk.value.v)
             }
             is BoolT -> {
-                iter.next(); Pattern.LiteralP(LiteralPattern.BoolLiteral(tk.value.b))
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.BoolLiteral(tk.value.b))
             }
             is IntT -> {
-                iter.next(); Pattern.LiteralP(LiteralPattern.IntLiteral(tk.value.i))
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.IntLiteral(tk.value.i))
             }
             is FloatT -> {
-                iter.next(); Pattern.LiteralP(LiteralPattern.FloatLiteral(tk.value.f))
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.FloatLiteral(tk.value.f))
             }
             is CharT -> {
-                iter.next(); Pattern.LiteralP(LiteralPattern.CharLiteral(tk.value.c))
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.CharLiteral(tk.value.c))
             }
             is StringT -> {
-                iter.next(); Pattern.LiteralP(LiteralPattern.StringLiteral(tk.value.s))
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.StringLiteral(tk.value.s))
             }
             is LParen -> {
                 iter.next()
@@ -437,7 +369,6 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             }
             is UpperIdent -> {
                 iter.next()
-
                 val fields = tryParseListOf(::tryParsePattern)
                 Pattern.Ctor(tk.value.v, fields)
             }
@@ -448,7 +379,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     private fun parseDataConstructor(): DataConstructor {
         val ctor = expect<UpperIdent>(withError(E.CTOR_NAME))
 
-        val pars = parseListOf(::parseType) { it !is Pipe && noNewLine(it) }
+        val pars = tryParseListOf(::tryParseType)
         return DataConstructor(ctor.value.v, pars)
     }
 
@@ -461,23 +392,16 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
     }
 
-    private fun parsePolytype(indented: Boolean): Polytype {
+    private fun parsePolytype(): Polytype {
         var tyVars = listOf<TypeVar>()
-
-        // Ignore newlines for this parser
-        if (indented) iter.ignore { it.value is Newline }
 
         if (iter.peek().value is Forall) {
             iter.next()
-            tyVars = parseListOf(::parseTypeVar) {
-                it is Ident
-            }
+            tyVars = parseListOf(::parseTypeVar) { it is Ident }
             expect<Dot>(withError(E.FORALL_DOT))
         }
 
-        val poly = Polytype(tyVars, parseType())
-        if (indented) iter.stopIgnoring()
-        return poly
+        return Polytype(tyVars, parseType())
     }
 
     private fun parseType(): Monotype {
@@ -552,30 +476,6 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return res
     }
 
-    private fun noNewLine(tk: Token): Boolean = tk !is Newline && tk !is Indent && tk !is Dedent
-
-    /**
-     * Runs function `fn` with a possible increase of indentation.
-     * @param required if true forces an indentation
-     * @param parens if true this expressions in inside parens and doesn't necessarily need an dedent
-     */
-    private fun <T> withIndentation(required: Boolean = false, parens: Boolean = false, fn: (Boolean) -> T): T {
-        var indented = false
-        if (required || iter.peek().value is Indent) {
-            expect<Indent>(withError(E.indentExpected("expression")))
-            indented = true
-        }
-
-        val res = fn(indented)
-
-        if (parens) {
-            if (iter.peek().value is Dedent) iter.next()
-        } else if (indented) {
-            expect<Dedent>(withError(E.GENERIC_DEDENT))
-        }
-        return res
-    }
-
     /**
      * Expected a [Token] of type `T` or throws
      * an exception with the supplied error handler.
@@ -596,7 +496,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
          * Creates an error handler with the supplied message.
          */
         private fun withError(msg: String): (Spanned<Token>) -> String = { token ->
-            "$msg\n\n\tGot: ${token.value} at ${token.span}"
+            "$msg\n\nGot: ${token.value} at ${token.span}"
         }
 
         private fun throwError(err: String): Nothing {

@@ -17,8 +17,8 @@ sealed class ModuleExports {
             val varDecls = decls.map { decl ->
                 when(decl) {
                     is Decl.DataDecl -> decl.name
-                    is Decl.VarType -> decl.name
-                    is Decl.VarDecl -> decl.def.defs[0].name
+                    is Decl.TypeDecl -> decl.name
+                    is Decl.ValDecl -> decl.name
                 }
             }.toSet()
 

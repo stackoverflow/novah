@@ -14,9 +14,6 @@ sealed class Token {
     override fun toString(): String = this.javaClass.simpleName
 
     object EOF : Token()
-    object Indent : Token()
-    object Dedent : Token()
-    object Newline : Token()
     object LParen : Token()
     object RParen : Token()
     object LSBracket : Token()
@@ -26,6 +23,7 @@ sealed class Token {
     object Hash : Token()
     object Dot : Token()
     object Comma : Token()
+    object Semicolon : Token()
     object DoubleColon : Token()
     object Equals : Token()
     object Backslash : Token()
@@ -33,18 +31,22 @@ sealed class Token {
     object Underline : Token()
     object Pipe : Token()
     object ModuleT : Token()
-    object ImportT : Token()
-    object Forall : Token()
-    object Data : Token()
     object Hiding : Token()
     object Exposing : Token()
+    object ImportT : Token()
+    object Forall : Token()
+    object Type : Token()
     object As : Token()
+    object And : Token()
     object IfT : Token()
     object Then : Token()
     object Else : Token()
     object LetT : Token()
+    object Val : Token()
     object CaseT : Token()
     object Of : Token()
+    object In : Token()
+    object Do : Token()
 
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
@@ -122,26 +124,13 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
 
     private val operators = "$=<>|&+-:*/%^."
 
-    private val indentLevel = ArrayDeque<Int>()
-    private val tokenList = mutableListOf<Token>()
-
     override fun hasNext(): Boolean = iter.hasNext()
 
-    init {
-        indentLevel.addFirst(0)
-    }
-
     override fun next(): Spanned<Token> {
-        var start = iter.position
-
-        if (tokenList.isNotEmpty()) {
-            return Spanned(Span(start, start), tokenList.removeAt(0))
-        }
-
-        if (!iter.hasNext()) return Spanned(Span(start, start), EOF)
-
         consumeWhitespace()
-        start = iter.position
+
+        val start = iter.position
+        if (!iter.hasNext()) return Spanned(Span(start, start), EOF)
 
         val token = when (val c = iter.next()) {
             '(' -> LParen
@@ -152,6 +141,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             '}' -> RBracket
             '#' -> Hash
             ',' -> Comma
+            ';' -> Semicolon
             '∀' -> Forall
             '\\' -> Backslash
             '\'' -> char()
@@ -170,11 +160,6 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     next.value
                 }
                 else -> operator('/')
-            }
-            '\n' -> {
-                tokenList.clear()
-                tokenList.addAll(indent())
-                tokenList.removeAt(0)
             }
             else -> {
                 when {
@@ -217,13 +202,17 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             "module" -> ModuleT
             "import" -> ImportT
             "forall" -> Forall
-            "hiding" -> Hiding
-            "exposing" -> Exposing
+            "val" -> Val
             "let" -> LetT
             "case" -> CaseT
             "of" -> Of
-            "data" -> Data
+            "type" -> Type
             "as" -> As
+            "in" -> In
+            "and" -> And
+            "do" -> Do
+            "hiding" -> Hiding
+            "exposing" -> Exposing
             else ->
                 if (id[0].isUpperCase()) {
                     UpperIdent(id)
@@ -310,42 +299,12 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         }
     }
 
-    private fun indent(): List<Token> {
-        val tokens = mutableListOf<Token>()
-        var idLevel = 0
-        while (iter.hasNext() && iter.peek().isValidWhiteSpace()) {
-            when (iter.next()) {
-                ' ' -> idLevel += 1
-                '\n' -> idLevel = 0
-                else -> idLevel += 2
-            }
-        }
-
-        when {
-            idLevel > indentLevel.peekFirst() -> {
-                indentLevel.addFirst(idLevel)
-                tokens += Indent
-            }
-            idLevel == indentLevel.peekFirst() -> tokens += Newline
-            else -> {
-                while (idLevel < indentLevel.peekFirst()) {
-                    tokens += Dedent
-                    indentLevel.removeFirst()
-                }
-                tokens += Newline
-            }
-        }
-        return tokens
-    }
-
     private fun lineComment(): String {
         accept("/")
         val builder = StringBuilder()
         while (iter.peek() != '\n') {
             builder.append(iter.next())
         }
-        // consume the newline
-        iter.next()
         return builder.toString().trim()
     }
 
@@ -360,8 +319,6 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             builder.append(c)
             last = c
         }
-        // consume the newline
-        if (iter.hasNext() && iter.peek() == '\n') iter.next()
 
         return builder.toString().trimMargin("*")
     }
@@ -381,7 +338,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
     }
 
     private fun consumeWhitespace() {
-        while (iter.hasNext() && iter.peek().let { it != '\n' && it.isWhitespace() }) {
+        while (iter.hasNext() && iter.peek().isWhitespace()) {
             iter.next()
         }
     }
