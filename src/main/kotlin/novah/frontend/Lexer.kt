@@ -14,39 +14,38 @@ sealed class Token {
     override fun toString(): String = this.javaClass.simpleName
 
     object EOF : Token()
-    object LParen : Token()
-    object RParen : Token()
-    object LSBracket : Token()
-    object RSBracket : Token()
-    object LBracket : Token()
-    object RBracket : Token()
-    object Hash : Token()
-    object Dot : Token()
-    object Comma : Token()
-    object Semicolon : Token()
-    object DoubleColon : Token()
-    object Equals : Token()
-    object Backslash : Token()
-    object Arrow : Token()
-    object Underline : Token()
-    object Pipe : Token()
-    object ModuleT : Token()
-    object Hiding : Token()
-    object Exposing : Token()
-    object ImportT : Token()
-    object Forall : Token()
-    object Type : Token()
-    object As : Token()
-    object And : Token()
-    object IfT : Token()
-    object Then : Token()
-    object Else : Token()
-    object LetT : Token()
-    object Val : Token()
-    object CaseT : Token()
-    object Of : Token()
-    object In : Token()
-    object Do : Token()
+    class LParen : Token()
+    class RParen : Token()
+    class LSBracket : Token()
+    class RSBracket : Token()
+    class LBracket : Token()
+    class RBracket : Token()
+    class Hash : Token()
+    class Dot : Token()
+    class Comma : Token()
+    class Semicolon : Token()
+    class DoubleColon : Token()
+    class Equals : Token()
+    class Backslash : Token()
+    class Arrow : Token()
+    class Underline : Token()
+    class Pipe : Token()
+    class ModuleT : Token()
+    class Hiding : Token()
+    class Exposing : Token()
+    class ImportT : Token()
+    class Forall : Token()
+    class Type : Token()
+    class As : Token()
+    class And : Token()
+    class IfT : Token()
+    class Then : Token()
+    class Else : Token()
+    class LetT : Token()
+    class CaseT : Token()
+    class Of : Token()
+    class In : Token()
+    class Do : Token()
 
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
@@ -120,7 +119,7 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 
 class Lexer(input: String) : Iterator<Spanned<Token>> {
 
-    private val iter = CharPositionIterator((input + '\n').iterator())
+    private val iter = CharPositionIterator(input.iterator())
 
     private val operators = "$=<>|&+-:*/%^."
 
@@ -133,17 +132,17 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         if (!iter.hasNext()) return Spanned(Span(start, start), EOF)
 
         val token = when (val c = iter.next()) {
-            '(' -> LParen
-            ')' -> RParen
-            '[' -> LSBracket
-            ']' -> RSBracket
-            '{' -> LBracket
-            '}' -> RBracket
-            '#' -> Hash
-            ',' -> Comma
-            ';' -> Semicolon
-            '∀' -> Forall
-            '\\' -> Backslash
+            '(' -> LParen()
+            ')' -> RParen()
+            '[' -> LSBracket()
+            ']' -> RSBracket()
+            '{' -> LBracket()
+            '}' -> RBracket()
+            '#' -> Hash()
+            ',' -> Comma()
+            ';' -> Semicolon()
+            '∀' -> Forall()
+            '\\' -> Backslash()
             '\'' -> char()
             '"' -> string()
             '/' -> when (iter.peek()) {
@@ -195,24 +194,23 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         return when (val id = builder.toString()) {
             "true" -> BoolT(true)
             "false" -> BoolT(false)
-            "if" -> IfT
-            "then" -> Then
-            "else" -> Else
-            "_" -> Underline
-            "module" -> ModuleT
-            "import" -> ImportT
-            "forall" -> Forall
-            "val" -> Val
-            "let" -> LetT
-            "case" -> CaseT
-            "of" -> Of
-            "type" -> Type
-            "as" -> As
-            "in" -> In
-            "and" -> And
-            "do" -> Do
-            "hiding" -> Hiding
-            "exposing" -> Exposing
+            "if" -> IfT()
+            "then" -> Then()
+            "else" -> Else()
+            "_" -> Underline()
+            "module" -> ModuleT()
+            "import" -> ImportT()
+            "forall" -> Forall()
+            "let" -> LetT()
+            "case" -> CaseT()
+            "of" -> Of()
+            "type" -> Type()
+            "as" -> As()
+            "in" -> In()
+            "and" -> And()
+            "do" -> Do()
+            "hiding" -> Hiding()
+            "exposing" -> Exposing()
             else ->
                 if (id[0].isUpperCase()) {
                     UpperIdent(id)
@@ -290,11 +288,11 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         if (op.length > 3) lexError("Operators cannot have more than 3 characters: `$op`")
 
         return when (op) {
-            "=" -> Equals
-            "->" -> Arrow
-            "|" -> Pipe
-            "." -> Dot
-            "::" -> DoubleColon
+            "=" -> Equals()
+            "->" -> Arrow()
+            "|" -> Pipe()
+            "." -> Dot()
+            "::" -> DoubleColon()
             else -> Op(op)
         }
     }

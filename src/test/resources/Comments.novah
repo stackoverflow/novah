@@ -1,13 +1,13 @@
 module Comments
 
 // comments on type definitions work
-type Maybe a = Just a | Nothing
+type Maybe a = Just a | Nothing;
 
 /**
  * comments on var types work
  */
-type myFun :: Int -> Int
-val myFun x = x + 1
+myFun :: Int -> Int;
+myFun x = x + 1;
 
 // comments on var declaration work
-val other = "hello"
+other = "hello";

@@ -1,5 +1,5 @@
 module Novah.Example
-  hiding (maybe, myFun)
+  hiding (maybe, myFun, end)
 
 import Prelude
 
@@ -11,58 +11,62 @@ import Control.Brain as B
 
 type Maybe a
   = Nope
-  | Just a
+  | Just a;
 
 type List a =
   Nil
-  | Cons a (List a)
+  | Cons a (List a);
 
-val num = 0x123efa7c
+num = 0x123efa7c;
 
-val doub x = 13.87E-12
+doub x = 13.87E-12;
 
-val x = fn 3 4 5
+x = fn 3 4 5;
 
-type stuff
+stuff
   :: Int
   -> Int
-  -> String
-val stuff v v2 = case v of
-  [ 0 -> "0"
+  -> String;
+stuff v v2 = case v of
+  | 0 -> "0"
   | 1 -> show v2
-  | _ -> "oops" ]
+  | _ -> "oops";
 
 /**
  * Some multi line comment
  * added here
  */
-type maybe :: forall a. a -> Int -> Maybe (a -> a)
-val maybe def sm = case sm of
-  [ Some x -> B.brain x
-  | Nope -> def ]
+maybe :: forall a. a -> Int -> Maybe (a -> a);
+maybe def sm = case sm of
+  | Some x -> B.brain x
+  | Nope -> def;
 
-type id :: ∀ a. a -> a
-val id x = x
+id :: ∀ a. a -> a;
+id x = x;
 
 // some comment here
-val myFun x = case x of
-  [ None -> do {
-      println "Nothing is true!";
-      case 4 of [ x -> x ]
+myFun x = case x of
+  | None -> do {
+      println "Something";
+      case 4 of | x -> x
     }
-  | Some x -> 9 ]
+  | Some x -> 9;
 
-val ex x =
-  let x = 4 in
-  x * 6
+ex x =
+  let x = 4 in do {
+    sideEffect 0;
+    x * 6
+  };
 
-type doIt :: Unit -> String
-val doIt u = do {
+doIt :: Unit -> String;
+doIt u = do {
   println "not pure";
   map (\x -> do {
     println x;
     x + 1}) (Some 3);
-  let f x = x
+  let f :: forall a. a -> a
+  and f x = x
+  and y :: Int
   and y = f 9 in
   if y >= 2 then do {
     println "big y";
@@ -72,3 +76,6 @@ val doIt u = do {
     0
   }
 }
+
+end :: String;
+end = "end";

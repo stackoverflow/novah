@@ -4,17 +4,14 @@ import io.kotlintest.matchers.string.contain
 import io.kotlintest.should
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
-import novah.Decl
-import novah.Expression.*
-import novah.Module
-import novah.Statement.*
+import novah.frontend.Expression.*
+import novah.frontend.Statement.*
 import novah.frontend.TestUtil.parseResource
-import novah.show
 
 class ParserSpec : StringSpec() {
     init {
 
-        "Parser correctly parses operators" {
+        "!Parser correctly parses operators" {
             val ast = parseResource("Operators.novah")
 
             val x = "((`||` ((`||` w) ((`&&` r) x))) p)"
@@ -34,7 +31,7 @@ class ParserSpec : StringSpec() {
             ast.byName("r2") shouldBe r2
         }
 
-        "Parser correctly parses lambdas" {
+        "!Parser correctly parses lambdas" {
             val ast = parseResource("Lambda.novah")
 
             val simpleL = Exp(Lambda("x", Exp(Var("x"))))
@@ -63,6 +60,12 @@ class ParserSpec : StringSpec() {
             data.comment?.comment should contain("comments on type definitions work")
             type.comment?.comment should contain("comments on var types work")
             vard.comment?.comment should contain("comments on var declaration work")
+        }
+
+        "!Parser correctly type hints" {
+            val ast = parseResource("Hints.novah")
+
+            //println(ast.show())
         }
 
         "Exported definitions have correct visibility" {

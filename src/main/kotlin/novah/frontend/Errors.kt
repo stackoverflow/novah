@@ -21,8 +21,6 @@ object Errors {
 
     const val TYPE_DCOLON = "Expected `::` before type definition."
 
-    const val LET_EQUALS = "Expected equals `=` after let name declaration."
-
     const val TYPE_VAR = "Expected type variable (lower case identifier)."
 
     const val TYPE_DEF = "Expected a type definition."
@@ -60,13 +58,34 @@ object Errors {
 
     const val LET_DECL = "Expected variable name after `let`."
 
+    const val LET_EQUALS = "Expected `=` after let name declaration."
+
     const val LET_IN = "Expected `in` after let definition."
+
+    val LET_AND = """Expected `and` after type declaration.
+        |
+        |ex: let x :: Int
+        |    and x = 8 in x
+    """.trimMargin()
+
+    val LET_TYPE = """Types should be defined before their declaration, not after.
+        |
+        |ex: let x :: Int
+        |    and x = 8 in x
+    """.trimMargin()
 
     const val CASE_OF = "Expected `of` after a case expression."
 
     const val CASE_ARROW = "Expected `->` after case pattern."
 
     const val MALFORMED_EXPR = "Malformed expression."
+
+    const val IMPORTED_DOT = "Expected identifier after imported variable reference."
+
+    val IMPORT_NOT_FOUND = """Could not find imported alias. Make sure the module is imported.
+        |
+        |ex: import Some.Module as M
+    """.trimMargin()
 
     fun literalExpected(name: String) = "Expected $name literal."
 
@@ -78,4 +97,8 @@ object Errors {
 
     fun lsbracketExpected(ctx: String) = "Expected `[` after $ctx."
     fun rsbracketExpected(ctx: String) = "Expected `]` after $ctx."
+
+    fun semicolonExpected(ctx: String) = "Expected `;` after $ctx."
+
+    fun pipeExpected(ctx: String) = "Expected `|` after $ctx."
 }

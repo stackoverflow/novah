@@ -1,7 +1,7 @@
 package novah.frontend.typechecker
 
-import novah.Expression
-import novah.show
+import novah.frontend.Expression
+import novah.frontend.show
 import java.lang.RuntimeException
 
 class TypecheckError(private val exp: Expression, private val msg: String) : RuntimeException() {

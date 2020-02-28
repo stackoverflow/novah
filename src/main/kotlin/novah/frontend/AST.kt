@@ -1,6 +1,4 @@
-package novah
-
-import novah.frontend.Comment
+package novah.frontend
 
 typealias ModuleName = List<String>
 
@@ -36,6 +34,8 @@ sealed class Statement {
 }
 
 sealed class Expression {
+    var type: Polytype? = null
+
     data class IntE(val i: Long) : Expression()
     data class FloatE(val f: Double) : Expression()
     data class StringE(val s: String) : Expression()
@@ -86,7 +86,7 @@ data class Polytype(val vars: List<TypeVar>, val type: Monotype)
 ////////////////////////////////
 
 private fun toComment(c: Comment): String {
-    return if(c.isMulti) {
+    return if (c.isMulti) {
         "/**\n" + c.comment + "\n*/"
     } else {
         "// " + c.comment
@@ -123,15 +123,15 @@ fun Import.show(): String = when (this) {
 fun Decl.show(): String {
     val str = when (this) {
         is Decl.ValDecl -> {
-            "val $name = ${stmt.show()}"
+            "$name = ${stmt.show()};"
         }
         is Decl.DataDecl -> {
             val dataCts = dataCtors.joinToString("\n\t| ") { it.show() }
-            "type $name${tyVars.map { it.v }.joinShow(" ")} =\n\t$dataCts"
+            "type $name${tyVars.map { it.v }.joinShow(" ")} =\n\t$dataCts;"
         }
-        is Decl.TypeDecl -> "type $name :: ${typ.show()}"
+        is Decl.TypeDecl -> "$name :: ${typ.show()};"
     }
-    return if(comment != null) {
+    return if (comment != null) {
         toComment(comment!!) + "\n$str"
     } else str
 }
@@ -144,7 +144,7 @@ fun DataConstructor.show(): String {
     }
 }
 
-fun Statement.show(tab: String = ""): String = when(this) {
+fun Statement.show(tab: String = ""): String = when (this) {
     is Statement.Exp -> exp.show(tab)
     is Statement.Do -> {
         val t = "$tab  "
@@ -152,39 +152,49 @@ fun Statement.show(tab: String = ""): String = when(this) {
     }
 }
 
-fun Expression.show(tab: String = ""): String = when (this) {
-    is Expression.App -> "(${fn.show(tab)} ${arg.show(tab)})"
-    is Expression.Operator -> "`$name`"
-    is Expression.Var -> {
-        if(moduleName.isEmpty()) {
-            name
-        } else {
-            "${moduleName.joinToString(".")}.$name"
+fun Expression.show(tab: String = ""): String {
+    fun showType(exp: Expression) = if (exp.type != null) {
+        " :: ${exp.type?.show()}"
+    } else ""
+
+    return when (this) {
+        is Expression.App -> "(${fn.show(tab)} ${arg.show(tab)}${showType(this)})"
+        is Expression.Operator -> "`$name`"
+        is Expression.Var -> {
+            if (moduleName.isEmpty()) {
+                name + showType(this)
+            } else {
+                "${moduleName.joinToString(".")}.$name" + showType(this)
+            }
         }
-    }
-    is Expression.IntE -> "$i"
-    is Expression.FloatE -> "$f"
-    is Expression.StringE -> "\"$s\""
-    is Expression.CharE -> "'$c'"
-    is Expression.Bool -> "$b"
-    is Expression.Construction -> {
-        if (fields.isEmpty()) ctor
-        else "($ctor ${fields.joinToString(" ") { it.show() }})"
-    }
-    is Expression.Match -> {
-        val cs = cases.joinToString("\n\t$tab| ") { it.show("$tab  ") }
-        "case ${exp.show()} of\n\t$tab[ $cs ]"
-    }
-    is Expression.Lambda -> "(\\$binder -> " + body.show("$tab  ") + ")"
-    is Expression.If -> {
-        "if ${cond.show(tab)} \n\tthen ${thenCase.show(tab)} \n\telse ${elseCase.show(tab)}"
-    }
-    is Expression.Let -> {
-        "let " + defs.joinToString("\n" + tab + "and ") { it.show() } + " in\n$tab" + stmt.show(tab)
+        is Expression.IntE -> "$i"
+        is Expression.FloatE -> "$f"
+        is Expression.StringE -> "\"$s\""
+        is Expression.CharE -> "'$c'"
+        is Expression.Bool -> "$b"
+        is Expression.Construction -> {
+            if (fields.isEmpty()) ctor
+            else "($ctor ${fields.joinToString(" ") { it.show() }})"
+        }
+        is Expression.Match -> {
+            val cs = cases.joinToString("\n\t$tab| ") { it.show("$tab  ") }
+            "case ${exp.show()} of\n\t$tab| $cs"
+        }
+        is Expression.Lambda -> "(\\$binder -> " + body.show("$tab  ") + ")"
+        is Expression.If -> {
+            "if ${cond.show(tab)} \n\tthen ${thenCase.show(tab)} \n\telse ${elseCase.show(tab)}"
+        }
+        is Expression.Let -> {
+            "let " + defs.joinToString("\n" + tab + "and ") { it.show(tab) } + " in\n$tab" + stmt.show(tab)
+        }
     }
 }
 
-fun Def.show(): String = "$name = ${expr.show()}" + (type?.show() ?: "")
+fun Def.show(tab: String = ""): String = if (type == null) {
+    "$name = ${expr.show()}"
+} else {
+    "$name :: ${type.show()}\n${tab}and $name = ${expr.show(tab)}"
+}
 
 fun Case.show(tab: String = ""): String {
     return "${pattern.show()} -> ${stmt.show("$tab  ")}"

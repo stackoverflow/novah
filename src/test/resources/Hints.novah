@@ -1,0 +1,3 @@
+module Hints
+
+x = some 3 $ map odd list :: String;

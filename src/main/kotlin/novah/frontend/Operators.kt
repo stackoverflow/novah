@@ -1,7 +1,5 @@
 package novah.frontend
 
-import novah.Expression
-
 object Operators {
 
     private sealed class Fixity {

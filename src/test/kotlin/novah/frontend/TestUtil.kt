@@ -1,7 +1,5 @@
 package novah.frontend
 
-import novah.Module
-
 object TestUtil {
 
     private fun lexString(input: String): MutableList<Spanned<Token>> {

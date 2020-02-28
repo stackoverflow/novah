@@ -1,11 +1,12 @@
 package novah.frontend
 
-import novah.*
 import novah.frontend.Token.*
 import novah.frontend.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>) {
     private val iter = PeekableIterator(tokens)
+
+    private var imports = listOf<Import>()
 
     fun parseFullModule(): Module {
         val (mname, exports) = parseModule()
@@ -14,13 +15,19 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         while (iter.peek().value is ImportT) {
             imports += parseImport()
         }
+        this.imports = imports
 
         val decls = mutableListOf<Decl>()
         while (iter.peek().value !is EOF) {
             decls += parseDecl()
         }
 
-        return Module(mname, imports, ModuleExports.consolidate(exports, decls), decls)
+        return Module(
+            mname,
+            imports,
+            ModuleExports.consolidate(exports, decls),
+            decls
+        )
     }
 
     private fun parseModule(): Pair<ModuleName, ModuleExports> {
@@ -82,19 +89,16 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val comment = tk.value.comment
         val decl = when (tk.value) {
             is Type -> parseTypeDecl()
-            is Val -> parseVal()
+            is Ident -> parseVarDecl()
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
         decl.comment = comment
         return decl
     }
 
-    private fun parseTypeDecl(): Decl {
+    private fun parseTypeDecl(): Decl.DataDecl {
         expect<Type>(noErr())
 
-        if(iter.peek().value is Ident) {
-            return parseValTypeDecl()
-        }
         val name = expect<UpperIdent>(withError(E.DATA_NAME))
 
         val tyVars = parseListOf(::parseTypeVar) { it is Ident }
@@ -109,16 +113,12 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             } else break
         }
 
+        expect<Semicolon>(withError(E.semicolonExpected("type declaration")))
+
         return Decl.DataDecl(name.value.v, tyVars, ctors)
     }
 
-    private fun parseValTypeDecl(): Decl.TypeDecl {
-        val name = expect<Ident>(noErr())
-        expect<DoubleColon>(withError(E.TYPE_DCOLON))
-        return Decl.TypeDecl(name.value.v, parsePolytype())
-    }
-
-    private fun parseVal(): Decl.ValDecl {
+    private fun parseVarDecl(): Decl {
         // transforms `fun x y z = 1` into `fun = \x -> \y -> \z -> 1`
         fun desugarToLambda(acc: List<String>, stmt: Statement): Expression.Lambda {
             return if (acc.size <= 1) {
@@ -128,20 +128,36 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             }
         }
 
-        expect<Val>(noErr())
+        val name = expect<Ident>(noErr()).value.v
+        if (iter.peek().value is DoubleColon) {
+            return parseTypeSignature(name)
+        }
 
-        val name = expect<Ident>(withError(E.LET_DECL)).value.v
         val vars = tryParseListOf(::tryParseIdent)
 
         expect<Equals>(withError(E.EQUALS))
 
         val stmt = parseStatement()
 
-        return if(vars.isEmpty()) {
+        val decl = if (vars.isEmpty()) {
             Decl.ValDecl(name, stmt)
         } else {
             Decl.ValDecl(name, Statement.Exp(desugarToLambda(vars, stmt)))
         }
+
+        // only expected semicolons after expressions, not `do` statements
+        if(stmt is Statement.Exp) {
+            expect<Semicolon>(withError(E.semicolonExpected("variable declaration")))
+        }
+
+        return decl
+    }
+
+    private fun parseTypeSignature(name: String): Decl.TypeDecl {
+        expect<DoubleColon>(withError(E.TYPE_DCOLON))
+        val decl = Decl.TypeDecl(name, parsePolytype())
+        expect<Semicolon>(withError(E.semicolonExpected("type signature")))
+        return decl
     }
 
     private fun tryParseIdent(): String? {
@@ -153,7 +169,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
     }
 
-    private fun parseStatement(): Statement = when(iter.peek().value) {
+    private fun parseStatement(): Statement = when (iter.peek().value) {
         is Do -> parseDo()
         else -> Statement.Exp(parseExpression())
     }
@@ -165,7 +181,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val exps = between<Semicolon, Expression>(::parseExpression)
 
         // last semicolon is optional
-        if(iter.peek().value is Semicolon) iter.next()
+        if (iter.peek().value is Semicolon) iter.next()
 
         expect<RBracket>(withError(E.rbracketExpected("do expression")))
 
@@ -176,10 +192,15 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val tk = iter.peek()
         val exps = tryParseListOf(::tryParseAtom)
 
-        val unrolled = Operators.parseApplication(exps)
-        if (unrolled == null) {
-            throwError(withError(E.MALFORMED_EXPR)(tk))
-        } else return unrolled
+        val unrolled = Operators.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
+
+        // type signatures have the lowest precendece
+        if (iter.peek().value is DoubleColon) {
+            iter.next()
+            val pt = parsePolytype()
+            unrolled.type = pt
+        }
+        return unrolled
     }
 
     private fun tryParseAtom(): Expression? = when (iter.peek().value) {
@@ -196,7 +217,14 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             expect<RParen>(withError(E.rparensExpected("expression")))
             exp
         }
-        is UpperIdent -> parseDataConstruction()
+        is UpperIdent -> {
+            val uident = expect<UpperIdent>(noErr())
+            if (iter.peek().value is Dot) {
+                parseImportedVar(uident)
+            } else {
+                parseDataConstruction(uident.value.v)
+            }
+        }
         is Backslash -> parseLambda()
         is IfT -> parseIf()
         is LetT -> parseLet()
@@ -239,9 +267,18 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return Expression.Operator(op.value.op)
     }
 
-    private fun parseDataConstruction(): Expression.Construction {
-        val ctor = expect<UpperIdent>(withError("")).value.v
+    private fun parseImportedVar(alias: Spanned<UpperIdent>): Expression.Var {
+        val moduleName = findImport(alias.value.v)
+        return if (moduleName == null) {
+            throwError(withError(E.IMPORT_NOT_FOUND)(alias))
+        } else {
+            expect<Dot>(noErr())
+            val ident = expect<Ident>(withError(E.IMPORTED_DOT)).value.v
+            Expression.Var(ident, moduleName)
+        }
+    }
 
+    private fun parseDataConstruction(ctor: String): Expression.Construction {
         val fields = tryParseListOf(::tryParseAtom)
         return Expression.Construction(ctor, fields)
     }
@@ -281,7 +318,10 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     private fun parseLet(): Expression.Let {
         expect<LetT>(noErr())
 
-        val defs = between<And, Def>(::parseLetDef)
+        val types = mutableListOf<Decl.TypeDecl>()
+        val defsCtx = mutableListOf<Def>()
+
+        val defs = between<And, Def> { parseLetDef(types, defsCtx) }
 
         expect<In>(withError(E.LET_IN))
 
@@ -290,16 +330,33 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return Expression.Let(defs, stmt)
     }
 
-    private fun parseLetDef(): Def {
+    private tailrec fun parseLetDef(types: MutableList<Decl.TypeDecl>, defs: MutableList<Def>): Def {
         val ident = expect<Ident>(withError(E.LET_DECL))
 
-        return if (iter.peek().value is Ident) {
-            val exp = parseLambda(multiVar = true, isLet = true)
-            Def(ident.value.v, exp, null)
-        } else {
-            expect<Equals>(withError(E.LET_EQUALS))
-            val exp = parseExpression()
-            Def(ident.value.v, exp, null)
+        return when (iter.peek().value) {
+            is DoubleColon -> {
+                if (defs.any { it.name == ident.value.v }) {
+                    throwError(withError(E.LET_TYPE)(ident))
+                }
+                iter.next()
+                val tdecl = Decl.TypeDecl(ident.value.v, parsePolytype())
+                types += tdecl
+                expect<And>(withError(E.LET_AND))
+                parseLetDef(types, defs)
+            }
+            is Ident -> {
+                val exp = parseLambda(multiVar = true, isLet = true)
+                val def = Def(ident.value.v, exp, types.find { it.name == ident.value.v }?.typ)
+                defs += def
+                def
+            }
+            else -> {
+                expect<Equals>(withError(E.LET_EQUALS))
+                val exp = parseExpression()
+                val def = Def(ident.value.v, exp, types.find { it.name == ident.value.v }?.typ)
+                defs += def
+                def
+            }
         }
     }
 
@@ -310,9 +367,8 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         expect<Of>(withError(E.CASE_OF))
 
-        expect<LSBracket>(withError(E.lsbracketExpected("case expression")))
+        expect<Pipe>(withError(E.pipeExpected("case expression")))
         val cases = between<Pipe, Case>(::parseCase)
-        expect<RSBracket>(withError(E.rsbracketExpected("case expression")))
 
         return Expression.Match(exp, cases)
     }
@@ -490,8 +546,14 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
     }
 
-    companion object {
+    /**
+     * Finds the full module name of an import alias
+     */
+    private fun findImport(alias: String): ModuleName? {
+        return imports.filterIsInstance<Import.As>().find { it.alias == alias }?.module
+    }
 
+    companion object {
         /**
          * Creates an error handler with the supplied message.
          */
