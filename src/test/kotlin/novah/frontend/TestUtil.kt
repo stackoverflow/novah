@@ -8,6 +8,7 @@ object TestUtil {
         while(lex.hasNext()) {
             tks += lex.next()
         }
+        tks += lex.next() // EOF
         return tks
     }
 

@@ -85,6 +85,10 @@ data class Polytype(val vars: List<TypeVar>, val type: Monotype)
 // AST functions
 ////////////////////////////////
 
+fun Polytype.isMono(): Boolean = this.vars.isEmpty()
+
+fun Monotype.toPoly(): Polytype = Polytype(listOf(), this)
+
 private fun toComment(c: Comment): String {
     return if (c.isMulti) {
         "/**\n" + c.comment + "\n*/"
@@ -127,7 +131,7 @@ fun Decl.show(): String {
         }
         is Decl.DataDecl -> {
             val dataCts = dataCtors.joinToString("\n\t| ") { it.show() }
-            "type $name${tyVars.map { it.v }.joinShow(" ")} =\n\t$dataCts;"
+            "type $name${tyVars.map { it.v }.joinShow(" ")}\n\t= $dataCts;"
         }
         is Decl.TypeDecl -> "$name :: ${typ.show()};"
     }

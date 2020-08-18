@@ -1,10 +1,7 @@
 package novah.frontend.typechecker
 
-import novah.frontend.Expression
-import novah.frontend.Monotype
+import novah.frontend.*
 import novah.frontend.Monotype.*
-import novah.frontend.Polytype
-import novah.frontend.TypeVar
 import novah.frontend.typechecker.TypeErrors as TE
 
 private val emptyTVars = listOf<TypeVar>()
@@ -14,7 +11,7 @@ fun mono(type: String): Polytype =
     Polytype(emptyTVars, Var(TypeVar(type)))
 
 fun monoCtor(type: String, vararg vals: Monotype): Polytype {
-    return if(vals.isEmpty()) {
+    return if (vals.isEmpty()) {
         Polytype(emptyTVars, Constructor(type, emptyTypes))
     } else {
         Polytype(emptyTVars, Constructor(type, vals.toList()))
@@ -35,31 +32,53 @@ data class Context(val env: HashMap<String, Polytype>) {
 }
 
 /**
- * A bidirectional type checker that can infer (synthesize)
- * and check types
+ * A bidirectional type checker
  */
 class TypeChecker(private val env: Context) {
 
-    /**
-     * The synthesize step of the type checker.
-     * Try to infer the type of exp based on the provided context.
-     */
-    fun synthesize(ctx: Context, exp: Expression): Polytype {
-        when(exp) {
-            is Expression.Var -> ctx[exp.name] ?: typeError(exp, TE.typeNotFound(exp.name))
-            is Expression.Bool -> env["Boolean"]
-            is Expression.CharE -> env["Char"]
-            is Expression.StringE -> env["String"]
+    var freshCounter = 0
+
+    fun freshVar(): Polytype = Polytype(emptyTVars, Unknown(++freshCounter))
+
+    fun synth(ctx: Context, exp: Expression): Polytype {
+        if (exp.type !== null) {
+            // check the expression against the annotated type
+            check(ctx, exp, exp.type!!)
+            return exp.type!!
         }
-        TODO()
+        return when (exp) {
+            is Expression.IntE -> mono("Int")
+            is Expression.FloatE -> mono("Float")
+            is Expression.Bool -> mono("Boolean")
+            is Expression.CharE -> mono("Char")
+            is Expression.StringE -> mono("String")
+            is Expression.Var -> ctx[exp.name] ?: typeError(exp, TE.typeNotFound(exp.name))
+            is Expression.App -> {
+                when (val typ = synth(ctx, exp.fn).type) {
+                    is Monotype.Function -> {
+                        check(ctx, exp.arg, typ.par.toPoly())
+                        typ.ret.toPoly()
+                    }
+                    else -> typeError(exp, "TODO")
+                }
+            }
+            else -> TODO("Subtyping rule here")
+        }
     }
 
-    /**
-     * The check step of the type checker.
-     * Given a context, an expression and a type check
-     * that this exp has this type.
-     */
-    fun check(ctx: Context, exp: Expression, type: Polytype) {
-
+    fun check(ctx: Context, exp: Expression, poly: Polytype) {
+        val type = poly.type
+        when (exp) {
+            is Expression.Lambda -> {
+                when (type) {
+                    is Monotype.Function -> {
+                        ctx[exp.binder] = type.par.toPoly()
+                        //check(ctx, exp.body, type.ret.toPoly())
+                    }
+                    else -> typeError(exp, "TODO")
+                }
+            }
+            else -> TODO()
+        }
     }
 }
