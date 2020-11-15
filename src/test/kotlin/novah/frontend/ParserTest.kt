@@ -5,15 +5,14 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
 import novah.frontend.Expression.*
-import novah.frontend.Statement.Exp
 import novah.frontend.TestUtil.parseResource
 
 class ParserSpec : StringSpec({
 
     fun Module.byName(name: String) =
-        decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.stmt?.show()
+        decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp?.show()
 
-    "!Parser correctly parses operators" {
+    "Parser correctly parses operators" {
         val ast = parseResource("Operators.novah")
 
         val x = "((`||` ((`||` w) ((`&&` r) x))) p)"
@@ -33,23 +32,23 @@ class ParserSpec : StringSpec({
         ast.byName("r2") shouldBe r2
     }
 
-    "!Parser correctly parses lambdas" {
+    "Parser correctly parses lambdas" {
         val ast = parseResource("Lambda.novah")
 
-        val simpleL = Exp(Lambda("x", Exp(Var("x"))))
-        val multiL = Exp(Lambda("x", Exp(Lambda("y", Exp(Lambda("z", Exp(IntE(1))))))))
+        val simpleL = Lambda("x", Var("x"))
+        val multiL = Lambda("x", Lambda("y", Lambda("z", IntE(1))))
 
         val simple = ast.decls[0] as Decl.ValDecl
         val multi = ast.decls[1] as Decl.ValDecl
         val simple2 = ast.decls[2] as Decl.ValDecl
         val multi2 = ast.decls[3] as Decl.ValDecl
 
-        simple.stmt shouldBe simpleL
-        multi.stmt shouldBe multiL
+        simple.exp shouldBe simpleL
+        multi.exp shouldBe multiL
 
         // unsugared versions should be the same as sugared ones
-        simple.stmt shouldBe simple2.stmt
-        multi.stmt shouldBe multi2.stmt
+        simple.exp shouldBe simple2.exp
+        multi.exp shouldBe multi2.exp
     }
 
     "Lexer and Parser correctly parse comments" {
@@ -64,7 +63,7 @@ class ParserSpec : StringSpec({
         vard.comment?.comment should contain("comments on var declaration work")
     }
 
-    "!Parser correctly type hints" {
+    "Parser correctly type hints" {
         val ast = parseResource("Hints.novah")
 
         //println(ast.show())

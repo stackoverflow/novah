@@ -87,6 +87,8 @@ object Errors {
         |ex: import Some.Module as M
     """.trimMargin()
 
+    const val EOL_OR_SEMICOLON = "Expected new line or semicolon after declaration."
+
     fun literalExpected(name: String) = "Expected $name literal."
 
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."

@@ -3,49 +3,45 @@ package novah.frontend
 import novah.frontend.Token.*
 import java.lang.NumberFormatException
 import java.lang.RuntimeException
-import java.util.*
 
 data class Comment(val comment: String, val isMulti: Boolean = false)
 
 sealed class Token {
 
-    var comment: Comment? = null
-
-    override fun toString(): String = this.javaClass.simpleName
-
     object EOF : Token()
-    class LParen : Token()
-    class RParen : Token()
-    class LSBracket : Token()
-    class RSBracket : Token()
-    class LBracket : Token()
-    class RBracket : Token()
-    class Hash : Token()
-    class Dot : Token()
-    class Comma : Token()
-    class Semicolon : Token()
-    class DoubleColon : Token()
-    class Equals : Token()
-    class Backslash : Token()
-    class Arrow : Token()
-    class Underline : Token()
-    class Pipe : Token()
-    class ModuleT : Token()
-    class Hiding : Token()
-    class Exposing : Token()
-    class ImportT : Token()
-    class Forall : Token()
-    class Type : Token()
-    class As : Token()
-    class And : Token()
-    class IfT : Token()
-    class Then : Token()
-    class Else : Token()
-    class LetT : Token()
-    class CaseT : Token()
-    class Of : Token()
-    class In : Token()
-    class Do : Token()
+    object LParen : Token()
+    object RParen : Token()
+    object LSBracket : Token()
+    object RSBracket : Token()
+    object LBracket : Token()
+    object RBracket : Token()
+    object Hash : Token()
+    object Dot : Token()
+    object Comma : Token()
+    object Semicolon : Token()
+    object EOL : Token()
+    object DoubleColon : Token()
+    object Equals : Token()
+    object Backslash : Token()
+    object Arrow : Token()
+    object Underline : Token()
+    object Pipe : Token()
+    object ModuleT : Token()
+    object Hiding : Token()
+    object Exposing : Token()
+    object ImportT : Token()
+    object Forall : Token()
+    object Type : Token()
+    object As : Token()
+    object And : Token()
+    object IfT : Token()
+    object Then : Token()
+    object Else : Token()
+    object LetT : Token()
+    object CaseT : Token()
+    object Of : Token()
+    object In : Token()
+    object Do : Token()
 
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
@@ -55,6 +51,8 @@ sealed class Token {
     data class Ident(val v: String) : Token()
     data class UpperIdent(val v: String) : Token()
     data class Op(val op: String) : Token()
+
+    override fun toString(): String = this.javaClass.simpleName
 }
 
 data class Position(val line: Int, val column: Int) {
@@ -67,7 +65,7 @@ data class Span(val start: Position, val end: Position) {
     override fun toString(): String = "$start - $end"
 }
 
-data class Spanned<out T>(val span: Span, val value: T) {
+data class Spanned<out T>(val span: Span, val value: T, val comment: Comment? = null) {
     override fun toString(): String = "$value($span)"
 }
 
@@ -78,13 +76,7 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
     private var lookahead: Char? = null
     var position = Position(1, 1)
 
-    override fun hasNext(): Boolean {
-        return if (lookahead != null) {
-            true
-        } else {
-            chars.hasNext()
-        }
-    }
+    override fun hasNext(): Boolean = lookahead != null || chars.hasNext()
 
     override fun next(): Char {
         return if (lookahead != null) {
@@ -119,9 +111,11 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 
 class Lexer(input: String) : Iterator<Spanned<Token>> {
 
-    private val iter = CharPositionIterator(input.iterator())
+    private val iter = CharPositionIterator((input + "\n").iterator())
 
     private val operators = "$=<>|&+-:*/%^."
+
+    private var previousToken: Token = Semicolon
 
     override fun hasNext(): Boolean = iter.hasNext()
 
@@ -131,34 +125,44 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         val start = iter.position
         if (!iter.hasNext()) return Spanned(Span(start, start), EOF)
 
+        var comment: Comment? = null
+
         val token = when (val c = iter.next()) {
-            '(' -> LParen()
-            ')' -> RParen()
-            '[' -> LSBracket()
-            ']' -> RSBracket()
-            '{' -> LBracket()
-            '}' -> RBracket()
-            '#' -> Hash()
-            ',' -> Comma()
-            ';' -> Semicolon()
-            '∀' -> Forall()
-            '\\' -> Backslash()
+            '(' -> LParen
+            ')' -> RParen
+            '[' -> LSBracket
+            ']' -> RSBracket
+            '{' -> LBracket
+            '}' -> RBracket
+            '#' -> Hash
+            ',' -> Comma
+            ';' -> Semicolon
+            '∀' -> Forall
+            '\\' -> Backslash
             '\'' -> char()
             '"' -> string()
             '/' -> when (iter.peek()) {
                 '/' -> {
-                    val comment = lineComment()
+                    val comm = lineComment()
+                    consumeAllWhitespace()
                     val next = this.next()
-                    next.value.comment = Comment(comment)
+                    comment = Comment(comm)
                     next.value
                 }
                 '*' -> {
-                    val comment = multiLineComment()
+                    val comm = multiLineComment()
+                    consumeAllWhitespace()
                     val next = this.next()
-                    next.value.comment = Comment(comment, true)
+                    comment = Comment(comm, true)
                     next.value
                 }
                 else -> operator('/')
+            }
+            '\n' -> {
+                acceptMany(" \t\n")
+                if (previousToken is Semicolon) {
+                    this.next().value
+                } else EOL
             }
             else -> {
                 when {
@@ -169,8 +173,9 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                 }
             }
         }
+        previousToken = token
 
-        return Spanned(Span(start, iter.position), token)
+        return Spanned(Span(start, iter.position), token, comment)
     }
 
     private val validEscapes = arrayOf('t', 'b', 'n', 'r', '\'', '\"', '\\')
@@ -194,23 +199,23 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         return when (val id = builder.toString()) {
             "true" -> BoolT(true)
             "false" -> BoolT(false)
-            "if" -> IfT()
-            "then" -> Then()
-            "else" -> Else()
-            "_" -> Underline()
-            "module" -> ModuleT()
-            "import" -> ImportT()
-            "forall" -> Forall()
-            "let" -> LetT()
-            "case" -> CaseT()
-            "of" -> Of()
-            "type" -> Type()
-            "as" -> As()
-            "in" -> In()
-            "and" -> And()
-            "do" -> Do()
-            "hiding" -> Hiding()
-            "exposing" -> Exposing()
+            "if" -> IfT
+            "then" -> Then
+            "else" -> Else
+            "_" -> Underline
+            "module" -> ModuleT
+            "import" -> ImportT
+            "forall" -> Forall
+            "let" -> LetT
+            "case" -> CaseT
+            "of" -> Of
+            "type" -> Type
+            "as" -> As
+            "in" -> In
+            "and" -> And
+            "do" -> Do
+            "hiding" -> Hiding
+            "exposing" -> Exposing
             else ->
                 if (id[0].isUpperCase()) {
                     UpperIdent(id)
@@ -288,17 +293,17 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         if (op.length > 3) lexError("Operators cannot have more than 3 characters: `$op`")
 
         return when (op) {
-            "=" -> Equals()
-            "->" -> Arrow()
-            "|" -> Pipe()
-            "." -> Dot()
-            "::" -> DoubleColon()
+            "=" -> Equals
+            "->" -> Arrow
+            "|" -> Pipe
+            "." -> Dot
+            "::" -> DoubleColon
             else -> Op(op)
         }
     }
 
     private fun lineComment(): String {
-        accept("/")
+        acceptMany("/")
         val builder = StringBuilder()
         while (iter.peek() != '\n') {
             builder.append(iter.next())
@@ -336,6 +341,12 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
     }
 
     private fun consumeWhitespace() {
+        while (iter.hasNext() && iter.peek().let { it != '\n' && it.isWhitespace() }) {
+            iter.next()
+        }
+    }
+
+    private fun consumeAllWhitespace() {
         while (iter.hasNext() && iter.peek().isWhitespace()) {
             iter.next()
         }
@@ -358,10 +369,6 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
 
     private fun Char.isValidIdentifier(): Boolean {
         return this.isValidIdentifierStart() || this.isDigit()
-    }
-
-    private fun Char.isValidWhiteSpace(): Boolean {
-        return this == ' ' || this == '\t' || this == '\n'
     }
 
     private fun Char.isValidOperator(): Boolean = this in operators

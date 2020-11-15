@@ -1,5 +1,10 @@
-module Novah.Example
-  hiding (maybe, myFun, end)
+module Novah.Example hiding
+  ( maybe
+  , myFun
+  , end
+  , sum
+  , sum2
+  )
 
 import Prelude
 
@@ -11,71 +16,81 @@ import Control.Brain as B
 
 type Maybe a
   = Nope
-  | Just a;
+  | Just a
 
 type List a =
   Nil
-  | Cons a (List a);
+  | Cons a (List a)
 
-num = 0x123efa7c;
+num = 0x123efa7c
 
-doub x = 13.87E-12;
+doub x = 13.87E-12
 
-x = fn 3 4 5;
+x = fn 3 4 5
 
-stuff
-  :: Int
-  -> Int
-  -> String;
-stuff v v2 = case v of
-  | 0 -> "0"
-  | 1 -> show v2
-  | _ -> "oops";
+stuff ::
+  Int ->
+  Int ->
+  String
+stuff v v2 = case v of {
+  0 -> "0"
+  1 -> show v2
+  _ -> "oops"
+}
 
 /**
  * Some multi line comment
  * added here
  */
-maybe :: forall a. a -> Int -> Maybe (a -> a);
-maybe def sm = case sm of
-  | Some x -> B.brain x
-  | Nope -> def;
+maybe :: forall a. a -> Int -> Maybe (a -> a)
+maybe def sm = case sm of {
+  Some x -> B.brain x
+  Nope -> def
+}
 
-id :: ∀ a. a -> a;
-id x = x;
+id :: ∀ a. a -> a
+id x = x
+
+sum :: Int -> Int -> Int
+sum x y = x + y
+
+sum2 :: Int -> Int -> Int
+sum2 = (+)
 
 // some comment here
-myFun x = case x of
-  | None -> do {
-      println "Something";
-      case 4 of | x -> x
-    }
-  | Some x -> 9;
+myFun x = case x of {
+  None -> do {
+    println "Something"
+    case 4 of x -> x
+    4
+  }
+  Some x -> 9
+}
 
 ex x =
   let x = 4 in do {
-    sideEffect 0;
+    sideEffect 0
     x * 6
-  };
+  }
 
-doIt :: Unit -> String;
+doIt :: Unit -> String
 doIt u = do {
-  println "not pure";
+  println "not pure"
   map (\x -> do {
-    println x;
-    x + 1}) (Some 3);
+    println x
+    x + 1}) (Some 3)
   let f :: forall a. a -> a
   and f x = x
   and y :: Int
   and y = f 9 in
-  if y >= 2 then do {
-    println "big y";
-    if x then 1 else 0
-  } else do {
-    println "small y";
-    0
-  }
+    if y >= 2 then do {
+      println "big y"
+      if x then 1 else 0
+    } else do {
+      println "small y"
+      0
+    }
 }
 
-end :: String;
-end = "end";
+end :: String
+end = "end"

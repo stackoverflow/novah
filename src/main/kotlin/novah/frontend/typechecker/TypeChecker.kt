@@ -1,5 +1,8 @@
 package novah.frontend.typechecker
 
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentHashMapOf
+import kotlinx.collections.immutable.toPersistentHashMap
 import novah.frontend.*
 import novah.frontend.Monotype.*
 import novah.frontend.typechecker.TypeErrors as TE
@@ -22,14 +25,7 @@ private fun typeError(exp: Expression, msg: String): Nothing {
     throw TypecheckError(exp, msg)
 }
 
-data class Context(val env: HashMap<String, Polytype>) {
-
-    operator fun get(name: String): Polytype? = env[name]
-
-    operator fun set(name: String, type: Polytype) {
-        env[name] = type
-    }
-}
+typealias Context = PersistentMap<String, Polytype>
 
 /**
  * A bidirectional type checker
@@ -41,28 +37,39 @@ class TypeChecker(private val env: Context) {
     fun freshVar(): Polytype = Polytype(emptyTVars, Unknown(++freshCounter))
 
     fun synth(ctx: Context, exp: Expression): Polytype {
-        if (exp.type !== null) {
-            // check the expression against the annotated type
-            check(ctx, exp, exp.type!!)
-            return exp.type!!
-        }
         return when (exp) {
             is Expression.IntE -> mono("Int")
             is Expression.FloatE -> mono("Float")
             is Expression.Bool -> mono("Boolean")
             is Expression.CharE -> mono("Char")
             is Expression.StringE -> mono("String")
+            is Expression.Ann -> {
+                // check the expression against the annotated type
+                check(ctx, exp.exp, exp.type)
+                exp.type
+            }
             is Expression.Var -> ctx[exp.name] ?: typeError(exp, TE.typeNotFound(exp.name))
+            is Expression.Operator -> ctx[exp.name] ?: typeError(exp, TE.typeNotFound(exp.name))
+            is Expression.Do -> {
+                // the type of a statement is the type of the last expression
+                exp.exps.map { synth(ctx, it) }.last()
+            }
             is Expression.App -> {
                 when (val typ = synth(ctx, exp.fn).type) {
                     is Monotype.Function -> {
                         check(ctx, exp.arg, typ.par.toPoly())
                         typ.ret.toPoly()
                     }
-                    else -> typeError(exp, "TODO")
+                    else -> typeError(exp, "TODO: expected type to be function")
                 }
             }
-            else -> TODO("Subtyping rule here")
+            is Expression.If -> {
+                check(ctx, exp.cond, mono("Boolean"))
+                val t1 = synth(ctx, exp.thenCase)
+                check(ctx, exp.elseCase, t1)
+                t1
+            }
+            else -> TODO("Subsumption rule here. Whatever subtyping novah will have")
         }
     }
 
@@ -72,13 +79,23 @@ class TypeChecker(private val env: Context) {
             is Expression.Lambda -> {
                 when (type) {
                     is Monotype.Function -> {
-                        ctx[exp.binder] = type.par.toPoly()
-                        //check(ctx, exp.body, type.ret.toPoly())
+                        val newCtx = ctx.put(exp.binder, type.par.toPoly())
+                        check(newCtx, exp.body, type.ret.toPoly())
                     }
-                    else -> typeError(exp, "TODO")
+                    else -> typeError(exp, "TODO: expected type to be function")
                 }
             }
-            else -> TODO()
+            is Expression.Do -> {
+                // we can't really check but the last, need to synthesize
+                exp.exps.dropLast(1).forEach { synth(ctx, it) }
+                check(ctx, exp.exps.last(), poly)
+            }
+            is Expression.If -> {
+                check(ctx, exp.cond, mono("Boolean"))
+                check(ctx, exp.thenCase, poly)
+                check(ctx, exp.elseCase, poly)
+            }
+            else -> TODO("Subsumption rule here. Whatever subtyping novah will have")
         }
     }
 }

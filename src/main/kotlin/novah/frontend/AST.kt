@@ -23,19 +23,12 @@ sealed class Decl {
 
     data class DataDecl(val name: String, val tyVars: List<TypeVar>, val dataCtors: List<DataConstructor>) : Decl()
     data class TypeDecl(val name: String, val typ: Polytype) : Decl()
-    data class ValDecl(val name: String, val stmt: Statement) : Decl()
+    data class ValDecl(val name: String, val exp: Expression) : Decl()
 }
 
 data class DataConstructor(val name: String, val args: List<Monotype>)
 
-sealed class Statement {
-    data class Exp(val exp: Expression) : Statement()
-    data class Do(val exps: List<Expression>) : Statement()
-}
-
 sealed class Expression {
-    var type: Polytype? = null
-
     data class IntE(val i: Long) : Expression()
     data class FloatE(val f: Double) : Expression()
     data class StringE(val s: String) : Expression()
@@ -44,16 +37,18 @@ sealed class Expression {
     data class Var(val name: String, val moduleName: ModuleName = listOf()) : Expression()
     data class Operator(val name: String) : Expression()
     data class Construction(val ctor: String, val fields: List<Expression>) : Expression()
-    data class Lambda(val binder: String, val body: Statement) : Expression()
+    data class Lambda(val binder: String, val body: Expression) : Expression()
     data class App(val fn: Expression, val arg: Expression) : Expression()
-    data class If(val cond: Expression, val thenCase: Statement, val elseCase: Statement) : Expression()
-    data class Let(val defs: List<Def>, val stmt: Statement) : Expression()
+    data class If(val cond: Expression, val thenCase: Expression, val elseCase: Expression) : Expression()
+    data class Let(val defs: List<Def>, val exp: Expression) : Expression()
     data class Match(val exp: Expression, val cases: List<Case>) : Expression()
+    data class Ann(val exp: Expression, val type: Polytype) : Expression()
+    data class Do(val exps: List<Expression>) : Expression()
 }
 
 data class Def(val name: String, val expr: Expression, val type: Polytype?)
 
-data class Case(val pattern: Pattern, val stmt: Statement)
+data class Case(val pattern: Pattern, val exp: Expression)
 
 sealed class Pattern {
     object Wildcard : Pattern()
@@ -80,6 +75,18 @@ sealed class Monotype {
 }
 
 data class Polytype(val vars: List<TypeVar>, val type: Monotype)
+
+sealed class TypeKind {
+    object Mono : TypeKind()
+    object Poly : TypeKind()
+}
+
+sealed class TType<T : TypeKind> {
+    data class TVar<T : TypeKind>(val v: TypeVar) : TType<T>()
+    data class TExists<T : TypeKind>(val i: Int) : TType<T>()
+    data class TForall(val v: TypeVar, val type: TType<TypeKind.Poly>) : TType<TypeKind.Poly>()
+    data class TFun<T : TypeKind>(val t1: TType<T>, val t2: TType<T>) : TType<T>()
+}
 
 ////////////////////////////////
 // AST functions
@@ -127,13 +134,13 @@ fun Import.show(): String = when (this) {
 fun Decl.show(): String {
     val str = when (this) {
         is Decl.ValDecl -> {
-            "$name = ${stmt.show()};"
+            "$name = ${exp.show()}"
         }
         is Decl.DataDecl -> {
             val dataCts = dataCtors.joinToString("\n\t| ") { it.show() }
-            "type $name${tyVars.map { it.v }.joinShow(" ")}\n\t= $dataCts;"
+            "type $name${tyVars.map { it.v }.joinShow(" ")}\n\t= $dataCts"
         }
-        is Decl.TypeDecl -> "$name :: ${typ.show()};"
+        is Decl.TypeDecl -> "$name :: ${typ.show()}"
     }
     return if (comment != null) {
         toComment(comment!!) + "\n$str"
@@ -148,27 +155,15 @@ fun DataConstructor.show(): String {
     }
 }
 
-fun Statement.show(tab: String = ""): String = when (this) {
-    is Statement.Exp -> exp.show(tab)
-    is Statement.Do -> {
-        val t = "$tab  "
-        "do {\n$t" + exps.joinToString(";\n$t") { it.show(t) } + "\n$tab}"
-    }
-}
-
 fun Expression.show(tab: String = ""): String {
-    fun showType(exp: Expression) = if (exp.type != null) {
-        " :: ${exp.type?.show()}"
-    } else ""
-
     return when (this) {
-        is Expression.App -> "(${fn.show(tab)} ${arg.show(tab)}${showType(this)})"
+        is Expression.App -> "(${fn.show(tab)} ${arg.show(tab)})"
         is Expression.Operator -> "`$name`"
         is Expression.Var -> {
             if (moduleName.isEmpty()) {
-                name + showType(this)
+                name
             } else {
-                "${moduleName.joinToString(".")}.$name" + showType(this)
+                "${moduleName.joinToString(".")}.$name"
             }
         }
         is Expression.IntE -> "$i"
@@ -181,15 +176,20 @@ fun Expression.show(tab: String = ""): String {
             else "($ctor ${fields.joinToString(" ") { it.show() }})"
         }
         is Expression.Match -> {
-            val cs = cases.joinToString("\n\t$tab| ") { it.show("$tab  ") }
-            "case ${exp.show()} of\n\t$tab| $cs"
+            val cs = cases.joinToString("\n  $tab ") { it.show("$tab  ") }
+            "case ${exp.show()} of {\n  $tab $cs\n$tab}"
         }
         is Expression.Lambda -> "(\\$binder -> " + body.show("$tab  ") + ")"
         is Expression.If -> {
-            "if ${cond.show(tab)} \n\tthen ${thenCase.show(tab)} \n\telse ${elseCase.show(tab)}"
+            "if ${cond.show(tab)} else\n  ${tab}${thenCase.show(tab)} \n${tab}else\n$tab  ${elseCase.show(tab)}"
         }
         is Expression.Let -> {
-            "let " + defs.joinToString("\n" + tab + "and ") { it.show(tab) } + " in\n$tab" + stmt.show(tab)
+            "let " + defs.joinToString("\n" + tab + "and ") { it.show(tab) } + " in\n$tab" + exp.show(tab)
+        }
+        is Expression.Ann -> "${exp.show(tab)} :: ${type.show()}"
+        is Expression.Do -> {
+            val t = "$tab  "
+            "do {\n$t" + exps.joinToString("\n$t") { it.show(t) } + "\n$tab}"
         }
     }
 }
@@ -201,7 +201,7 @@ fun Def.show(tab: String = ""): String = if (type == null) {
 }
 
 fun Case.show(tab: String = ""): String {
-    return "${pattern.show()} -> ${stmt.show("$tab  ")}"
+    return "${pattern.show()} -> ${exp.show("$tab  ")}"
 }
 
 fun Pattern.show(): String = when (this) {
