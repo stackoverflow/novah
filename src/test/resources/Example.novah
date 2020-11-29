@@ -18,9 +18,11 @@ type Maybe a
   = Nope
   | Just a
 
+/*
 type List a =
   Nil
   | Cons a (List a)
+*/
 
 num = 0x123efa7c
 
@@ -42,7 +44,7 @@ stuff v v2 = case v of {
  * Some multi line comment
  * added here
  */
-maybe :: forall a. a -> Int -> Maybe (a -> a)
+maybe :: forall a. a -> Int -> Maybe
 maybe def sm = case sm of {
   Some x -> B.brain x
   Nope -> def
@@ -91,6 +93,12 @@ doIt u = do {
       0
     }
 }
+
+fact :: Int -> Int
+fact x =
+  if x <= 1
+    then x
+    else x * fact (x - 1)
 
 end :: String
 end = "end"

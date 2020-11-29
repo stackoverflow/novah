@@ -1,10 +1,10 @@
 package novah.frontend.typechecker
 
-import novah.frontend.Expression
+import novah.frontend.Expr
 import novah.frontend.show
 import java.lang.RuntimeException
 
-class TypecheckError(private val exp: Expression, private val msg: String) : RuntimeException() {
+class TypecheckError(private val exp: Expr, private val msg: String) : RuntimeException() {
     override val message: String?
         get() = "$msg\n\tin: ${exp.show()}"
 }

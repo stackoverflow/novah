@@ -1,7 +1,7 @@
 package novah.frontend
 
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.beInstanceOf
+import io.kotest.matchers.types.beInstanceOf
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.lexResource
@@ -21,7 +21,8 @@ class LexerSpec : StringSpec({
         tokens[2].span shouldBe span(1 to 20, 1 to 21)
         tokens[3].span shouldBe span(1 to 21, 3 to 1)
         tokens[4].span shouldBe span(3 to 1, 3 to 21)
-        tokens[5].value should beInstanceOf<Token.EOF>()
+        tokens[5].span shouldBe span(3 to 21, 4 to 1)
+        tokens[6].value should beInstanceOf(Token.EOF::class)
     }
 
     "Lex whole file" {

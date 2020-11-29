@@ -12,7 +12,7 @@ object Operators {
     }
 
     /**
-     * Validates that a list of [Expression]s is well formed.
+     * Validates that a list of [Expr]s is well formed.
      * This function expects the list to be already resolved
      * of function applications and only operators are left.
      * Ex:
@@ -20,14 +20,14 @@ object Operators {
      *   a + * 9 -> bad
      *   a b * 6 -> bad
      */
-    private fun validateOps(exps: List<Expression>): Boolean {
+    private fun validateOps(exps: List<Expr>): Boolean {
         if (exps.size % 2 == 0) return false
 
-        var prev: Expression? = null
+        var prev: Expr? = null
         for (e in exps) {
             when (prev) {
-                null, is Expression.Operator -> if (e is Expression.Operator) return false
-                else -> if (e !is Expression.Operator) return false
+                null, is Expr.Operator -> if (e is Expr.Operator) return false
+                else -> if (e !is Expr.Operator) return false
             }
             prev = e
         }
@@ -38,7 +38,7 @@ object Operators {
      * Get the precedence of some operator
      * which depends on the first symbol.
      */
-    private fun getPrecedence(op: Expression.Operator): Int = when (op.name[0]) {
+    private fun getPrecedence(op: Expr.Operator): Int = when (op.name[0]) {
         '$' -> 1
         '=' -> 2
         '<', '>' -> 3
@@ -57,7 +57,7 @@ object Operators {
      * are also right associative.
      * Everything else is left associative.
      */
-    private fun getFixity(op: Expression.Operator): Fixity = when(op.name[0]) {
+    private fun getFixity(op: Expr.Operator): Fixity = when(op.name[0]) {
         '$', ':' -> Fixity.Right
         else -> {
             if(op.name.length > 1) {
@@ -70,14 +70,14 @@ object Operators {
     /**
      * Resolve all the function applications in a list of expressions
      */
-    private fun resolveApps(exps: List<Expression>): List<Expression> {
-        val acc = mutableListOf<Expression>()
+    private fun resolveApps(exps: List<Expr>): List<Expr> {
+        val acc = mutableListOf<Expr>()
 
         for (e in exps) {
             val prev = acc.lastOrNull()
-            if (e !is Expression.Operator && prev != null && prev !is Expression.Operator) {
+            if (e !is Expr.Operator && prev != null && prev !is Expr.Operator) {
                 acc.removeLast()
-                acc += Expression.App(prev, e)
+                acc += Expr.App(prev, e)
             } else {
                 acc += e
             }
@@ -90,7 +90,7 @@ object Operators {
      * Resolve some operator from left to right or right to left
      * depending on the index function.
      */
-    private fun resolveOp(exps: List<Expression>, index: (List<Expression>) -> Int): List<Expression> {
+    private fun resolveOp(exps: List<Expr>, index: (List<Expr>) -> Int): List<Expr> {
         val input = ArrayList(exps)
 
         var i = index(input)
@@ -98,7 +98,7 @@ object Operators {
             val left = input[i - 1]
             val ope = input[i]
             val right = input[i + 1]
-            val app = Expression.App(Expression.App(ope, left), right)
+            val app = Expr.App(Expr.App(ope, left), right)
 
             input.removeAt(i - 1)
             input.removeAt(i - 1)
@@ -111,16 +111,16 @@ object Operators {
     }
 
     /**
-     * Get the operator with the highest precedence in a list of [Expression]s.
+     * Get the operator with the highest precedence in a list of [Expr]s.
      */
-    private fun getHighestPrecedenceOp(es: List<Expression>): Expression.Operator? =
-        es.filterIsInstance<Expression.Operator>().maxBy(::getPrecedence)
+    private fun getHighestPrecedenceOp(es: List<Expr>): Expr.Operator? =
+        es.filterIsInstance<Expr.Operator>().maxByOrNull(::getPrecedence)
 
     /**
      * Parse a list of expressions and resolve operator precedence
      * as well as left/right fixity
      */
-    fun parseApplication(exps: List<Expression>): Expression? {
+    fun parseApplication(exps: List<Expr>): Expr? {
 
         when (exps.size) {
             0 -> return null

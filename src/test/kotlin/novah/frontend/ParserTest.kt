@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
-import novah.frontend.Expression.*
+import novah.frontend.Expr.*
 import novah.frontend.TestUtil.parseResource
 
 class ParserSpec : StringSpec({
@@ -72,7 +72,7 @@ class ParserSpec : StringSpec({
     "Exported definitions have correct visibility" {
         val ast = parseResource("Example.novah")
 
-        ast.exports shouldBe listOf("Maybe", "List", "num", "doub", "x", "stuff", "id", "ex", "doIt")
+        ast.exports shouldBe listOf("Maybe", "num", "doub", "x", "stuff", "id", "ex", "doIt")
 
         println(ast.show())
     }

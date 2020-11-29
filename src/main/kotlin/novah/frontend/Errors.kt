@@ -25,6 +25,10 @@ object Errors {
 
     const val TYPE_DEF = "Expected a type definition."
 
+    val FORALL_TVARS = """Expected type variable(s) after forall quantifier:
+        |Example: forall a b. a -> b
+    """.trimMargin()
+
     const val FORALL_DOT = "Expected `.` after forall quantifier."
 
     const val CTOR_NAME = "Expected constructor name (upper case identifier)."
