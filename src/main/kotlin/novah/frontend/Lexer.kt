@@ -63,6 +63,10 @@ data class Position(val line: Int, val column: Int) {
 
 data class Span(val start: Position, val end: Position) {
     override fun toString(): String = "$start - $end"
+
+    companion object {
+        fun empty() = Span(Position(-1, -1), Position(-1, -1))
+    }
 }
 
 data class Spanned<out T>(val span: Span, val value: T, val comment: Comment? = null) {

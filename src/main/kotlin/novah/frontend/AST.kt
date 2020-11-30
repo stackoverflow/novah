@@ -11,7 +11,6 @@ data class Module(
     val decls: List<Decl>
 ) {
     var comment: String? = null
-
 }
 
 sealed class Import(val module: ModuleName) {
@@ -21,11 +20,11 @@ sealed class Import(val module: ModuleName) {
 }
 
 sealed class Decl {
-    var comment: Comment? = null
-
     data class DataDecl(val name: String, val tyVars: List<Type.TVar>, val dataCtors: List<DataConstructor>) : Decl()
     data class TypeDecl(val name: String, val typ: Type) : Decl()
     data class ValDecl(val name: String, val exp: Expr) : Decl()
+
+    var comment: Comment? = null
 }
 
 data class DataConstructor(val name: String, val args: List<Type>)
@@ -46,6 +45,11 @@ sealed class Expr {
     data class Match(val exp: Expr, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
+
+    var span = Span.empty()
+
+    fun withSpan(s: Span) = apply { span = s }
+    fun withSpan(s: Span, e: Span) = apply { span = Span(s.start, e.end) }
 }
 
 data class LetDef(val name: String, val expr: Expr, val type: Type? = null)
@@ -93,13 +97,13 @@ fun Expr.substVar(v: String, s: Expr): Expr =
         is Expr.App -> {
             val left = fn.substVar(v, s)
             val right = arg.substVar(v, s)
-            if (left == fn && right == arg) this else Expr.App(left, right)
+            if (left == fn && right == arg) this else Expr.App(left, right).withSpan(span)
         }
         is Expr.Lambda -> {
             if (binder == v) this
             else {
                 val b = body.substVar(v, s)
-                if (body == b) this else Expr.Lambda(binder, b)
+                if (body == b) this else Expr.Lambda(binder, b).withSpan(span)
             }
         }
         is Expr.Ann -> {
@@ -109,28 +113,28 @@ fun Expr.substVar(v: String, s: Expr): Expr =
         is Expr.Construction -> {
             if (ctor == v) {
                 val fs = fields.map { it.substVar(v, s) }
-                if (fields == fs) this else Expr.Construction(ctor, fs)
+                if (fields == fs) this else Expr.Construction(ctor, fs).withSpan(span)
             } else this
         }
         is Expr.If -> {
             val c = cond.substVar(v, s)
             val t = thenCase.substVar(v, s)
             val e = elseCase.substVar(v, s)
-            if (c == cond && t == thenCase && e == elseCase) this else Expr.If(c, t, e)
+            if (c == cond && t == thenCase && e == elseCase) this else Expr.If(c, t, e).withSpan(span)
         }
         is Expr.Let -> {
             val b = body.substVar(v, s)
             val def = letDef.substVar(v, s)
-            if (b == body && def == letDef) this else Expr.Let(def, b)
+            if (b == body && def == letDef) this else Expr.Let(def, b).withSpan(span)
         }
         is Expr.Match -> {
             val e = exp.substVar(v, s)
             val cs = cases.map { it.substVar(v, s) }
-            if (e == exp && cs == cases) this else Expr.Match(e, cs)
+            if (e == exp && cs == cases) this else Expr.Match(e, cs).withSpan(span)
         }
         is Expr.Do -> {
             val es = exps.map { it.substVar(v, s) }
-            if (es == exps) this else Expr.Do(es)
+            if (es == exps) this else Expr.Do(es).withSpan(span)
         }
     }
 
@@ -189,7 +193,11 @@ fun DataConstructor.show(): String {
 
 fun Expr.show(tab: String = ""): String {
     return when (this) {
-        is Expr.App -> "(${fn.show(tab)} ${arg.show(tab)})"
+        is Expr.App -> {
+            if (fn is Expr.App && fn.fn is Expr.Operator) {
+                "(${fn.arg.show(tab)} ${fn.fn.show(tab)} ${arg.show(tab)})"
+            } else "(${fn.show(tab)} ${arg.show(tab)})"
+        }
         is Expr.Operator -> "`$name`"
         is Expr.Var -> {
             if (moduleName.isEmpty()) {

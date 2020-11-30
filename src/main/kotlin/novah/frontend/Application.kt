@@ -1,6 +1,6 @@
 package novah.frontend
 
-object Operators {
+object Application {
 
     private sealed class Fixity {
         object Left : Fixity()
@@ -57,11 +57,11 @@ object Operators {
      * are also right associative.
      * Everything else is left associative.
      */
-    private fun getFixity(op: Expr.Operator): Fixity = when(op.name[0]) {
+    private fun getFixity(op: Expr.Operator): Fixity = when (op.name[0]) {
         '$', ':' -> Fixity.Right
         else -> {
-            if(op.name.length > 1) {
-                if(op.name.last() == '<') Fixity.Right
+            if (op.name.length > 1) {
+                if (op.name.last() == '<') Fixity.Right
                 else Fixity.Left
             } else Fixity.Left
         }
@@ -75,12 +75,10 @@ object Operators {
 
         for (e in exps) {
             val prev = acc.lastOrNull()
-            if (e !is Expr.Operator && prev != null && prev !is Expr.Operator) {
+            acc += if (e !is Expr.Operator && prev != null && prev !is Expr.Operator) {
                 acc.removeLast()
-                acc += Expr.App(prev, e)
-            } else {
-                acc += e
-            }
+                Expr.App(prev, e).withSpan(prev.span, e.span)
+            } else e
         }
 
         return acc
@@ -94,11 +92,13 @@ object Operators {
         val input = ArrayList(exps)
 
         var i = index(input)
-        while(i != -1) {
+        while (i != -1) {
             val left = input[i - 1]
             val ope = input[i]
             val right = input[i + 1]
-            val app = Expr.App(Expr.App(ope, left), right)
+            val innerSpan = Span(ope.span.start, left.span.end)
+            val outerSpan = Span(ope.span.start, right.span.end)
+            val app = Expr.App(Expr.App(ope, left).withSpan(innerSpan), right).withSpan(outerSpan)
 
             input.removeAt(i - 1)
             input.removeAt(i - 1)
@@ -136,7 +136,7 @@ object Operators {
         var res = resExps
         var highest = getHighestPrecedenceOp(res)
         while (highest != null) {
-            res = when(getFixity(highest)) {
+            res = when (getFixity(highest)) {
                 is Fixity.Left -> resolveOp(res) { it.indexOf(highest!!) }
                 is Fixity.Right -> resolveOp(res) { it.lastIndexOf(highest!!) }
             }

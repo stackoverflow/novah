@@ -1,8 +1,6 @@
 package novah.frontend.typechecker
 
-import novah.frontend.Expr
-import novah.frontend.openLambda
-import novah.frontend.substVar
+import novah.frontend.*
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.store
@@ -38,12 +36,12 @@ object Inference {
             is Expr.Bool -> Type.TBoolean
             is Expr.Var -> {
                 val x = context.lookup<Elem.CVar>(exp.name)
-                    ?: inferError("undefined variable ${exp.name}")
+                    ?: inferError("undefined variable ${exp.name} at ${exp.span}")
                 x.type
             }
             is Expr.Operator -> {
                 val x = context.lookup<Elem.CVar>(exp.name)
-                    ?: inferError("undefined operator ${exp.name}")
+                    ?: inferError("undefined operator ${exp.name} at ${exp.span}")
                 x.type
             }
             is Expr.Lambda -> {
@@ -95,7 +93,7 @@ object Inference {
                 // infer the body
                 generalizeFrom(m, _apply(typesynth(subExp)))
             }
-            else -> inferError("cannot infer type for $exp")
+            else -> inferError("cannot infer type for $exp at ${exp.span}")
         }
     }
 
@@ -149,7 +147,7 @@ object Inference {
                 typecheck(expr, type.arg)
                 type.ret
             }
-            else -> inferError("Cannot typeappsynth: $type @ $expr")
+            else -> inferError("Cannot typeappsynth: $type @ $expr at ${expr.span}")
         }
     }
 
@@ -159,7 +157,7 @@ object Inference {
         val m = store.fresh("m")
         context.enter(m)
         val ty = generalizeFrom(m, _apply(typesynth(expr)))
-        if (!context.isComplete()) inferError("Context is not complete")
+        if (!context.isComplete()) inferError("Context is not complete at ${expr.span}")
         return ty
     }
 }

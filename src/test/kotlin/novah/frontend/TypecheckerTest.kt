@@ -2,6 +2,20 @@ package novah.frontend
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import novah.frontend.TestUtil._b
+import novah.frontend.TestUtil._c
+import novah.frontend.TestUtil._f
+import novah.frontend.TestUtil._i
+import novah.frontend.TestUtil._if
+import novah.frontend.TestUtil._let
+import novah.frontend.TestUtil._s
+import novah.frontend.TestUtil._var
+import novah.frontend.TestUtil.abs
+import novah.frontend.TestUtil.app
+import novah.frontend.TestUtil.app2
+import novah.frontend.TestUtil.forall
+import novah.frontend.TestUtil.tfun
+import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.Inference.infer
@@ -15,22 +29,8 @@ class TypecheckerTest : StringSpec({
     val tChar = Type.TChar
     val tBool = Type.TBoolean
 
-    fun tvar(n: String) = Type.TVar(n)
-    fun tfun(l: Type, r: Type) = Type.TFun(l, r)
-    fun forall(x: String, t: Type) = Type.TForall(x, t)
-    fun _i(i: Long) = Expr.IntE(i)
-    fun _f(f: Double) = Expr.FloatE(f)
-    fun _s(s: String) = Expr.StringE(s)
-    fun _c(c: Char) = Expr.CharE(c)
-    fun _b(b: Boolean) = Expr.Bool(b)
-    fun _var(n: String) = Expr.Var(n)
-    fun abs(n: String, e: Expr) = Expr.Lambda(n, e)
-    fun app(l: Expr, r: Expr) = Expr.App(l, r)
-    fun app2(f: Expr, arg1: Expr, arg2: Expr) = app(app(f, arg1), arg2)
-    fun _if(c: Expr, t: Expr, e: Expr) = Expr.If(c, t, e)
-    fun _let(bs: List<Pair<String, Expr>>, body: Expr): Expr {
-        return if (bs.size <= 1) Expr.Let(LetDef(bs[0].first, bs[0].second), body)
-        else Expr.Let(LetDef(bs[0].first, bs[0].second), _let(bs.drop(1), body))
+    beforeTest {
+        context.reset()
     }
 
     "typecheck primitive expressions" {
@@ -53,7 +53,7 @@ class TypecheckerTest : StringSpec({
     }
 
     "typecheck if" {
-        val exp = Expr.If(_b(false), _i(0), _i(1))
+        val exp = _if(_b(false), _i(0), _i(1))
 
         val ty = infer(exp)
 

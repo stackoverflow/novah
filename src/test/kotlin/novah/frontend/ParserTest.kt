@@ -4,7 +4,9 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
-import novah.frontend.Expr.*
+import novah.frontend.TestUtil._i
+import novah.frontend.TestUtil._var
+import novah.frontend.TestUtil.abs
 import novah.frontend.TestUtil.parseResource
 
 class ParserSpec : StringSpec({
@@ -15,13 +17,13 @@ class ParserSpec : StringSpec({
     "Parser correctly parses operators" {
         val ast = parseResource("Operators.novah")
 
-        val x = "((`||` ((`||` w) ((`&&` r) x))) p)"
-        val fl = "(((`>>` ((`>>` a) b)) c) 1)"
-        val fr = "(((`<<` a) ((`<<` b) c)) 1)"
-        val l1 = "((`+` 3) ((`*` ((`*` ((`^` 7) 4)) 6)) 9))"
-        val l2 = "((`+` ((`*` ((`*` ((`^` 3) 7)) 4)) 6)) 9)"
-        val r1 = "((`\$` (bla 3)) ((`\$` (df 4)) pa))"
-        val r2 = "((`:` 3) ((`:` 5) ((`:` 7) Nil)))"
+        val x = "((w `||` (r `&&` x)) `||` p)"
+        val fl = "(((a `>>` b) `>>` c) 1)"
+        val fr = "((a `<<` (b `<<` c)) 1)"
+        val l1 = "(3 `+` (((7 `^` 4) `*` 6) `*` 9))"
+        val l2 = "((((3 `^` 7) `*` 4) `*` 6) `+` 9)"
+        val r1 = "((bla 3) `\$` ((df 4) `\$` pa))"
+        val r2 = "(3 `:` (5 `:` (7 `:` Nil)))"
 
         ast.byName("x") shouldBe x
         ast.byName("fl") shouldBe fl
@@ -35,8 +37,8 @@ class ParserSpec : StringSpec({
     "Parser correctly parses lambdas" {
         val ast = parseResource("Lambda.novah")
 
-        val simpleL = Lambda("x", Var("x"))
-        val multiL = Lambda("x", Lambda("y", Lambda("z", IntE(1))))
+        val simpleL = abs("x", _var("x"))
+        val multiL = abs("x", abs("y", abs("z", _i(1))))
 
         val simple = ast.decls[0] as Decl.ValDecl
         val multi = ast.decls[1] as Decl.ValDecl
@@ -72,7 +74,7 @@ class ParserSpec : StringSpec({
     "Exported definitions have correct visibility" {
         val ast = parseResource("Example.novah")
 
-        ast.exports shouldBe listOf("Maybe", "num", "doub", "x", "stuff", "id", "ex", "doIt")
+        ast.exports shouldBe listOf("Maybe", "num", "doub", "x", "stuff", "id", "ex", "doIt", "fact")
 
         println(ast.show())
     }

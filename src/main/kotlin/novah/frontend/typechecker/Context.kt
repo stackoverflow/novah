@@ -1,20 +1,33 @@
 package novah.frontend.typechecker
 
-sealed class Elem(val _name: String) {
-    data class CTVar(val name: String) : Elem(name) {
+/**
+ * The different types of elements the [Context] can have.
+ */
+sealed class Elem {
+    data class CTVar(val name: String) : Elem() {
         override fun toString(): String = name
     }
-    data class CTMeta(val name: String, val type: Type? = null) : Elem(name) {
+    data class CTMeta(val name: String, val type: Type? = null) : Elem() {
         override fun toString(): String = "?$name${if (type != null) " = $type" else ""}"
     }
-    data class CVar(val name: String, val type: Type) : Elem(name) {
+    data class CVar(val name: String, val type: Type) : Elem() {
         override fun toString(): String = "$name : $type"
     }
-    data class CMarker(val name: String) : Elem(name) {
+    data class CMarker(val name: String) : Elem() {
         override fun toString(): String = "|$name"
+    }
+
+    fun name() = when (this) {
+        is CTVar -> name
+        is CTMeta -> name
+        is CVar -> name
+        is CMarker -> name
     }
 }
 
+/**
+ * The ordered context/environment where typed variables live.
+ */
 class Context {
 
     internal var ctx = mutableListOf<Elem>()
@@ -37,7 +50,7 @@ class Context {
 
     fun _contains(clazz: Class<out Elem>, name: String): Boolean {
         for (e in ctx) {
-            if (e._name == name && clazz.isInstance(e)) return true
+            if (e.name() == name && clazz.isInstance(e)) return true
         }
         return false
     }
@@ -48,7 +61,7 @@ class Context {
 
     fun _lookup(clazz: Class<out Elem>, name: String): Elem? {
         for (e in ctx) {
-            if (e._name == name && clazz.isInstance(e)) return e
+            if (e.name() == name && clazz.isInstance(e)) return e
         }
         return null
     }
@@ -67,7 +80,7 @@ class Context {
         for (e in ctx) {
             if (found) {
                 after.add(e)
-            } else if (e._name == name && clazz.isInstance(e)) {
+            } else if (e.name() == name && clazz.isInstance(e)) {
                 found = true
             } else {
                 before.add(e)
@@ -115,6 +128,8 @@ class Context {
         }
         return ns
     }
+
+    fun reset() = ctx.clear()
 
     companion object {
         internal fun newContext(elems: MutableList<Elem>): Context {
