@@ -36,12 +36,12 @@ object Inference {
             is Expr.Bool -> Type.TBoolean
             is Expr.Var -> {
                 val x = context.lookup<Elem.CVar>(exp.name)
-                    ?: inferError("undefined variable ${exp.name} at ${exp.span}")
+                    ?: inferError("undefined variable ${exp.name}", exp)
                 x.type
             }
             is Expr.Operator -> {
                 val x = context.lookup<Elem.CVar>(exp.name)
-                    ?: inferError("undefined operator ${exp.name} at ${exp.span}")
+                    ?: inferError("undefined operator ${exp.name}", exp)
                 x.type
             }
             is Expr.Lambda -> {
@@ -93,7 +93,14 @@ object Inference {
                 // infer the body
                 generalizeFrom(m, _apply(typesynth(subExp)))
             }
-            else -> inferError("cannot infer type for $exp at ${exp.span}")
+            is Expr.Do -> {
+                var ty: Type? = null
+                for (e in exp.exps) {
+                    ty = typesynth(e)
+                }
+                ty ?: inferError("got empty `do` statement", exp)
+            }
+            else -> inferError("cannot infer type for $exp", exp)
         }
     }
 
@@ -115,7 +122,7 @@ object Inference {
             }
             else -> {
                 val ty = typesynth(expr)
-                subsume(_apply(ty), _apply(type))
+                subsume(_apply(ty), _apply(type), expr)
             }
         }
     }
@@ -147,7 +154,7 @@ object Inference {
                 typecheck(expr, type.arg)
                 type.ret
             }
-            else -> inferError("Cannot typeappsynth: $type @ $expr at ${expr.span}")
+            else -> inferError("Cannot typeappsynth: $type @ $expr", expr)
         }
     }
 
@@ -157,7 +164,7 @@ object Inference {
         val m = store.fresh("m")
         context.enter(m)
         val ty = generalizeFrom(m, _apply(typesynth(expr)))
-        if (!context.isComplete()) inferError("Context is not complete at ${expr.span}")
+        if (!context.isComplete()) inferError("Context is not complete", expr)
         return ty
     }
 }

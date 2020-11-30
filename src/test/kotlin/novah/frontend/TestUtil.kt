@@ -48,4 +48,5 @@ object TestUtil {
         return if (bs.size <= 1) Expr.Let(LetDef(bs[0].first, bs[0].second), body)
         else Expr.Let(LetDef(bs[0].first, bs[0].second), _let(bs.drop(1), body))
     }
+    fun _do(vararg exps: Expr) = Expr.Do(exps.toList())
 }

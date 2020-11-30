@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil._b
 import novah.frontend.TestUtil._c
+import novah.frontend.TestUtil._do
 import novah.frontend.TestUtil._f
 import novah.frontend.TestUtil._i
 import novah.frontend.TestUtil._if
@@ -113,11 +114,26 @@ class TypecheckerTest : StringSpec({
             app(_var("id"), _i(10))
         )
 
-        context.add(Elem.CVar("+", tfun(tInt, tInt)))
-        context.add(Elem.CVar("-", tfun(tInt, tInt)))
         val ty = infer(exp)
 
         ty shouldBe tInt
+    }
+
+    "typecheck do statements" {
+        context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("println", tfun(tString, tvar("Unit"))))
+        context.add(Elem.CVar("store", tfun(tInt, tvar("Unit"))))
+
+        val exp = _do(
+            app(_var("println"), _s("Hello world")),
+            app2(_var("+"), _i(10), _i(10)),
+            app(_var("store"), _i(100)),
+            _b(true)
+        )
+
+        val ty = infer(exp)
+
+        ty shouldBe tBool
     }
 
     "typecheck a recursive function" {

@@ -1,11 +1,15 @@
 package novah.frontend.typechecker
 
+import novah.frontend.Expr
 import java.lang.RuntimeException
 import java.util.ArrayDeque
 
 class InferenceError(msg: String) : RuntimeException(msg)
 
-fun inferError(msg: String): Nothing = throw InferenceError(msg)
+fun inferError(msg: String, expr: Expr? = null): Nothing {
+    val _msg = if (expr != null) "$msg at ${expr.span}" else msg
+    throw InferenceError(_msg)
+}
 
 object InferContext {
     var context = Context()

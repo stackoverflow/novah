@@ -2,7 +2,7 @@
 
 - Add span (position) to expressions __(DONE)__
 - Make the parser return expressions with spans __(DONE)__
-- Type check Do expressions
+- Type check Do expressions __(DONE)__
 - Type check type constructors (ex: List Int)
 - Type check the whole module
 - Add comments to the AST, so we can build a formatter
