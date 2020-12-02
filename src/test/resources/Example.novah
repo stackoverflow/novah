@@ -13,6 +13,7 @@ import Data.Perhaps
   , fun1, stuff
   )
 import Control.Brain as B
+import Some.Module (fun1, Type2) as Mod
 
 type Maybe a
   = Nope
@@ -34,7 +35,7 @@ stuff ::
   Int ->
   Int ->
   String
-stuff v v2 = case v of {
+stuff v v2 = match v {
   0 -> "0"
   1 -> show v2
   _ -> "oops"
@@ -45,7 +46,7 @@ stuff v v2 = case v of {
  * added here
  */
 maybe :: forall a. a -> Int -> Maybe
-maybe def sm = case sm of {
+maybe def sm = match sm {
   Some x -> B.brain x
   Nope -> def
 }
@@ -60,25 +61,27 @@ sum2 :: Int -> Int -> Int
 sum2 = (+)
 
 // some comment here
-myFun x = case x of {
+myFun x = match x {
   None -> do {
     println "Something"
-    case 4 of x -> x
+    match 4 { x -> x }
     4
   }
   Some x -> 9
 }
 
 ex x =
-  let x = 4 in do {
+  let x = 4
+  and y = 9 in do {
     sideEffect 0
-    x * 6
+    x * y
   }
 
 doIt :: Unit -> String
 doIt u = do {
-  println "not pure"
-  map (\x -> do {
+  (println
+    "not pure")
+  map (\x y -> do {
     println x
     x + 1}) (Some 3)
   let f :: forall a. a -> a

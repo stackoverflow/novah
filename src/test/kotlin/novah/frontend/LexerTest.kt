@@ -25,9 +25,23 @@ class LexerSpec : StringSpec({
         tokens[6].value should beInstanceOf(Token.EOF::class)
     }
 
-    "Lex whole file" {
-        val tokens = lexResource("Example.novah")
+    "Lex comments correctly" {
+        val tokens = lexResource("Comments.novah")
 
-        tokens.forEach { println(it) }
+        val typ = tokens.find { it.value is Token.Type }!!
+        val myFun = tokens.find {
+            val tk = it.value
+            tk is Token.Ident && tk.v == "myFun"
+        }!!
+
+        typ.span shouldBe span(4 to 1, 4 to 5)
+        typ.comment shouldBe Comment("comments on type definitions work")
+
+        myFun.span shouldBe span(10 to 1, 10 to 6)
+        myFun.comment shouldBe Comment("comments on var\n types work", true)
+    }
+
+    "Lex whole file" {
+        lexResource("Example.novah")
     }
 })

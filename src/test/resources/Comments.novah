@@ -4,7 +4,8 @@ module Comments
 type Maybe a = Just a | Nothing
 
 /**
- * comments on var types work
+ * comments on var
+ * types work
  */
 myFun :: Int -> Int
 myFun x = x + 1

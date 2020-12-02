@@ -1,5 +1,6 @@
 package novah.frontend
 
+import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Type
 
 object TestUtil {
@@ -28,6 +29,17 @@ object TestUtil {
         val lexer = Lexer(resStr)
         val parser = Parser(lexer)
         return parser.parseFullModule()
+    }
+
+    fun inferResource(res: String): Map<String, Type> {
+        val mod = parseResource(res)
+        return infer(mod)
+    }
+
+    fun inferString(code: String): Map<String, Type> {
+        val lexer = Lexer(code)
+        val parser = Parser(lexer)
+        return infer(parser.parseFullModule())
     }
 
     fun tvar(n: String) = Type.TVar(n)

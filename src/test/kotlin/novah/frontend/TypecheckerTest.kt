@@ -15,6 +15,7 @@ import novah.frontend.TestUtil.abs
 import novah.frontend.TestUtil.app
 import novah.frontend.TestUtil.app2
 import novah.frontend.TestUtil.forall
+import novah.frontend.TestUtil.inferString
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
@@ -32,6 +33,12 @@ class TypecheckerTest : StringSpec({
 
     beforeTest {
         context.reset()
+        context.add(Elem.CVar("*", tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("-", tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("<=", tfun(tInt, tfun(tInt, tBool))))
+        context.add(Elem.CVar("==", tfun(tBool, tfun(tBool, tBool))))
+        context.add(Elem.CVar("println", tfun(tString, tvar("Unit"))))
     }
 
     "typecheck primitive expressions" {
@@ -120,8 +127,6 @@ class TypecheckerTest : StringSpec({
     }
 
     "typecheck do statements" {
-        context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("println", tfun(tString, tvar("Unit"))))
         context.add(Elem.CVar("store", tfun(tInt, tvar("Unit"))))
 
         val exp = _do(
@@ -144,9 +149,6 @@ class TypecheckerTest : StringSpec({
          *     then x
          *     else x * fact (x - 1)
          */
-        context.add(Elem.CVar("*", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("-", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("<=", tfun(tInt, tfun(tInt, tBool))))
         context.add(Elem.CVar("fact", tfun(tInt, tInt)))
 
         val fact = abs(
@@ -161,5 +163,21 @@ class TypecheckerTest : StringSpec({
         val ty = infer(fact)
 
         ty shouldBe tfun(tInt, tInt)
+    }
+
+    "test" {
+        val tys = inferString("""
+            module Test
+            
+            id x = x
+            
+            //fun :: forall a b. a -> b -> (forall c. c -> c) -> a
+            fun x y f = do {
+              f 1
+              f x
+            }
+        """.trimIndent())
+
+        tys.map { println(it) }
     }
 })

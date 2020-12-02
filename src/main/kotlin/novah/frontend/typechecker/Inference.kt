@@ -167,4 +167,14 @@ object Inference {
         if (!context.isComplete()) inferError("Context is not complete", expr)
         return ty
     }
+
+    fun infer(mod: Module): Map<String, Type> {
+        val m = mutableMapOf<String, Type>()
+        mod.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->
+            val ty = infer(decl.exp)
+            context.add(Elem.CVar(decl.name, ty))
+            m[decl.name] = ty
+        }
+        return m
+    }
 }

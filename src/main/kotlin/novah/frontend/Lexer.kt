@@ -38,8 +38,7 @@ sealed class Token {
     object Then : Token()
     object Else : Token()
     object LetT : Token()
-    object CaseT : Token()
-    object Of : Token()
+    object Match : Token()
     object In : Token()
     object Do : Token()
 
@@ -131,7 +130,40 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
 
         var comment: Comment? = null
 
-        val token = when (val c = iter.next()) {
+        val c = iter.next()
+
+        when (c) {
+            '\\' -> {
+                if (iter.peek() == '\n') {
+                    consumeAllWhitespace()
+                    return next()
+                }
+            }
+            '/' -> when (iter.peek()) {
+                '/' -> {
+                    val comm = lineComment()
+                    consumeAllWhitespace()
+                    val next = next()
+                    comment = Comment(comm)
+                    return next.copy(comment = comment)
+                }
+                '*' -> {
+                    val comm = multiLineComment()
+                    consumeAllWhitespace()
+                    val next = next()
+                    comment = Comment(comm, true)
+                    return next.copy(comment = comment)
+                }
+            }
+            '\n' -> {
+                consumeAllWhitespace()
+                if (!isEndStatementToken(previousToken)) {
+                    return next()
+                }
+            }
+        }
+
+        val token = when (c) {
             '(' -> LParen
             ')' -> RParen
             '[' -> LSBracket
@@ -142,32 +174,11 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             ',' -> Comma
             ';' -> Semicolon
             '∀' -> Forall
+            '→' -> Arrow
             '\\' -> Backslash
             '\'' -> char()
             '"' -> string()
-            '/' -> when (iter.peek()) {
-                '/' -> {
-                    val comm = lineComment()
-                    consumeAllWhitespace()
-                    val next = this.next()
-                    comment = Comment(comm)
-                    next.value
-                }
-                '*' -> {
-                    val comm = multiLineComment()
-                    consumeAllWhitespace()
-                    val next = this.next()
-                    comment = Comment(comm, true)
-                    next.value
-                }
-                else -> operator('/')
-            }
-            '\n' -> {
-                acceptMany(" \t\n")
-                if (previousToken is Semicolon) {
-                    this.next().value
-                } else EOL
-            }
+            '\n' -> EOL
             else -> {
                 when {
                     c.isDigit() -> number(c)
@@ -211,8 +222,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             "import" -> ImportT
             "forall" -> Forall
             "let" -> LetT
-            "case" -> CaseT
-            "of" -> Of
+            "match" -> Match
             "type" -> Type
             "as" -> As
             "in" -> In
@@ -327,7 +337,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             last = c
         }
 
-        return builder.toString().trimMargin("*")
+        return builder.toString().trimMargin("*").trim()
     }
 
     private fun accept(chars: String): Char? {
@@ -391,5 +401,12 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         } catch (e: NumberFormatException) {
             lexError("Invalid number format for float: `$this`")
         }
+    }
+
+    companion object {
+        private fun isEndStatementToken(t: Token): Boolean =
+            t is Ident || t is UpperIdent || t is IntT || t is FloatT ||
+                    t is StringT || t is CharT || t is BoolT || t is RParen ||
+                    t is RSBracket || t is RBracket
     }
 }

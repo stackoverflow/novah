@@ -7,16 +7,22 @@ typealias ModuleName = List<String>
 data class Module(
     val name: ModuleName,
     val imports: List<Import>,
-    val exports: List<String>,
+    val exports: ModuleExports,
     val decls: List<Decl>
 ) {
-    var comment: String? = null
+    var comment: Comment? = null
+
+    fun withComment(c: Comment?) = apply { comment = c }
 }
 
 sealed class Import(val module: ModuleName) {
-    data class Raw(val mod: ModuleName) : Import(mod)
-    data class As(val mod: ModuleName, val alias: String) : Import(mod)
-    data class Exposing(val mod: ModuleName, val defs: List<String>) : Import(mod)
+    data class Raw(val mod: ModuleName, val alias: String? = null) : Import(mod)
+    data class Exposing(val mod: ModuleName, val defs: List<String>, val alias: String? = null) : Import(mod)
+
+    fun alias(): String? = when (this) {
+        is Raw -> alias
+        is Exposing -> alias
+    }
 }
 
 sealed class Decl {
@@ -25,6 +31,9 @@ sealed class Decl {
     data class ValDecl(val name: String, val exp: Expr) : Decl()
 
     var comment: Comment? = null
+    var span = Span.empty()
+
+    fun withSpan(s: Span, e: Span) = apply { span = Span(s.start, e.end) }
 }
 
 data class DataConstructor(val name: String, val args: List<Type>)
@@ -38,18 +47,26 @@ sealed class Expr {
     data class Var(val name: String, val moduleName: ModuleName = listOf()) : Expr()
     data class Operator(val name: String) : Expr()
     data class Construction(val ctor: String, val fields: List<Expr>) : Expr()
-    data class Lambda(val binder: String, val body: Expr) : Expr()
+    data class Lambda(val binder: String, val body: Expr, val nesting: Int = 0) : Expr()
     data class App(val fn: Expr, val arg: Expr) : Expr()
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr) : Expr()
-    data class Let(val letDef: LetDef, val body: Expr) : Expr()
+    data class Let(val letDef: LetDef, val body: Expr, val nesting: Int = 0) : Expr()
     data class Match(val exp: Expr, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
 
     var span = Span.empty()
+    var comment: Comment? = null
 
     fun withSpan(s: Span) = apply { span = s }
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.start, e.end) }
+
+    fun withComment(c: Comment?) = apply { comment = c }
+
+    fun <T> withSpanAndComment(s: Spanned<T>) = apply {
+        span = s.span
+        comment = s.comment
+    }
 }
 
 data class LetDef(val name: String, val expr: Expr, val type: Type? = null)
@@ -140,6 +157,10 @@ fun Expr.substVar(v: String, s: Expr): Expr =
 
 fun Expr.Lambda.openLambda(s: Expr): Expr = body.substVar(binder, s)
 
+fun Module.fullName() = name.joinToString(".")
+
+fun Import.fullName() = module.joinToString(".")
+
 private fun toComment(c: Comment): String {
     return if (c.isMulti) {
         "/**\n" + c.comment + "\n*/"
@@ -148,12 +169,8 @@ private fun toComment(c: Comment): String {
     }
 }
 
-fun Module.fullName() = name.joinToString(".")
-
-fun Import.fullName() = module.joinToString(".")
-
 fun Module.show(): String {
-    return """module ${fullName()} exposing (${exports.joinToString(", ")})
+    return """module ${fullName()}
             !
             !${imports.joinToString("\n") { it.show() }}
             !
@@ -163,7 +180,6 @@ fun Module.show(): String {
 
 fun Import.show(): String = when (this) {
     is Import.Raw -> "import ${fullName()}"
-    is Import.As -> "import ${fullName()} as $alias"
     is Import.Exposing -> "import ${fullName()} (${defs.joinToString(", ")})"
 }
 
@@ -219,12 +235,12 @@ fun Expr.show(tab: String = ""): String {
             val cs = cases.joinToString("\n  $tab ") { it.show("$tab  ") }
             "case ${exp.show()} of {\n  $tab $cs\n$tab}"
         }
-        is Expr.Lambda -> "(\\$binder -> " + body.show("$tab  ") + ")"
+        is Expr.Lambda -> "#$nesting(\\$binder -> " + body.show("$tab  ") + ")"
         is Expr.If -> {
             "if ${cond.show(tab)} else\n  ${tab}${thenCase.show(tab)} \n${tab}else\n$tab  ${elseCase.show(tab)}"
         }
         is Expr.Let -> {
-            "let " + letDef.show(tab) + " in\n$tab" + body.show(tab)
+            "#${nesting}let " + letDef.show(tab) + " in\n$tab" + body.show(tab)
         }
         is Expr.Ann -> "${exp.show(tab)} :: $type"
         is Expr.Do -> {

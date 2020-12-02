@@ -11,8 +11,10 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
     private val topLevelTypes = mutableMapOf<String, TType>()
 
+    private var allowEolInExpr = false
+
     fun parseFullModule(): Module {
-        val (mname, exports) = parseModule()
+        val (mname, exports, comment) = parseModule()
 
         val imports = mutableListOf<Import>()
         while (iter.peek().value is ImportT) {
@@ -28,13 +30,13 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return Module(
             mname,
             imports,
-            ModuleExports.consolidate(exports, decls),
+            exports,
             decls
-        )
+        ).withComment(comment)
     }
 
-    private fun parseModule(): Pair<ModuleName, ModuleExports> {
-        expect<ModuleT>(withError(E.MODULE_DEFINITION))
+    private fun parseModule(): Triple<ModuleName, ModuleExports, Comment?> {
+        val m = expect<ModuleT>(withError(E.MODULE_DEFINITION))
 
         val name = parseModuleName()
 
@@ -43,13 +45,11 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val exports = when (iter.peek().value) {
             is Hiding -> {
                 iter.next()
-                consumeEol()
                 consumedEol = false
                 ModuleExports.Hiding(parseImportExports("exports"))
             }
             is Exposing -> {
                 iter.next()
-                consumeEol()
                 consumedEol = false
                 ModuleExports.Exposing(parseImportExports("exports"))
             }
@@ -57,12 +57,11 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
         if (!consumedEol)
             expectEolOrSemicolon()
-        return name to exports
+        return Triple(name, exports, m.comment)
     }
 
     private fun parseImportExports(ctx: String): List<String> {
         expect<LParen>(withError(E.lparensExpected(ctx)))
-        consumeEol()
         if (iter.peek().value is RParen) {
             iter.next()
             return listOf()
@@ -85,14 +84,20 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         var consumedEol = consumeEol()
         val import = when (iter.peek().value) {
             is LParen -> {
-                consumedEol = false
-                Import.Exposing(mname, parseImportExports("import"))
+                val imp = parseImportExports("import")
+                consumedEol = consumeEol()
+                if (iter.peek().value is As) {
+                    iter.next()
+                    consumedEol = false
+                    val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
+                    Import.Exposing(mname, imp, alias.value.v)
+                } else Import.Exposing(mname, imp)
             }
             is As -> {
                 iter.next()
                 val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
                 consumedEol = false
-                Import.As(mname, alias.value.v)
+                Import.Raw(mname, alias.value.v)
             }
             else -> Import.Raw(mname)
         }
@@ -114,8 +119,8 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return decl
     }
 
-    private fun parseTypeDecl(): Decl.DataDecl {
-        expect<Type>(noErr())
+    private fun parseTypeDecl(): Decl {
+        val typ = expect<Type>(noErr())
 
         val name = expect<UpperIdent>(withError(E.DATA_NAME))
 
@@ -123,7 +128,6 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         consumeEol()
         expect<Equals>(withError(E.DATA_EQUALS))
-        consumeEol()
 
         var consumedEol = false
         val ctors = mutableListOf<DataConstructor>()
@@ -150,15 +154,18 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
 
         return Decl.DataDecl(name.value.v, tyVars, ctors)
+            .withSpan(typ.span, iter.current().span)
     }
 
     private fun parseVarDecl(): Decl {
         // transforms `fun x y z = 1` into `fun = \x -> \y -> \z -> 1`
-        fun desugarToLambda(acc: List<String>, exp: Expr, span: Span): Expr {
+        fun desugarToLambda(acc: List<String>, exp: Expr, span: Span, c: Comment?, nesting: Int): Expr {
             return if (acc.size <= 1) {
-                Expr.Lambda(acc[0], exp).withSpan(span)
+                Expr.Lambda(acc[0], exp, nesting).withSpan(span).withComment(c)
             } else {
-                Expr.Lambda(acc[0], desugarToLambda(acc.drop(1), exp, span)).withSpan(span)
+                Expr.Lambda(acc[0], desugarToLambda(acc.drop(1), exp, span, c, nesting - 1), nesting)
+                    .withSpan(span)
+                    .withComment(c)
             }
         }
 
@@ -168,27 +175,26 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             return parseTypeSignature(name)
         }
 
-        val vars = tryParseListOf(::tryParseIdent)
+        val vars = tryParseListOf { tryParseIdent() }
 
         expect<Equals>(withError(E.EQUALS))
-        consumeEol()
 
         val exp = parseExpression().let {
             val span = span(nameTk.span, it.span)
-            if (vars.isEmpty()) it else desugarToLambda(vars, it, span)
+            if (vars.isEmpty()) it else desugarToLambda(vars, it, span, nameTk.comment, vars.size)
         }
 
         expectEolOrSemicolon()
 
         // if the declaration has a defined type, annotate it
-        return topLevelTypes[name]?.let {
+        val decl = topLevelTypes[name]?.let {
             Decl.ValDecl(name, Expr.Ann(exp, it))
         } ?: Decl.ValDecl(name, exp)
+        return decl.withSpan(nameTk.span, exp.span)
     }
 
     private fun parseTypeSignature(name: String): Decl.TypeDecl {
         expect<DoubleColon>(withError(E.TYPE_DCOLON))
-        consumeEol()
         val decl = Decl.TypeDecl(name, parsePolytype())
         expectEolOrSemicolon()
         topLevelTypes[name] = decl.typ
@@ -215,7 +221,9 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return if (iter.peek().value is DoubleColon) {
             val dc = iter.next()
             val pt = parsePolytype()
-            Expr.Ann(unrolled, pt).withSpan(dc.span, iter.current().span)
+            Expr.Ann(unrolled, pt)
+                .withSpan(dc.span, iter.current().span)
+                .withComment(dc.comment)
         } else unrolled
     }
 
@@ -226,15 +234,11 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         is CharT -> parseChar()
         is BoolT -> parseBool()
         is Ident -> parseVar()
-        is Op -> {
-            val op = parseOperator()
-            // EOL are allowed after operators
-            consumeEol()
-            op
-        }
+        is Op -> parseOperator()
         is LParen -> {
             iter.next()
-            val exp = parseExpression()
+            val exp = withEolInExpr(::parseExpression)
+            consumeEol()
             expect<RParen>(withError(E.rparensExpected("expression")))
             exp
         }
@@ -249,44 +253,44 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         is Backslash -> parseLambda()
         is IfT -> parseIf()
         is LetT -> parseLet()
-        is CaseT -> parseMatch()
+        is Match -> parseMatch()
         is Do -> parseDo()
         else -> null
     }
 
     private fun parseInt(): Expr {
         val num = expect<IntT>(withError(E.literalExpected("integer")))
-        return Expr.IntE(num.value.i).withSpan(num.span)
+        return Expr.IntE(num.value.i).withSpanAndComment(num)
     }
 
     private fun parseFloat(): Expr {
         val num = expect<FloatT>(withError(E.literalExpected("float")))
-        return Expr.FloatE(num.value.f).withSpan(num.span)
+        return Expr.FloatE(num.value.f).withSpanAndComment(num)
     }
 
     private fun parseString(): Expr {
         val str = expect<StringT>(withError(E.literalExpected("string")))
-        return Expr.StringE(str.value.s).withSpan(str.span)
+        return Expr.StringE(str.value.s).withSpanAndComment(str)
     }
 
     private fun parseChar(): Expr {
         val str = expect<CharT>(withError(E.literalExpected("char")))
-        return Expr.CharE(str.value.c).withSpan(str.span)
+        return Expr.CharE(str.value.c).withSpanAndComment(str)
     }
 
     private fun parseBool(): Expr {
         val bool = expect<BoolT>(withError(E.literalExpected("boolean")))
-        return Expr.Bool(bool.value.b).withSpan(bool.span)
+        return Expr.Bool(bool.value.b).withSpanAndComment(bool)
     }
 
     private fun parseVar(): Expr {
         val v = expect<Ident>(withError(E.VARIABLE))
-        return Expr.Var(v.value.v).withSpan(v.span)
+        return Expr.Var(v.value.v).withSpanAndComment(v)
     }
 
     private fun parseOperator(): Expr {
         val op = expect<Op>(withError("Expected Operator."))
-        return Expr.Operator(op.value.op).withSpan(op.span)
+        return Expr.Operator(op.value.op).withSpanAndComment(op)
     }
 
     private fun parseImportedVar(alias: Spanned<UpperIdent>): Expr {
@@ -296,31 +300,40 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         } else {
             expect<Dot>(noErr())
             val ident = expect<Ident>(withError(E.IMPORTED_DOT))
-            Expr.Var(ident.value.v, moduleName).withSpan(alias.span, ident.span)
+            Expr.Var(ident.value.v, moduleName)
+                .withSpan(alias.span, ident.span)
+                .withComment(alias.comment)
         }
     }
 
     private fun parseDataConstruction(ctor: Spanned<UpperIdent>): Expr {
         val fields = tryParseListOf(::tryParseAtom)
-        return Expr.Construction(ctor.value.v, fields).withSpan(ctor.span, iter.current().span)
+        return Expr.Construction(ctor.value.v, fields)
+            .withSpan(ctor.span, iter.current().span)
+            .withComment(ctor.comment)
     }
 
     private fun parseLambda(multiVar: Boolean = false, isLet: Boolean = false): Expr {
-        val begin = iter.peek().span
+        fun calcNesting(expr: Expr): Int = if (expr is Expr.Lambda) expr.nesting + 1 else 0
+
+        val begin = iter.peek()
         if (!multiVar) expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
 
         val bind = expect<Ident>(withError(E.LAMBDA_VAR))
 
         return if (iter.peek().value is Ident) {
             val l = parseLambda(true, isLet)
-            Expr.Lambda(bind.value.v, l).withSpan(begin, l.span)
+            Expr.Lambda(bind.value.v, l, calcNesting(l))
+                .withSpan(begin.span, l.span)
+                .withComment(begin.comment)
         } else {
             if (isLet) expect<Equals>(withError(E.LET_EQUALS))
             else expect<Arrow>(withError(E.LAMBDA_ARROW))
-            consumeEol()
 
             val exp = parseExpression()
-            Expr.Lambda(bind.value.v, exp).withSpan(begin, exp.span)
+            Expr.Lambda(bind.value.v, exp, if (isLet) 1 else 0)
+                .withSpan(begin.span, exp.span)
+                .withComment(begin.comment)
         }
     }
 
@@ -332,25 +345,27 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         consumeEol()
         expect<Then>(withError(E.THEN))
 
-        consumeEol()
         val thens = parseExpression()
 
         consumeEol()
         expect<Else>(withError(E.ELSE))
 
-        consumeEol()
         val elses = parseExpression()
 
-        return Expr.If(cond, thens, elses).withSpan(_if.span, elses.span)
+        return Expr.If(cond, thens, elses)
+            .withSpan(_if.span, elses.span)
+            .withComment(_if.comment)
     }
 
     private fun parseLet(): Expr {
         // unroll a `let x = 1 and y = x in y` to `let x = 1 in let y = x in y`
-        fun unrollLets(acc: List<LetDef>, exp: Expr, span: Span): Expr {
+        fun unrollLets(acc: List<LetDef>, exp: Expr, span: Span, c: Comment?, nesting: Int): Expr {
             return if (acc.size <= 1) {
-                Expr.Let(acc[0], exp).withSpan(span)
+                Expr.Let(acc[0], exp, nesting).withSpan(span).withComment(c)
             } else {
-                Expr.Let(acc[0], unrollLets(acc.drop(1), exp, span)).withSpan(span)
+                Expr.Let(acc[0], unrollLets(acc.drop(1), exp, span, c, nesting - 1), nesting)
+                    .withSpan(span)
+                    .withComment(c)
             }
         }
 
@@ -364,11 +379,10 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         consumeEol()
         expect<In>(withError(E.LET_IN))
 
-        consumeEol()
         val exp = parseExpression()
 
         val span = span(_let.span, exp.span)
-        return unrollLets(defs, exp, span)
+        return unrollLets(defs, exp, span, _let.comment, defs.size - 1)
     }
 
     private tailrec fun parseLetDef(types: MutableList<Decl.TypeDecl>, letDefs: MutableList<LetDef>): LetDef {
@@ -403,22 +417,12 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     }
 
     private fun parseMatch(): Expr {
-        val case = expect<CaseT>(noErr())
+        val case = expect<Match>(noErr())
 
-        consumeEol()
         val exp = parseExpression()
 
         consumeEol()
-        expect<Of>(withError(E.CASE_OF))
-
-        consumeEol()
-
-        // A single case doesn't need a bracket
-        if (iter.peek().value !is LBracket) {
-            return Expr.Match(exp, listOf(parseCase())).withSpan(case.span, iter.current().span)
-        }
         expect<LBracket>(withError(E.lbracketExpected("after `case expression of`")))
-        consumeEol()
 
         val cases = mutableListOf<Case>()
         while (true) {
@@ -436,15 +440,14 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             }
         }
 
-        return Expr.Match(exp, cases).withSpan(case.span, iter.current().span)
+        return Expr.Match(exp, cases)
+            .withSpan(case.span, iter.current().span)
+            .withComment(case.comment)
     }
 
     private fun parseCase(): Case {
         val pat = parsePattern()
-
         expect<Arrow>(withError(E.CASE_ARROW))
-        consumeEol()
-
         return Case(pat, parseExpression())
     }
 
@@ -507,9 +510,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
     private fun parseDo(): Expr {
         val _do = expect<Do>(noErr())
-        consumeEol()
         expect<LBracket>(withError(E.lbracketExpected("do expression")))
-        consumeEol()
 
         val exps = mutableListOf<Expr>()
 
@@ -531,7 +532,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return if (exps.size == 1) {
             exps[0]
         } else {
-            Expr.Do(exps).withSpan(_do.span, next.span)
+            Expr.Do(exps).withSpan(_do.span, next.span).withComment(_do.comment)
         }
     }
 
@@ -546,11 +547,11 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
     private fun parsePolytype(): TType {
         // unroll a `forall a b. a -> b` to `forall a. (forall b. a -> b)`
-        fun unrollForall(acc: List<String>, type: TType): TType.TForall {
+        fun unrollForall(acc: List<String>, type: TType, nesting: Int): TType.TForall {
             return if (acc.size <= 1) {
-                TType.TForall(acc[0], type)
+                TType.TForall(acc[0], type, nesting)
             } else {
-                TType.TForall(acc[0], unrollForall(acc.drop(1), type))
+                TType.TForall(acc[0], unrollForall(acc.drop(1), type, nesting - 1), nesting)
             }
         }
 
@@ -559,8 +560,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
             if (tyVars.isEmpty()) throwError(withError(E.FORALL_TVARS)(iter.peek()))
             expect<Dot>(withError(E.FORALL_DOT))
-            consumeEol()
-            unrollForall(tyVars, parseType())
+            unrollForall(tyVars, parseType(), tyVars.size - 1)
         } else parseType()
     }
 
@@ -573,7 +573,6 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return when (iter.peek().value) {
             is Arrow -> {
                 iter.next()
-                consumeEol()
                 TType.TFun(atm, parseType())
             }
             else -> atm
@@ -584,6 +583,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val tk = iter.peek()
 
         return when (tk.value) {
+            is Forall -> parsePolytype()
             is LParen -> {
                 iter.next()
                 val typ = parseType()
@@ -592,8 +592,14 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             }
             is Ident -> TType.TVar(parseTypeVar())
             is UpperIdent -> {
-                val ctor = parseUpperIdent()
-                TType.TVar(ctor.v)
+                when (val ctor = parseUpperIdent().v) {
+                    "Int" -> TType.TInt
+                    "Float" -> TType.TFloat
+                    "String" -> TType.TString
+                    "Char" -> TType.TChar
+                    "Boolean" -> TType.TBoolean
+                    else -> TType.TVar(ctor)
+                }
             }
             else -> null
         }
@@ -618,9 +624,11 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     private inline fun <reified T> tryParseListOf(fn: () -> T?): List<T> {
         val acc = mutableListOf<T>()
         var element = fn()
+        if (allowEolInExpr) consumeEol()
         while (element != null) {
             acc += element
             element = fn()
+            if (allowEolInExpr) consumeEol()
         }
         return acc
     }
@@ -647,7 +655,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         return when (tk.value) {
             is T -> tk as Spanned<T>
-            else -> throw RuntimeException(err(tk))
+            else -> throw ParserError(err(tk))
         }
     }
 
@@ -666,10 +674,23 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     }
 
     /**
+     * Allows EOL tokens inside a expression.
+     * Should be used only inside parentheses
+     * or some other non-ambiguous context.
+     */
+    private inline fun <T> withEolInExpr(f: () -> T): T {
+        val tmp = allowEolInExpr
+        allowEolInExpr = true
+        val res = f()
+        allowEolInExpr = tmp
+        return res
+    }
+
+    /**
      * Finds the full module name of an import alias
      */
     private fun findImport(alias: String): ModuleName? {
-        return imports.filterIsInstance<Import.As>().find { it.alias == alias }?.module
+        return imports.find { it.alias() == alias }?.module
     }
 
     companion object {
@@ -681,7 +702,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
 
         private fun throwError(err: String): Nothing {
-            throw RuntimeException(err)
+            throw ParserError(err)
         }
 
         /**
@@ -692,3 +713,5 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         private fun span(s: Span, e: Span) = Span(s.start, e.end)
     }
 }
+
+class ParserError(msg: String) : java.lang.RuntimeException(msg)
