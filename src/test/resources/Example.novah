@@ -1,3 +1,7 @@
+/*
+ comment on
+ the module
+ */
 module Novah.Example hiding
   ( maybe
   , myFun
@@ -6,12 +10,16 @@ module Novah.Example hiding
   , sum2
   )
 
+// imported prelude
 import Prelude
 
 import Data.Perhaps
   ( Perhaps
   , fun1, stuff
   )
+/**
+ * B as Brain
+ */
 import Control.Brain as B
 import Some.Module (fun1, Type2) as Mod
 
@@ -45,7 +53,10 @@ stuff v v2 = match v {
  * Some multi line comment
  * added here
  */
-maybe :: forall a. a -> Int -> Maybe
+maybe :: forall a.
+  a ->
+  Int ->
+  Maybe
 maybe def sm = match sm {
   Some x -> B.brain x
   Nope -> def
@@ -53,6 +64,9 @@ maybe def sm = match sm {
 
 id :: ∀ a. a -> a
 id x = x
+
+compl :: forall a b c. (a -> b) -> (b -> c) -> a -> c
+compl f1 f2 x = f2 (f1 x)
 
 sum :: Int -> Int -> Int
 sum x y = x + y

@@ -78,7 +78,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     }
 
     private fun parseImport(): Import {
-        expect<ImportT>(noErr())
+        val impTk = expect<ImportT>(noErr())
         val mname = parseModuleName()
 
         var consumedEol = consumeEol()
@@ -104,7 +104,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         if (!consumedEol)
             expectEolOrSemicolon()
-        return import
+        return import.withComment(impTk.comment)
     }
 
     private fun parseDecl(): Decl {
@@ -547,11 +547,11 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
     private fun parsePolytype(): TType {
         // unroll a `forall a b. a -> b` to `forall a. (forall b. a -> b)`
-        fun unrollForall(acc: List<String>, type: TType, nesting: Int): TType.TForall {
+        fun unrollForall(acc: List<String>, type: TType): TType.TForall {
             return if (acc.size <= 1) {
-                TType.TForall(acc[0], type, nesting)
+                TType.TForall(acc[0], type)
             } else {
-                TType.TForall(acc[0], unrollForall(acc.drop(1), type, nesting - 1), nesting)
+                TType.TForall(acc[0], unrollForall(acc.drop(1), type))
             }
         }
 
@@ -560,7 +560,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
             if (tyVars.isEmpty()) throwError(withError(E.FORALL_TVARS)(iter.peek()))
             expect<Dot>(withError(E.FORALL_DOT))
-            unrollForall(tyVars, parseType(), tyVars.size - 1)
+            unrollForall(tyVars, parseType())
         } else parseType()
     }
 

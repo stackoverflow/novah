@@ -27,8 +27,7 @@ sealed class Type {
     data class TFun(val arg: Type, val ret: Type) : Type() {
         override fun toString(): String = "($arg -> $ret)"
     }
-    // nesting represents how many nested foralls there are: forall a. forall b. a -> b => nesting 1
-    data class TForall(val name: String, val type: Type, val nesting: Int = 0) : Type() {
+    data class TForall(val name: String, val type: Type) : Type() {
         override fun toString(): String = "forall $name. $type"
     }
 
