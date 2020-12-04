@@ -323,7 +323,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         return if (iter.peek().value is Ident) {
             val l = parseLambda(true, isLet)
-            Expr.Lambda(bind.value.v, l, calcNesting(l))
+            Expr.Lambda(bind.value.v, l, if (isLet) calcNesting(l) else 0)
                 .withSpan(begin.span, l.span)
                 .withComment(begin.comment)
         } else {

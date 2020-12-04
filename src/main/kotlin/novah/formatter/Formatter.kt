@@ -13,7 +13,7 @@ class Formatter(private val ast: Module) {
     private var indent = ""
 
     fun format(): String {
-        formatModule(ast)
+        ast.format()
         if (ast.imports.isNotEmpty()) {
             doubleLineBreak()
             formatImports(ast.imports)
@@ -25,22 +25,22 @@ class Formatter(private val ast: Module) {
         return builder.toString()
     }
 
-    private fun formatModule(m: Module) {
-        if (m.comment != null) {
-            formatComment(m.comment!!)
+    private fun Module.format() {
+        if (comment != null) {
+            comment!!.format()
         }
-        print("module ${m.fullName()}")
-        formatModuleExports(m.exports)
+        print("module ${fullName()}")
+        exports.format()
     }
 
-    private fun formatModuleExports(me: ModuleExports) {
-        if (me is ModuleExports.Hiding) {
+    private fun ModuleExports.format() {
+        if (this is ModuleExports.Hiding) {
             print(" hiding")
-            printList(me.hides.sorted())
+            printList(hides.sorted())
         }
-        if (me is ModuleExports.Exposing) {
+        if (this is ModuleExports.Exposing) {
             print(" exposing")
-            printList(me.exports.sorted())
+            printList(exports.sorted())
         }
     }
 
@@ -49,21 +49,24 @@ class Formatter(private val ast: Module) {
 
         for (imp in imps) {
             if (imp != imps.first()) lineBreak()
+            imp.format()
+        }
+    }
 
-            if (imp.comment != null) formatComment(imp.comment!!)
-            print("import ${imp.fullName()}")
-            if (imp is Import.Exposing) {
-                if (!exceed(calculateHSize(imp.defs, ", "))) {
-                    print(" ( ")
-                    print(imp.defs.joinToString(", "))
-                    print(" )")
-                } else {
-                    printList(imp.defs)
-                }
+    private fun Import.format() {
+        if (comment != null) comment!!.format()
+        print("import ${fullName()}")
+        if (this is Import.Exposing) {
+            if (!exceed(calculateHSize(defs, ", "))) {
+                print(" ( ")
+                print(defs.joinToString(", "))
+                print(" )")
+            } else {
+                printList(defs)
             }
-            if (imp.alias() != null) {
-                print(" as ${imp.alias()}")
-            }
+        }
+        if (alias() != null) {
+            print(" as ${alias()}")
         }
     }
 
@@ -74,26 +77,26 @@ class Formatter(private val ast: Module) {
                 if (last is Decl.TypeDecl && decl is Decl.ValDecl && last.name == decl.name) lineBreak()
                 else doubleLineBreak()
             }
-            if (decl.comment != null) formatComment(decl.comment!!)
+            if (decl.comment != null) decl.comment!!.format()
             when (decl) {
-                is Decl.DataDecl -> formatDataDecl(decl)
-                is Decl.TypeDecl -> formatTypeDecl(decl)
-                is Decl.ValDecl -> formatValDecl(decl)
+                is Decl.DataDecl -> decl.format()
+                is Decl.TypeDecl -> decl.format()
+                is Decl.ValDecl -> decl.format()
             }
             last = decl
         }
     }
 
-    private fun formatDataDecl(dd: Decl.DataDecl) {
-        print("type ${dd.name}")
-        if (dd.tyVars.isNotEmpty()) print(" " + dd.tyVars.joinToString(" "))
+    private fun Decl.DataDecl.format() {
+        print("type $name")
+        if (tyVars.isNotEmpty()) print(" " + tyVars.joinToString(" "))
 
-        val singleLine = dd.dataCtors.joinToString(" | ")
+        val singleLine = dataCtors.joinToString(" | ")
         if (exceed(singleLine.length, maxColumns / 3)) {
             withIndent {
-                print("= " + dd.dataCtors.first())
-                if (dd.dataCtors.size > 1) {
-                    for (dc in dd.dataCtors.drop(1)) {
+                print("= " + dataCtors.first())
+                if (dataCtors.size > 1) {
+                    for (dc in dataCtors.drop(1)) {
                         lineBreak()
                         print("| $dc")
                     }
@@ -104,40 +107,42 @@ class Formatter(private val ast: Module) {
         }
     }
 
-    private fun formatTypeDecl(td: Decl.TypeDecl) {
-        print("${td.name} ::")
-        formatType(td.typ)
+    private fun Decl.TypeDecl.format() {
+        print("$name ::")
+        typ.format()
     }
 
-    private fun formatValDecl(vd: Decl.ValDecl) {
-        print(vd.name)
+    private fun Decl.ValDecl.format() {
+        print(name)
         // unnest lambdas
         val lambdaVars = mutableListOf<String>()
-        var expr = if (vd.exp is Expr.Ann) vd.exp.exp else vd.exp
+        var expr = if (exp is Expr.Ann) exp.exp else exp
         while (expr is Expr.Lambda && expr.nesting > 0) {
             lambdaVars += expr.binder
             expr = expr.body
         }
         if (lambdaVars.isNotEmpty()) print(" " + lambdaVars.joinToString(" "))
         print(" = ")
-        formatExpr(expr)
+        expr.format()
     }
 
-    private fun formatExpr(expr: Expr) {
-        when (expr) {
+    private fun Expr.format(nested: Boolean = false) {
+        when (this) {
             is Expr.Construction -> {
-                print(expr.ctor)
-                for (exp in expr.fields) {
+                if (nested) print("(")
+                print(ctor)
+                for (exp in fields) {
                     print(" ")
-                    formatExpr(exp)
+                    exp.format(true)
                 }
+                if (nested) print(")")
             }
             is Expr.Do -> {
                 print("do {")
                 withIndent {
-                    for (exp in expr.exps) {
-                        formatExpr(exp)
-                        if (exp != expr.exps.last())
+                    for (exp in exps) {
+                        exp.format()
+                        if (exp != exps.last())
                             lineBreak()
                     }
                 }
@@ -146,25 +151,96 @@ class Formatter(private val ast: Module) {
             }
             is Expr.Match -> {
                 print("match ")
-                formatExpr(expr.exp)
+                exp.format()
                 print(" {")
                 withIndent {
-                    for (case in expr.cases) {
+                    for (case in cases) {
+                        if (case != cases.first()) lineBreak()
+                        case.pattern.format()
+                        print(" -> ")
+                        if (column > maxColumns / 3) {
+                            withIndent { case.exp.format() }
+                        } else case.exp.format()
                     }
                 }
                 lineBreak()
                 print("}")
             }
-            else -> print("$expr")
+            is Expr.If -> {
+                val simple = thenCase.isSimple() && elseCase.isSimple()
+                if (nested) print("(")
+                print("if ")
+                cond.format()
+                if (simple) {
+                    print(" then ")
+                    thenCase.format()
+                    print(" else ")
+                    elseCase.format()
+                } else {
+                    withIndent {
+                        print("then ")
+                        thenCase.format()
+                        lineBreak()
+                        print("else ")
+                        elseCase.format()
+                    }
+                }
+                if (nested) print(")")
+            }
+            is Expr.App -> {
+                if (nested) print("(")
+                fn.format(true)
+                print(" ")
+                arg.format(true)
+                if (nested) print(")")
+            }
+            is Expr.IntE -> print("$i")
+            is Expr.FloatE -> print("$f")
+            is Expr.StringE -> print("\"$s\"")
+            is Expr.CharE -> print("'$c'")
+            is Expr.Bool -> print("$b")
+            is Expr.Var -> {
+                if (moduleName.isEmpty()) print(name)
+                else print(moduleName.joinToString(".") + "." + name)
+            }
+            is Expr.Operator -> print(name)
+            else -> print("$this")
         }
     }
 
-    private fun formatType(t: Type) {
-        when (t) {
+    private fun Pattern.format(nested: Boolean = false) {
+        when (this) {
+            is Pattern.Wildcard -> print("_")
+            is Pattern.Var -> print(name)
+            is Pattern.Ctor -> {
+                if (nested) print("(")
+                print(name)
+                fields.forEach { pt ->
+                    print(" ")
+                    pt.format(true)
+                }
+                if (nested) print(")")
+            }
+            is Pattern.LiteralP -> lit.format()
+        }
+    }
+
+    private fun LiteralPattern.format() {
+        when (this) {
+            is LiteralPattern.BoolLiteral -> print("$b")
+            is LiteralPattern.CharLiteral -> print("'$c'")
+            is LiteralPattern.StringLiteral -> print(s)
+            is LiteralPattern.IntLiteral -> print("$i")
+            is LiteralPattern.FloatLiteral -> print("$f")
+        }
+    }
+
+    private fun Type.format() {
+        when (this) {
             is Type.TFun -> {
-                if (exceed(t.toString().length)) {
+                if (exceed(toString().length)) {
                     withIndent {
-                        var fn = t
+                        var fn = this
                         while (fn is Type.TFun) {
                             val f = fn as Type.TFun
                             print("${f.arg} ->")
@@ -175,7 +251,7 @@ class Formatter(private val ast: Module) {
                     }
                 } else {
                     print(" ")
-                    var fn = t
+                    var fn = this
                     while (fn is Type.TFun) {
                         val f = fn as Type.TFun
                         print("${f.arg} -> ")
@@ -187,29 +263,40 @@ class Formatter(private val ast: Module) {
             is Type.TForall -> {
                 // unnest foralls
                 val forallVars = mutableListOf<String>()
-                var fa = t
+                var fa = this
                 while (fa is Type.TForall) {
                     forallVars += fa.name
                     fa = fa.type
                 }
                 print(" forall ${forallVars.joinToString(" ")}.")
-                formatType(fa)
+                fa.format()
             }
-            else -> print(" $t")
+            else -> print(" $this")
         }
     }
 
-    private fun formatComment(c: Comment) {
-        if (c.isMulti) {
+    private fun Comment.format() {
+        if (isMulti) {
             print("/*\n * ")
-            print(c.comment.split("\n").joinToString("\n *"))
+            print(comment.split("\n").joinToString("\n *"))
             lineBreak()
             print(" */")
-        } else print("// ${c.comment}")
+        } else print("// $comment")
         lineBreak()
     }
 
     // Helpers
+
+    private fun Expr.isSimple(): Boolean = when (this) {
+        is Expr.IntE -> true
+        is Expr.FloatE -> true
+        is Expr.StringE -> true
+        is Expr.CharE -> true
+        is Expr.Bool -> true
+        is Expr.Var -> true
+        is Expr.Operator -> true
+        else -> false
+    }
 
     private fun calculateHSize(list: List<String>, separator: String = ""): Int {
         return list.map(String::length).sum() + (separator.length * (list.size - 1))

@@ -179,6 +179,13 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             '\'' -> char()
             '"' -> string()
             '\n' -> EOL
+            '-' -> {
+                val tk = iter.peek()
+                if (tk.isDigit()) {
+                    iter.next()
+                    number(tk, true)
+                } else operator(c)
+            }
             else -> {
                 when {
                     c.isDigit() -> number(c)
@@ -197,11 +204,14 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
 
     private fun char(): Token {
         val c = iter.next()
-        return if (c == '\\') {
+        val ch = if (c == '\\') {
             CharT(readEscape())
         } else {
             CharT(c)
         }
+        val n = iter.next()
+        if (n != '\'') lexError("Expected ' after char literal")
+        return ch
     }
 
     private fun ident(init: Char): Token {
@@ -259,7 +269,8 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
 
     private val numPat = Regex("""\d+(\.\d+)?[e|E]?""")
 
-    private fun number(init: Char): Token {
+    private fun number(init: Char, negative: Boolean = false): Token {
+        val n = if (negative) -1 else 1
         if (init == '0') {
             return when (val c = iter.peek()) {
                 // binary numbers
@@ -267,14 +278,14 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     iter.next()
                     val bin = acceptMany("01")
                     if (bin.isEmpty()) lexError("Binary number cannot be empty")
-                    IntT(bin.toSafeLong(2))
+                    IntT(bin.toSafeLong(2) * n)
                 }
                 // hex numbers
                 'x', 'X' -> {
                     iter.next()
                     val hex = acceptMany("0123456789abcdefABCDEF")
                     if (hex.isEmpty()) lexError("Hexadecimal number cannot be empty")
-                    IntT(hex.toSafeLong(16))
+                    IntT(hex.toSafeLong(16) * n)
                 }
                 else -> {
                     if (c.isDigit()) lexError("Number 0 can only be followed by b|B or x|X: `$c`")
@@ -292,10 +303,10 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     val rest = acceptMany("0123456789")
                     if (rest.isEmpty() && (symOrNum == '+' || symOrNum == '-')) lexError("Invalid number format: expected number after sign")
                     val str = num + symOrNum + rest
-                    FloatT(str.toSafeDouble())
+                    FloatT(str.toSafeDouble() * n)
                 }
-                num.contains('.') -> FloatT(num.toSafeDouble())
-                else -> IntT(num.toSafeLong(10))
+                num.contains('.') -> FloatT(num.toSafeDouble() * n)
+                else -> IntT(num.toSafeLong(10) * n)
             }
         }
     }

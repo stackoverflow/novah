@@ -81,13 +81,13 @@ myFun x = match x {
     match 4 { x -> x }
     4
   }
-  Some x -> 9
+  Some (Maybe (Perhaps x y 8)) -> x
 }
 
 ex x =
   let x = 4
   and y = 9 in do {
-    sideEffect 0
+    sideEffect (if false then "false" else "true") -1
     x * y
   }
 
@@ -117,5 +117,5 @@ fact x =
     then x
     else x * fact (x - 1)
 
-end :: String
-end = "end"
+end :: Char
+end = 'a'

@@ -48,36 +48,13 @@ data class DataConstructor(val name: String, val args: List<Type>) {
 }
 
 sealed class Expr {
-    data class IntE(val i: Long) : Expr() {
-        override fun toString(): String = "$i"
-    }
-
-    data class FloatE(val f: Double) : Expr() {
-        override fun toString(): String = "$f"
-    }
-
-    data class StringE(val s: String) : Expr() {
-        override fun toString(): String = s
-    }
-
-    data class CharE(val c: Char) : Expr() {
-        override fun toString(): String = "$c"
-    }
-
-    data class Bool(val b: Boolean) : Expr() {
-        override fun toString(): String = "$b"
-    }
-
-    data class Var(val name: String, val moduleName: ModuleName = listOf()) : Expr() {
-        override fun toString(): String =
-            if (moduleName.isEmpty()) name
-            else moduleName.joinToString(".") + "." + name
-    }
-
-    data class Operator(val name: String) : Expr() {
-        override fun toString(): String = name
-    }
-
+    data class IntE(val i: Long) : Expr()
+    data class FloatE(val f: Double) : Expr()
+    data class StringE(val s: String) : Expr()
+    data class CharE(val c: Char) : Expr()
+    data class Bool(val b: Boolean) : Expr()
+    data class Var(val name: String, val moduleName: ModuleName = listOf()) : Expr()
+    data class Operator(val name: String) : Expr()
     data class Construction(val ctor: String, val fields: List<Expr>) : Expr()
     data class Lambda(val binder: String, val body: Expr, val nesting: Int = 0) : Expr()
     data class App(val fn: Expr, val arg: Expr) : Expr()

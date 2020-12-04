@@ -15,6 +15,13 @@ class ParserSpec : StringSpec({
     fun Module.byName(name: String) =
         decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp?.show()
 
+    fun compareLambdas(l1: Expr.Lambda, l2: Expr.Lambda): Boolean {
+        if (l1.binder != l2.binder) return false
+        return if (l1.body is Expr.Lambda && l2.body is Expr.Lambda) {
+            compareLambdas(l1.body as Expr.Lambda, l2.body as Expr.Lambda)
+        } else l1.body == l2.body
+    }
+
     "Parser correctly parses operators" {
         val ast = parseResource("Operators.novah")
 
@@ -50,8 +57,8 @@ class ParserSpec : StringSpec({
         multi.exp shouldBe multiL
 
         // unsugared versions should be the same as sugared ones
-        simple.exp shouldBe simple2.exp
-        multi.exp shouldBe multi2.exp
+        compareLambdas(simple.exp as Expr.Lambda, simple2.exp as Expr.Lambda) shouldBe true
+        compareLambdas(multi.exp as Expr.Lambda, multi2.exp as Expr.Lambda) shouldBe true
     }
 
     "Lexer and Parser correctly parse comments" {
@@ -77,8 +84,8 @@ class ParserSpec : StringSpec({
 
         //ast.exportList shouldBe listOf("Maybe", "num", "doub", "x", "stuff", "id", "ex", "doIt", "fact")
 
-        //val formatter = Formatter(ast)
-        //println(formatter.format())
-        println(ast.show())
+        val formatter = Formatter(ast)
+        println(formatter.format())
+        //println(ast.show())
     }
 })
