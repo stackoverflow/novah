@@ -1,35 +1,59 @@
 package novah.frontend
 
 /**
- * An iterator that allows peeking the next value.
+ * An iterator that allows peeking the next value
+ * and keeps tab of the offside rule.
  */
-class PeekableIterator<T>(private val iterator: Iterator<T>) : Iterator<T> {
+class PeekableIterator<T>(private val iterator: Iterator<Spanned<T>>, private val onError: (Spanned<T>) -> Nothing) :
+    Iterator<Spanned<T>> {
 
-    private var lookahead: T? = null
+    private var lookahead: Spanned<T>? = null
 
-    private var current: T? = null
+    private var current: Spanned<T>? = null
+
+    // keep track of offside rules
+    private var offside = 1
+    private var ignoreOffside = false
 
     override fun hasNext(): Boolean = lookahead != null || iterator.hasNext()
 
-    override fun next(): T {
-        current = if (lookahead != null) {
+    override fun next(): Spanned<T> {
+        val t = if (lookahead != null) {
             val temp = lookahead!!
             lookahead = null
             temp
         } else {
             iterator.next()
         }
-        return current!!
+        if (!ignoreOffside && t.span.start.column < offside) onError(t)
+        current = t
+        return t
     }
 
-    fun peek(): T {
+    fun peek(): Spanned<T> {
         lookahead = lookahead ?: iterator.next()
         return lookahead!!
     }
 
-    fun current(): T {
+    fun peekIsOffside(): Boolean {
+        return !ignoreOffside && peek().span.start.column < offside
+    }
+
+    fun current(): Spanned<T> {
         return if (current == null) {
             error("called current element before the iterator started")
         } else current!!
+    }
+
+    fun ignoreOffside() = ignoreOffside
+
+    fun withIgnoreOffside(shouldIgnore: Boolean = true) {
+        ignoreOffside = shouldIgnore
+    }
+
+    fun offside() = offside
+
+    fun withOffside(column: Int) {
+        offside = column
     }
 }

@@ -2,7 +2,7 @@
  comment on
  the module
  */
-module Novah.Example hiding
+module novah.example hiding
   ( maybe
   , myFun
   , end
@@ -11,17 +11,17 @@ module Novah.Example hiding
   )
 
 // imported prelude
-import Prelude
+import prelude
 
-import Data.Perhaps
+import data.perhaps
   ( Perhaps
   , fun1, stuff
   )
 /**
  * B as Brain
  */
-import Control.Brain as B
-import Some.Module (fun1, Type2) as Mod
+import control.brain as B
+import some.mod (fun1, Type2) as Mod
 
 type Maybe a
   = Nope
@@ -39,28 +39,26 @@ doub x = 13.87E-12
 
 x = fn 3 4 5
 
-stuff ::
-  Int ->
-  Int ->
-  String
-stuff v v2 = match v {
+stuff
+  :: Int
+  -> Int
+  -> String
+stuff v v2 = case v of
   0 -> "0"
   1 -> show v2
   _ -> "oops"
-}
 
 /**
  * Some multi line comment
  * added here
  */
-maybe :: forall a.
-  a ->
-  Int ->
-  Maybe
-maybe def sm = match sm {
+maybe
+  :: forall a. a
+  -> Int
+  -> Maybe
+maybe def sm = case sm of
   Some x -> B.brain x
   Nope -> def
-}
 
 id :: ∀ a. a -> a
 id x = x
@@ -74,42 +72,39 @@ sum x y = x + y
 sum2 :: Int -> Int -> Int
 sum2 = (+)
 
-// some comment here
-myFun x = match x {
-  None -> do {
+  // some comment here
+myFun x = case x of
+  None -> do
     println "Something"
-    match 4 { x -> x }
+    case 4 of x -> x
     4
-  }
   Some (Maybe (Perhaps x y 8)) -> x
-}
 
 ex x =
   let x = 4
-  and y = 9 in do {
+      y = 9
+  in do
     sideEffect (if false then "false" else "true") -1
     x * y
-  }
 
 doIt :: Unit -> String
-doIt u = do {
-  (println
-    "not pure")
-  map (\x y -> do {
+doIt u = do
+  println
+    "not pure"
+      // bla
+  map (\x y -> do
     println x
-    x + 1}) (Some 3)
+    x + 1) (Some 3)
   let f :: forall a. a -> a
-  and f x = x
-  and y :: Int
-  and y = f 9 in
-    if y >= 2 then do {
+      f x = x
+      y :: Int
+      y = f 9 in
+    if y >= 2 then do
       println "big y"
       if x then 1 else 0
-    } else do {
+    else do
       println "small y"
       0
-    }
-}
 
 fact :: Int -> Int
 fact x =

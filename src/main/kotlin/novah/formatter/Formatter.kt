@@ -150,9 +150,9 @@ class Formatter(private val ast: Module) {
                 print("}")
             }
             is Expr.Match -> {
-                print("match ")
+                print("case ")
                 exp.format()
-                print(" {")
+                print(" of")
                 withIndent {
                     for (case in cases) {
                         if (case != cases.first()) lineBreak()
@@ -164,7 +164,6 @@ class Formatter(private val ast: Module) {
                     }
                 }
                 lineBreak()
-                print("}")
             }
             is Expr.If -> {
                 val simple = thenCase.isSimple() && elseCase.isSimple()

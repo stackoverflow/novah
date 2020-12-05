@@ -251,7 +251,7 @@ fun Expr.show(tab: String = ""): String {
         is Expr.Let -> {
             "#${nesting}let " + letDef.show(tab) + " in\n$tab" + body.show(tab)
         }
-        is Expr.Ann -> "${exp.show(tab)} :: $type"
+        is Expr.Ann -> exp.show(tab)
         is Expr.Do -> {
             val t = "$tab  "
             "do {\n$t" + exps.joinToString("\n$t") { it.show(t) } + "\n$tab}"

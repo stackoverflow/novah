@@ -93,6 +93,12 @@ object Errors {
 
     const val EOL_OR_SEMICOLON = "Expected new line or semicolon after declaration."
 
+    const val UNEXPECTED_TOKEN= "unexpected token"
+
+    const val MISMATCHED_INDENTATION = "mismatched indentation"
+
+    fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
+
     fun literalExpected(name: String) = "Expected $name literal."
 
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."
