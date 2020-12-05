@@ -56,10 +56,10 @@ sealed class Expr {
     data class Var(val name: String, val moduleName: ModuleName = listOf()) : Expr()
     data class Operator(val name: String) : Expr()
     data class Construction(val ctor: String, val fields: List<Expr>) : Expr()
-    data class Lambda(val binder: String, val body: Expr, val nesting: Int = 0) : Expr()
+    data class Lambda(val binder: String, val body: Expr, val nested: Boolean = false) : Expr()
     data class App(val fn: Expr, val arg: Expr) : Expr()
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr) : Expr()
-    data class Let(val letDef: LetDef, val body: Expr, val nesting: Int = 0) : Expr()
+    data class Let(val letDef: LetDef, val body: Expr) : Expr()
     data class Match(val exp: Expr, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
@@ -244,12 +244,12 @@ fun Expr.show(tab: String = ""): String {
             val cs = cases.joinToString("\n  $tab ") { it.show("$tab  ") }
             "case ${exp.show()} of {\n  $tab $cs\n$tab}"
         }
-        is Expr.Lambda -> "#$nesting(\\$binder -> " + body.show("$tab  ") + ")"
+        is Expr.Lambda -> "#$nested(\\$binder -> " + body.show("$tab  ") + ")"
         is Expr.If -> {
             "if ${cond.show(tab)} else\n  ${tab}${thenCase.show(tab)} \n${tab}else\n$tab  ${elseCase.show(tab)}"
         }
         is Expr.Let -> {
-            "#${nesting}let " + letDef.show(tab) + " in\n$tab" + body.show(tab)
+            "let " + letDef.show(tab) + " in\n$tab" + body.show(tab)
         }
         is Expr.Ann -> exp.show(tab)
         is Expr.Do -> {

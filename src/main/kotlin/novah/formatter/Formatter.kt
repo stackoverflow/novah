@@ -114,19 +114,22 @@ class Formatter(private val ast: Module) {
 
     private fun Decl.ValDecl.format() {
         print(name)
-        // unnest lambdas
-        val lambdaVars = mutableListOf<String>()
-        var expr = if (exp is Expr.Ann) exp.exp else exp
-        while (expr is Expr.Lambda && expr.nesting > 0) {
-            lambdaVars += expr.binder
-            expr = expr.body
-        }
+        val exp = if (exp is Expr.Ann) exp.exp else exp
+        val (lambdaVars, expr) = exp.unnestLambdas()
         if (lambdaVars.isNotEmpty()) print(" " + lambdaVars.joinToString(" "))
-        print(" = ")
-        expr.format()
+        if (expr is Expr.Let) {
+            print(" =")
+            withIndent { expr.format() }
+        } else {
+            print(" = ")
+            expr.format()
+        }
     }
 
     private fun Expr.format(nested: Boolean = false) {
+        if (this.comment != null) {
+            comment!!.format()
+        }
         when (this) {
             is Expr.Construction -> {
                 if (nested) print("(")
@@ -138,16 +141,14 @@ class Formatter(private val ast: Module) {
                 if (nested) print(")")
             }
             is Expr.Do -> {
-                print("do {")
+                print("do")
                 withIndent {
                     for (exp in exps) {
-                        exp.format()
+                        exp.format(false)
                         if (exp != exps.last())
                             lineBreak()
                     }
                 }
-                lineBreak()
-                print("}")
             }
             is Expr.Match -> {
                 print("case ")
@@ -163,7 +164,25 @@ class Formatter(private val ast: Module) {
                         } else case.exp.format()
                     }
                 }
-                lineBreak()
+            }
+            is Expr.Let -> {
+                // unroll lets
+                val defs = mutableListOf<LetDef>()
+                var exp = this
+                while (exp is Expr.Let) {
+                    defs += exp.letDef
+                    exp = exp.body
+                }
+                print("let ")
+                defs.forEach { def ->
+                    if (def != defs.first()) {
+                        lineBreak()
+                        print("$tabSize$tabSize")
+                    }
+                    def.format()
+                }
+                print(" in ")
+                exp.format(nested)
             }
             is Expr.If -> {
                 val simple = thenCase.isSimple() && elseCase.isSimple()
@@ -193,6 +212,28 @@ class Formatter(private val ast: Module) {
                 arg.format(true)
                 if (nested) print(")")
             }
+            is Expr.Ann -> {
+                if (nested) print("(")
+                exp.format(false)
+                print(" :: ")
+                type.format()
+                if (nested) print(")")
+            }
+            is Expr.Lambda -> {
+                if (nested) print("(")
+                val (lambdaVars, exp) = if (nested) {
+                    unnestLambdas()
+                } else {
+                    listOf(binder) to body
+                }
+                print("\\")
+                print(lambdaVars.joinToString(" "))
+                print(" -> ")
+                if (exp is Expr.Let) {
+                    withIndent { exp.format(false) }
+                } else exp.format(false)
+                if (nested) print(")")
+            }
             is Expr.IntE -> print("$i")
             is Expr.FloatE -> print("$f")
             is Expr.StringE -> print("\"$s\"")
@@ -203,7 +244,6 @@ class Formatter(private val ast: Module) {
                 else print(moduleName.joinToString(".") + "." + name)
             }
             is Expr.Operator -> print(name)
-            else -> print("$this")
         }
     }
 
@@ -232,6 +272,17 @@ class Formatter(private val ast: Module) {
             is LiteralPattern.IntLiteral -> print("$i")
             is LiteralPattern.FloatLiteral -> print("$f")
         }
+    }
+
+    private fun LetDef.format() {
+        print(name)
+        val (lambdaVars, exp) = expr.unnestLambdas()
+        if (lambdaVars.isNotEmpty()) {
+            print(" ")
+            print(lambdaVars.joinToString(" "))
+        }
+        print(" = ")
+        exp.format()
     }
 
     private fun Type.format() {
@@ -295,6 +346,20 @@ class Formatter(private val ast: Module) {
         is Expr.Var -> true
         is Expr.Operator -> true
         else -> false
+    }
+
+    private fun Expr.unnestLambdas(): Pair<List<String>, Expr> {
+        val lambdaVars = mutableListOf<String>()
+        if (this is Expr.Lambda && !nested) return lambdaVars to this
+        var expr = this
+        var prev = true
+        while (expr is Expr.Lambda) {
+            if (!prev) break
+            lambdaVars += expr.binder
+            prev = expr.nested
+            expr = expr.body
+        }
+        return lambdaVars to expr
     }
 
     private fun calculateHSize(list: List<String>, separator: String = ""): Int {

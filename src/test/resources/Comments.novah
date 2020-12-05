@@ -1,4 +1,4 @@
-module Comments
+module comments
 
 // comments on type definitions work
 type Maybe a = Just a | Nothing

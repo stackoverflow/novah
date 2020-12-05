@@ -15,7 +15,9 @@ class ParserSpec : StringSpec({
     fun Module.byName(name: String) =
         decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp?.show()
 
-    fun compareLambdas(l1: Expr.Lambda, l2: Expr.Lambda): Boolean {
+    fun compareLambdas(lam1: Expr, lam2: Expr): Boolean {
+        val l1 = lam1 as Expr.Lambda
+        val l2 = lam2 as Expr.Lambda
         if (l1.binder != l2.binder) return false
         return if (l1.body is Expr.Lambda && l2.body is Expr.Lambda) {
             compareLambdas(l1.body as Expr.Lambda, l2.body as Expr.Lambda)
@@ -54,11 +56,11 @@ class ParserSpec : StringSpec({
         val multi2 = ast.decls[3] as Decl.ValDecl
 
         simple.exp shouldBe simpleL
-        multi.exp shouldBe multiL
+        compareLambdas(multi.exp, multiL) shouldBe true
 
         // unsugared versions should be the same as sugared ones
-        compareLambdas(simple.exp as Expr.Lambda, simple2.exp as Expr.Lambda) shouldBe true
-        compareLambdas(multi.exp as Expr.Lambda, multi2.exp as Expr.Lambda) shouldBe true
+        compareLambdas(simple.exp, simple2.exp) shouldBe true
+        compareLambdas(multi.exp, multi2.exp) shouldBe true
     }
 
     "Lexer and Parser correctly parse comments" {

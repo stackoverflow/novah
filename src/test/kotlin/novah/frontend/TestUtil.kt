@@ -52,7 +52,7 @@ object TestUtil {
     fun _c(c: Char) = Expr.CharE(c)
     fun _b(b: Boolean) = Expr.Bool(b)
     fun _var(n: String) = Expr.Var(n)
-    fun abs(n: String, e: Expr, nesting: Int = 0) = Expr.Lambda(n, e, nesting)
+    fun abs(n: String, e: Expr, nested: Boolean = false) = Expr.Lambda(n, e, nested)
     fun app(l: Expr, r: Expr) = Expr.App(l, r)
     fun app2(f: Expr, arg1: Expr, arg2: Expr) = app(app(f, arg1), arg2)
     fun _if(c: Expr, t: Expr, e: Expr) = Expr.If(c, t, e)

@@ -167,15 +167,14 @@ class TypecheckerTest : StringSpec({
 
     "test" {
         val tys = inferString("""
-            module Test
+            module test
             
             id x = x
             
             //fun :: forall a b. a -> b -> (forall c. c -> c) -> a
-            fun x y f = do {
+            fun x y f = do
               f 1
               f x
-            }
         """.trimIndent())
 
         tys.map { println(it) }

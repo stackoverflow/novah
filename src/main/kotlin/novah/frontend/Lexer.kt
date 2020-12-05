@@ -110,7 +110,7 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 
 class Lexer(input: String) : Iterator<Spanned<Token>> {
 
-    private val iter = CharPositionIterator((input + "\n").iterator())
+    private val iter = CharPositionIterator(input.iterator())
 
     private val operators = "$=<>|&+-:*/%^."
 

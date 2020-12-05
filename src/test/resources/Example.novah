@@ -75,14 +75,14 @@ sum2 = (+)
   // some comment here
 myFun x = case x of
   None -> do
-    println "Something"
+    println "Something" :: Unit
     case 4 of x -> x
     4
   Some (Maybe (Perhaps x y 8)) -> x
 
-ex x =
+ex = \x ->
   let x = 4
-      y = 9
+      y = \p -> 9
   in do
     sideEffect (if false then "false" else "true") -1
     x * y
@@ -92,14 +92,14 @@ doIt u = do
   println
     "not pure"
       // bla
-  map (\x y -> do
+  map (\x y -> \z -> do
     println x
     x + 1) (Some 3)
   let f :: forall a. a -> a
       f x = x
       y :: Int
-      y = f 9 in
-    if y >= 2 then do
+      y = f 9
+    in if y >= 2 then do
       println "big y"
       if x then 1 else 0
     else do

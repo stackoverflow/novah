@@ -1,4 +1,4 @@
-module Test
+module test
 
 x = w || r && x || p
 

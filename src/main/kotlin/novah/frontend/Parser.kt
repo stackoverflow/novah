@@ -136,11 +136,11 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
     private fun parseVarDecl(): Decl {
         // transforms `fun x y z = 1` into `fun = \x -> \y -> \z -> 1`
-        fun desugarToLambda(acc: List<String>, exp: Expr, span: Span, c: Comment?, nesting: Int): Expr {
+        fun desugarToLambda(acc: List<String>, exp: Expr, span: Span, c: Comment?): Expr {
             return if (acc.size <= 1) {
-                Expr.Lambda(acc[0], exp, nesting).withSpan(span).withComment(c)
+                Expr.Lambda(acc[0], exp, true).withSpan(span).withComment(c)
             } else {
-                Expr.Lambda(acc[0], desugarToLambda(acc.drop(1), exp, span, c, nesting - 1), nesting)
+                Expr.Lambda(acc[0], desugarToLambda(acc.drop(1), exp, span, c), true)
                     .withSpan(span)
                     .withComment(c)
             }
@@ -158,7 +158,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
                 val exp = parseExpression().let {
                     val span = span(nameTk.span, it.span)
-                    if (vars.isEmpty()) it else desugarToLambda(vars, it, span, nameTk.comment, vars.size)
+                    if (vars.isEmpty()) it else desugarToLambda(vars, it, span, nameTk.comment)
                 }
 
                 // if the declaration has a defined type, annotate it
@@ -291,8 +291,6 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     }
 
     private fun parseLambda(multiVar: Boolean = false, isLet: Boolean = false): Expr {
-        fun calcNesting(expr: Expr): Int = if (expr is Expr.Lambda) expr.nesting + 1 else 0
-
         val begin = iter.peek()
         if (!multiVar) expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
 
@@ -300,7 +298,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         return if (iter.peek().value is Ident) {
             val l = parseLambda(true, isLet)
-            Expr.Lambda(bind.value.v, l, if (isLet) calcNesting(l) else 0)
+            Expr.Lambda(bind.value.v, l, true)
                 .withSpan(begin.span, l.span)
                 .withComment(begin.comment)
         } else {
@@ -308,7 +306,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             else expect<Arrow>(withError(E.LAMBDA_ARROW))
 
             val exp = parseExpression()
-            Expr.Lambda(bind.value.v, exp, if (isLet) 1 else 0)
+            Expr.Lambda(bind.value.v, exp, nested = isLet)
                 .withSpan(begin.span, exp.span)
                 .withComment(begin.comment)
         }
@@ -337,11 +335,11 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
     private fun parseLet(): Expr {
         // unroll a `let x = 1 and y = x in y` to `let x = 1 in let y = x in y`
-        fun unrollLets(acc: List<LetDef>, exp: Expr, span: Span, c: Comment?, nesting: Int): Expr {
+        fun unrollLets(acc: List<LetDef>, exp: Expr, span: Span, c: Comment?): Expr {
             return if (acc.size <= 1) {
-                Expr.Let(acc[0], exp, nesting).withSpan(span).withComment(c)
+                Expr.Let(acc[0], exp).withSpan(span).withComment(c)
             } else {
-                Expr.Let(acc[0], unrollLets(acc.drop(1), exp, span, c, nesting - 1), nesting)
+                Expr.Let(acc[0], unrollLets(acc.drop(1), exp, span, c))
                     .withSpan(span)
                     .withComment(c)
             }
@@ -369,7 +367,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val exp = parseExpression()
 
         val span = span(let.span, exp.span)
-        return unrollLets(defs, exp, span, let.comment, defs.size - 1)
+        return unrollLets(defs, exp, span, let.comment)
     }
 
     private tailrec fun parseLetDef(types: MutableList<Decl.TypeDecl>, letDefs: MutableList<LetDef>): LetDef {
@@ -706,7 +704,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         private fun span(s: Span, e: Span) = Span(s.start, e.end)
 
-        private val statementEnding = listOf(RParen, RSBracket, RBracket)
+        private val statementEnding = listOf(RParen, RSBracket, RBracket, EOF)
     }
 }
 
