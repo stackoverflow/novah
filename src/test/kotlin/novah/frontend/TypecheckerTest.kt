@@ -19,25 +19,26 @@ import novah.frontend.TestUtil.inferString
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
+import novah.frontend.typechecker.InferContext
 import novah.frontend.typechecker.InferContext.context
+import novah.frontend.typechecker.InferContext.tBoolean
+import novah.frontend.typechecker.InferContext.tChar
+import novah.frontend.typechecker.InferContext.tFloat
+import novah.frontend.typechecker.InferContext.tInt
+import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Type
 
 class TypecheckerTest : StringSpec({
 
-    val tInt = Type.TInt
-    val tFloat = Type.TFloat
-    val tString = Type.TString
-    val tChar = Type.TChar
-    val tBool = Type.TBoolean
-
     beforeTest {
         context.reset()
+        InferContext.initDefaultContext()
         context.add(Elem.CVar("*", tfun(tInt, tfun(tInt, tInt))))
         context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
         context.add(Elem.CVar("-", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("<=", tfun(tInt, tfun(tInt, tBool))))
-        context.add(Elem.CVar("==", tfun(tBool, tfun(tBool, tBool))))
+        context.add(Elem.CVar("<=", tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar("==", tfun(tBoolean, tfun(tBoolean, tBoolean))))
         context.add(Elem.CVar("println", tfun(tString, tvar("Unit"))))
     }
 
@@ -57,7 +58,7 @@ class TypecheckerTest : StringSpec({
         tfloat shouldBe tFloat
         tstring shouldBe tString
         tchar shouldBe tChar
-        tboolean shouldBe tBool
+        tboolean shouldBe tBoolean
     }
 
     "typecheck if" {
@@ -88,7 +89,7 @@ class TypecheckerTest : StringSpec({
 
         val ty2 = infer(exp2)
 
-        ty2 shouldBe tBool
+        ty2 shouldBe tBoolean
     }
 
     "typecheck pre-added context vars" {
@@ -138,7 +139,7 @@ class TypecheckerTest : StringSpec({
 
         val ty = infer(exp)
 
-        ty shouldBe tBool
+        ty shouldBe tBoolean
     }
 
     "typecheck a recursive function" {

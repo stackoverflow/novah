@@ -283,6 +283,12 @@ class Formatter(private val ast: Module) {
     }
 
     private fun LetDef.format() {
+        if (type != null) {
+            print("$name :: ")
+            type.format()
+            lineBreak()
+            print("$tabSize$tabSize")
+        }
         print(name)
         val (lambdaVars, exp) = expr.unnestLambdas()
         if (lambdaVars.isNotEmpty()) {

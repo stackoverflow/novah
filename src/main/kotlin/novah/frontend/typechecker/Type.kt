@@ -1,23 +1,6 @@
 package novah.frontend.typechecker
 
 sealed class Type {
-    // primitives
-    object TInt : Type() {
-        override fun toString(): String = "Int"
-    }
-    object TFloat : Type() {
-        override fun toString(): String = "Float"
-    }
-    object TString : Type() {
-        override fun toString(): String = "String"
-    }
-    object TChar : Type() {
-        override fun toString(): String = "Char"
-    }
-    object TBoolean : Type() {
-        override fun toString(): String = "Boolean"
-    }
-
     data class TVar(val name: String) : Type() {
         override fun toString(): String = name
     }
@@ -37,7 +20,6 @@ sealed class Type {
 
     fun containsTMeta(m: String): Boolean =
         when (this) {
-            is TInt, is TFloat, is TString, is TChar, is TBoolean -> false
             is TVar -> false
             is TMeta -> name == m
             is TFun -> arg.containsTMeta(m) || ret.containsTMeta(m)
@@ -46,7 +28,6 @@ sealed class Type {
 
     fun isMono(): Boolean =
         when (this) {
-            is TInt, is TFloat, is TString, is TChar, is TBoolean -> true
             is TVar, is TMeta -> true
             is TFun -> arg.isMono() && ret.isMono()
             is TForall -> false
@@ -54,7 +35,6 @@ sealed class Type {
 
     fun substTVar(x: String, s: Type): Type =
         when (this) {
-            is TInt, is TFloat, is TString, is TChar, is TBoolean -> this
             is TVar -> if (name == x) s else this
             is TMeta -> this
             is TFun -> {
@@ -74,7 +54,6 @@ sealed class Type {
 
     fun substTMetas(m: Map<String, Type>): Type =
         when (this) {
-            is TInt, is TFloat, is TString, is TChar, is TBoolean -> this
             is TVar -> this
             is TMeta -> m.getOrDefault(name, this)
             is TFun -> {
@@ -90,7 +69,6 @@ sealed class Type {
 
     fun unsolvedInType(unsolved: List<String>, ns: MutableList<String> = mutableListOf()): List<String> =
         when (this) {
-            is TInt, is TFloat, is TString, is TChar, is TBoolean -> ns
             is TVar -> ns
             is TMeta -> {
                 if (unsolved.contains(name) && !ns.contains(name)) {

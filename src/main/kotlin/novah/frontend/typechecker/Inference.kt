@@ -4,6 +4,11 @@ import novah.frontend.*
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.store
+import novah.frontend.typechecker.InferContext.tBoolean
+import novah.frontend.typechecker.InferContext.tChar
+import novah.frontend.typechecker.InferContext.tFloat
+import novah.frontend.typechecker.InferContext.tInt
+import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.Subsumption.subsume
 import novah.frontend.typechecker.WellFormed.wfContext
 import novah.frontend.typechecker.WellFormed.wfType
@@ -29,11 +34,11 @@ object Inference {
 
     fun typesynth(exp: Expr): Type {
         return when (exp) {
-            is Expr.IntE -> Type.TInt
-            is Expr.FloatE -> Type.TFloat
-            is Expr.StringE -> Type.TString
-            is Expr.CharE -> Type.TChar
-            is Expr.Bool -> Type.TBoolean
+            is Expr.IntE -> tInt
+            is Expr.FloatE -> tFloat
+            is Expr.StringE -> tString
+            is Expr.CharE -> tChar
+            is Expr.Bool -> tBoolean
             is Expr.Var -> {
                 val x = context.lookup<Elem.CVar>(exp.name)
                     ?: inferError("undefined variable ${exp.name}", exp)
@@ -67,10 +72,16 @@ object Inference {
                 ty
             }
             is Expr.If -> {
-                typecheck(exp.cond, Type.TBoolean)
-                val thenType = typesynth(exp.thenCase)
-                typecheck(exp.elseCase, thenType)
-                thenType
+                typecheck(exp.cond, tBoolean)
+                var compare = exp.elseCase
+                val checkedType = try {
+                    typesynth(exp.thenCase)
+                } catch (ie: InferenceError) {
+                    compare = exp.thenCase
+                    typesynth(exp.elseCase)
+                }
+                typecheck(compare, checkedType)
+                checkedType
             }
             is Expr.Let -> {
                 // infer the binding
@@ -106,11 +117,11 @@ object Inference {
 
     fun typecheck(expr: Expr, type: Type) {
         when {
-            expr is Expr.IntE && type is Type.TInt -> return
-            expr is Expr.FloatE && type is Type.TFloat -> return
-            expr is Expr.StringE && type is Type.TString -> return
-            expr is Expr.CharE && type is Type.TChar -> return
-            expr is Expr.Bool && type is Type.TBoolean -> return
+            expr is Expr.IntE && type == tInt -> return
+            expr is Expr.FloatE && type == tFloat -> return
+            expr is Expr.StringE && type == tString -> return
+            expr is Expr.CharE && type == tChar -> return
+            expr is Expr.Bool && type == tBoolean -> return
             type is Type.TForall -> {
                 val x = store.fresh(type.name)
                 val m = store.fresh("m")
@@ -124,6 +135,11 @@ object Inference {
                 context.enter(m, Elem.CVar(x, type.arg))
                 typecheck(expr.openLambda(Expr.Var(x)), type.ret)
                 context.leave(m)
+            }
+            expr is Expr.If -> {
+                typecheck(expr.cond, tBoolean)
+                typecheck(expr.thenCase, type)
+                typecheck(expr.elseCase, type)
             }
             else -> {
                 val ty = typesynth(expr)

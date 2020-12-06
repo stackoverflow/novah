@@ -117,17 +117,10 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             expect<Equals>(withError(E.DATA_EQUALS))
 
             val ctors = mutableListOf<DataConstructor>()
-            loop@ while (!iter.peekIsOffside()) {
+            while (true) {
                 ctors += parseDataConstructor()
-
-                val tk = iter.peek()
-                when (tk.value) {
-                    is Pipe -> iter.next()
-                    else -> {
-                        if (!iter.peekIsOffside()) throwError(withError(E.UNEXPECTED_TOKEN)(tk))
-                        break@loop
-                    }
-                }
+                if (iter.peekIsOffside()) break
+                expect<Pipe>(withError(E.pipeExpected("constructor")))
             }
             Decl.DataDecl(name.value.v, tyVars, ctors)
                 .withSpan(typ.span, iter.current().span)
@@ -579,16 +572,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
                 }
             }
             is Ident -> TType.TVar(parseTypeVar())
-            is UpperIdent -> {
-                when (val ctor = parseUpperIdent().v) {
-                    "Int" -> TType.TInt
-                    "Float" -> TType.TFloat
-                    "String" -> TType.TString
-                    "Char" -> TType.TChar
-                    "Boolean" -> TType.TBoolean
-                    else -> TType.TVar(ctor)
-                }
-            }
+            is UpperIdent -> TType.TVar(parseUpperIdent().v)
             else -> null
         }
     }
