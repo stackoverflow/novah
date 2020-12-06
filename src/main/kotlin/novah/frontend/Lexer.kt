@@ -1,8 +1,6 @@
 package novah.frontend
 
 import novah.frontend.Token.*
-import java.lang.NumberFormatException
-import java.lang.RuntimeException
 
 data class Comment(val comment: String, val isMulti: Boolean = false)
 
@@ -18,8 +16,6 @@ sealed class Token {
     object Hash : Token()
     object Dot : Token()
     object Comma : Token()
-    object Semicolon : Token()
-    object EOL : Token()
     object DoubleColon : Token()
     object Equals : Token()
     object Backslash : Token()
@@ -33,12 +29,12 @@ sealed class Token {
     object Forall : Token()
     object Type : Token()
     object As : Token()
-    object And : Token()
     object IfT : Token()
     object Then : Token()
     object Else : Token()
     object LetT : Token()
-    object Match : Token()
+    object CaseT : Token()
+    object Of : Token()
     object In : Token()
     object Do : Token()
 
@@ -70,6 +66,8 @@ data class Span(val start: Position, val end: Position) {
 
 data class Spanned<out T>(val span: Span, val value: T, val comment: Comment? = null) {
     override fun toString(): String = "$value($span)"
+
+    fun offside() = span.start.column
 }
 
 class LexError(msg: String, pos: Position) : RuntimeException("$msg at $pos")
@@ -114,16 +112,14 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 
 class Lexer(input: String) : Iterator<Spanned<Token>> {
 
-    private val iter = CharPositionIterator((input + "\n").iterator())
+    private val iter = CharPositionIterator(input.iterator())
 
     private val operators = "$=<>|&+-:*/%^."
-
-    private var previousToken: Token = Semicolon
 
     override fun hasNext(): Boolean = iter.hasNext()
 
     override fun next(): Spanned<Token> {
-        consumeWhitespace()
+        consumeAllWhitespace()
 
         val start = iter.position
         if (!iter.hasNext()) return Spanned(Span(start, start), EOF)
@@ -133,12 +129,6 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         val c = iter.next()
 
         when (c) {
-            '\\' -> {
-                if (iter.peek() == '\n') {
-                    consumeAllWhitespace()
-                    return next()
-                }
-            }
             '/' -> when (iter.peek()) {
                 '/' -> {
                     val comm = lineComment()
@@ -155,12 +145,6 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     return next.copy(comment = comment)
                 }
             }
-            '\n' -> {
-                consumeAllWhitespace()
-                if (!isEndStatementToken(previousToken)) {
-                    return next()
-                }
-            }
         }
 
         val token = when (c) {
@@ -172,13 +156,11 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             '}' -> RBracket
             '#' -> Hash
             ',' -> Comma
-            ';' -> Semicolon
             '∀' -> Forall
             '→' -> Arrow
             '\\' -> Backslash
             '\'' -> char()
             '"' -> string()
-            '\n' -> EOL
             '-' -> {
                 val tk = iter.peek()
                 if (tk.isDigit()) {
@@ -195,7 +177,6 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                 }
             }
         }
-        previousToken = token
 
         return Spanned(Span(start, iter.position), token, comment)
     }
@@ -232,11 +213,11 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             "import" -> ImportT
             "forall" -> Forall
             "let" -> LetT
-            "match" -> Match
+            "case" -> CaseT
+            "of" -> Of
             "type" -> Type
             "as" -> As
             "in" -> In
-            "and" -> And
             "do" -> Do
             "hiding" -> Hiding
             "exposing" -> Exposing
@@ -365,12 +346,6 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         return bld.toString()
     }
 
-    private fun consumeWhitespace() {
-        while (iter.hasNext() && iter.peek().let { it != '\n' && it.isWhitespace() }) {
-            iter.next()
-        }
-    }
-
     private fun consumeAllWhitespace() {
         while (iter.hasNext() && iter.peek().isWhitespace()) {
             iter.next()
@@ -412,12 +387,5 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         } catch (e: NumberFormatException) {
             lexError("Invalid number format for float: `$this`")
         }
-    }
-
-    companion object {
-        private fun isEndStatementToken(t: Token): Boolean =
-            t is Ident || t is UpperIdent || t is IntT || t is FloatT ||
-                    t is StringT || t is CharT || t is BoolT || t is RParen ||
-                    t is RSBracket || t is RBracket
     }
 }

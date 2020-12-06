@@ -66,12 +66,6 @@ object Errors {
 
     const val LET_IN = "Expected `in` after let definition."
 
-    val LET_AND = """Expected `and` after type declaration.
-        |
-        |ex: let x :: Int
-        |    and x = 8 in x
-    """.trimMargin()
-
     val LET_TYPE = """Types should be defined before their declaration, not after.
         |
         |ex: let x :: Int
@@ -91,7 +85,9 @@ object Errors {
         |ex: import Some.Module as M
     """.trimMargin()
 
-    const val EOL_OR_SEMICOLON = "Expected new line or semicolon after declaration."
+    const val MISMATCHED_INDENTATION = "mismatched indentation"
+
+    fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
 
     fun literalExpected(name: String) = "Expected $name literal."
 

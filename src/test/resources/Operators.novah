@@ -1,4 +1,4 @@
-module Test
+module test
 
 x = w || r && x || p
 
@@ -8,8 +8,14 @@ fr = (a << b << c) 1
 
 l1 = 3 + 7 ^ 4 * 6 * 9
 
-l2 = 3 ^ 7 * 4 * 6 + 9
+l2 = 3 ^ (7 * 4) * 6 + 9
 
 r1 = bla 3 $ df 4 $ pa
 
 r2 = 3 : 5 : 7 : Nil
+
+ap = fn 3 4 5
+
+a2 = fn (fn2 8)
+
+co = fn 'x' y (Some (3 + 4) 1)

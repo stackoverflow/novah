@@ -31,11 +31,6 @@ object TestUtil {
         return parser.parseFullModule()
     }
 
-    fun inferResource(res: String): Map<String, Type> {
-        val mod = parseResource(res)
-        return infer(mod)
-    }
-
     fun inferString(code: String): Map<String, Type> {
         val lexer = Lexer(code)
         val parser = Parser(lexer)
@@ -47,18 +42,8 @@ object TestUtil {
     fun forall(x: String, t: Type) = Type.TForall(x, t)
 
     fun _i(i: Long) = Expr.IntE(i)
-    fun _f(f: Double) = Expr.FloatE(f)
-    fun _s(s: String) = Expr.StringE(s)
-    fun _c(c: Char) = Expr.CharE(c)
-    fun _b(b: Boolean) = Expr.Bool(b)
     fun _var(n: String) = Expr.Var(n)
-    fun abs(n: String, e: Expr, nesting: Int = 0) = Expr.Lambda(n, e, nesting)
-    fun app(l: Expr, r: Expr) = Expr.App(l, r)
-    fun app2(f: Expr, arg1: Expr, arg2: Expr) = app(app(f, arg1), arg2)
-    fun _if(c: Expr, t: Expr, e: Expr) = Expr.If(c, t, e)
-    fun _let(bs: List<Pair<String, Expr>>, body: Expr): Expr {
-        return if (bs.size <= 1) Expr.Let(LetDef(bs[0].first, bs[0].second), body)
-        else Expr.Let(LetDef(bs[0].first, bs[0].second), _let(bs.drop(1), body))
-    }
-    fun _do(vararg exps: Expr) = Expr.Do(exps.toList())
+    fun abs(n: String, e: Expr, nested: Boolean = false) = Expr.Lambda(n, e, nested)
+
+    fun String.module() = "module test\n\n${this.trimIndent()}"
 }

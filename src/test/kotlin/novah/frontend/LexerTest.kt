@@ -14,15 +14,11 @@ class LexerSpec : StringSpec({
     "Lex spans correctly" {
         val tokens = lexResource("Spans.novah")
 
-        tokens.forEach(::println)
-
         tokens[0].span shouldBe span(1 to 1, 1 to 5)
         tokens[1].span shouldBe span(1 to 6, 1 to 19)
         tokens[2].span shouldBe span(1 to 20, 1 to 21)
-        tokens[3].span shouldBe span(1 to 21, 3 to 1)
-        tokens[4].span shouldBe span(3 to 1, 3 to 21)
-        tokens[5].span shouldBe span(3 to 21, 4 to 1)
-        tokens[6].value should beInstanceOf(Token.EOF::class)
+        tokens[3].span shouldBe span(3 to 1, 3 to 21)
+        tokens[4].value should beInstanceOf(Token.EOF::class)
     }
 
     "Lex comments correctly" {

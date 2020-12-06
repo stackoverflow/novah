@@ -1,4 +1,4 @@
-module Lambda
+module lambda
 
 simple = \x -> x
 

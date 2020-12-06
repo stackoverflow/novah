@@ -55,14 +55,15 @@ sealed class Expr {
     data class Bool(val b: Boolean) : Expr()
     data class Var(val name: String, val moduleName: ModuleName = listOf()) : Expr()
     data class Operator(val name: String) : Expr()
-    data class Construction(val ctor: String, val fields: List<Expr>) : Expr()
-    data class Lambda(val binder: String, val body: Expr, val nesting: Int = 0) : Expr()
+    data class Lambda(val binder: String, val body: Expr, val nested: Boolean = false) : Expr()
     data class App(val fn: Expr, val arg: Expr) : Expr()
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr) : Expr()
-    data class Let(val letDef: LetDef, val body: Expr, val nesting: Int = 0) : Expr()
+    data class Let(val letDef: LetDef, val body: Expr) : Expr()
     data class Match(val exp: Expr, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
+    // only used for formatting
+    data class Parens(val exps: List<Expr>) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null
@@ -136,12 +137,6 @@ fun Expr.substVar(v: String, s: Expr): Expr =
             val b = exp.substVar(v, s)
             if (exp == b) this else Expr.Ann(b, type)
         }
-        is Expr.Construction -> {
-            if (ctor == v) {
-                val fs = fields.map { it.substVar(v, s) }
-                if (fields == fs) this else Expr.Construction(ctor, fs).withSpan(span)
-            } else this
-        }
         is Expr.If -> {
             val c = cond.substVar(v, s)
             val t = thenCase.substVar(v, s)
@@ -162,6 +157,7 @@ fun Expr.substVar(v: String, s: Expr): Expr =
             val es = exps.map { it.substVar(v, s) }
             if (es == exps) this else Expr.Do(es).withSpan(span)
         }
+        else -> error("absurd")
     }
 
 fun Expr.Lambda.openLambda(s: Expr): Expr = body.substVar(binder, s)
@@ -236,26 +232,23 @@ fun Expr.show(tab: String = ""): String {
         is Expr.StringE -> "\"$s\""
         is Expr.CharE -> "'$c'"
         is Expr.Bool -> "$b"
-        is Expr.Construction -> {
-            if (fields.isEmpty()) ctor
-            else "($ctor ${fields.joinToString(" ") { it.show() }})"
-        }
         is Expr.Match -> {
             val cs = cases.joinToString("\n  $tab ") { it.show("$tab  ") }
             "case ${exp.show()} of {\n  $tab $cs\n$tab}"
         }
-        is Expr.Lambda -> "#$nesting(\\$binder -> " + body.show("$tab  ") + ")"
+        is Expr.Lambda -> "#$nested(\\$binder -> " + body.show("$tab  ") + ")"
         is Expr.If -> {
             "if ${cond.show(tab)} else\n  ${tab}${thenCase.show(tab)} \n${tab}else\n$tab  ${elseCase.show(tab)}"
         }
         is Expr.Let -> {
-            "#${nesting}let " + letDef.show(tab) + " in\n$tab" + body.show(tab)
+            "let " + letDef.show(tab) + " in\n$tab" + body.show(tab)
         }
-        is Expr.Ann -> "${exp.show(tab)} :: $type"
+        is Expr.Ann -> exp.show(tab)
         is Expr.Do -> {
             val t = "$tab  "
             "do {\n$t" + exps.joinToString("\n$t") { it.show(t) } + "\n$tab}"
         }
+        is Expr.Parens -> "(" + exps.joinToString(" ") { it.show(tab) } + ")"
     }
 }
 
