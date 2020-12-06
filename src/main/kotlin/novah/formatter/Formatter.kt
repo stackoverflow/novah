@@ -36,11 +36,11 @@ class Formatter(private val ast: Module) {
     private fun ModuleExports.format() {
         if (this is ModuleExports.Hiding) {
             print(" hiding")
-            printList(hides.sorted())
+            printList(hides)
         }
         if (this is ModuleExports.Exposing) {
             print(" exposing")
-            printList(exports.sorted())
+            printList(exports)
         }
     }
 
@@ -91,24 +91,25 @@ class Formatter(private val ast: Module) {
         print("type $name")
         if (tyVars.isNotEmpty()) print(" " + tyVars.joinToString(" "))
 
-        val singleLine = dataCtors.joinToString(" | ")
-        if (exceed(singleLine.length, maxColumns / 3)) {
+        if (dataCtors.size > 1) {
             withIndent {
                 print("= " + dataCtors.first())
-                if (dataCtors.size > 1) {
-                    for (dc in dataCtors.drop(1)) {
-                        lineBreak()
-                        print("| $dc")
-                    }
+                for (dc in dataCtors.drop(1)) {
+                    lineBreak()
+                    print("| $dc")
                 }
             }
         } else {
-            print(" = $singleLine")
+            print(" = ${dataCtors.joinToString(" | ")}")
         }
     }
 
     private fun Decl.TypeDecl.format() {
-        print("$name ::")
+        print(name)
+        if (exceed(typ.toString().length)) {
+            lineBreak()
+            print("$tabSize:: ")
+        } else print(" :: ")
         typ.format()
     }
 
@@ -117,7 +118,7 @@ class Formatter(private val ast: Module) {
         val exp = if (exp is Expr.Ann) exp.exp else exp
         val (lambdaVars, expr) = exp.unnestLambdas()
         if (lambdaVars.isNotEmpty()) print(" " + lambdaVars.joinToString(" "))
-        if (expr is Expr.Let) {
+        if (shouldNewline(expr)) {
             print(" =")
             withIndent { expr.format() }
         } else {
@@ -131,20 +132,11 @@ class Formatter(private val ast: Module) {
             comment!!.format()
         }
         when (this) {
-            is Expr.Construction -> {
-                if (nested) print("(")
-                print(ctor)
-                for (exp in fields) {
-                    print(" ")
-                    exp.format(true)
-                }
-                if (nested) print(")")
-            }
             is Expr.Do -> {
                 print("do")
                 withIndent {
                     for (exp in exps) {
-                        exp.format(false)
+                        exp.format()
                         if (exp != exps.last())
                             lineBreak()
                     }
@@ -176,13 +168,20 @@ class Formatter(private val ast: Module) {
                 print("let ")
                 defs.forEach { def ->
                     if (def != defs.first()) {
-                        lineBreak()
                         print("$tabSize$tabSize")
                     }
                     def.format()
+                    lineBreak()
                 }
-                print(" in ")
-                exp.format(nested)
+                if (shouldNewline(exp)) {
+                    print("in")
+                    withIndent {
+                        exp.format()
+                    }
+                } else {
+                    print("in ")
+                    exp.format(nested)
+                }
             }
             is Expr.If -> {
                 val simple = thenCase.isSimple() && elseCase.isSimple()
@@ -195,33 +194,34 @@ class Formatter(private val ast: Module) {
                     print(" else ")
                     elseCase.format()
                 } else {
-                    withIndent {
-                        print("then ")
-                        thenCase.format()
-                        lineBreak()
-                        print("else ")
-                        elseCase.format()
-                    }
+                    lineBreak()
+                    print("then ")
+                    thenCase.format()
+                    lineBreak()
+                    print("else ")
+                    elseCase.format()
                 }
                 if (nested) print(")")
             }
             is Expr.App -> {
                 if (nested) print("(")
-                fn.format(true)
-                print(" ")
-                arg.format(true)
+                val exps = Application.unparseApplication(this)
+                for (e in exps) {
+                    if (e != exps.first()) print(" ")
+                    e.format()
+                }
                 if (nested) print(")")
             }
             is Expr.Ann -> {
                 if (nested) print("(")
-                exp.format(false)
+                exp.format()
                 print(" :: ")
                 type.format()
                 if (nested) print(")")
             }
             is Expr.Lambda -> {
                 if (nested) print("(")
-                val (lambdaVars, exp) = if (nested) {
+                val (lambdaVars, exp) = if (this.nested) {
                     unnestLambdas()
                 } else {
                     listOf(binder) to body
@@ -229,9 +229,9 @@ class Formatter(private val ast: Module) {
                 print("\\")
                 print(lambdaVars.joinToString(" "))
                 print(" -> ")
-                if (exp is Expr.Let) {
-                    withIndent { exp.format(false) }
-                } else exp.format(false)
+                if (shouldNewline(exp)) {
+                    withIndent { exp.format() }
+                } else exp.format()
                 if (nested) print(")")
             }
             is Expr.IntE -> print("$i")
@@ -244,6 +244,14 @@ class Formatter(private val ast: Module) {
                 else print(moduleName.joinToString(".") + "." + name)
             }
             is Expr.Operator -> print(name)
+            is Expr.Parens -> {
+                print("(")
+                for (e in exps) {
+                    if (e != exps.first()) print(" ")
+                    e.format()
+                }
+                print(")")
+            }
         }
     }
 
@@ -285,26 +293,31 @@ class Formatter(private val ast: Module) {
         exp.format()
     }
 
-    private fun Type.format() {
+    private fun Type.format(nested: Boolean = false) {
         when (this) {
             is Type.TFun -> {
                 if (exceed(toString().length)) {
-                    withIndent {
+                    withIndent(false) {
                         var fn = this
                         while (fn is Type.TFun) {
                             val f = fn as Type.TFun
-                            print("${f.arg} ->")
+                            if (f.arg is Type.TForall) {
+                                f.arg.format(true)
+                            } else print("${f.arg}")
                             lineBreak()
+                            print("-> ")
                             fn = f.ret
                         }
-                        print("$fn")
+                        fn.format(nested)
                     }
                 } else {
-                    print(" ")
                     var fn = this
                     while (fn is Type.TFun) {
                         val f = fn as Type.TFun
-                        print("${f.arg} -> ")
+                        if (f.arg is Type.TForall) {
+                            f.arg.format(true)
+                        } else print("${f.arg}")
+                        print(" -> ")
                         fn = f.ret
                     }
                     print("$fn")
@@ -318,10 +331,12 @@ class Formatter(private val ast: Module) {
                     forallVars += fa.name
                     fa = fa.type
                 }
-                print(" forall ${forallVars.joinToString(" ")}.")
+                if (nested) print("(")
+                print("forall ${forallVars.joinToString(" ")}. ")
                 fa.format()
+                if (nested) print(")")
             }
-            else -> print(" $this")
+            else -> print("$this")
         }
     }
 
@@ -338,13 +353,8 @@ class Formatter(private val ast: Module) {
     // Helpers
 
     private fun Expr.isSimple(): Boolean = when (this) {
-        is Expr.IntE -> true
-        is Expr.FloatE -> true
-        is Expr.StringE -> true
-        is Expr.CharE -> true
-        is Expr.Bool -> true
-        is Expr.Var -> true
-        is Expr.Operator -> true
+        is Expr.IntE, is Expr.FloatE, is Expr.StringE, is Expr.CharE, is Expr.Bool -> true
+        is Expr.Var, is Expr.Operator -> true
         else -> false
     }
 
@@ -361,6 +371,8 @@ class Formatter(private val ast: Module) {
         }
         return lambdaVars to expr
     }
+
+    private fun shouldNewline(e: Expr) = e is Expr.Let || e is Expr.If || e is Expr.Match
 
     private fun calculateHSize(list: List<String>, separator: String = ""): Int {
         return list.map(String::length).sum() + (separator.length * (list.size - 1))
@@ -395,10 +407,10 @@ class Formatter(private val ast: Module) {
         builder.append("\n\n$indent")
     }
 
-    private inline fun <T> withIndent(f: () -> T) {
+    private inline fun <T> withIndent(shouldBreak: Boolean = true, f: () -> T) {
         val oldIndent = indent
         indent = "$indent$tabSize"
-        lineBreak()
+        if (shouldBreak) lineBreak()
         f()
         indent = oldIndent
     }
@@ -406,7 +418,7 @@ class Formatter(private val ast: Module) {
     private fun exceed(amount: Int, max: Int = maxColumns): Boolean = column + amount > max
 
     companion object {
-        const val maxColumns = 120
+        const val maxColumns = 100
         const val tabSize = "  " // 2 spaces
     }
 }

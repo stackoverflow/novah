@@ -8,6 +8,10 @@ module novah.example hiding
   , end
   , sum
   , sum2
+
+  //Types
+  , Maybe
+  , List
   )
 
 // imported prelude
@@ -53,7 +57,8 @@ stuff v v2 = case v of
  * added here
  */
 maybe
-  :: forall a. a
+  :: forall a
+  . a
   -> Int
   -> Maybe
 maybe def sm = case sm of
@@ -65,6 +70,9 @@ id x = x
 
 compl :: forall a b c. (a -> b) -> (b -> c) -> a -> c
 compl f1 f2 x = f2 (f1 x)
+
+hrt :: Int -> (forall a b. (a -> b) -> b) -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Int
+hrt i f t = 1
 
 sum :: Int -> Int -> Int
 sum x y = x + y
@@ -92,9 +100,9 @@ doIt u = do
   println
     "not pure"
       // bla
-  map (\x y -> \z -> do
+  fun (\x y -> \z -> do
     println x
-    x + 1) (Some 3)
+    x + 1) "a" (Some (3 + 1) 4)
   let f :: forall a. a -> a
       f x = x
       y :: Int

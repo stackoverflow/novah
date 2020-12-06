@@ -224,7 +224,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             if (iter.peek().value is Dot) {
                 parseImportedVar(uident)
             } else {
-                parseDataConstruction(uident)
+                Expr.Var(uident.value.v)
             }
         }
         is Backslash -> parseLambda()
@@ -281,13 +281,6 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
                 .withSpan(alias.span, ident.span)
                 .withComment(alias.comment)
         }
-    }
-
-    private fun parseDataConstruction(ctor: Spanned<UpperIdent>): Expr {
-        val fields = tryParseListOf(true, ::tryParseAtom)
-        return Expr.Construction(ctor.value.v, fields)
-            .withSpan(ctor.span, iter.current().span)
-            .withComment(ctor.comment)
     }
 
     private fun parseLambda(multiVar: Boolean = false, isLet: Boolean = false): Expr {

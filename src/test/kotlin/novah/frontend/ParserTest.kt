@@ -15,6 +15,9 @@ class ParserSpec : StringSpec({
     fun Module.byName(name: String) =
         decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp?.show()
 
+    fun Module.findApp(name: String) =
+        decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp as Expr.App
+
     fun compareLambdas(lam1: Expr, lam2: Expr): Boolean {
         val l1 = lam1 as Expr.Lambda
         val l2 = lam2 as Expr.Lambda
@@ -31,9 +34,12 @@ class ParserSpec : StringSpec({
         val fl = "(((a `>>` b) `>>` c) 1)"
         val fr = "((a `<<` (b `<<` c)) 1)"
         val l1 = "(3 `+` (((7 `^` 4) `*` 6) `*` 9))"
-        val l2 = "((((3 `^` 7) `*` 4) `*` 6) `+` 9)"
+        val l2 = "(((3 `^` (7 `*` 4)) `*` 6) `+` 9)"
         val r1 = "((bla 3) `\$` ((df 4) `\$` pa))"
         val r2 = "(3 `:` (5 `:` (7 `:` Nil)))"
+        val ap = "(((fn 3) 4) 5)"
+        val a2 = "(fn (fn2 8))"
+        val co = "(((fn 'x') y) ((Some (3 `+` 4)) 1))"
 
         ast.byName("x") shouldBe x
         ast.byName("fl") shouldBe fl
@@ -42,6 +48,37 @@ class ParserSpec : StringSpec({
         ast.byName("l2") shouldBe l2
         ast.byName("r1") shouldBe r1
         ast.byName("r2") shouldBe r2
+        ast.byName("ap") shouldBe ap
+        ast.byName("a2") shouldBe a2
+        ast.byName("co") shouldBe co
+    }
+
+    "Parser correctly unparses operators" {
+        val ast = parseResource("Operators.novah")
+
+        val x = "w `||` r `&&` x `||` p"
+        val fl = "(a `>>` b `>>` c) 1"
+        val fr = "(a `<<` b `<<` c) 1"
+        val l1 = "3 `+` 7 `^` 4 `*` 6 `*` 9"
+        val l2 = "3 `^` (7 `*` 4) `*` 6 `+` 9"
+        val r1 = "bla 3 `\$` df 4 `\$` pa"
+        val r2 = "3 `:` 5 `:` 7 `:` Nil"
+        val ap = "fn 3 4 5"
+        val a2 = "fn (fn2 8)"
+        val co = "fn 'x' y (Some (3 `+` 4) 1)"
+
+        fun show(es: List<Expr>) = es.joinToString(" ") { it.show() }
+
+        show(Application.unparseApplication(ast.findApp("x"))) shouldBe x
+        show(Application.unparseApplication(ast.findApp("fl"))) shouldBe fl
+        show(Application.unparseApplication(ast.findApp("fr"))) shouldBe fr
+        show(Application.unparseApplication(ast.findApp("l1"))) shouldBe l1
+        show(Application.unparseApplication(ast.findApp("l2"))) shouldBe l2
+        show(Application.unparseApplication(ast.findApp("r1"))) shouldBe r1
+        show(Application.unparseApplication(ast.findApp("r2"))) shouldBe r2
+        show(Application.unparseApplication(ast.findApp("ap"))) shouldBe ap
+        show(Application.unparseApplication(ast.findApp("a2"))) shouldBe a2
+        show(Application.unparseApplication(ast.findApp("co"))) shouldBe co
     }
 
     "Parser correctly parses lambdas" {

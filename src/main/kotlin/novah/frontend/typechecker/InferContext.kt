@@ -31,11 +31,7 @@ object InferContext {
 
     fun _apply(type: Type, ctx: Context = context): Type {
         return when (type) {
-            is Type.TInt -> type
-            is Type.TFloat -> type
-            is Type.TString -> type
-            is Type.TChar -> type
-            is Type.TBoolean -> type
+            is Type.TInt, is Type.TFloat, is Type.TString, is Type.TChar, is Type.TBoolean -> type
             is Type.TVar -> type
             is Type.TMeta -> {
                 val t = ctx.lookup<Elem.CTMeta>(type.name)

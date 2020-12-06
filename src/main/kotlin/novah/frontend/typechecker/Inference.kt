@@ -106,6 +106,11 @@ object Inference {
 
     fun typecheck(expr: Expr, type: Type) {
         when {
+            expr is Expr.IntE && type is Type.TInt -> return
+            expr is Expr.FloatE && type is Type.TFloat -> return
+            expr is Expr.StringE && type is Type.TString -> return
+            expr is Expr.CharE && type is Type.TChar -> return
+            expr is Expr.Bool && type is Type.TBoolean -> return
             type is Type.TForall -> {
                 val x = store.fresh(type.name)
                 val m = store.fresh("m")
