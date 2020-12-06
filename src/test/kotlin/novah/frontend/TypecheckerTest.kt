@@ -1,21 +1,11 @@
 package novah.frontend
 
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.frontend.TestUtil._b
-import novah.frontend.TestUtil._c
-import novah.frontend.TestUtil._do
-import novah.frontend.TestUtil._f
-import novah.frontend.TestUtil._i
-import novah.frontend.TestUtil._if
-import novah.frontend.TestUtil._let
-import novah.frontend.TestUtil._s
-import novah.frontend.TestUtil._var
-import novah.frontend.TestUtil.abs
-import novah.frontend.TestUtil.app
-import novah.frontend.TestUtil.app2
 import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.inferString
+import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
@@ -26,7 +16,6 @@ import novah.frontend.typechecker.InferContext.tChar
 import novah.frontend.typechecker.InferContext.tFloat
 import novah.frontend.typechecker.InferContext.tInt
 import novah.frontend.typechecker.InferContext.tString
-import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Type
 
 class TypecheckerTest : StringSpec({
@@ -38,21 +27,23 @@ class TypecheckerTest : StringSpec({
         context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
         context.add(Elem.CVar("-", tfun(tInt, tfun(tInt, tInt))))
         context.add(Elem.CVar("<=", tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar(">=", tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar("<", tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar(">", tfun(tInt, tfun(tInt, tBoolean))))
         context.add(Elem.CVar("==", tfun(tBoolean, tfun(tBoolean, tBoolean))))
         context.add(Elem.CVar("println", tfun(tString, tvar("Unit"))))
     }
 
+    fun exprX(expr: String) = "x = $expr".module()
+
+    fun inferX(expr: String) = inferString(exprX(expr))["x"]!!
+
     "typecheck primitive expressions" {
-        val iexp = _i(34)
-        val fexp = _f(34.0)
-        val sexp = _s("asd")
-        val cexp = _c('A')
-        val bexp = _b(false)
-        val tint = infer(iexp)
-        val tfloat = infer(fexp)
-        val tstring = infer(sexp)
-        val tchar = infer(cexp)
-        val tboolean = infer(bexp)
+        val tint = inferX("34")
+        val tfloat = inferX("34.0")
+        val tstring = inferX("\"asd\"")
+        val tchar = inferX("'A'")
+        val tboolean = inferX("false")
 
         tint shouldBe tInt
         tfloat shouldBe tFloat
@@ -62,17 +53,13 @@ class TypecheckerTest : StringSpec({
     }
 
     "typecheck if" {
-        val exp = _if(_b(false), _i(0), _i(1))
-
-        val ty = infer(exp)
+        val ty = inferX("if false then 0 else 1")
 
         ty shouldBe tInt
     }
 
     "typecheck generics" {
-        val exp = abs("x", _var("x"))
-
-        val ty = infer(exp)
+        val ty = inferX("\\x -> x")
 
         // ty shouldBe `forall a. a -> a`
         if (ty is Type.TForall) {
@@ -85,9 +72,7 @@ class TypecheckerTest : StringSpec({
             } else error("Type should be function")
         } else error("Function should be polymorphic")
 
-        val exp2 = app(exp, _b(false))
-
-        val ty2 = infer(exp2)
+        val ty2 = inferX("(\\x -> x) false")
 
         ty2 shouldBe tBoolean
     }
@@ -95,34 +80,30 @@ class TypecheckerTest : StringSpec({
     "typecheck pre-added context vars" {
         context.add(Elem.CVar("id", forall("a", tfun(tvar("a"), tvar("a")))))
 
-        val ty = infer(app(_var("id"), _i(10)))
+        val ty = inferX("id 10")
 
         ty shouldBe tInt
     }
 
     "typecheck let" {
-        val exp = _let(
-            listOf(
-                "x" to _s("bla"),
-                "y" to _var("x")
-            ),
-            _var("y")
-        )
+        val code = """
+            x = let x = "bla"
+                    y = x
+                in y
+        """.module()
 
-        val ty = infer(exp)
+        val ty = inferString(code)["x"]
 
         ty shouldBe tString
     }
 
     "typecheck polymorphic let bindings" {
-        val exp = _let(
-            listOf(
-                "id" to abs("a", _var("a"))
-            ),
-            app(_var("id"), _i(10))
-        )
+        val code = """
+            x = let id a = a
+                in id 10
+        """.module()
 
-        val ty = infer(exp)
+        val ty = inferString(code)["x"]
 
         ty shouldBe tInt
     }
@@ -130,53 +111,64 @@ class TypecheckerTest : StringSpec({
     "typecheck do statements" {
         context.add(Elem.CVar("store", tfun(tInt, tvar("Unit"))))
 
-        val exp = _do(
-            app(_var("println"), _s("Hello world")),
-            app2(_var("+"), _i(10), _i(10)),
-            app(_var("store"), _i(100)),
-            _b(true)
-        )
+        val code = """
+            x = do
+              println "hello world"
+              10 + 10
+              store 100
+              true
+        """.module()
 
-        val ty = infer(exp)
+        val ty = inferString(code)["x"]
 
         ty shouldBe tBoolean
     }
 
     "typecheck a recursive function" {
-        /**
-         * fact :: Int -> Int
-         * fact x =
-         *   if x <= 1
-         *     then x
-         *     else x * fact (x - 1)
-         */
-        context.add(Elem.CVar("fact", tfun(tInt, tInt)))
+        // only works because of the type annotations for now
+        val code = """
+            fact :: Int -> Int
+            fact x =
+              if x <= 1
+              then x
+              else x * fact (x - 1)
+        """.module()
 
-        val fact = abs(
-            "x",
-            _if(
-                app2(_var("<="), _var("x"), _i(1)),
-                _var("x"),
-                app2(_var("*"), _var("x"), app(_var("fact"), app2(_var("-"), _var("x"), _i(1))))
-            )
-        )
-
-        val ty = infer(fact)
+        val ty = inferString(code)["fact"]
 
         ty shouldBe tfun(tInt, tInt)
     }
 
-    "test" {
-        val tys = inferString("""
-            module test
+    "typecheck mutually recursive functions" {
+        // only works because of the type annotations for now
+        val code = """
+            f1 :: Int -> Int
+            f1 x =
+              if x > 0
+              then f2 x
+              else x - 1
             
+            f2 :: Int -> Int
+            f2 x =
+              if x <= 0
+              then f1 x
+              else x + 1
+        """.module()
+        shouldNotThrowAny {
+            inferString(code)
+        }
+    }
+
+    "test" {
+        val code = """
             id x = x
             
             //fun :: forall a b. a -> b -> (forall c. c -> c) -> a
             fun x y f = do
               f 1
               f x
-        """.trimIndent())
+        """.module()
+        val tys = inferString(code)
 
         tys.map { println(it) }
     }

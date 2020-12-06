@@ -1,5 +1,8 @@
 package novah.frontend.typechecker
 
+/**
+ * The Type of Types
+ */
 sealed class Type {
     data class TVar(val name: String) : Type() {
         override fun toString(): String = name

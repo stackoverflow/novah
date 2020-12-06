@@ -25,7 +25,7 @@ class PeekableIterator<T>(private val iterator: Iterator<Spanned<T>>, private va
         } else {
             iterator.next()
         }
-        if (!ignoreOffside && t.span.start.column < offside) onError(t)
+        if (!ignoreOffside && t.offside() < offside) onError(t)
         current = t
         return t
     }
@@ -36,7 +36,7 @@ class PeekableIterator<T>(private val iterator: Iterator<Spanned<T>>, private va
     }
 
     fun peekIsOffside(): Boolean {
-        return !ignoreOffside && peek().span.start.column < offside
+        return !ignoreOffside && peek().offside() < offside
     }
 
     fun current(): Spanned<T> {

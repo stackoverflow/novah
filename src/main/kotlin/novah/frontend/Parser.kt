@@ -108,7 +108,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
     private fun parseTypeDecl(): Decl {
         val typ = expect<Type>(noErr())
-        return withOffside(2, false) {
+        return withOffside(typ.offside() + 1, false) {
 
             val name = expect<UpperIdent>(withError(E.DATA_NAME))
 
@@ -141,7 +141,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         val nameTk = expect<Ident>(noErr())
         val name = nameTk.value.v
-        return withOffside(2, false) {
+        return withOffside(nameTk.offside() + 1, false) {
             if (iter.peek().value is DoubleColon) {
                 parseTypeSignature(name)
             } else {
@@ -337,7 +337,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val defsCtx = mutableListOf<LetDef>()
 
         val tk = iter.peek()
-        val align = tk.span.start.column
+        val align = tk.offside()
         if (align <= iter.offside()) throwMismatchedIndentation(tk)
 
         val defs = mutableListOf<LetDef>()
@@ -399,7 +399,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
 
         val firstTk = iter.peek()
-        val align = firstTk.span.start.column
+        val align = firstTk.offside()
         if (iter.peekIsOffside() || (nested && align <= iter.offside())) {
             throwMismatchedIndentation(firstTk)
         }
@@ -491,7 +491,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val doo = expect<Do>(noErr())
 
         val firstTk = iter.peek()
-        val align = firstTk.span.start.column
+        val align = firstTk.offside()
         if (iter.peekIsOffside() || (nested && align <= iter.offside())) {
             throwMismatchedIndentation(firstTk)
         }

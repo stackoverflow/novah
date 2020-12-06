@@ -191,9 +191,14 @@ object Inference {
 
     fun infer(mod: Module): Map<String, Type> {
         val m = mutableMapOf<String, Type>()
+
+        mod.decls.filterIsInstance<Decl.TypeDecl>().forEach { tdecl ->
+            context.add(Elem.CVar(tdecl.name, tdecl.typ))
+        }
         mod.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->
             val ty = infer(decl.exp)
-            context.add(Elem.CVar(decl.name, ty))
+            if (!context.contains<Elem.CVar>(decl.name))
+                context.add(Elem.CVar(decl.name, ty))
             m[decl.name] = ty
         }
         return m

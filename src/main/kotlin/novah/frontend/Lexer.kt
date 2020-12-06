@@ -66,6 +66,8 @@ data class Span(val start: Position, val end: Position) {
 
 data class Spanned<out T>(val span: Span, val value: T, val comment: Comment? = null) {
     override fun toString(): String = "$value($span)"
+
+    fun offside() = span.start.column
 }
 
 class LexError(msg: String, pos: Position) : RuntimeException("$msg at $pos")
