@@ -73,15 +73,10 @@ object Inference {
             }
             is Expr.If -> {
                 typecheck(exp.cond, tBoolean)
-                var compare = exp.elseCase
-                val checkedType = try {
-                    typesynth(exp.thenCase)
-                } catch (ie: InferenceError) {
-                    compare = exp.thenCase
-                    typesynth(exp.elseCase)
-                }
-                typecheck(compare, checkedType)
-                checkedType
+                val tt = typesynth(exp.thenCase)
+                val te = typesynth(exp.elseCase)
+                subsume(_apply(tt), _apply(te), exp)
+                tt
             }
             is Expr.Let -> {
                 // infer the binding

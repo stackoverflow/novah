@@ -7,8 +7,8 @@ import java.util.ArrayDeque
 class InferenceError(msg: String) : RuntimeException(msg)
 
 fun inferError(msg: String, expr: Expr? = null): Nothing {
-    val _msg = if (expr != null) "$msg at ${expr.span}" else msg
-    throw InferenceError(_msg)
+    val message = if (expr != null) "$msg at ${expr.span}" else msg
+    throw InferenceError(message)
 }
 
 object InferContext {

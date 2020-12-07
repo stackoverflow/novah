@@ -7,6 +7,7 @@
 - Revamp the error reporting, so it can return json as well as print to the console
 - Add warnings to the compiler
 - Add javadoc like capabilities to comments (using markdown probably)
+- Store numbers as string in the token for formatting
 - Type check the whole module __(PARTIALLY DONE)__
 - Add span (position) to expressions __(DONE)__
 - Make the parser return expressions with spans __(DONE)__

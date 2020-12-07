@@ -98,7 +98,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val tk = iter.peek()
         val comment = tk.comment
         val decl = when (tk.value) {
-            is Type -> parseTypeDecl()
+            is Type -> parseDataDecl()
             is Ident -> parseVarDecl()
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
@@ -106,7 +106,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return decl
     }
 
-    private fun parseTypeDecl(): Decl {
+    private fun parseDataDecl(): Decl {
         val typ = expect<Type>(noErr())
         return withOffside(typ.offside() + 1, false) {
 
@@ -483,7 +483,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     private fun parseDataConstructor(): DataConstructor {
         val ctor = expect<UpperIdent>(withError(E.CTOR_NAME))
 
-        val pars = tryParseListOf { tryParseType() }
+        val pars = tryParseListOf { tryParseUpperOrLoweIdent() }
         return DataConstructor(ctor.value.v, pars)
     }
 
@@ -521,6 +521,15 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             is UpperIdent -> expect<UpperIdent>(noErr()).value.v
             is Ident -> expect<Ident>(noErr()).value.v
             else -> throwError(err(sp))
+        }
+    }
+
+    private fun tryParseUpperOrLoweIdent(): String? {
+        val sp = iter.peek()
+        return when (sp.value) {
+            is UpperIdent -> expect<UpperIdent>(noErr()).value.v
+            is Ident -> expect<Ident>(noErr()).value.v
+            else -> null
         }
     }
 

@@ -40,7 +40,7 @@ sealed class Decl {
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.start, e.end) }
 }
 
-data class DataConstructor(val name: String, val args: List<Type>) {
+data class DataConstructor(val name: String, val args: List<String>) {
     override fun toString(): String {
         return if (args.isEmpty()) name
         else name + " " + args.joinToString(" ")

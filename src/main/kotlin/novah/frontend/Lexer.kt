@@ -311,7 +311,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
     private fun lineComment(): String {
         acceptMany("/")
         val builder = StringBuilder()
-        while (iter.peek() != '\n') {
+        while (iter.hasNext() && iter.peek() != '\n') {
             builder.append(iter.next())
         }
         return builder.toString().trim()

@@ -1,6 +1,7 @@
 package novah.frontend
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.forall
@@ -16,6 +17,7 @@ import novah.frontend.typechecker.InferContext.tChar
 import novah.frontend.typechecker.InferContext.tFloat
 import novah.frontend.typechecker.InferContext.tInt
 import novah.frontend.typechecker.InferContext.tString
+import novah.frontend.typechecker.InferenceError
 import novah.frontend.typechecker.Type
 
 class TypecheckerTest : StringSpec({
@@ -32,6 +34,7 @@ class TypecheckerTest : StringSpec({
         context.add(Elem.CVar(">", tfun(tInt, tfun(tInt, tBoolean))))
         context.add(Elem.CVar("==", tfun(tBoolean, tfun(tBoolean, tBoolean))))
         context.add(Elem.CVar("println", tfun(tString, tvar("Unit"))))
+        context.add(Elem.CVar("id", forall("a", tfun(tvar("a"), tvar("a")))))
     }
 
     fun exprX(expr: String) = "x = $expr".module()
@@ -58,6 +61,22 @@ class TypecheckerTest : StringSpec({
         ty shouldBe tInt
     }
 
+    "typecheck subsumed if" {
+        val code = """
+            f = if true then 10 else id 0
+            f2 a = if true then 10 else id a
+        """.module()
+
+        val tys = inferString(code)
+
+        tys["f"] shouldBe tInt
+        tys["f2"] shouldBe tfun(tInt, tInt)
+
+        shouldThrow<InferenceError> {
+            inferX("if true then 10 else id 'a'")
+        }
+    }
+
     "typecheck generics" {
         val ty = inferX("\\x -> x")
 
@@ -78,8 +97,6 @@ class TypecheckerTest : StringSpec({
     }
 
     "typecheck pre-added context vars" {
-        context.add(Elem.CVar("id", forall("a", tfun(tvar("a"), tvar("a")))))
-
         val ty = inferX("id 10")
 
         ty shouldBe tInt

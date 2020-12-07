@@ -130,6 +130,6 @@ object Subsumption {
             instR(a, b, ctxExpr)
             return
         }
-        inferError("subsume failed: expected type $b but got $a", ctxExpr)
+        inferError("subsume failed: expected type $a but got $b", ctxExpr)
     }
 }
