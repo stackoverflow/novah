@@ -511,7 +511,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         val pars = tryParseListOf { parseTypeAtom(true) }
 
-        val freeVars = pars.map { it.findFreeVars(typeVars) }.flatten()
+        val freeVars = pars.flatMap { it.findFreeVars(typeVars) }
         if (freeVars.isNotEmpty()) {
             throwError(withError(E.undefinedVar(ctor.value.v, freeVars))(iter.current()))
         }
