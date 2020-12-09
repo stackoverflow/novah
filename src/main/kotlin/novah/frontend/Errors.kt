@@ -87,6 +87,11 @@ object Errors {
 
     const val MISMATCHED_INDENTATION = "mismatched indentation"
 
+    fun undefinedVar(name: String, typeVars: List<String>): String {
+        return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
+        else "The variables ${typeVars.joinToString()} are undefined in constructor $name."
+    }
+
     fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
 
     fun literalExpected(name: String) = "Expected $name literal."

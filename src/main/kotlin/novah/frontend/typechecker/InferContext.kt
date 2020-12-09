@@ -64,6 +64,10 @@ object InferContext {
                 val body = _apply(type.type, ctx)
                 if (type.type == body) type else Type.TForall(type.name, body)
             }
+            is Type.TConstructor -> {
+                val body = type.types.map { _apply(it, ctx) }
+                if (type.types == body) type else Type.TConstructor(type.name, body)
+            }
         }
     }
 }

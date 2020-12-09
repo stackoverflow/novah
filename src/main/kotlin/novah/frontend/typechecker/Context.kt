@@ -4,12 +4,14 @@ package novah.frontend.typechecker
  * The different types of elements the [Context] can have.
  */
 sealed class Elem {
+    // Types in the context
     data class CTVar(val name: String) : Elem() {
         override fun toString(): String = name
     }
     data class CTMeta(val name: String, val type: Type? = null) : Elem() {
         override fun toString(): String = "?$name${if (type != null) " = $type" else ""}"
     }
+    // Variables in the context (with type)
     data class CVar(val name: String, val type: Type) : Elem() {
         override fun toString(): String = "$name : $type"
     }

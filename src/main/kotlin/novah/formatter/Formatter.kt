@@ -100,7 +100,7 @@ class Formatter(private val ast: Module) {
                 }
             }
         } else {
-            print(" = ${dataCtors.joinToString(" | ")}")
+            print(" = ${dataCtors[0]}")
         }
     }
 
@@ -340,6 +340,11 @@ class Formatter(private val ast: Module) {
                 if (nested) print("(")
                 print("forall ${forallVars.joinToString(" ")}. ")
                 fa.format()
+                if (nested) print(")")
+            }
+            is Type.TConstructor -> {
+                if (nested) print("(")
+                print("$this")
                 if (nested) print(")")
             }
             else -> print("$this")

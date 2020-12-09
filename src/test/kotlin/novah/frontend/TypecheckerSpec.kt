@@ -20,7 +20,7 @@ import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.InferenceError
 import novah.frontend.typechecker.Type
 
-class TypecheckerTest : StringSpec({
+class TypecheckerSpec : StringSpec({
 
     beforeTest {
         context.reset()

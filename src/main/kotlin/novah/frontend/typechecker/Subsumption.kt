@@ -36,11 +36,13 @@ object Subsumption {
                     val b = store.fresh(name)
                     val ta = Type.TMeta(a)
                     val tb = Type.TMeta(b)
-                    context.replace<Elem.CTMeta>(name, listOf(
-                        Elem.CTMeta(b),
-                        Elem.CTMeta(a),
-                        Elem.CTMeta(name, Type.TFun(ta, tb))
-                    ))
+                    context.replace<Elem.CTMeta>(
+                        name, listOf(
+                            Elem.CTMeta(b),
+                            Elem.CTMeta(a),
+                            Elem.CTMeta(name, Type.TFun(ta, tb))
+                        )
+                    )
                     instR(type.arg, ta, ctxExpr)
                     instL(tb, _apply(type.ret), ctxExpr)
                 }
@@ -51,7 +53,7 @@ object Subsumption {
                     instL(x, Type.openTForall(type, Type.TVar(name)), ctxExpr)
                     context.leave(m)
                 }
-                else -> inferError("instL failed: $x := $type", ctxExpr)
+                else -> inferError("instL failed: unknown type $type", ctxExpr)
             }
         }
     }
@@ -71,11 +73,13 @@ object Subsumption {
                     val b = store.fresh(name)
                     val ta = Type.TMeta(a)
                     val tb = Type.TMeta(b)
-                    context.replace<Elem.CTMeta>(name, listOf(
-                        Elem.CTMeta(b),
-                        Elem.CTMeta(a),
-                        Elem.CTMeta(name, Type.TFun(ta, tb))
-                    ))
+                    context.replace<Elem.CTMeta>(
+                        name, listOf(
+                            Elem.CTMeta(b),
+                            Elem.CTMeta(a),
+                            Elem.CTMeta(name, Type.TFun(ta, tb))
+                        )
+                    )
                     instL(ta, type.arg, ctxExpr)
                     instR(_apply(type.ret), tb, ctxExpr)
                 }
@@ -86,7 +90,7 @@ object Subsumption {
                     instR(Type.openTForall(type, Type.TMeta(name)), x, ctxExpr)
                     context.leave(m)
                 }
-                else -> inferError("instR failed: $x := $type")
+                else -> inferError("instR failed: unknown type $type", ctxExpr)
             }
         }
     }
@@ -98,6 +102,14 @@ object Subsumption {
         if (a is Type.TFun && b is Type.TFun) {
             subsume(b.arg, a.arg, ctxExpr)
             subsume(_apply(a.ret), _apply(b.ret), ctxExpr)
+            return
+        }
+        // Not sure about this code but seems to work
+        if (a is Type.TConstructor && b is Type.TConstructor) {
+            kindCheck(a, b, ctxExpr)
+            a.types.forEachIndexed { i, ty ->
+                subsume(_apply(ty), _apply(b.types[i]), ctxExpr)
+            }
             return
         }
         if (a is Type.TForall) {
@@ -131,5 +143,21 @@ object Subsumption {
             return
         }
         inferError("subsume failed: expected type $a but got $b", ctxExpr)
+    }
+
+    private fun kindCheck(a: Type.TConstructor, b: Type.TConstructor, ctxExpr: Expr) {
+        val atypes = a.types.size
+        val btypes = b.types.size
+
+        if (atypes != btypes) {
+            inferError(
+                "type ${a.name} must have kind ${makeKindString(atypes)} but got kind ${makeKindString(btypes)}: $b",
+                ctxExpr
+            )
+        }
+    }
+
+    private fun makeKindString(s: Int): String {
+        return (1..s).joinToString(" -> ") { "Type" }
     }
 }

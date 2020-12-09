@@ -30,7 +30,7 @@ sealed class Import(val module: ModuleName) {
 }
 
 sealed class Decl {
-    data class DataDecl(val name: String, val tyVars: List<Type.TVar>, val dataCtors: List<DataConstructor>) : Decl()
+    data class DataDecl(val name: String, val tyVars: List<String>, val dataCtors: List<DataConstructor>) : Decl()
     data class TypeDecl(val name: String, val typ: Type) : Decl()
     data class ValDecl(val name: String, val exp: Expr) : Decl()
 
@@ -40,7 +40,7 @@ sealed class Decl {
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.start, e.end) }
 }
 
-data class DataConstructor(val name: String, val args: List<String>) {
+data class DataConstructor(val name: String, val args: List<Type>) {
     override fun toString(): String {
         return if (args.isEmpty()) name
         else name + " " + args.joinToString(" ")
