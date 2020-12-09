@@ -513,7 +513,8 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         val freeVars = pars.flatMap { it.findFreeVars(typeVars) }
         if (freeVars.isNotEmpty()) {
-            throwError(withError(E.undefinedVar(ctor.value.v, freeVars))(iter.current()))
+            val tk = ctor.copy(span = span(ctor.span, iter.current().span))
+            throwError(withError(E.undefinedVar(ctor.value.v, freeVars))(tk))
         }
         return DataConstructor(ctor.value.v, pars)
     }

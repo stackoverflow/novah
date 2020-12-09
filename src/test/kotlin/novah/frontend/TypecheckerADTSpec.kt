@@ -126,7 +126,7 @@ class TypecheckerADTSpec : StringSpec({
 
     "unbounded variables should not compile" {
         val code = """
-            type May = Jus a | Nope
+            type Typ b = Empty | Jus a b
         """.module()
 
         shouldThrow<ParserError> {
