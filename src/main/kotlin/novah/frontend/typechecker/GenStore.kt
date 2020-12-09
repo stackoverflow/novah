@@ -5,10 +5,16 @@ class GenNameStore {
     private val map = mutableMapOf<String, Int>()
 
     fun fresh(name: String): String {
-        val i = map.getOrDefault(name, 0)
-        map[name] = i + 1
-        return "$$name$i"
+        val oname = originalName(name)
+        val i = map.getOrDefault(oname, 0)
+        map[oname] = i + 1
+        return "$oname$$i"
     }
 
     fun reset() = map.clear()
+
+    private fun originalName(name: String): String {
+        val res = """(.*)\$\d+""".toRegex().find(name)
+        return res?.groups?.get(1)?.value ?: name
+    }
 }

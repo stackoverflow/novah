@@ -31,11 +31,9 @@ type Maybe a
   = Nope
   | Just a
 
-/*
 type List a =
   Nil
   | Cons a (List a)
-*/
 
 num = 0x123efa7c
 

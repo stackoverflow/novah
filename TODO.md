@@ -1,5 +1,6 @@
 # TODO
 
+- Add spans to types
 - Support all Java primitives
 - Type check type constructors (ex: List Int)
 - Create a second set of typed expression AST to simplify codegen
