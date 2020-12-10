@@ -35,6 +35,10 @@ type List a =
   Nil
   | Cons a (List a)
 
+type Day
+  = Week
+  | Weekend
+
 num = 0x123efa7c
 
 doub x = 13.87E-12
@@ -69,14 +73,14 @@ id x = x
 compl :: forall a b c. (a -> b) -> (b -> c) -> a -> c
 compl f1 f2 x = f2 (f1 x)
 
-hrt :: Int -> (forall a b. (a -> b) -> b) -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Int
+hrt :: Int -> (forall a b. (a -> b) -> b) -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Int
 hrt i f t = 1
 
 sum :: Int -> Int -> Int
 sum x y = x + y
 
-sum2 :: Int -> Int -> Int
-sum2 = (+)
+mklist :: Int -> Int -> List (List (Int -> Int))
+mklist = todo
 
   // some comment here
 myFun x = case x of

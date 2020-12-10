@@ -1,5 +1,7 @@
 package novah.frontend
 
+import novah.ast.source.Expr
+
 object Application {
 
     private sealed class Fixity {

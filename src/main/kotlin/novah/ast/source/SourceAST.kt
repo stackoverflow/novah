@@ -1,5 +1,9 @@
-package novah.frontend
+package novah.ast.source
 
+import novah.frontend.Comment
+import novah.frontend.ModuleExports
+import novah.frontend.Span
+import novah.frontend.Spanned
 import novah.frontend.typechecker.Type
 
 typealias ModuleName = List<String>
@@ -31,7 +35,7 @@ sealed class Import(val module: ModuleName) {
 
 sealed class Decl {
     data class DataDecl(val name: String, val tyVars: List<String>, val dataCtors: List<DataConstructor>) : Decl()
-    data class TypeDecl(val name: String, val typ: Type) : Decl()
+    data class TypeDecl(val name: String, val type: Type) : Decl()
     data class ValDecl(val name: String, val exp: Expr) : Decl()
 
     var comment: Comment? = null
@@ -42,8 +46,7 @@ sealed class Decl {
 
 data class DataConstructor(val name: String, val args: List<Type>) {
     override fun toString(): String {
-        return if (args.isEmpty()) name
-        else name + " " + args.joinToString(" ")
+        return name + args.joinToString(" ", prefix = " ")
     }
 }
 
@@ -197,7 +200,7 @@ fun Decl.show(): String {
             val dataCts = dataCtors.joinToString("\n\t| ") { it.show() }
             "type $name ${tyVars.joinToString(" ")}\n\t= $dataCts"
         }
-        is Decl.TypeDecl -> "$name :: $typ"
+        is Decl.TypeDecl -> "$name :: $type"
     }
     return if (comment != null) {
         toComment(comment!!) + "\n$str"
