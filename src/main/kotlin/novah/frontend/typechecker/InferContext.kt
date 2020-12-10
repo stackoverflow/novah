@@ -1,6 +1,6 @@
 package novah.frontend.typechecker
 
-import novah.frontend.Expr
+import novah.ast.source.Expr
 import java.lang.RuntimeException
 import java.util.ArrayDeque
 

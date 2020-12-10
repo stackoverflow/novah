@@ -1,5 +1,6 @@
 package novah.formatter
 
+import novah.ast.source.*
 import novah.frontend.*
 import novah.frontend.typechecker.Type
 
@@ -9,153 +10,97 @@ import novah.frontend.typechecker.Type
 class Formatter(private val ast: Module) {
 
     private val builder = StringBuilder()
-    private var column = 1
-    private var indent = ""
+    private var tab = ""
 
-    fun format(): String {
-        ast.format()
-        if (ast.imports.isNotEmpty()) {
-            doubleLineBreak()
-            formatImports(ast.imports)
+    fun format(): String = ast.show()
+
+    private fun Module.show(): String {
+        val cmt = if (comment != null) {
+            comment!!.show() + "\n"
+        } else ""
+        builder.append(cmt)
+
+        builder.append("module ${fullName()}${exports.show()}")
+
+        if (imports.isNotEmpty()) {
+            builder.append("\n\n")
+            builder.append(imports.sortedBy { it.fullName() }.joinToString("\n") { it.show() })
         }
-        if (ast.decls.isNotEmpty()) {
-            doubleLineBreak()
-            formatDecls(ast.decls)
+        if (decls.isNotEmpty()) {
+            var last = decls[0]
+            builder.append("\n\n")
+            for (d in decls) {
+                if (d != decls[0]) {
+                    if (last is Decl.TypeDecl && d is Decl.ValDecl && last.name == d.name) builder.append("\n")
+                    else builder.append("\n\n")
+                }
+                builder.append(d.show())
+                last = d
+            }
         }
         return builder.toString()
     }
 
-    private fun Module.format() {
-        if (comment != null) {
-            comment!!.format()
-        }
-        print("module ${fullName()}")
-        exports.format()
+    private fun ModuleExports.show(): String = when (this) {
+        is ModuleExports.Hiding -> " hiding" + showList(hides)
+        is ModuleExports.Exposing -> " exposing" + showList(exports)
+        is ModuleExports.ExportAll -> ""
     }
 
-    private fun ModuleExports.format() {
-        if (this is ModuleExports.Hiding) {
-            print(" hiding")
-            printList(hides)
-        }
-        if (this is ModuleExports.Exposing) {
-            print(" exposing")
-            printList(exports)
-        }
-    }
-
-    private fun formatImports(imports: List<Import>) {
-        val imps = imports.sortedBy { it.fullName() }
-
-        for (imp in imps) {
-            if (imp != imps.first()) lineBreak()
-            imp.format()
-        }
-    }
-
-    private fun Import.format() {
-        if (comment != null) comment!!.format()
-        print("import ${fullName()}")
+    private fun Import.show(): String {
+        val cmt = if (comment != null) comment!!.show() else ""
+        var exposes = ""
         if (this is Import.Exposing) {
-            if (!exceed(calculateHSize(defs, ", "))) {
-                print(" ( ")
-                print(defs.joinToString(", "))
-                print(" )")
-            } else {
-                printList(defs)
-            }
+            exposes = defs.joinToString(", ", prefix = " (", postfix = ")")
+            if (exposes.length > maxColumns) exposes = showList(defs)
         }
-        if (alias() != null) {
-            print(" as ${alias()}")
-        }
+        val alias = if (alias() != null) " as ${alias()}" else ""
+        return "${cmt}import ${fullName()}$exposes$alias"
     }
 
-    private fun formatDecls(decls: List<Decl>) {
-        var last = decls.first()
-        for (decl in decls) {
-            if (decl != decls.first()) {
-                if (last is Decl.TypeDecl && decl is Decl.ValDecl && last.name == decl.name) lineBreak()
-                else doubleLineBreak()
-            }
-            if (decl.comment != null) decl.comment!!.format()
-            when (decl) {
-                is Decl.DataDecl -> decl.format()
-                is Decl.TypeDecl -> decl.format()
-                is Decl.ValDecl -> decl.format()
-            }
-            last = decl
+    private fun Decl.show(): String = when (this) {
+        is Decl.DataDecl -> this.show()
+        is Decl.TypeDecl -> this.show()
+        is Decl.ValDecl -> this.show()
+    }
+
+    private fun Decl.DataDecl.show(): String {
+        val dd = "type $name" + tyVars.joinToStr(" ", prefix = " ")
+        return if (dataCtors.size == 1) "$dd = ${dataCtors[0].show()}"
+        else {
+            dd + withIndent { dataCtors.joinToString("\n$tab| ", prefix = "$tab= ") { it.show() } }
         }
     }
 
-    private fun Decl.DataDecl.format() {
-        print("type $name")
-        if (tyVars.isNotEmpty()) print(" " + tyVars.joinToString(" "))
-
-        if (dataCtors.size > 1) {
-            withIndent {
-                print("= " + dataCtors.first())
-                for (dc in dataCtors.drop(1)) {
-                    lineBreak()
-                    print("| $dc")
-                }
-            }
-        } else {
-            print(" = ${dataCtors[0]}")
-        }
+    private fun Decl.TypeDecl.show(): String {
+        val td = "$name :: " + type.show()
+        return if (td.length > maxColumns) {
+            name + withIndent { type.showIndented() }
+        } else td
     }
 
-    private fun Decl.TypeDecl.format() {
-        print(name)
-        if (exceed(typ.toString().length)) {
-            lineBreak()
-            print("$tabSize:: ")
-        } else print(" :: ")
-        typ.format()
-    }
-
-    private fun Decl.ValDecl.format() {
-        print(name)
+    private fun Decl.ValDecl.show(): String {
         val exp = if (exp is Expr.Ann) exp.exp else exp
         val (lambdaVars, expr) = exp.unnestLambdas()
-        if (lambdaVars.isNotEmpty()) print(" " + lambdaVars.joinToString(" "))
-        if (shouldNewline(expr)) {
-            print(" =")
-            withIndent { expr.format() }
-        } else {
-            print(" = ")
-            expr.format()
-        }
+        val prefix = name + lambdaVars.joinToStr(" ", prefix = " ") + " ="
+
+        return if (shouldNewline(expr)) {
+            prefix + withIndent { tab + expr.show() }
+        } else "$prefix " + expr.show()
     }
 
-    private fun Expr.format(nested: Boolean = false) {
-        if (this.comment != null) {
-            comment!!.format()
-        }
-        when (this) {
+    private fun DataConstructor.show(): String {
+        return name + args.joinToStr(" ", prefix = " ") { it.show() }
+    }
+
+    private fun Expr.show(nested: Boolean = false): String {
+        // TODO: show comment
+        return when (this) {
             is Expr.Do -> {
-                print("do")
-                withIndent {
-                    for (exp in exps) {
-                        exp.format()
-                        if (exp != exps.last())
-                            lineBreak()
-                    }
-                }
+                "do" + withIndent { exps.joinToString("\n$tab", prefix = tab) { it.show() } }
             }
             is Expr.Match -> {
-                print("case ")
-                exp.format()
-                print(" of")
-                withIndent {
-                    for (case in cases) {
-                        if (case != cases.first()) lineBreak()
-                        case.pattern.format()
-                        print(" -> ")
-                        if (column > maxColumns / 3) {
-                            withIndent { case.exp.format() }
-                        } else case.exp.format()
-                    }
-                }
+                "case ${exp.show()} of" + withIndent { cases.joinToString("\n$tab", prefix = tab) { it.show() } }
             }
             is Expr.Let -> {
                 // unroll lets
@@ -165,208 +110,137 @@ class Formatter(private val ast: Module) {
                     defs += exp.letDef
                     exp = exp.body
                 }
-                print("let ")
-                defs.forEach { def ->
-                    if (def != defs.first()) {
-                        print("$tabSize$tabSize")
+                val str = if (shouldNewline(exp)) withIndent { "$tab${exp.show()}" } else exp.show()
+                "let " + withIndent(false) {
+                    withIndent(false) {
+                        defs.joinToStr("\n$tab") { it.show() }
                     }
-                    def.format()
-                    lineBreak()
-                }
-                if (shouldNewline(exp)) {
-                    print("in")
-                    withIndent {
-                        exp.format()
-                    }
-                } else {
-                    print("in ")
-                    exp.format(nested)
-                }
+                } + "\n${tab}in $str"
             }
             is Expr.If -> {
                 val simple = thenCase.isSimple() && elseCase.isSimple()
-                if (nested) print("(")
-                print("if ")
-                cond.format()
-                if (simple) {
-                    print(" then ")
-                    thenCase.format()
-                    print(" else ")
-                    elseCase.format()
-                } else {
-                    lineBreak()
-                    print("then ")
-                    thenCase.format()
-                    lineBreak()
-                    print("else ")
-                    elseCase.format()
-                }
-                if (nested) print(")")
+                val str = if (simple) "if ${cond.show()} then ${thenCase.show()} else ${elseCase.show()}"
+                else "if ${cond.show()}\n${tab}then ${thenCase.show()}\n${tab}else ${elseCase.show()}"
+                if (nested) "($str)" else str
             }
             is Expr.App -> {
-                if (nested) print("(")
                 val exps = Application.unparseApplication(this)
-                for (e in exps) {
-                    if (e != exps.first()) print(" ")
-                    e.format()
-                }
-                if (nested) print(")")
+                val str = exps.joinToString(" ") { it.show() }
+                if (nested) "($str)" else str
             }
             is Expr.Ann -> {
-                if (nested) print("(")
-                exp.format()
-                print(" :: ")
-                type.format()
-                if (nested) print(")")
+                val str = "${exp.show()} :: ${type.show()}"
+                if (nested) "($str)" else str
             }
             is Expr.Lambda -> {
-                if (nested) print("(")
                 val (lambdaVars, exp) = if (this.nested) {
                     unnestLambdas()
                 } else {
                     listOf(binder) to body
                 }
-                print("\\")
-                print(lambdaVars.joinToString(" "))
-                print(" -> ")
-                if (shouldNewline(exp)) {
-                    withIndent { exp.format() }
-                } else exp.format()
-                if (nested) print(")")
+                val shown = if (shouldNewline(exp)) withIndent { exp.show() } else exp.show()
+                val str = "\\" + lambdaVars.joinToString(" ") + " -> $shown"
+                if (nested) "($str)" else str
             }
-            is Expr.IntE -> print("$i")
-            is Expr.FloatE -> print("$f")
-            is Expr.StringE -> print("\"$s\"")
-            is Expr.CharE -> print("'$c'")
-            is Expr.Bool -> print("$b")
-            is Expr.Var -> {
-                if (moduleName.isEmpty()) print(name)
-                else print(moduleName.joinToString(".") + "." + name)
-            }
-            is Expr.Operator -> print(name)
-            is Expr.Parens -> {
-                print("(")
-                for (e in exps) {
-                    if (e != exps.first()) print(" ")
-                    e.format()
-                }
-                print(")")
-            }
+            is Expr.Var -> moduleName.joinToStr(".", postfix = ".") + name
+            is Expr.IntE -> "$i"
+            is Expr.FloatE -> "$f"
+            is Expr.StringE -> s
+            is Expr.CharE -> "'$c'"
+            is Expr.Bool -> "$b"
+            is Expr.Operator -> name
+            is Expr.Parens -> exps.joinToString(" ", prefix = "(", postfix = ")") { it.show() }
+            else -> "$this"
         }
     }
 
-    private fun Pattern.format(nested: Boolean = false) {
-        when (this) {
-            is Pattern.Wildcard -> print("_")
-            is Pattern.Var -> print(name)
-            is Pattern.Ctor -> {
-                if (nested) print("(")
-                print(name)
-                fields.forEach { pt ->
-                    print(" ")
-                    pt.format(true)
-                }
-                if (nested) print(")")
-            }
-            is Pattern.LiteralP -> lit.format()
-        }
+    private fun Case.show(): String {
+        return pattern.show() + " -> " + exp.show()
     }
 
-    private fun LiteralPattern.format() {
-        when (this) {
-            is LiteralPattern.BoolLiteral -> print("$b")
-            is LiteralPattern.CharLiteral -> print("'$c'")
-            is LiteralPattern.StringLiteral -> print(s)
-            is LiteralPattern.IntLiteral -> print("$i")
-            is LiteralPattern.FloatLiteral -> print("$f")
+    private fun Pattern.show(nested: Boolean = false): String = when (this) {
+        is Pattern.Wildcard -> "_"
+        is Pattern.Var -> name
+        is Pattern.Ctor -> {
+            val str = name + fields.joinToStr(" ", prefix = " ") { it.show(true) }
+            if (nested) "($str)" else str
         }
+        is Pattern.LiteralP -> lit.show()
     }
 
-    private fun LetDef.format() {
-        if (type != null) {
-            print("$name :: ")
-            type.format()
-            lineBreak()
-            print("$tabSize$tabSize")
-        }
-        print(name)
+    private fun LiteralPattern.show(): String = when (this) {
+        is LiteralPattern.BoolLiteral -> "$b"
+        is LiteralPattern.CharLiteral -> "'$c'"
+        is LiteralPattern.StringLiteral -> s
+        is LiteralPattern.IntLiteral -> "$i"
+        is LiteralPattern.FloatLiteral -> "$f"
+    }
+
+    private fun LetDef.show(): String {
+        val typ = if (type != null) "$name :: ${type.show()}\n$tab" else ""
         val (lambdaVars, exp) = expr.unnestLambdas()
-        if (lambdaVars.isNotEmpty()) {
-            print(" ")
-            print(lambdaVars.joinToString(" "))
+        return "${typ}$name" + lambdaVars.joinToStr(" ", prefix = " ") + " = ${exp.show()}"
+    }
+
+    private fun Type.show(nested: Boolean = false): String = when (this) {
+        is Type.TFun -> {
+            val tlist = mutableListOf<String>()
+            var fn = this
+            while (fn is Type.TFun) {
+                tlist += fn.arg.show(true)
+                fn = fn.ret
+            }
+            tlist += fn.show(true)
+            val str = tlist.joinToString(" -> ")
+            if (nested) "($str)" else str
         }
-        print(" = ")
-        exp.format()
-    }
-
-    private fun Type.format(nested: Boolean = false) {
-        when (this) {
-            is Type.TFun -> {
-                if (exceed(toString().length)) {
-                    withIndent(false) {
-                        var fn = this
-                        while (fn is Type.TFun) {
-                            val f = fn as Type.TFun
-                            if (f.arg is Type.TForall) {
-                                f.arg.format(true)
-                            } else print("${f.arg}")
-                            lineBreak()
-                            print("-> ")
-                            fn = f.ret
-                        }
-                        fn.format(nested)
-                    }
-                } else {
-                    var fn = this
-                    while (fn is Type.TFun) {
-                        val f = fn as Type.TFun
-                        if (f.arg is Type.TForall) {
-                            f.arg.format(true)
-                        } else print("${f.arg}")
-                        print(" -> ")
-                        fn = f.ret
-                    }
-                    print("$fn")
-                }
-            }
-            is Type.TForall -> {
-                // unnest foralls
-                val forallVars = mutableListOf<String>()
-                var fa = this
-                while (fa is Type.TForall) {
-                    forallVars += fa.name
-                    fa = fa.type
-                }
-                if (nested) print("(")
-                print("forall ${forallVars.joinToString(" ")}. ")
-                fa.format()
-                if (nested) print(")")
-            }
-            is Type.TConstructor -> {
-                if (nested) print("(")
-                print("$this")
-                if (nested) print(")")
-            }
-            else -> print("$this")
+        is Type.TForall -> {
+            val (forallVars, exp) = unnestForalls(this)
+            val str = "forall " + forallVars.joinToString(" ") + ". ${exp.show()}"
+            if (nested) "($str)" else str
         }
+        is Type.TConstructor -> {
+            val str = name + types.joinToStr(" ", prefix = " ") { it.show(true) }
+            if (nested) "($str)" else str
+        }
+        else -> "$this"
     }
 
-    private fun Comment.format() {
-        if (isMulti) {
-            print("/*\n * ")
-            print(comment.split("\n").joinToString("\n *"))
-            lineBreak()
-            print(" */")
-        } else print("// $comment")
-        lineBreak()
+    private fun Type.showIndented(prefix: String = "::"): String = when (this) {
+        is Type.TFun -> {
+            val tlist = mutableListOf<String>()
+            var fn = this
+            while (fn is Type.TFun) {
+                tlist += fn.arg.show(true)
+                fn = fn.ret
+            }
+            tlist += fn.show(true)
+            tlist.joinToString("\n$tab-> ", prefix = "$tab$prefix ")
+        }
+        is Type.TForall -> {
+            val (forallVars, exp) = unnestForalls(this)
+            val str = if (exp is Type.TFun) exp.showIndented(".") else exp.show()
+            "$tab$prefix forall " + forallVars.joinToString(" ", postfix = "\n") + str
+        }
+        else -> show()
     }
 
-    // Helpers
+    private fun Comment.show(): String = if (isMulti) {
+        "$tab/*\n$tab * " + comment.split("\n").joinToString("\n$tab *") + "\n$tab */"
+    } else "// $comment"
 
     private fun Expr.isSimple(): Boolean = when (this) {
         is Expr.IntE, is Expr.FloatE, is Expr.StringE, is Expr.CharE, is Expr.Bool -> true
         is Expr.Var, is Expr.Operator -> true
         else -> false
+    }
+
+    private fun showList(list: List<String>, start: String = "(", end: String = ")"): String = withIndent {
+        when {
+            list.isEmpty() -> "$tab$start$end"
+            list.size == 1 -> "$tab$start ${list[0]} $end"
+            else -> "$tab$start " + list.joinToString("\n$tab, ") + "\n$tab$end"
+        }
     }
 
     private fun Expr.unnestLambdas(): Pair<List<String>, Expr> {
@@ -383,53 +257,45 @@ class Formatter(private val ast: Module) {
         return lambdaVars to expr
     }
 
+    private fun unnestForalls(forall: Type.TForall): Pair<List<String>, Type> {
+        val forallVars = mutableListOf<String>()
+        var fa: Type = forall
+        while (fa is Type.TForall) {
+            forallVars += fa.name
+            fa = fa.type
+        }
+        return forallVars to fa
+    }
+
     private fun shouldNewline(e: Expr) = e is Expr.Let || e is Expr.If || e is Expr.Match
 
-    private fun calculateHSize(list: List<String>, separator: String = ""): Int {
-        return list.map(String::length).sum() + (separator.length * (list.size - 1))
+    private inline fun withIndent(shouldBreak: Boolean = true, f: () -> String): String {
+        val oldIndent = tab
+        tab = "$tab${tabSize}"
+        val res = f()
+        tab = oldIndent
+        return if (shouldBreak) "\n$res" else res
     }
-
-    private fun printList(list: List<String>, start: String = "(", end: String = ")") {
-        withIndent {
-            print("$start ${list.first()}")
-            for (exp in list.drop(1)) {
-                lineBreak()
-                print(", $exp")
-            }
-            if (list.size > 1) {
-                lineBreak()
-                print(end)
-            } else print(" $end")
-        }
-    }
-
-    private fun print(s: String) {
-        column += s.length
-        builder.append(s)
-    }
-
-    private fun lineBreak() {
-        column = 1 + indent.length
-        builder.append("\n$indent")
-    }
-
-    private fun doubleLineBreak() {
-        column = 1 + indent.length
-        builder.append("\n\n$indent")
-    }
-
-    private inline fun <T> withIndent(shouldBreak: Boolean = true, f: () -> T) {
-        val oldIndent = indent
-        indent = "$indent$tabSize"
-        if (shouldBreak) lineBreak()
-        f()
-        indent = oldIndent
-    }
-
-    private fun exceed(amount: Int, max: Int = maxColumns): Boolean = column + amount > max
 
     companion object {
-        const val maxColumns = 100
+        const val maxColumns = 120
         const val tabSize = "  " // 2 spaces
+
+        /**
+         * Like [joinToString] but don't append the prefix/suffix if
+         * the list is empty.
+         */
+        private fun <T> List<T>.joinToStr(
+            separator: CharSequence = ", ",
+            prefix: CharSequence = "",
+            postfix: CharSequence = "",
+            limit: Int = -1,
+            truncated: CharSequence = "...",
+            transform: ((T) -> CharSequence)? = null
+        ): String {
+            val pre = if (isEmpty()) "" else prefix
+            val pos = if (isEmpty()) "" else postfix
+            return joinTo(StringBuilder(), separator, pre, pos, limit, truncated, transform).toString()
+        }
     }
 }

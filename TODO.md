@@ -1,5 +1,6 @@
 # TODO
 
+- Validate exports are actually valid
 - Add spans to types
 - Support all Java primitives
 - Type check type constructors (ex: List Int)

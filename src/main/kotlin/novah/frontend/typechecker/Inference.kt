@@ -1,6 +1,6 @@
 package novah.frontend.typechecker
 
-import novah.frontend.*
+import novah.ast.source.*
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.store
@@ -192,8 +192,8 @@ object Inference {
         }
 
         mod.decls.filterIsInstance<Decl.TypeDecl>().forEach { tdecl ->
-            wfType(tdecl.typ)
-            context.add(Elem.CVar(tdecl.name, tdecl.typ))
+            wfType(tdecl.type)
+            context.add(Elem.CVar(tdecl.name, tdecl.type))
         }
 
         mod.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->

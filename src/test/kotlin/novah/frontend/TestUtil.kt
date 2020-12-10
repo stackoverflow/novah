@@ -1,5 +1,7 @@
 package novah.frontend
 
+import novah.ast.source.Expr
+import novah.ast.source.Module
 import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Type
 

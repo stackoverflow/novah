@@ -1,5 +1,7 @@
 package novah.frontend
 
+import novah.ast.source.Decl
+
 sealed class ModuleExports {
     object ExportAll : ModuleExports()
     data class Hiding(val hides: List<String>) : ModuleExports()

@@ -1,5 +1,6 @@
 package novah.frontend
 
+import novah.ast.source.*
 import novah.frontend.Token.*
 import novah.frontend.typechecker.Type as TType
 import novah.frontend.Errors as E
@@ -192,7 +193,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     private fun parseTypeSignature(name: String): Decl.TypeDecl {
         expect<DoubleColon>(withError(E.TYPE_DCOLON))
         val decl = Decl.TypeDecl(name, parsePolytype())
-        topLevelTypes[name] = decl.typ
+        topLevelTypes[name] = decl.type
         return decl
     }
 
@@ -399,7 +400,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
             }
             is Ident -> {
                 val exp = withOffside { parseLambda(multiVar = true, isLet = true) }
-                val def = LetDef(ident.value.v, exp, types.find { it.name == ident.value.v }?.typ)
+                val def = LetDef(ident.value.v, exp, types.find { it.name == ident.value.v }?.type)
                 letDefs += def
                 def
             }
@@ -407,7 +408,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
                 withOffside {
                     expect<Equals>(withError(E.LET_EQUALS))
                     val exp = parseExpression()
-                    val def = LetDef(ident.value.v, exp, types.find { it.name == ident.value.v }?.typ)
+                    val def = LetDef(ident.value.v, exp, types.find { it.name == ident.value.v }?.type)
                     letDefs += def
                     def
                 }
