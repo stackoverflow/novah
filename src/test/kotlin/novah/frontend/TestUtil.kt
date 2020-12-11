@@ -1,5 +1,6 @@
 package novah.frontend
 
+import novah.ast.Desugar
 import novah.ast.source.Expr
 import novah.ast.source.Module
 import novah.frontend.typechecker.Inference.infer
@@ -36,16 +37,19 @@ object TestUtil {
     fun inferString(code: String): Map<String, Type> {
         val lexer = Lexer(code)
         val parser = Parser(lexer)
-        return infer(parser.parseFullModule())
+        val desugar = Desugar(parser.parseFullModule())
+        val canonical = desugar.desugar()
+        return infer(canonical)
     }
 
     fun tvar(n: String) = Type.TVar(n)
     fun tfun(l: Type, r: Type) = Type.TFun(l, r)
     fun forall(x: String, t: Type) = Type.TForall(x, t)
 
-    fun _i(i: Long) = Expr.IntE(i)
-    fun _var(n: String) = Expr.Var(n)
-    fun abs(n: String, e: Expr, nested: Boolean = false) = Expr.Lambda(n, e, nested)
+    fun _i(i: Long) = Expr.IntE(i, "$i")
+    fun _v(n: String) = Expr.Var(n)
+    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns, e)
+    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(n), e)
 
     fun String.module() = "module test\n\n${this.trimIndent()}"
 }

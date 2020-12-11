@@ -1,6 +1,6 @@
 package novah.frontend.typechecker
 
-import novah.ast.source.Expr
+import novah.ast.canonical.Expr
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.discard

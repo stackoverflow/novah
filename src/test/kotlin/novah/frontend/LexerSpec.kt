@@ -24,7 +24,7 @@ class LexerSpec : StringSpec({
     "Lex comments correctly" {
         val tokens = lexResource("Comments.novah")
 
-        val typ = tokens.find { it.value is Token.Type }!!
+        val typ = tokens.find { it.value is Token.TypeT }!!
         val myFun = tokens.find {
             val tk = it.value
             tk is Token.Ident && tk.v == "myFun"

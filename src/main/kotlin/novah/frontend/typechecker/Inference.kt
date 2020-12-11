@@ -1,6 +1,7 @@
 package novah.frontend.typechecker
 
-import novah.ast.source.*
+import novah.ast.canonical.*
+import novah.frontend.Span
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.store
@@ -44,11 +45,6 @@ object Inference {
                     ?: inferError("undefined variable ${exp.name}", exp)
                 x.type
             }
-            is Expr.Operator -> {
-                val x = context.lookup<Elem.CVar>(exp.name)
-                    ?: inferError("undefined operator ${exp.name}", exp)
-                x.type
-            }
             is Expr.Lambda -> {
                 val x = store.fresh(exp.binder)
                 val a = store.fresh(exp.binder)
@@ -57,7 +53,7 @@ object Inference {
                 val tb = Type.TMeta(b)
                 val m = store.fresh("m")
                 context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
-                typecheck(exp.openLambda(Expr.Var(x)), tb)
+                typecheck(exp.openLambda(Expr.Var(x, Span.empty())), tb)
                 val ty = _apply(Type.TFun(ta, tb))
                 generalizeFrom(m, ty)
             }
@@ -94,7 +90,7 @@ object Inference {
                 // add the binding to the context
                 val m = store.fresh("m")
                 context.enter(m, binding)
-                val subExp = exp.body.substVar(ld.name, Expr.Var(name))
+                val subExp = exp.body.substVar(ld.name, Expr.Var(name, Span.empty()))
 
                 // infer the body
                 generalizeFrom(m, _apply(typesynth(subExp)))
@@ -128,7 +124,7 @@ object Inference {
                 val x = store.fresh(expr.binder)
                 val m = store.fresh("m")
                 context.enter(m, Elem.CVar(x, type.arg))
-                typecheck(expr.openLambda(Expr.Var(x)), type.ret)
+                typecheck(expr.openLambda(Expr.Var(x, Span.empty())), type.ret)
                 context.leave(m)
             }
             expr is Expr.If -> {
