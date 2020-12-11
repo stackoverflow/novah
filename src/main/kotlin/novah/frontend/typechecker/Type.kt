@@ -108,17 +108,6 @@ sealed class Type {
         }
     }
 
-    /**
-     * Find any unbound variables in this type
-     */
-    fun findFreeVars(bound: List<String>): List<String> = when (this) {
-        is TVar -> if (name[0].isLowerCase() && name !in bound) listOf(name) else listOf()
-        is TFun -> arg.findFreeVars(bound) + ret.findFreeVars(bound)
-        is TForall -> type.findFreeVars(bound + name)
-        is TConstructor -> types.flatMap { it.findFreeVars(bound) }
-        is TMeta -> listOf()
-    }
-
     fun substFreeVar(replace: String): Type {
         return if (this is TForall) {
             TForall(replace, type.substTVar(name, TVar(replace)))

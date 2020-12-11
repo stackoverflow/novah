@@ -157,37 +157,17 @@ object Application {
      * output: (a >> b >> c) 1
      */
     fun unparseApplication(app: Expr.App): List<Expr> {
-        fun go(exp: Expr, prevPrec: Int): List<Expr> = when (exp) {
+        fun go(exp: Expr): List<Expr> = when (exp) {
             is Expr.App -> {
                 val fn = exp.fn
                 if (fn is Expr.App && fn.fn is Expr.Operator) {
-                    val prec = getPrecedence(fn.fn)
-                    if (prec < prevPrec)
-                        parens(go(fn.arg, prec) + listOf(fn.fn) + go(exp.arg, prec))
-                    else
-                        go(fn.arg, prec) + listOf(fn.fn) + go(exp.arg, prec)
-                } else if (fn is Expr.App && fn.fn is Expr.Var) {
-                    listOf(fn.fn) + go(fn.arg, 9) + go(exp.arg, 9)
-                } else if (exp.arg is Expr.App) {
-                    go(fn, 9) + parens(go(exp.arg, 9))
+                    go(fn.arg) + listOf(fn.fn) + go(exp.arg)
                 } else {
-                    go(exp.fn, 9) + go(exp.arg, 9)
+                    go(exp.fn) + go(exp.arg)
                 }
             }
-            is Expr.If, is Expr.Match, is Expr.Do, is Expr.Lambda -> parens(exp)
             else -> listOf(exp)
         }
-        return go(app, 0)
-    }
-
-    private fun parens(es: List<Expr>): List<Expr> {
-        return if (es.size == 1 && es.first() is Expr.Parens) {
-            es
-        } else listOf(Expr.Parens(es))
-    }
-
-    private fun parens(e: Expr): List<Expr> {
-        return if (e is Expr.Parens) listOf(e)
-        else listOf(Expr.Parens(listOf(e)))
+        return go(app)
     }
 }

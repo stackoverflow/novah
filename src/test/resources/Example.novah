@@ -39,6 +39,8 @@ type Day
   = Week
   | Weekend
 
+bin = 0B001110
+
 num = 0x123efa7c
 
 doub x = 13.87E-12

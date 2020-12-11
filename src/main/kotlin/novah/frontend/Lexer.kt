@@ -27,7 +27,7 @@ sealed class Token {
     object Exposing : Token()
     object ImportT : Token()
     object Forall : Token()
-    object Type : Token()
+    object TypeT : Token()
     object As : Token()
     object IfT : Token()
     object Then : Token()
@@ -41,8 +41,8 @@ sealed class Token {
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
     data class StringT(val s: String) : Token()
-    data class IntT(val i: Long) : Token()
-    data class FloatT(val f: Double) : Token()
+    data class IntT(val i: Long, val text: String) : Token()
+    data class FloatT(val f: Double, val text: String) : Token()
     data class Ident(val v: String) : Token()
     data class UpperIdent(val v: String) : Token()
     data class Op(val op: String) : Token()
@@ -215,7 +215,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             "let" -> LetT
             "case" -> CaseT
             "of" -> Of
-            "type" -> Type
+            "type" -> TypeT
             "as" -> As
             "in" -> In
             "do" -> Do
@@ -259,18 +259,18 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     iter.next()
                     val bin = acceptMany("01")
                     if (bin.isEmpty()) lexError("Binary number cannot be empty")
-                    IntT(bin.toSafeLong(2) * n)
+                    IntT(bin.toSafeLong(2) * n, "0$c$bin")
                 }
                 // hex numbers
                 'x', 'X' -> {
                     iter.next()
                     val hex = acceptMany("0123456789abcdefABCDEF")
                     if (hex.isEmpty()) lexError("Hexadecimal number cannot be empty")
-                    IntT(hex.toSafeLong(16) * n)
+                    IntT(hex.toSafeLong(16) * n, "0$c$hex")
                 }
                 else -> {
                     if (c.isDigit()) lexError("Number 0 can only be followed by b|B or x|X: `$c`")
-                    IntT(0)
+                    IntT(0, "0")
                 }
             }
         } else {
@@ -284,10 +284,10 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     val rest = acceptMany("0123456789")
                     if (rest.isEmpty() && (symOrNum == '+' || symOrNum == '-')) lexError("Invalid number format: expected number after sign")
                     val str = num + symOrNum + rest
-                    FloatT(str.toSafeDouble() * n)
+                    FloatT(str.toSafeDouble() * n, str)
                 }
-                num.contains('.') -> FloatT(num.toSafeDouble() * n)
-                else -> IntT(num.toSafeLong(10) * n)
+                num.contains('.') -> FloatT(num.toSafeDouble() * n, num)
+                else -> IntT(num.toSafeLong(10) * n, num)
             }
         }
     }
