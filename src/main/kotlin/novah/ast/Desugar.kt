@@ -25,7 +25,7 @@ class Desugar(private val smod: SModule) {
     private val topLevelTypes = mutableMapOf<String, SType>()
     private val dataCtors = mutableListOf<String>()
 
-    fun desugar(): Module<Span> {
+    fun desugar(): Module {
         smod.decls.filterIsInstance<SDecl.TypeDecl>().forEach { topLevelTypes[it.name] = it.type }
         smod.decls.filterIsInstance<novah.ast.source.Decl.DataDecl>().forEach { dataCtors += it.name }
 
@@ -37,7 +37,7 @@ class Desugar(private val smod: SModule) {
         is SImport.Exposing -> Import.Exposing(mod, defs, alias)
     }
 
-    private fun SDecl.desugar(): Decl<Span> = when (this) {
+    private fun SDecl.desugar(): Decl = when (this) {
         is SDecl.TypeDecl -> Decl.TypeDecl(name, type.desugar(), span)
         is SDecl.DataDecl -> Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span)
         is SDecl.ValDecl -> {
@@ -52,7 +52,7 @@ class Desugar(private val smod: SModule) {
 
     private fun SDataConstructor.desugar(): DataConstructor = DataConstructor(name, args.map { it.desugar() })
 
-    private fun SExpr.desugar(): Expr<Span> = when (this) {
+    private fun SExpr.desugar(): Expr = when (this) {
         is SExpr.IntE -> Expr.IntE(i, span)
         is SExpr.FloatE -> Expr.FloatE(f, span)
         is SExpr.StringE -> Expr.StringE(s, span)
@@ -70,7 +70,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.Do -> Expr.Do(exps.map { it.desugar() }, span)
     }
 
-    private fun SCase.desugar(): Case<Span> = Case(pattern.desugar(), exp.desugar())
+    private fun SCase.desugar(): Case = Case(pattern.desugar(), exp.desugar())
 
     private fun SPattern.desugar(): Pattern = when (this) {
         is SPattern.Wildcard -> Pattern.Wildcard
@@ -87,12 +87,12 @@ class Desugar(private val smod: SModule) {
         is SLiteralPattern.FloatLiteral -> LiteralPattern.FloatLiteral(f)
     }
 
-    private fun SLetDef.desugar(): LetDef<Span> {
+    private fun SLetDef.desugar(): LetDef {
         return if (binders.isEmpty()) LetDef(name, expr.desugar(), type?.desugar())
         else {
-            fun go(binders: List<String>, exp: Expr<Span>): Expr<Span> {
-                return if (binders.size == 1) Expr.Lambda(binders[0], exp, exp.value)
-                else go(binders.drop(1), Expr.Lambda(binders[0], exp, exp.value))
+            fun go(binders: List<String>, exp: Expr): Expr {
+                return if (binders.size == 1) Expr.Lambda(binders[0], exp, exp.span)
+                else go(binders.drop(1), Expr.Lambda(binders[0], exp, exp.span))
             }
             LetDef(name, go(binders, expr.desugar()), type?.desugar())
         }
@@ -116,14 +116,14 @@ class Desugar(private val smod: SModule) {
         else Type.TForall(names[0], nestForalls(names.drop(1), type))
     }
 
-    private fun nestLambdas(binders: List<String>, exp: Expr<Span>): Expr<Span> {
+    private fun nestLambdas(binders: List<String>, exp: Expr): Expr {
         return if (binders.isEmpty()) exp
-        else Expr.Lambda(binders[0], nestLambdas(binders.drop(1), exp), exp.value)
+        else Expr.Lambda(binders[0], nestLambdas(binders.drop(1), exp), exp.span)
     }
 
-    private fun nestLets(defs: List<SLetDef>, exp: Expr<Span>): Expr<Span> {
+    private fun nestLets(defs: List<SLetDef>, exp: Expr): Expr {
         return if (defs.isEmpty()) exp
-        else Expr.Let(defs[0].desugar(), nestLets(defs.drop(1), exp), exp.value)
+        else Expr.Let(defs[0].desugar(), nestLets(defs.drop(1), exp), exp.span)
     }
 
     /**

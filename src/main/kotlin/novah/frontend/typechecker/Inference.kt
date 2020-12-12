@@ -33,7 +33,7 @@ object Inference {
     fun generalizeFrom(marker: String, type: Type): Type =
         generalize(context.leaveWithUnsolved(marker), type)
 
-    fun typesynth(exp: Expr<Span>): Type {
+    fun typesynth(exp: Expr): Type {
         return when (exp) {
             is Expr.IntE -> tInt
             is Expr.FloatE -> tFloat
@@ -106,7 +106,7 @@ object Inference {
         }
     }
 
-    fun typecheck(expr: Expr<Span>, type: Type) {
+    fun typecheck(expr: Expr, type: Type) {
         when {
             expr is Expr.IntE && type == tInt -> return
             expr is Expr.FloatE && type == tFloat -> return
@@ -139,7 +139,7 @@ object Inference {
         }
     }
 
-    fun typeappsynth(type: Type, expr: Expr<Span>): Type {
+    fun typeappsynth(type: Type, expr: Expr): Type {
         return when (type) {
             is Type.TForall -> {
                 val x = store.fresh(type.name)
@@ -170,7 +170,7 @@ object Inference {
         }
     }
 
-    fun infer(expr: Expr<Span>): Type {
+    fun infer(expr: Expr): Type {
         store.reset()
         wfContext()
         val m = store.fresh("m")
@@ -180,19 +180,19 @@ object Inference {
         return ty
     }
 
-    fun infer(mod: Module<Span>): Map<String, Type> {
+    fun infer(mod: Module): Map<String, Type> {
         val m = mutableMapOf<String, Type>()
 
-        mod.decls.filterIsInstance<Decl.DataDecl<Span>>().forEach { ddecl ->
+        mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
             dataDeclToType(ddecl).forEach(context::add)
         }
 
-        mod.decls.filterIsInstance<Decl.TypeDecl<Span>>().forEach { tdecl ->
+        mod.decls.filterIsInstance<Decl.TypeDecl>().forEach { tdecl ->
             wfType(tdecl.type)
             context.add(Elem.CVar(tdecl.name, tdecl.type))
         }
 
-        mod.decls.filterIsInstance<Decl.ValDecl<Span>>().forEach { decl ->
+        mod.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->
             val ty = infer(decl.exp)
             if (!context.contains<Elem.CVar>(decl.name))
                 context.add(Elem.CVar(decl.name, ty))
@@ -205,7 +205,7 @@ object Inference {
      * Takes a data declaration and returns all the types and
      * variables (constructors) that should be added to the context.
      */
-    private fun dataDeclToType(dd: Decl.DataDecl<Span>): List<Elem> {
+    private fun dataDeclToType(dd: Decl.DataDecl): List<Elem> {
         fun nestForalls(acc: List<String>, type: Type): Type {
             return if (acc.isEmpty()) type
             else Type.TForall(acc.first(), nestForalls(acc.drop(1), type))
