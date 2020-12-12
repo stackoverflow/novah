@@ -4,16 +4,17 @@ object Errors {
     val MODULE_DEFINITION = """Expected file to begin with a module declaration.
         |Example:
         |
-        |module Some.Module
+        |module some.namespace
     """.trimMargin()
 
     const val MODULE_NAME = "Module names should be composed of upper case identifiers separated by dots."
 
     val IMPORT_ALIAS = """Expected module import alias to be an upper case identifier:
-        |Example: import Data.Module as Mod
+        |Example: import data.namespace as Mod
     """.trimMargin()
 
-    const val EXPORT_REFER = "Expected exposing/hiding definitions to be a comma-separated list of upper or lower case identifiers."
+    const val EXPORT_REFER =
+        "Expected exposing/hiding definitions to be a comma-separated list of upper or lower case identifiers."
 
     const val DATA_NAME = "Expected new data type name to be a upper case identifier."
 
@@ -82,15 +83,29 @@ object Errors {
 
     val IMPORT_NOT_FOUND = """Could not find imported alias. Make sure the module is imported.
         |
-        |ex: import Some.Module as M
+        |ex: import some.namespace as M
     """.trimMargin()
 
-    const val MISMATCHED_INDENTATION = "mismatched indentation"
+    const val MISMATCHED_INDENTATION = "Mismatched indentation."
+
+    val DECLARATION_REF_ALL = """To import or export all constructor of a type use a (..) syntax.
+        |
+        |ex: import namespace (fun1, SomeType(..), fun2)
+    """.trimMargin()
 
     fun undefinedVar(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
         else "The variables ${typeVars.joinToString()} are undefined in constructor $name."
     }
+
+    fun exportError(v: String) = if (v[0].isLowerCase()) {
+        "Cannot export unknown value $v"
+    } else {
+        "Cannot export unknown type $v"
+    }
+
+    fun exportCtorError(ctor: String) =
+        "Cannot export undeclared constructor $ctor."
 
     fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
 

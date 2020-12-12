@@ -38,15 +38,53 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val exports = when (iter.peek().value) {
             is Hiding -> {
                 iter.next()
-                ModuleExports.Hiding(parseImportExports("exports"))
+                ModuleExports.Hiding(parseDeclarationRefs())
             }
             is Exposing -> {
                 iter.next()
-                ModuleExports.Exposing(parseImportExports("exports"))
+                ModuleExports.Exposing(parseDeclarationRefs())
             }
             else -> ModuleExports.ExportAll
         }
         return Triple(name, exports, m.comment)
+    }
+
+    private fun parseDeclarationRefs(): List<DeclarationRef> {
+        expect<LParen>(withError(E.lparensExpected("exports")))
+        if (iter.peek().value is RParen) {
+            throwError(withError(E.emptyImportExport("exports"))(iter.peek()))
+        }
+
+        val exps = between<Comma, DeclarationRef> { parseDeclarationRef() }
+
+        expect<RParen>(withError(E.rparensExpected("exports")))
+        return exps
+    }
+
+    private fun parseDeclarationRef(): DeclarationRef {
+        fun parseDeclareAll() {
+            expect<Dot>(withError(E.DECLARATION_REF_ALL))
+            expect<Dot>(withError(E.DECLARATION_REF_ALL))
+            expect<RParen>(withError(E.DECLARATION_REF_ALL))
+        }
+
+        val sp = iter.next()
+        return when (sp.value) {
+            is UpperIdent -> DeclarationRef.RefVar(sp.value.v)
+            is Ident -> {
+                if (iter.peek().value is LParen) {
+                    expect<LParen>(noErr())
+                    val ctors = if (iter.peek().value is Dot) {
+                        parseDeclareAll()
+                        listOf()
+                    } else {
+                        between<Comma, UpperIdent> { parseUpperIdent() }.map { it.v }
+                    }
+                    DeclarationRef.RefType(sp.value.v, ctors)
+                } else DeclarationRef.RefType(sp.value.v)
+            }
+            else -> throwError(withError(E.EXPORT_REFER)(sp))
+        }
     }
 
     private fun parseImportExports(ctx: String): List<String> {

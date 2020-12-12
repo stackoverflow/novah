@@ -18,6 +18,27 @@ data class Module(
     fun withComment(c: Comment?) = apply { comment = c }
 }
 
+/**
+ * A reference that can be imported or exported
+ */
+sealed class DeclarationRef(open val name: String) {
+    data class RefVar(override val name: String) : DeclarationRef(name) {
+        override fun toString(): String = name
+    }
+
+    /**
+     * `null` ctors mean only the type is exported, but no constructors.
+     * empty ctors mean all constructors are exported.
+     */
+    data class RefType(override val name: String, val ctors: List<String>? = null) : DeclarationRef(name) {
+        override fun toString(): String = when {
+            ctors == null -> name
+            ctors.isEmpty() -> "$name(..)"
+            else -> name + ctors.joinToString(prefix = "(", postfix = ")")
+        }
+    }
+}
+
 sealed class Import(val module: ModuleName) {
     data class Raw(val mod: ModuleName, val alias: String? = null) : Import(mod)
     data class Exposing(val mod: ModuleName, val defs: List<String>, val alias: String? = null) : Import(mod)

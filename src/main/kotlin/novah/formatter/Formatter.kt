@@ -41,8 +41,8 @@ class Formatter {
     }
 
     fun show(me: ModuleExports): String = when (me) {
-        is ModuleExports.Hiding -> " hiding" + showList(me.hides)
-        is ModuleExports.Exposing -> " exposing" + showList(me.exports)
+        is ModuleExports.Hiding -> " hiding" + showList(me.hides.map { it.toString() })
+        is ModuleExports.Exposing -> " exposing" + showList(me.exports.map { it.toString() })
         is ModuleExports.ExportAll -> ""
     }
 

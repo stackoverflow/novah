@@ -1,13 +1,14 @@
 package novah.frontend.typechecker
 
 import novah.ast.canonical.Expr
+import novah.frontend.Span
 import java.lang.RuntimeException
 import java.util.ArrayDeque
 
 class InferenceError(msg: String) : RuntimeException(msg)
 
-fun inferError(msg: String, expr: Expr? = null): Nothing {
-    val message = if (expr != null) "$msg at ${expr.span}" else msg
+fun inferError(msg: String, expr: Expr<Span>? = null): Nothing {
+    val message = if (expr != null) "$msg at ${expr.value}" else msg
     throw InferenceError(message)
 }
 

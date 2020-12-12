@@ -1,6 +1,7 @@
 package novah.frontend.typechecker
 
 import novah.ast.canonical.Expr
+import novah.frontend.Span
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.discard
@@ -10,7 +11,7 @@ import novah.frontend.typechecker.WellFormed.wfType
 
 object Subsumption {
 
-    fun solve(x: Type.TMeta, type: Type, ctxExpr: Expr) {
+    fun solve(x: Type.TMeta, type: Type, ctxExpr: Expr<Span>) {
         if (!type.isMono()) {
             inferError("Cannot solve with polytype $x := $type", ctxExpr)
         }
@@ -21,7 +22,7 @@ object Subsumption {
         context.addAll(newCtx)
     }
 
-    fun instL(x: Type.TMeta, type: Type, ctxExpr: Expr) {
+    fun instL(x: Type.TMeta, type: Type, ctxExpr: Expr<Span>) {
         store()
         try {
             solve(x, type, ctxExpr)
@@ -58,7 +59,7 @@ object Subsumption {
         }
     }
 
-    fun instR(type: Type, x: Type.TMeta, ctxExpr: Expr) {
+    fun instR(type: Type, x: Type.TMeta, ctxExpr: Expr<Span>) {
         store()
         try {
             solve(x, type, ctxExpr)
@@ -95,7 +96,7 @@ object Subsumption {
         }
     }
 
-    fun subsume(a: Type, b: Type, ctxExpr: Expr) {
+    fun subsume(a: Type, b: Type, ctxExpr: Expr<Span>) {
         if (a == b) return
         if (a is Type.TVar && b is Type.TVar && a.name == b.name) return
         if (a is Type.TMeta && b is Type.TMeta && a.name == b.name) return
@@ -145,7 +146,7 @@ object Subsumption {
         inferError("subsume failed: expected type $a but got $b", ctxExpr)
     }
 
-    private fun kindCheck(a: Type.TConstructor, b: Type.TConstructor, ctxExpr: Expr) {
+    private fun kindCheck(a: Type.TConstructor, b: Type.TConstructor, ctxExpr: Expr<Span>) {
         val atypes = a.types.size
         val btypes = b.types.size
 

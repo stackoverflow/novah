@@ -4,9 +4,11 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
+import io.kotest.matchers.types.shouldBeInstanceOf
 import novah.ast.source.Decl
 import novah.ast.source.Expr
 import novah.ast.source.Module
+import novah.ast.source.Type
 import novah.formatter.Formatter
 import novah.frontend.TestUtil._i
 import novah.frontend.TestUtil._v
@@ -114,7 +116,10 @@ class ParserSpec : StringSpec({
     "Parser correctly type hints" {
         val ast = parseResource("Hints.novah")
 
-        //println(ast.show())
+        val x = ast.decls.filterIsInstance<Decl.ValDecl>().find { it.name == "x" }?.exp!!
+
+        x.shouldBeInstanceOf<Expr.Ann>()
+        x.type shouldBe Type.TVar("String")
     }
 
     "Exported definitions have correct visibility" {

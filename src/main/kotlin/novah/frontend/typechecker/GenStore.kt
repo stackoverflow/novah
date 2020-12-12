@@ -13,8 +13,10 @@ class GenNameStore {
 
     fun reset() = map.clear()
 
-    private fun originalName(name: String): String {
-        val res = """(.*)\$\d+""".toRegex().find(name)
-        return res?.groups?.get(1)?.value ?: name
+    companion object {
+        private fun originalName(name: String): String {
+            val res = """(.*)\$\d+""".toRegex().find(name)
+            return res?.groups?.get(1)?.value ?: name
+        }
     }
 }
