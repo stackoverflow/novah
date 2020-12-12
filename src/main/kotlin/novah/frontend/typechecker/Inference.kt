@@ -35,15 +35,15 @@ object Inference {
 
     fun typesynth(exp: Expr): Type {
         return when (exp) {
-            is Expr.IntE -> tInt
-            is Expr.FloatE -> tFloat
-            is Expr.StringE -> tString
-            is Expr.CharE -> tChar
-            is Expr.Bool -> tBoolean
+            is Expr.IntE -> exp.withType(tInt)
+            is Expr.FloatE -> exp.withType(tFloat)
+            is Expr.StringE -> exp.withType(tString)
+            is Expr.CharE -> exp.withType(tChar)
+            is Expr.Bool -> exp.withType(tBoolean)
             is Expr.Var -> {
                 val x = context.lookup<Elem.CVar>(exp.name)
                     ?: inferError("undefined variable ${exp.name}", exp)
-                x.type
+                exp.withType(x.type)
             }
             is Expr.Lambda -> {
                 val x = store.fresh(exp.binder)
@@ -55,24 +55,26 @@ object Inference {
                 context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
                 typecheck(exp.openLambda(Expr.Var(x, Span.empty())), tb)
                 val ty = _apply(Type.TFun(ta, tb))
-                generalizeFrom(m, ty)
+                exp.withType(generalizeFrom(m, ty))
             }
             is Expr.App -> {
                 val left = typesynth(exp.fn)
-                typeappsynth(_apply(left), exp.arg)
+                exp.withType(typeappsynth(_apply(left), exp.arg))
             }
             is Expr.Ann -> {
-                val ty = exp.type
+                val ty = exp.annType
                 wfType(ty)
                 typecheck(exp.exp, ty)
-                ty
+                // set not only the type of the annotation but the type of the inner expression
+                exp.exp.type = ty
+                exp.withType(ty)
             }
             is Expr.If -> {
                 typecheck(exp.cond, tBoolean)
                 val tt = typesynth(exp.thenCase)
                 val te = typesynth(exp.elseCase)
                 subsume(_apply(tt), _apply(te), exp)
-                tt
+                exp.withType(tt)
             }
             is Expr.Let -> {
                 // infer the binding
@@ -93,14 +95,14 @@ object Inference {
                 val subExp = exp.body.substVar(ld.name, Expr.Var(name, Span.empty()))
 
                 // infer the body
-                generalizeFrom(m, _apply(typesynth(subExp)))
+                exp.withType(generalizeFrom(m, _apply(typesynth(subExp))))
             }
             is Expr.Do -> {
                 var ty: Type? = null
                 for (e in exp.exps) {
                     ty = typesynth(e)
                 }
-                ty ?: inferError("got empty `do` statement", exp)
+                exp.withType(ty ?: inferError("got empty `do` statement", exp))
             }
             else -> inferError("cannot infer type for $exp", exp)
         }
@@ -108,11 +110,11 @@ object Inference {
 
     fun typecheck(expr: Expr, type: Type) {
         when {
-            expr is Expr.IntE && type == tInt -> return
-            expr is Expr.FloatE && type == tFloat -> return
-            expr is Expr.StringE && type == tString -> return
-            expr is Expr.CharE && type == tChar -> return
-            expr is Expr.Bool && type == tBoolean -> return
+            expr is Expr.IntE && type == tInt -> expr.type = tInt
+            expr is Expr.FloatE && type == tFloat -> expr.type = tFloat
+            expr is Expr.StringE && type == tString -> expr.type = tString
+            expr is Expr.CharE && type == tChar -> expr.type = tChar
+            expr is Expr.Bool && type == tBoolean -> expr.type = tBoolean
             type is Type.TForall -> {
                 val x = store.fresh(type.name)
                 val m = store.fresh("m")

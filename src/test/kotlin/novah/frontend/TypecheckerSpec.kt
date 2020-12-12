@@ -4,13 +4,12 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.inferString
 import novah.frontend.TestUtil.module
+import novah.frontend.TestUtil.setupContext
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
-import novah.frontend.typechecker.InferContext
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.tBoolean
 import novah.frontend.typechecker.InferContext.tChar
@@ -23,18 +22,7 @@ import novah.frontend.typechecker.Type
 class TypecheckerSpec : StringSpec({
 
     beforeTest {
-        context.reset()
-        InferContext.initDefaultContext()
-        context.add(Elem.CVar("*", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("-", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("<=", tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar(">=", tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar("<", tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar(">", tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar("==", tfun(tBoolean, tfun(tBoolean, tBoolean))))
-        context.add(Elem.CVar("println", tfun(tString, tvar("Unit"))))
-        context.add(Elem.CVar("id", forall("a", tfun(tvar("a"), tvar("a")))))
+        setupContext()
     }
 
     fun exprX(expr: String) = "x = $expr".module()
