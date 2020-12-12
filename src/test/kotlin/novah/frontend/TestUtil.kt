@@ -3,6 +3,12 @@ package novah.frontend
 import novah.ast.Desugar
 import novah.ast.source.Expr
 import novah.ast.source.Module
+import novah.frontend.typechecker.Elem
+import novah.frontend.typechecker.InferContext.context
+import novah.frontend.typechecker.InferContext.initDefaultContext
+import novah.frontend.typechecker.InferContext.tBoolean
+import novah.frontend.typechecker.InferContext.tInt
+import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Type
 
@@ -11,7 +17,7 @@ object TestUtil {
     private fun lexString(input: String): MutableList<Spanned<Token>> {
         val lex = Lexer(input)
         val tks = mutableListOf<Spanned<Token>>()
-        while(lex.hasNext()) {
+        while (lex.hasNext()) {
             tks += lex.next()
         }
         tks += lex.next() // EOF
@@ -29,7 +35,11 @@ object TestUtil {
 
     fun parseResource(res: String): Module {
         val resStr = getResourceAsString(res)
-        val lexer = Lexer(resStr)
+        return parseString(resStr)
+    }
+
+    fun parseString(code: String): Module {
+        val lexer = Lexer(code)
         val parser = Parser(lexer)
         return parser.parseFullModule()
     }
@@ -40,6 +50,23 @@ object TestUtil {
         val desugar = Desugar(parser.parseFullModule())
         val canonical = desugar.desugar()
         return infer(canonical)
+    }
+
+    fun setupContext() {
+        context.reset()
+        initDefaultContext()
+        context.add(Elem.CVar("*", tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("-", tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("<=", tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar(">=", tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar("<", tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar(">", tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar("==", forall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))))
+        context.add(Elem.CVar("&&", tfun(tBoolean, tfun(tBoolean, tBoolean))))
+        context.add(Elem.CVar("||", tfun(tBoolean, tfun(tBoolean, tBoolean))))
+        context.add(Elem.CVar("println", tfun(tString, tvar("Unit"))))
+        context.add(Elem.CVar("id", forall("a", tfun(tvar("a"), tvar("a")))))
     }
 
     fun tvar(n: String) = Type.TVar(n)

@@ -106,7 +106,7 @@ object Subsumption {
             return
         }
         // Not sure about this code but seems to work
-        if (a is Type.TConstructor && b is Type.TConstructor) {
+        if (a is Type.TConstructor && b is Type.TConstructor && a.name == b.name) {
             kindCheck(a, b, ctxExpr)
             a.types.forEachIndexed { i, ty ->
                 subsume(_apply(ty), _apply(b.types[i]), ctxExpr)

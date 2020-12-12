@@ -46,8 +46,15 @@ sealed class Expr(open val span: Span) {
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
     data class Match(val exp: Expr, val cases: List<Case>, override val span: Span) : Expr(span)
-    data class Ann(val exp: Expr, val type: Type, override val span: Span) : Expr(span)
+    data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
+
+    var type: Type? = null
+
+    fun withType(t: Type): Type {
+        type = t
+        return t
+    }
 }
 
 data class LetDef(val name: String, val expr: Expr, val type: Type? = null)
@@ -105,7 +112,7 @@ fun  Expr.substVar(v: String, s: Expr): Expr =
         }
         is Expr.Ann -> {
             val b = exp.substVar(v, s)
-            if (exp == b) this else Expr.Ann(b, type, span)
+            if (exp == b) this else Expr.Ann(b, annType, span)
         }
         is Expr.If -> {
             val c = cond.substVar(v, s)
