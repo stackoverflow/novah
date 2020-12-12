@@ -1,13 +1,19 @@
 package novah.frontend
 
+import novah.ast.canonical.Visibility
 import novah.ast.source.Decl
 import novah.ast.source.DeclarationRef
 
 data class ExportResult(
     val exports: List<String>,
+    val ctorExports: List<String>,
     val varErrors: List<String> = listOf(),
     val ctorErrors: List<String> = listOf()
-)
+) {
+    fun visibility(value: String) = if (value in exports) Visibility.PUBLIC else Visibility.PRIVATE
+
+    fun ctorVisibility(ctor: String) = if (ctor in ctorExports) Visibility.PUBLIC else Visibility.PRIVATE
+}
 
 sealed class ModuleExports {
     object ExportAll : ModuleExports()
@@ -36,24 +42,26 @@ sealed class ModuleExports {
             val ctors = ctorsMap.values.flatten()
 
             return when (exps) {
-                is ExportAll -> ExportResult(varDecls.toList())
+                is ExportAll -> ExportResult(varDecls.toList(), ctors)
                 is Hiding -> {
                     val hides = exps.hides.map { it.name }
                     val hiddenCtors = getExportedCtors(exps.hides, ctorsMap)
 
-                    val exports = varDecls.filter { it !in hides } + ctors.filter { it !in hiddenCtors }
+                    val exports = varDecls.filter { it !in hides }
+                    val ctorExports = ctors.filter { it !in hiddenCtors }
                     val errors = hides.filter { it !in varDecls }
                     val ctorErrors = hiddenCtors.filter { it !in ctors }
-                    ExportResult(exports, errors, ctorErrors)
+                    ExportResult(exports, ctorExports, errors, ctorErrors)
                 }
                 is Exposing -> {
                     val exposes = exps.exports.map { it.name }
                     val exposedCtors = getExportedCtors(exps.exports, ctorsMap)
 
-                    val exports = varDecls.filter { it in exposes } + ctors.filter { it in exposedCtors }
+                    val exports = varDecls.filter { it in exposes }
+                    val ctorExports = ctors.filter { it in exposedCtors }
                     val errors = exposes.filter { it !in varDecls }
                     val ctorErrors = exposedCtors.filter { it !in ctors }
-                    ExportResult(exports, errors, ctorErrors)
+                    ExportResult(exports, ctorExports, errors, ctorErrors)
                 }
             }
         }

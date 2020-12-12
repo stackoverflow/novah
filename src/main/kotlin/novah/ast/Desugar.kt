@@ -1,20 +1,20 @@
 package novah.ast
 
 import novah.ast.canonical.*
+import novah.frontend.ExportResult
 import novah.frontend.ModuleExports
 import novah.frontend.ParserError
-import novah.frontend.Span
-import novah.ast.source.Import as SImport
+import novah.frontend.typechecker.Type
+import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
 import novah.ast.source.Decl as SDecl
-import novah.ast.source.LiteralPattern as SLiteralPattern
-import novah.ast.source.Pattern as SPattern
-import novah.ast.source.Case as SCase
-import novah.ast.source.LetDef as SLetDef
-import novah.ast.source.Type as SType
-import novah.ast.source.Module as SModule
 import novah.ast.source.Expr as SExpr
-import novah.frontend.typechecker.Type
+import novah.ast.source.Import as SImport
+import novah.ast.source.LetDef as SLetDef
+import novah.ast.source.LiteralPattern as SLiteralPattern
+import novah.ast.source.Module as SModule
+import novah.ast.source.Pattern as SPattern
+import novah.ast.source.Type as SType
 import novah.frontend.Errors as E
 
 /**
@@ -24,12 +24,13 @@ class Desugar(private val smod: SModule) {
 
     private val topLevelTypes = mutableMapOf<String, SType>()
     private val dataCtors = mutableListOf<String>()
+    private val exports = validateExports()
 
     fun desugar(): Module {
         smod.decls.filterIsInstance<SDecl.TypeDecl>().forEach { topLevelTypes[it.name] = it.type }
         smod.decls.filterIsInstance<novah.ast.source.Decl.DataDecl>().forEach { dataCtors += it.name }
 
-        return Module(smod.name, smod.imports.map { it.desugar() }, validateExports(), smod.decls.map { it.desugar() })
+        return Module(smod.name, smod.imports.map { it.desugar() }, smod.decls.map { it.desugar() })
     }
 
     private fun SImport.desugar(): Import = when (this) {
@@ -39,18 +40,19 @@ class Desugar(private val smod: SModule) {
 
     private fun SDecl.desugar(): Decl = when (this) {
         is SDecl.TypeDecl -> Decl.TypeDecl(name, type.desugar(), span)
-        is SDecl.DataDecl -> Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span)
+        is SDecl.DataDecl -> Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, exports.visibility(name))
         is SDecl.ValDecl -> {
             var expr = nestLambdas(binders, exp.desugar())
             // if the declaration has a type annotation, annotate it
             expr = topLevelTypes[name]?.let { type ->
                 Expr.Ann(expr, type.desugar(), span)
             } ?: expr
-            Decl.ValDecl(name, expr, span)
+            Decl.ValDecl(name, expr, span, exports.visibility(name))
         }
     }
 
-    private fun SDataConstructor.desugar(): DataConstructor = DataConstructor(name, args.map { it.desugar() })
+    private fun SDataConstructor.desugar(): DataConstructor =
+        DataConstructor(name, args.map { it.desugar() }, exports.ctorVisibility(name))
 
     private fun SExpr.desugar(): Expr = when (this) {
         is SExpr.IntE -> Expr.IntE(i, span)
@@ -129,7 +131,7 @@ class Desugar(private val smod: SModule) {
     /**
      * Make sure all exports are valid and return them
      */
-    private fun validateExports(): List<String> {
+    private fun validateExports(): ExportResult {
         val res = ModuleExports.consolidate(smod.exports, smod.decls)
         // TODO: better error reporting with context
         if (res.varErrors.isNotEmpty()) {
@@ -138,7 +140,7 @@ class Desugar(private val smod: SModule) {
         if (res.ctorErrors.isNotEmpty()) {
             throw ParserError(E.exportCtorError(res.ctorErrors[0]))
         }
-        return res.exports
+        return res
     }
 
     private fun validateImportAlias() {

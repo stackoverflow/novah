@@ -62,24 +62,20 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
     }
 
     private fun parseDeclarationRef(): DeclarationRef {
-        fun parseDeclareAll() {
-            expect<Dot>(withError(E.DECLARATION_REF_ALL))
-            expect<Dot>(withError(E.DECLARATION_REF_ALL))
-            expect<RParen>(withError(E.DECLARATION_REF_ALL))
-        }
-
         val sp = iter.next()
         return when (sp.value) {
-            is UpperIdent -> DeclarationRef.RefVar(sp.value.v)
-            is Ident -> {
+            is Ident -> DeclarationRef.RefVar(sp.value.v)
+            is UpperIdent -> {
                 if (iter.peek().value is LParen) {
                     expect<LParen>(noErr())
-                    val ctors = if (iter.peek().value is Dot) {
-                        parseDeclareAll()
+                    val ctors = if (iter.peek().value is Op) {
+                        val op = expect<Op>(withError(E.DECLARATION_REF_ALL))
+                        if (op.value.op != "..") throwError(withError(E.DECLARATION_REF_ALL)(op))
                         listOf()
                     } else {
                         between<Comma, UpperIdent> { parseUpperIdent() }.map { it.v }
                     }
+                    expect<RParen>(withError(E.DECLARATION_REF_ALL))
                     DeclarationRef.RefType(sp.value.v, ctors)
                 } else DeclarationRef.RefType(sp.value.v)
             }
