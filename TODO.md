@@ -2,7 +2,6 @@
 
 - [ ] Add spans to types
 - [ ] Support all Java primitives
-- [ ] Make the type checker return typed expressions
 - [ ] Revamp the error reporting, so it can return json as well as print to the console
 - [ ] Add warnings to the compiler
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
