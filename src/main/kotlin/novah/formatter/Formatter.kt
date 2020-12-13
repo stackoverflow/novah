@@ -127,12 +127,12 @@ class Formatter {
                 "\\" + e.binders.joinToString(" ") + " -> $shown"
             }
             is Expr.Var -> e.toString()
+            is Expr.Operator -> e.toString()
             is Expr.IntE -> e.text
             is Expr.FloatE -> e.text
             is Expr.StringE -> "\"${e.s}\""
             is Expr.CharE -> "'${e.c}'"
             is Expr.Bool -> "${e.b}"
-            is Expr.Operator -> e.name
             is Expr.Parens -> "(${show(e.exp)})"
         }
     }

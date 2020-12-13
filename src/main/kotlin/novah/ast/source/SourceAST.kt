@@ -103,7 +103,7 @@ sealed class Expr {
     }
 
     data class Operator(val name: String, val alias: String? = null) : Expr() {
-        override fun toString(): String = name
+        override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
     data class Lambda(val binders: List<String>, val body: Expr) : Expr() {
