@@ -51,7 +51,7 @@ class Formatter {
         var exposes = ""
         if (i is Import.Exposing) {
             exposes = i.defs.joinToString(", ", prefix = " (", postfix = ")")
-            if (exposes.length > maxColumns) exposes = showList(i.defs)
+            if (exposes.length > maxColumns) exposes = showList(i.defs.map { it.toString() })
         }
         val alias = if (i.alias() != null) " as ${i.alias()}" else ""
         return "${cmt}import ${i.fullName()}$exposes$alias"
@@ -127,12 +127,12 @@ class Formatter {
                 "\\" + e.binders.joinToString(" ") + " -> $shown"
             }
             is Expr.Var -> e.toString()
+            is Expr.Operator -> e.toString()
             is Expr.IntE -> e.text
             is Expr.FloatE -> e.text
             is Expr.StringE -> "\"${e.s}\""
             is Expr.CharE -> "'${e.c}'"
             is Expr.Bool -> "${e.b}"
-            is Expr.Operator -> e.name
             is Expr.Parens -> "(${show(e.exp)})"
         }
     }

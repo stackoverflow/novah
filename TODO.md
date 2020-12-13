@@ -2,11 +2,10 @@
 
 - [ ] Add spans to types
 - [ ] Support all Java primitives
-- [ ] Create a second set of typed expression AST to simplify codegen
-- [ ] Make the type checker return typed expressions
 - [ ] Revamp the error reporting, so it can return json as well as print to the console
 - [ ] Add warnings to the compiler
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
+- [X] Create a second set of typed expression AST to simplify codegen
 - [X] Validate exports are actually valid
 - [X] Type check type constructors (ex: List Int)
 - [X] Store numbers as string in the token for formatting

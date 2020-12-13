@@ -8,27 +8,30 @@ import novah.frontend.typechecker.Type
  * the type var T will be Span after desugaring and Type after type checking
  */
 
-typealias ModuleName = List<String>
-
 data class Module(
-    val name: ModuleName,
-    val imports: List<Import>,
-    val exports: List<String>,
+    val name: String,
+    val sourceName: String,
     val decls: List<Decl>
 )
 
-sealed class Import(val module: ModuleName) {
-    data class Raw(val mod: ModuleName, val alias: String? = null) : Import(mod)
-    data class Exposing(val mod: ModuleName, val defs: List<String>, val alias: String? = null) : Import(mod)
+enum class Visibility {
+    PUBLIC, PRIVATE;
 }
 
 sealed class Decl {
-    data class DataDecl(val name: String, val tyVars: List<String>, val dataCtors: List<DataConstructor>, val span: Span) : Decl()
+    data class DataDecl(
+        val name: String,
+        val tyVars: List<String>,
+        val dataCtors: List<DataConstructor>,
+        val span: Span,
+        val visibility: Visibility
+    ) : Decl()
+
     data class TypeDecl(val name: String, val type: Type, val span: Span) : Decl()
-    data class ValDecl(val name: String, val exp: Expr, val span: Span) : Decl()
+    data class ValDecl(val name: String, val exp: Expr, val span: Span, val visibility: Visibility) : Decl()
 }
 
-data class DataConstructor(val name: String, val args: List<Type>) {
+data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility) {
     override fun toString(): String {
         return name + args.joinToString(" ", prefix = " ")
     }
@@ -80,17 +83,19 @@ sealed class LiteralPattern {
 // AST functions
 ////////////////////////////////
 
-fun  Case.substVar(v: String, s: Expr): Case {
+fun Expr.Var.canonicalName() = if (moduleName == null) name else "$moduleName.$name"
+
+fun Case.substVar(v: String, s: Expr): Case {
     val e = exp.substVar(v, s)
     return if (e == exp) this else Case(pattern, e)
 }
 
-fun  LetDef.substVar(v: String, s: Expr): LetDef {
+fun LetDef.substVar(v: String, s: Expr): LetDef {
     val sub = expr.substVar(v, s)
     return if (expr == sub) this else LetDef(name, sub, type)
 }
 
-fun  Expr.substVar(v: String, s: Expr): Expr =
+fun Expr.substVar(v: String, s: Expr): Expr =
     when (this) {
         is Expr.IntE -> this
         is Expr.FloatE -> this
@@ -136,4 +141,4 @@ fun  Expr.substVar(v: String, s: Expr): Expr =
         }
     }
 
-fun  Expr.Lambda.openLambda(s: Expr): Expr = body.substVar(binder, s)
+fun Expr.Lambda.openLambda(s: Expr): Expr = body.substVar(binder, s)

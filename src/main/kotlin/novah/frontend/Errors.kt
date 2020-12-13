@@ -98,6 +98,8 @@ object Errors {
         else "The variables ${typeVars.joinToString()} are undefined in constructor $name."
     }
 
+    fun importError(v: String) = "Duplicated import $v."
+
     fun exportError(v: String) = if (v[0].isLowerCase()) {
         "Cannot export unknown value $v"
     } else {
