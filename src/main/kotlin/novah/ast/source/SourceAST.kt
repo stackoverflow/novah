@@ -8,6 +8,7 @@ typealias ModuleName = List<String>
 
 data class Module(
     val name: ModuleName,
+    val sourceName: String,
     val imports: List<Import>,
     val exports: ModuleExports,
     val decls: List<Decl>

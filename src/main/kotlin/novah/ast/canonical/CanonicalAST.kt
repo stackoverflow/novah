@@ -8,10 +8,9 @@ import novah.frontend.typechecker.Type
  * the type var T will be Span after desugaring and Type after type checking
  */
 
-typealias ModuleName = List<String>
-
 data class Module(
-    val name: ModuleName,
+    val name: String,
+    val sourceName: String,
     val decls: List<Decl>
 )
 

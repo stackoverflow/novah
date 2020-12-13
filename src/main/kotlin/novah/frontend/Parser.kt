@@ -4,7 +4,7 @@ import novah.ast.source.*
 import novah.frontend.Token.*
 import novah.frontend.Errors as E
 
-class Parser(tokens: Iterator<Spanned<Token>>) {
+class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "<Unknown>") {
     private val iter = PeekableIterator(tokens, ::throwMismatchedIndentation)
 
     private var nested = false
@@ -24,6 +24,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         return Module(
             mname,
+            sourceName,
             imports,
             exports,
             decls

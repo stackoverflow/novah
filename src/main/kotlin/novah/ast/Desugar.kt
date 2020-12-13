@@ -1,6 +1,7 @@
 package novah.ast
 
 import novah.ast.canonical.*
+import novah.ast.source.fullName
 import novah.frontend.*
 import novah.frontend.typechecker.Type
 import novah.ast.source.Case as SCase
@@ -25,7 +26,7 @@ class Desugar(private val smod: SModule) {
     private val imports = validateImports()
 
     fun desugar(): Module {
-        return Module(smod.name, smod.decls.map { it.desugar() })
+        return Module(smod.fullName(), smod.sourceName, smod.decls.map { it.desugar() })
     }
 
     private fun SDecl.desugar(): Decl = when (this) {
