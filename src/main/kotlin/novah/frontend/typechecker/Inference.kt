@@ -41,7 +41,7 @@ object Inference {
             is Expr.CharE -> exp.withType(tChar)
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.Var -> {
-                val x = context.lookup<Elem.CVar>(exp.name)
+                val x = context.lookup<Elem.CVar>(exp.canonicalName())
                     ?: inferError("undefined variable ${exp.name}", exp)
                 exp.withType(x.type)
             }

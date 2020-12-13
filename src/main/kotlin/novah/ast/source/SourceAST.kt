@@ -1,7 +1,6 @@
 package novah.ast.source
 
 import novah.frontend.Comment
-import novah.frontend.ModuleExports
 import novah.frontend.Span
 import novah.frontend.Spanned
 
@@ -28,7 +27,7 @@ sealed class DeclarationRef(open val name: String) {
 
     /**
      * `null` ctors mean only the type is exported, but no constructors.
-     * empty ctors mean all constructors are exported.
+     * Empty ctors mean all constructors are exported.
      */
     data class RefType(override val name: String, val ctors: List<String>? = null) : DeclarationRef(name) {
         override fun toString(): String = when {
@@ -39,9 +38,16 @@ sealed class DeclarationRef(open val name: String) {
     }
 }
 
-sealed class Import(val module: ModuleName) {
-    data class Raw(val mod: ModuleName, val alias: String? = null) : Import(mod)
-    data class Exposing(val mod: ModuleName, val defs: List<String>, val alias: String? = null) : Import(mod)
+sealed class ModuleExports {
+    object ExportAll : ModuleExports()
+    data class Hiding(val hides: List<DeclarationRef>) : ModuleExports()
+    data class Exposing(val exports: List<DeclarationRef>) : ModuleExports()
+}
+
+sealed class Import(open val module: ModuleName) {
+    data class Raw(override val module: ModuleName, val alias: String? = null) : Import(module)
+    data class Exposing(override val module: ModuleName, val defs: List<DeclarationRef>, val alias: String? = null) :
+        Import(module)
 
     fun alias(): String? = when (this) {
         is Raw -> alias
@@ -74,30 +80,39 @@ sealed class Expr {
     data class IntE(val i: Long, val text: String) : Expr() {
         override fun toString(): String = text
     }
+
     data class FloatE(val f: Double, val text: String) : Expr() {
         override fun toString(): String = text
     }
+
     data class StringE(val s: String) : Expr() {
         override fun toString(): String = "\"$s\""
     }
+
     data class CharE(val c: Char) : Expr() {
         override fun toString(): String = "'$c'"
     }
+
     data class Bool(val b: Boolean) : Expr() {
         override fun toString(): String = "$b"
     }
+
     data class Var(val name: String, val alias: String? = null) : Expr() {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
-    data class Operator(val name: String) : Expr() {
+
+    data class Operator(val name: String, val alias: String? = null) : Expr() {
         override fun toString(): String = name
     }
+
     data class Lambda(val binders: List<String>, val body: Expr) : Expr() {
         override fun toString(): String = "\\" + binders.joinToString(" ") + " -> $body"
     }
+
     data class App(val fn: Expr, val arg: Expr) : Expr() {
         override fun toString(): String = "($fn $arg)"
     }
+
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr) : Expr()
     data class Let(val letDefs: List<LetDef>, val body: Expr) : Expr()
     data class Match(val exp: Expr, val cases: List<Case>) : Expr()

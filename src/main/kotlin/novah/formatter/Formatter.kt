@@ -51,7 +51,7 @@ class Formatter {
         var exposes = ""
         if (i is Import.Exposing) {
             exposes = i.defs.joinToString(", ", prefix = " (", postfix = ")")
-            if (exposes.length > maxColumns) exposes = showList(i.defs)
+            if (exposes.length > maxColumns) exposes = showList(i.defs.map { it.toString() })
         }
         val alias = if (i.alias() != null) " as ${i.alias()}" else ""
         return "${cmt}import ${i.fullName()}$exposes$alias"

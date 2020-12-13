@@ -1,15 +1,12 @@
 package novah.ast
 
 import novah.ast.canonical.*
-import novah.frontend.ExportResult
-import novah.frontend.ModuleExports
-import novah.frontend.ParserError
+import novah.frontend.*
 import novah.frontend.typechecker.Type
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
 import novah.ast.source.Decl as SDecl
 import novah.ast.source.Expr as SExpr
-import novah.ast.source.Import as SImport
 import novah.ast.source.LetDef as SLetDef
 import novah.ast.source.LiteralPattern as SLiteralPattern
 import novah.ast.source.Module as SModule
@@ -22,20 +19,13 @@ import novah.frontend.Errors as E
  */
 class Desugar(private val smod: SModule) {
 
-    private val topLevelTypes = mutableMapOf<String, SType>()
-    private val dataCtors = mutableListOf<String>()
+    private val topLevelTypes = smod.decls.filterIsInstance<SDecl.TypeDecl>().map { it.name to it.type }.toMap()
+    private val dataCtors = smod.decls.filterIsInstance<SDecl.DataDecl>().map { it.name }
     private val exports = validateExports()
+    private val imports = validateImports()
 
     fun desugar(): Module {
-        smod.decls.filterIsInstance<SDecl.TypeDecl>().forEach { topLevelTypes[it.name] = it.type }
-        smod.decls.filterIsInstance<novah.ast.source.Decl.DataDecl>().forEach { dataCtors += it.name }
-
-        return Module(smod.name, smod.imports.map { it.desugar() }, smod.decls.map { it.desugar() })
-    }
-
-    private fun SImport.desugar(): Import = when (this) {
-        is SImport.Raw -> Import.Raw(mod, alias)
-        is SImport.Exposing -> Import.Exposing(mod, defs, alias)
+        return Module(smod.name, smod.decls.map { it.desugar() })
     }
 
     private fun SDecl.desugar(): Decl = when (this) {
@@ -60,8 +50,8 @@ class Desugar(private val smod: SModule) {
         is SExpr.StringE -> Expr.StringE(s, span)
         is SExpr.CharE -> Expr.CharE(c, span)
         is SExpr.Bool -> Expr.Bool(b, span)
-        is SExpr.Var -> Expr.Var(name, span) // TODO: get the module name
-        is SExpr.Operator -> Expr.Var(name, span) // TODO: get the module name
+        is SExpr.Var -> Expr.Var(name, span, imports.resolve(this))
+        is SExpr.Operator -> Expr.Var(name, span, imports.resolve(this))
         is SExpr.Lambda -> nestLambdas(binders, body.desugar())
         is SExpr.App -> Expr.App(fn.desugar(), arg.desugar(), span)
         is SExpr.Parens -> exp.desugar()
@@ -132,7 +122,7 @@ class Desugar(private val smod: SModule) {
      * Make sure all exports are valid and return them
      */
     private fun validateExports(): ExportResult {
-        val res = ModuleExports.consolidate(smod.exports, smod.decls)
+        val res = consolidateExports(smod.exports, smod.decls)
         // TODO: better error reporting with context
         if (res.varErrors.isNotEmpty()) {
             throw ParserError(E.exportError(res.varErrors[0]))
@@ -143,7 +133,15 @@ class Desugar(private val smod: SModule) {
         return res
     }
 
-    private fun validateImportAlias() {
-        TODO()
+    /**
+     * Make sure all imports are valid and return them
+     */
+    private fun validateImports(): ImportResult {
+        val res = consolidateImports(smod.imports)
+        // TODO: better error reporting with context
+        if (res.errors.isNotEmpty()) {
+            throw ParserError(E.importError(res.errors[0]))
+        }
+        return res
     }
 }

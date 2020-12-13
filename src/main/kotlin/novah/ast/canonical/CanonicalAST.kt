@@ -12,14 +12,8 @@ typealias ModuleName = List<String>
 
 data class Module(
     val name: ModuleName,
-    val imports: List<Import>,
     val decls: List<Decl>
 )
-
-sealed class Import(val module: ModuleName) {
-    data class Raw(val mod: ModuleName, val alias: String? = null) : Import(mod)
-    data class Exposing(val mod: ModuleName, val defs: List<String>, val alias: String? = null) : Import(mod)
-}
 
 enum class Visibility {
     PUBLIC, PRIVATE;
@@ -89,6 +83,8 @@ sealed class LiteralPattern {
 ////////////////////////////////
 // AST functions
 ////////////////////////////////
+
+fun Expr.Var.canonicalName() = if (moduleName == null) name else "$moduleName.$name"
 
 fun Case.substVar(v: String, s: Expr): Case {
     val e = exp.substVar(v, s)

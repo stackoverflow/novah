@@ -38,26 +38,26 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         val exports = when (iter.peek().value) {
             is Hiding -> {
                 iter.next()
-                ModuleExports.Hiding(parseDeclarationRefs())
+                ModuleExports.Hiding(parseDeclarationRefs("exports"))
             }
             is Exposing -> {
                 iter.next()
-                ModuleExports.Exposing(parseDeclarationRefs())
+                ModuleExports.Exposing(parseDeclarationRefs("exports"))
             }
             else -> ModuleExports.ExportAll
         }
         return Triple(name, exports, m.comment)
     }
 
-    private fun parseDeclarationRefs(): List<DeclarationRef> {
-        expect<LParen>(withError(E.lparensExpected("exports")))
+    private fun parseDeclarationRefs(ctx: String): List<DeclarationRef> {
+        expect<LParen>(withError(E.lparensExpected(ctx)))
         if (iter.peek().value is RParen) {
-            throwError(withError(E.emptyImportExport("exports"))(iter.peek()))
+            throwError(withError(E.emptyImportExport(ctx))(iter.peek()))
         }
 
         val exps = between<Comma, DeclarationRef> { parseDeclarationRef() }
 
-        expect<RParen>(withError(E.rparensExpected("exports")))
+        expect<RParen>(withError(E.rparensExpected(ctx)))
         return exps
     }
 
@@ -83,18 +83,6 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         }
     }
 
-    private fun parseImportExports(ctx: String): List<String> {
-        expect<LParen>(withError(E.lparensExpected(ctx)))
-        if (iter.peek().value is RParen) {
-            throwError(withError(E.emptyImportExport(ctx))(iter.peek()))
-        }
-
-        val exps = between<Comma, String> { parseUpperOrLoweIdent(withError(E.EXPORT_REFER)) }
-
-        expect<RParen>(withError(E.rparensExpected(ctx)))
-        return exps
-    }
-
     private fun parseModuleName(): ModuleName {
         return between<Dot, String> { expect<Ident>(withError(E.MODULE_NAME)).value.v }
     }
@@ -105,7 +93,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
 
         val import = when (iter.peek().value) {
             is LParen -> {
-                val imp = parseImportExports("import")
+                val imp = parseDeclarationRefs("import")
                 if (iter.peek().value is As) {
                     iter.next()
                     val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
@@ -223,7 +211,7 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         is UpperIdent -> {
             val uident = expect<UpperIdent>(noErr())
             if (iter.peek().value is Dot) {
-                parseImportedVar(uident)
+                parseAliasedVar(uident)
             } else {
                 Expr.Var(uident.value.v)
             }
@@ -271,12 +259,19 @@ class Parser(tokens: Iterator<Spanned<Token>>) {
         return Expr.Operator(op.value.op).withSpanAndComment(op)
     }
 
-    private fun parseImportedVar(alias: Spanned<UpperIdent>): Expr {
+    private fun parseAliasedVar(alias: Spanned<UpperIdent>): Expr {
         expect<Dot>(noErr())
-        val ident = expect<Ident>(withError(E.IMPORTED_DOT))
-        return Expr.Var(ident.value.v, alias.value.v)
-            .withSpan(alias.span, ident.span)
-            .withComment(alias.comment)
+        return if (iter.peek().value is Op) {
+            val op = expect<Op>(noErr())
+            Expr.Operator(op.value.op, alias.value.v)
+                .withSpan(alias.span, op.span)
+                .withComment(alias.comment)
+        } else {
+            val ident = expect<Ident>(withError(E.IMPORTED_DOT))
+            Expr.Var(ident.value.v, alias.value.v)
+                .withSpan(alias.span, ident.span)
+                .withComment(alias.comment)
+        }
     }
 
     private fun parseLambda(): Expr {

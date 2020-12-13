@@ -10,15 +10,15 @@ module novah.example hiding
   , sum2
 
   //Types
-  , Maybe
-  , List
+  , Maybe(Just, Nope)
+  , List(..)
   )
 
 // imported prelude
 import prelude
 
 import data.perhaps
-  ( Perhaps
+  ( Perhaps(..)
   , fun1, stuff
   )
 /**

@@ -14,7 +14,7 @@ def kotestVersion = '4.3.1'
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    //implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.2"
+    implementation "org.ow2.asm:asm:9.0"
 
     testImplementation "io.kotest:kotest-runner-junit5-jvm:$kotestVersion"
     testImplementation "io.kotest:kotest-assertions-core-jvm:$kotestVersion"
