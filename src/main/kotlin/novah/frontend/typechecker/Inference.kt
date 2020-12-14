@@ -190,9 +190,14 @@ object Inference {
     fun infer(mod: Module): Map<String, Type> {
         val m = mutableMapOf<String, Type>()
 
+        val ctorTypes = mutableListOf<Type>()
         mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
-            dataDeclToType(ddecl).forEach(context::add)
+            dataDeclToType(ddecl).forEach { el ->
+                context.add(el)
+                if (el is Elem.CVar) ctorTypes += el.type
+            }
         }
+        ctorTypes.forEach { wfType(it) }
 
         mod.decls.filterIsInstance<Decl.TypeDecl>().forEach { tdecl ->
             wfType(tdecl.type)
@@ -224,7 +229,7 @@ object Inference {
         }
 
         val elems = mutableListOf<Elem>()
-        elems += Elem.CTVar(dd.name)
+        elems += Elem.CTVar(dd.name, dd.tyVars.size)
 
         val innerTypes = dd.tyVars.map { Type.TVar(it) }
         val dataType = Type.TConstructor(dd.name, innerTypes)
