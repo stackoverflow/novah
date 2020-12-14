@@ -250,6 +250,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
 
     private val numPat = Regex("""\d+(\.\d+)?[e|E]?""")
 
+    // TODO: EOF exception if number is last thing in the file
     private fun number(init: Char, negative: Boolean = false): Token {
         val n = if (negative) -1 else 1
         if (init == '0') {

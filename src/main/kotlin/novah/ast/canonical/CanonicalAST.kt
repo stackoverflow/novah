@@ -1,6 +1,8 @@
 package novah.ast.canonical
 
 import novah.frontend.Span
+import novah.frontend.typechecker.Context
+import novah.frontend.typechecker.Elem
 import novah.frontend.typechecker.Type
 
 /**
@@ -53,11 +55,15 @@ sealed class Expr(open val span: Span) {
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
 
     var type: Type? = null
+    private var aliases = mutableListOf<Expr>()
 
     fun withType(t: Type): Type {
         type = t
+        if (aliases.isNotEmpty()) aliases.forEach { it.type = t }
         return t
     }
+
+    fun alias(e: Expr) = apply { aliases.add(e) }
 }
 
 data class LetDef(val name: String, val expr: Expr, val type: Type? = null)
@@ -85,16 +91,19 @@ sealed class LiteralPattern {
 
 fun Expr.Var.canonicalName() = if (moduleName == null) name else "$moduleName.$name"
 
+// TODO: check shadowing of variables (probaly buggy right now)
 fun Case.substVar(v: String, s: Expr): Case {
     val e = exp.substVar(v, s)
     return if (e == exp) this else Case(pattern, e)
 }
 
+// TODO: check shadowing of variables (probaly buggy right now)
 fun LetDef.substVar(v: String, s: Expr): LetDef {
     val sub = expr.substVar(v, s)
     return if (expr == sub) this else LetDef(name, sub, type)
 }
 
+// TODO: check shadowing of variables (probaly buggy right now)
 fun Expr.substVar(v: String, s: Expr): Expr =
     when (this) {
         is Expr.IntE -> this
@@ -102,43 +111,107 @@ fun Expr.substVar(v: String, s: Expr): Expr =
         is Expr.StringE -> this
         is Expr.CharE -> this
         is Expr.Bool -> this
-        is Expr.Var -> if (name == v) s else this
+        is Expr.Var -> if (name == v) s.alias(this) else this
         is Expr.App -> {
             val left = fn.substVar(v, s)
             val right = arg.substVar(v, s)
-            if (left == fn && right == arg) this else Expr.App(left, right, span)
+            if (left == fn && right == arg) this else Expr.App(left, right, span).alias(this)
         }
         is Expr.Lambda -> {
             if (binder == v) this
             else {
                 val b = body.substVar(v, s)
-                if (body == b) this else Expr.Lambda(binder, b, span)
+                if (body == b) this else Expr.Lambda(binder, b, span).alias(this)
             }
         }
         is Expr.Ann -> {
             val b = exp.substVar(v, s)
-            if (exp == b) this else Expr.Ann(b, annType, span)
+            if (exp == b) this else Expr.Ann(b, annType, span).alias(this)
         }
         is Expr.If -> {
             val c = cond.substVar(v, s)
             val t = thenCase.substVar(v, s)
             val e = elseCase.substVar(v, s)
-            if (c == cond && t == thenCase && e == elseCase) this else Expr.If(c, t, e, span)
+            if (c == cond && t == thenCase && e == elseCase) this else Expr.If(c, t, e, span).alias(this)
         }
         is Expr.Let -> {
             val b = body.substVar(v, s)
             val def = letDef.substVar(v, s)
-            if (b == body && def == letDef) this else Expr.Let(def, b, span)
+            if (b == body && def == letDef) this else Expr.Let(def, b, span).alias(this)
         }
         is Expr.Match -> {
             val e = exp.substVar(v, s)
             val cs = cases.map { it.substVar(v, s) }
-            if (e == exp && cs == cases) this else Expr.Match(e, cs, span)
+            if (e == exp && cs == cases) this else Expr.Match(e, cs, span).alias(this)
         }
         is Expr.Do -> {
             val es = exps.map { it.substVar(v, s) }
-            if (es == exps) this else Expr.Do(es, span)
+            if (es == exps) this else Expr.Do(es, span).alias(this)
         }
     }
 
 fun Expr.Lambda.openLambda(s: Expr): Expr = body.substVar(binder, s)
+
+/**
+ * Resolve solved meta variables
+ */
+fun Expr.resolveMetas(ctx: Context) {
+    tailrec fun resolveMeta(meta: Elem.CTMeta): Type? {
+        val typ = meta.type
+        if (typ == null || typ !is Type.TMeta) return typ
+        val t = ctx.lookup<Elem.CTMeta>(typ.name)
+        return if (t?.type != null) resolveMeta(t)
+        else typ
+    }
+
+    val resolved = mutableMapOf<String, Type>()
+    ctx.forEachMeta { m ->
+        val typ = resolveMeta(m)
+        if (typ != null) resolved[m.name] = typ
+    }
+
+    resolveUnsolved(resolved)
+}
+
+/**
+ * Resolve unsolved variables left in this expression
+ */
+fun Expr.resolveUnsolved(m: Map<String, Type>) {
+    when (this) {
+        is Expr.Var -> if (type != null) withType(type!!.substTMetas(m))
+        is Expr.App -> {
+            if (type != null) withType(type!!.substTMetas(m))
+            fn.resolveUnsolved(m)
+            arg.resolveUnsolved(m)
+        }
+        is Expr.Lambda -> {
+            if (type != null) withType(type!!.substTMetas(m))
+            body.resolveUnsolved(m)
+        }
+        is Expr.Ann -> {
+            if (type != null) withType(type!!.substTMetas(m))
+            exp.resolveUnsolved(m)
+        }
+        is Expr.If -> {
+            if (type != null) withType(type!!.substTMetas(m))
+            cond.resolveUnsolved(m)
+            thenCase.resolveUnsolved(m)
+            elseCase.resolveUnsolved(m)
+        }
+        is Expr.Let -> {
+            if (type != null) withType(type!!.substTMetas(m))
+            letDef.expr.resolveUnsolved(m)
+            body.resolveUnsolved(m)
+        }
+        is Expr.Match -> {
+            if (type != null) withType(type!!.substTMetas(m))
+            cases.forEach { it.exp.resolveUnsolved(m) }
+        }
+        is Expr.Do -> {
+            if (type != null) withType(type!!.substTMetas(m))
+            exps.forEach { it.resolveUnsolved(m) }
+        }
+        else -> {
+        }
+    }
+}

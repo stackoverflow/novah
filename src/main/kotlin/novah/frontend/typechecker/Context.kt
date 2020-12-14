@@ -133,6 +133,12 @@ class Context {
 
     fun reset() = ctx.clear()
 
+    fun forEachMeta(f: (Elem.CTMeta) -> Unit) {
+        for (e in ctx) {
+            if (e is Elem.CTMeta) f(e)
+        }
+    }
+
     companion object {
         internal fun newContext(elems: MutableList<Elem>): Context {
             val ctx = Context()
