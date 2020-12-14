@@ -159,4 +159,18 @@ class TypecheckerADTSpec : StringSpec({
             inferString(code)
         }
     }
+
+    "kind error in type constructor" {
+        val code = """
+            type Day = Week | Weekend
+            
+            type May a = Just a | Nope
+            
+            type Foo a = Bar Day | Baz May
+        """.module()
+
+        shouldThrow<InferenceError> {
+            inferString(code)
+        }
+    }
 })

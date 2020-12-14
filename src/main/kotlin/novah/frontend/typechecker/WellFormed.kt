@@ -2,6 +2,7 @@ package novah.frontend.typechecker
 
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.store
+import novah.frontend.typechecker.Subsumption.makeKindString
 
 object WellFormed {
 
@@ -22,6 +23,16 @@ object WellFormed {
             context.enter(m, Elem.CTVar(t))
             wfType(Type.openTForall(type, Type.TVar(t)))
             context.leave(m)
+        }
+        if (type is Type.TConstructor) {
+            val elem = context.lookup<Elem.CTVar>(type.name) ?: inferError("undefined TConstructor ${type.name}")
+
+            if (elem.kind != type.types.size) {
+                val should = makeKindString(elem.kind)
+                val has = makeKindString(type.types.size)
+                inferError("type $type must have kind $should but got kind $has")
+            }
+            type.types.forEach { wfType(it) }
         }
     }
 

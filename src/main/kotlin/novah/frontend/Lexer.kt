@@ -252,6 +252,9 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
 
     private fun number(init: Char, negative: Boolean = false): Token {
         val n = if (negative) -1 else 1
+        if (!iter.hasNext()) {
+            return IntT("$init".toSafeLong(10) * n, "$init")
+        }
         if (init == '0') {
             return when (val c = iter.peek()) {
                 // binary numbers

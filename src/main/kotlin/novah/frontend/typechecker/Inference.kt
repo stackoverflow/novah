@@ -16,13 +16,14 @@ import novah.frontend.typechecker.WellFormed.wfType
 
 object Inference {
 
-    fun generalize(unsolved: List<String>, type: Type): Type {
+    fun generalize(unsolved: List<String>, type: Type, expr: Expr): Type {
         val ns = type.unsolvedInType(unsolved)
         val m = mutableMapOf<String, Type.TVar>()
         ns.forEach { x ->
             val name = store.fresh(x)
             m[x] = Type.TVar(name)
         }
+        if (m.isNotEmpty()) expr.resolveUnsolved(m)
         var c = type.substTMetas(m)
         for (i in ns.indices.reversed()) {
             c = Type.TForall(m[ns[i]]!!.name, c)
@@ -30,8 +31,10 @@ object Inference {
         return c
     }
 
-    fun generalizeFrom(marker: String, type: Type): Type =
-        generalize(context.leaveWithUnsolved(marker), type)
+    fun generalizeFrom(marker: String, type: Type, expr: Expr): Type {
+        expr.resolveMetas(context)
+        return generalize(context.leaveWithUnsolved(marker), type, expr)
+    }
 
     fun typesynth(exp: Expr): Type {
         return when (exp) {
@@ -54,8 +57,9 @@ object Inference {
                 val m = store.fresh("m")
                 context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
                 typecheck(exp.openLambda(Expr.Var(x, Span.empty())), tb)
+
                 val ty = _apply(Type.TFun(ta, tb))
-                exp.withType(generalizeFrom(m, ty))
+                exp.withType(generalizeFrom(m, ty, exp))
             }
             is Expr.App -> {
                 val left = typesynth(exp.fn)
@@ -66,7 +70,7 @@ object Inference {
                 wfType(ty)
                 typecheck(exp.exp, ty)
                 // set not only the type of the annotation but the type of the inner expression
-                exp.exp.type = ty
+                exp.exp.withType(ty)
                 exp.withType(ty)
             }
             is Expr.If -> {
@@ -95,7 +99,7 @@ object Inference {
                 val subExp = exp.body.substVar(ld.name, Expr.Var(name, Span.empty()))
 
                 // infer the body
-                exp.withType(generalizeFrom(m, _apply(typesynth(subExp))))
+                exp.withType(generalizeFrom(m, _apply(typesynth(subExp)), exp))
             }
             is Expr.Do -> {
                 var ty: Type? = null
@@ -133,6 +137,7 @@ object Inference {
                 typecheck(expr.cond, tBoolean)
                 typecheck(expr.thenCase, type)
                 typecheck(expr.elseCase, type)
+                if (expr.thenCase.type != null) expr.withType(expr.thenCase.type!!)
             }
             else -> {
                 val ty = typesynth(expr)
@@ -177,7 +182,7 @@ object Inference {
         wfContext()
         val m = store.fresh("m")
         context.enter(m)
-        val ty = generalizeFrom(m, _apply(typesynth(expr)))
+        val ty = generalizeFrom(m, _apply(typesynth(expr)), expr)
         if (!context.isComplete()) inferError("Context is not complete", expr)
         return ty
     }
@@ -185,9 +190,14 @@ object Inference {
     fun infer(mod: Module): Map<String, Type> {
         val m = mutableMapOf<String, Type>()
 
+        val ctorTypes = mutableListOf<Type>()
         mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
-            dataDeclToType(ddecl).forEach(context::add)
+            dataDeclToType(ddecl).forEach { el ->
+                context.add(el)
+                if (el is Elem.CVar) ctorTypes += el.type
+            }
         }
+        ctorTypes.forEach { wfType(it) }
 
         mod.decls.filterIsInstance<Decl.TypeDecl>().forEach { tdecl ->
             wfType(tdecl.type)
@@ -219,7 +229,7 @@ object Inference {
         }
 
         val elems = mutableListOf<Elem>()
-        elems += Elem.CTVar(dd.name)
+        elems += Elem.CTVar(dd.name, dd.tyVars.size)
 
         val innerTypes = dd.tyVars.map { Type.TVar(it) }
         val dataType = Type.TConstructor(dd.name, innerTypes)

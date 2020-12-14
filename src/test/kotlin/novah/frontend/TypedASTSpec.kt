@@ -2,6 +2,8 @@ package novah.frontend
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNot
+import io.kotest.matchers.types.beInstanceOf
 import novah.ast.Desugar
 import novah.ast.canonical.Decl
 import novah.ast.canonical.Expr
@@ -15,6 +17,7 @@ import novah.frontend.typechecker.InferContext.tBoolean
 import novah.frontend.typechecker.InferContext.tInt
 import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.Inference.infer
+import novah.frontend.typechecker.Type
 
 class TypedASTSpec : StringSpec({
 
@@ -96,5 +99,34 @@ class TypedASTSpec : StringSpec({
         (elseCase.fn as Expr.App).arg.type shouldBe tInt
 
         (map["a"] as Expr.Ann).exp.type shouldBe tInt
+    }
+
+    "metas are resolved after typecheck" {
+        val code = """
+            ife = if true then 3 * 4 else id 5
+            
+            lam = \x -> x > 10
+            
+            lett = let f x = x + x in f 2
+            
+            fall = \x -> id x
+            
+            fif = \x -> if true then 5 else id x
+            
+            doo = \x -> do
+                id x
+                x + 4
+                true
+            
+        """.module()
+
+        val ast = parseAndDesugar(code)
+        infer(ast)
+
+        val tt = TypeTraverser(ast) { _, t ->
+            //println("$n :: $t")
+            t shouldNot beInstanceOf<Type.TMeta>()
+        }
+        tt.run()
     }
 })

@@ -158,7 +158,7 @@ object Subsumption {
         }
     }
 
-    private fun makeKindString(s: Int): String {
-        return (1..s).joinToString(" -> ") { "Type" }
+    fun makeKindString(s: Int): String {
+        return (0..s).joinToString(" -> ") { "Type" }
     }
 }

@@ -5,7 +5,7 @@ package novah.frontend.typechecker
  */
 sealed class Elem {
     // Types in the context
-    data class CTVar(val name: String) : Elem() {
+    data class CTVar(val name: String, val kind: Int = 0) : Elem() {
         override fun toString(): String = name
     }
     data class CTMeta(val name: String, val type: Type? = null) : Elem() {
@@ -132,6 +132,12 @@ class Context {
     }
 
     fun reset() = ctx.clear()
+
+    fun forEachMeta(f: (Elem.CTMeta) -> Unit) {
+        for (e in ctx) {
+            if (e is Elem.CTMeta) f(e)
+        }
+    }
 
     companion object {
         internal fun newContext(elems: MutableList<Elem>): Context {
