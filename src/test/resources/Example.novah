@@ -124,5 +124,5 @@ fact x =
     then x
     else x * fact (x - 1)
 
-end :: Char
-end = 'a'
+end :: Int
+end = 0
