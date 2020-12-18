@@ -43,7 +43,7 @@ bin = 0B001110
 
 num = 0x123efa7c
 
-doub x = 13.87E-12
+doub x = x * 13.87E12
 
 x = fn 3 4 5
 

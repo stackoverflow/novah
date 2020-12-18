@@ -31,6 +31,10 @@ data class ImportResult(
         return if (op.alias != null) aliases[op.name]
         else imports[op.name]
     }
+
+    fun resolve(name: String): Modulename? {
+        return imports[name]
+    }
 }
 
 /**

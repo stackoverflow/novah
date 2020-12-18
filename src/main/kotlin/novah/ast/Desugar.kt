@@ -95,13 +95,13 @@ class Desugar(private val smod: SModule) {
         is SType.TVar -> {
             // at this point we know if a type is a normal type
             // or a no-parameter ADT
-            if (name in dataCtors) Type.TConstructor(name)
-            else Type.TVar(name)
+            if (name in dataCtors) Type.TConstructor(name, listOf(), imports.resolve(name))
+            else Type.TVar(name, imports.resolve(name))
         }
         is SType.TFun -> Type.TFun(arg.desugar(), ret.desugar())
         is SType.TForall -> nestForalls(names, type.desugar())
         is SType.TParens -> type.desugar()
-        is SType.TConstructor -> Type.TConstructor(name, types.map { it.desugar() })
+        is SType.TConstructor -> Type.TConstructor(name, types.map { it.desugar() }, imports.resolve(name))
     }
 
     private fun nestForalls(names: List<String>, type: Type): Type {

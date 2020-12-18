@@ -3,6 +3,7 @@ package novah.frontend
 import novah.ast.Desugar
 import novah.ast.source.Expr
 import novah.ast.source.Module
+import novah.ast.optimized.Module as OModule
 import novah.frontend.typechecker.Elem
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.initDefaultContext
@@ -11,6 +12,7 @@ import novah.frontend.typechecker.InferContext.tInt
 import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Type
+import novah.optimize.Optimizer
 
 object TestUtil {
 
@@ -50,6 +52,16 @@ object TestUtil {
         val desugar = Desugar(parser.parseFullModule())
         val canonical = desugar.desugar()
         return infer(canonical)
+    }
+
+    fun preCompile(code: String): OModule {
+        val lexer = Lexer(code)
+        val parser = Parser(lexer)
+        val desugar = Desugar(parser.parseFullModule())
+        val canonical = desugar.desugar()
+        infer(canonical)
+        val opt = Optimizer(canonical)
+        return opt.convert()
     }
 
     fun setupContext() {
