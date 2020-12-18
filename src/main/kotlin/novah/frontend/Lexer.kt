@@ -248,15 +248,21 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         return StringT(str)
     }
 
-    private val numPat = Regex("""\d+(\.\d+)?[e|E]?""")
-
     private fun number(init: Char, negative: Boolean = false): Token {
+        fun readE(): String {
+            val e = iter.next().toString()
+            val sign = accept("+-")?.toString() ?: ""
+            val exp = acceptMany("0123456789")
+            if (exp.isEmpty()) lexError("Invalid number format: expected number after `e`")
+            return "$e$sign$exp"
+        }
+
         val n = if (negative) -1 else 1
         if (!iter.hasNext()) {
             return IntT("$init".toSafeLong(10) * n, "$init")
         }
-        if (init == '0') {
-            return when (val c = iter.peek()) {
+        return if (init == '0') {
+            when (val c = iter.peek()) {
                 // binary numbers
                 'b', 'B' -> {
                     iter.next()
@@ -277,20 +283,29 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                 }
             }
         } else {
-            val num = init + acceptMany("0123456789.eE")
-            if (!numPat.matches(num)) lexError("Invalid number format: `$num`")
+            val num = init + acceptMany("0123456789")
 
-            return when {
-                num.endsWith("e", ignoreCase = true) -> {
-                    val symOrNum =
-                        accept("+-123456789") ?: lexError("Invalid number format: expected number or sign after `E`")
-                    val rest = acceptMany("0123456789")
-                    if (rest.isEmpty() && (symOrNum == '+' || symOrNum == '-')) lexError("Invalid number format: expected number after sign")
-                    val str = num + symOrNum + rest
-                    FloatT(str.toSafeDouble() * n, str)
+            val next = iter.peek()
+            when {
+                next == '.' -> {
+                    // Double
+                    iter.next()
+                    val end = acceptMany("0123456789")
+                    if (end.isEmpty()) lexError("Invalid number format: number cannot end in `.`")
+                    val number = if (iter.peek().toLowerCase() == 'e') {
+                        "$num.$end${readE()}"
+                    } else "$num.$end"
+                    FloatT(number.toSafeDouble() * n, number)
                 }
-                num.contains('.') -> FloatT(num.toSafeDouble() * n, num)
-                else -> IntT(num.toSafeLong(10) * n, num)
+                next.toLowerCase() == 'e' -> {
+                    // Double
+                    val number = "$num${readE()}"
+                    FloatT(number.toSafeDouble() * n, number)
+                }
+                else -> {
+                    // Int
+                    IntT(num.toSafeLong(10) * n, num)
+                }
             }
         }
     }
