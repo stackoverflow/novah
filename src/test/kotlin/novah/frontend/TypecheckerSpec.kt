@@ -11,12 +11,12 @@ import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
 import novah.frontend.typechecker.InferContext.context
-import novah.frontend.typechecker.InferContext.tBoolean
-import novah.frontend.typechecker.InferContext.tChar
-import novah.frontend.typechecker.InferContext.tFloat
-import novah.frontend.typechecker.InferContext.tInt
-import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.InferenceError
+import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tChar
+import novah.frontend.typechecker.Prim.tFloat
+import novah.frontend.typechecker.Prim.tInt
+import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Type
 
 class TypecheckerSpec : StringSpec({

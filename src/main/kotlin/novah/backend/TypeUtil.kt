@@ -5,6 +5,11 @@ import novah.backend.GenUtil.OBJECT_CLASS
 
 object TypeUtil {
 
+    const val INTEGER_CLASS = "java/lang/Integer"
+    const val FLOAT_CLASS = "java/lang/Float"
+    const val CHAR_CLASS = "java/lang/Character"
+    const val BOOL_CLASS = "java/lang/Boolean"
+
     private const val OBJECT_TYPE = "Ljava/lang/Object;"
     private const val FUNCTION_TYPE = "Ljava/util/function/Function;"
 

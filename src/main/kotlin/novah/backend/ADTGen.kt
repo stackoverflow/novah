@@ -2,6 +2,7 @@ package novah.backend
 
 import novah.ast.optimized.DataConstructor
 import novah.ast.optimized.Decl
+import novah.ast.optimized.Module
 import novah.backend.GenUtil.INIT
 import novah.backend.GenUtil.INSTANCE
 import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
@@ -22,10 +23,11 @@ import org.objectweb.asm.Opcodes.*
  */
 class ADTGen(
     private val adt: Decl.DataDecl,
-    private val moduleName: String,
+    private val ast: Module,
     private val onGenClass: (String, String, ByteArray) -> Unit
 ) {
 
+    private val moduleName = ast.name
     private val adtClassName = "$moduleName/${adt.name}"
 
     fun run() {
@@ -48,6 +50,7 @@ class ADTGen(
             OBJECT_CLASS,
             arrayOf<String>()
         )
+        cw.visitSource(ast.sourceName, null)
 
         genEmptyConstructor(cw, ACC_PRIVATE)
         cw.visitEnd()
@@ -68,6 +71,7 @@ class ADTGen(
             adtClassName,
             emptyArray<String>()
         )
+        cw.visitSource(ast.sourceName, null)
 
         if (ctor.args.isEmpty()) {
             genEmptyConstructor(cw, ACC_PRIVATE)
@@ -94,6 +98,7 @@ class ADTGen(
                 ctor.args.joinToString("", prefix = "(", postfix = ")V") { buildFieldSignature(it) }
             else null
             val ct = cw.visitMethod(ACC_PUBLIC, INIT, desc, signature, emptyArray())
+            ct.visitCode()
             ct.visitVarInsn(ALOAD, 0)
             ct.visitMethodInsn(INVOKESPECIAL, adtClassName, INIT, "()V", false)
             ctor.args.forEachIndexed { i, type ->
@@ -103,6 +108,7 @@ class ADTGen(
                 ct.visitFieldInsn(PUTFIELD, className, "v$index", toInternalType(type))
             }
             ct.visitInsn(RETURN)
+            ct.visitMaxs(0, 0)
             ct.visitEnd()
         }
 
@@ -123,6 +129,7 @@ class ADTGen(
 
         private fun genDefaultStaticInitializer(cw: ClassWriter, className: String) {
             val init = cw.visitMethod(ACC_STATIC, STATIC_INIT, "()V", null, emptyArray())
+            init.visitCode()
             init.visitTypeInsn(NEW, className)
             init.visitInsn(DUP)
             init.visitMethodInsn(INVOKESPECIAL, className, INIT, "()V", false)
@@ -130,6 +137,7 @@ class ADTGen(
             init.visitVarInsn(ALOAD, 0)
             init.visitFieldInsn(PUTSTATIC, className, INSTANCE, descriptor(className))
             init.visitInsn(RETURN)
+            init.visitMaxs(0, 0)
             init.visitEnd()
         }
     }

@@ -6,11 +6,11 @@ import novah.ast.source.Module
 import novah.ast.optimized.Module as OModule
 import novah.frontend.typechecker.Elem
 import novah.frontend.typechecker.InferContext.context
-import novah.frontend.typechecker.InferContext.initDefaultContext
-import novah.frontend.typechecker.InferContext.tBoolean
-import novah.frontend.typechecker.InferContext.tInt
-import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.Inference.infer
+import novah.frontend.typechecker.Prim
+import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tInt
+import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Type
 import novah.optimize.Optimizer
 
@@ -54,9 +54,9 @@ object TestUtil {
         return infer(canonical)
     }
 
-    fun preCompile(code: String): OModule {
+    fun preCompile(code: String, sourceName: String = "<test>"): OModule {
         val lexer = Lexer(code)
-        val parser = Parser(lexer)
+        val parser = Parser(lexer, sourceName)
         val desugar = Desugar(parser.parseFullModule())
         val canonical = desugar.desugar()
         infer(canonical)
@@ -66,7 +66,7 @@ object TestUtil {
 
     fun setupContext() {
         context.reset()
-        initDefaultContext()
+        Prim.addAll(context)
         context.add(Elem.CVar("*", tfun(tInt, tfun(tInt, tInt))))
         context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
         context.add(Elem.CVar("-", tfun(tInt, tfun(tInt, tInt))))

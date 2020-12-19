@@ -5,11 +5,11 @@ import novah.frontend.Span
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.store
-import novah.frontend.typechecker.InferContext.tBoolean
-import novah.frontend.typechecker.InferContext.tChar
-import novah.frontend.typechecker.InferContext.tFloat
-import novah.frontend.typechecker.InferContext.tInt
-import novah.frontend.typechecker.InferContext.tString
+import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tChar
+import novah.frontend.typechecker.Prim.tFloat
+import novah.frontend.typechecker.Prim.tInt
+import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Subsumption.subsume
 import novah.frontend.typechecker.WellFormed.wfContext
 import novah.frontend.typechecker.WellFormed.wfType

@@ -13,10 +13,10 @@ import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.parseString
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
-import novah.frontend.typechecker.InferContext.tBoolean
-import novah.frontend.typechecker.InferContext.tInt
-import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.Inference.infer
+import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tInt
+import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Type
 
 class TypedASTSpec : StringSpec({

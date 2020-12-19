@@ -7,12 +7,13 @@ import novah.frontend.TestUtil.inferString
 import novah.frontend.TestUtil.module
 import novah.frontend.typechecker.InferContext
 import novah.frontend.typechecker.InferenceError
+import novah.frontend.typechecker.Prim
 
 class TypecheckerADTSpec : StringSpec({
 
     beforeTest {
         InferContext.context.reset()
-        InferContext.initDefaultContext()
+        Prim.addAll(InferContext.context)
     }
 
     "typecheck no parameter ADTs" {

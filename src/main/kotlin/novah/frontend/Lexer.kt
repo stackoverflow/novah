@@ -285,14 +285,14 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         } else {
             val num = init + acceptMany("0123456789")
 
-            val next = iter.peek()
+            val next = if (iter.hasNext()) iter.peek() else ' '
             when {
                 next == '.' -> {
                     // Double
                     iter.next()
                     val end = acceptMany("0123456789")
                     if (end.isEmpty()) lexError("Invalid number format: number cannot end in `.`")
-                    val number = if (iter.peek().toLowerCase() == 'e') {
+                    val number = if (iter.hasNext() && iter.peek().toLowerCase() == 'e') {
                         "$num.$end${readE()}"
                     } else "$num.$end"
                     FloatT(number.toSafeDouble() * n, number)

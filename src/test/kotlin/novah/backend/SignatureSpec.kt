@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import novah.ast.optimized.Type
 import novah.backend.TypeUtil.buildClassSignature
 import novah.backend.TypeUtil.maybeBuildFieldSignature
+import novah.frontend.TestUtil
 import novah.frontend.TestUtil.preCompile
 import java.io.File
 
@@ -16,6 +17,10 @@ class SignatureSpec : StringSpec({
     fun tfvar(n: String) = Type.TVar(n, true)
     fun tcons(n: String, t: Type) = Type.TConstructor(n, listOf(t))
     fun tfun(t1: Type, t2: Type) = Type.TFun(t1, t2)
+
+    beforeTest {
+        TestUtil.setupContext()
+    }
 
     "class signatures are correctly generated" {
 
@@ -72,14 +77,29 @@ class SignatureSpec : StringSpec({
             x = 2
             
             y = 45.8E12
-            
+            /*
             z = "something"
             
+            b = true
+            
+            c = 'a'
+            
+            z2 = z
+            
+            i = if true then 6 else 99
+            
+            l = let l1 = 4
+                    l2 = l1
+                in l2
+            
             w = \x -> x
+            */
+            
+            main args = 8
         """.trimIndent()
 
         val outputDir = "output"
-        val ast = preCompile(code)
+        val ast = preCompile(code, "novah/test.novah")
         val codegen = Codegen(ast) { dirName, fileName, bytes ->
             val file = File("$outputDir/$dirName/$fileName.class")
             File("$outputDir/$dirName").mkdirs()

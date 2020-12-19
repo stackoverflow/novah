@@ -17,6 +17,8 @@ import novah.frontend.typechecker.Type as TType
  */
 class Optimizer(private val ast: CModule) {
 
+    private var localsCount = 0
+
     fun convert() = ast.convert()
 
     private fun CModule.convert(): Module {
@@ -28,15 +30,15 @@ class Optimizer(private val ast: CModule) {
         return Module(internalize(name), sourceName, ds)
     }
 
-    private fun CValDecl.convert(): Decl.ValDecl = Decl.ValDecl(name, exp.convert(), visibility)
+    private fun CValDecl.convert(): Decl.ValDecl = Decl.ValDecl(name, exp.convert(), visibility, span.start.line)
 
     private fun CDataDecl.convert(): Decl.DataDecl =
-        Decl.DataDecl(name, tyVars, dataCtors.map { it.convert() }, visibility)
+        Decl.DataDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span.start.line)
 
     private fun CDataConstructor.convert(): DataConstructor =
         DataConstructor(name, args.map { it.convert() }, visibility)
 
-    private fun CExpr.convert(): Expr {
+    private fun CExpr.convert(locals: Map<String, Int> = mapOf()): Expr {
         val typ = if (type != null) {
             type!!.convert()
         } else {
@@ -49,20 +51,28 @@ class Optimizer(private val ast: CModule) {
             is CExpr.CharE -> Expr.CharE(c, typ)
             is CExpr.Bool -> Expr.Bool(b, typ)
             is CExpr.Var -> {
-                val qname = if (moduleName != null) internalize("$moduleName") + ".$name" else name
-                Expr.Var(qname, typ)
+                val local = locals[name]
+                if (local != null) Expr.LocalVar(name, local, typ)
+                else {
+                    val cname = internalize(if (moduleName != null) "$moduleName" else ast.name) + "/Module"
+                    Expr.Var(name, cname, typ)
+                }
             }
-            is CExpr.Lambda -> Expr.Lambda(binder, body.convert(), typ)
-            is CExpr.App -> Expr.App(fn.convert(), arg.convert(), typ)
-            is CExpr.If -> Expr.If(cond.convert(), thenCase.convert(), elseCase.convert(), typ)
-            is CExpr.Let -> Expr.Let(letDef.convert(), body.convert(), typ)
-            is CExpr.Ann -> exp.convert()
-            is CExpr.Do -> Expr.Do(exps.map { it.convert() }, typ)
+            is CExpr.Lambda -> Expr.Lambda(binder, body.convert(locals), typ)
+            is CExpr.App -> Expr.App(fn.convert(locals), arg.convert(locals), typ)
+            is CExpr.If -> Expr.If(cond.convert(locals), thenCase.convert(locals), elseCase.convert(locals), typ)
+            is CExpr.Let -> {
+                val num = localsCount++
+                val local = letDef.name to num
+                Expr.Let(letDef.convert(num, locals), body.convert(locals + local), typ)
+            }
+            is CExpr.Ann -> exp.convert(locals)
+            is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ)
             is CExpr.Match -> internalError("not yet implemented")
         }
     }
 
-    private fun CLetDef.convert(): LetDef = LetDef(name, expr.convert())
+    private fun CLetDef.convert(num: Int, locals: Map<String, Int>): LetDef = LetDef(name, num, expr.convert(locals))
 
     private fun TType.convert(): Type = when (this) {
         is TType.TVar -> {
@@ -87,7 +97,7 @@ class Optimizer(private val ast: CModule) {
         "Float" -> "java/lang/Float"
         "Double" -> "java/lang/Double"
         "Boolean" -> "java/lang/Boolean"
-        "Char" -> "java/lang/Char"
+        "Char" -> "java/lang/Character"
         "String" -> "java/lang/String"
         else -> {
             val modName = tvar.module ?: ast.name
