@@ -35,6 +35,11 @@ data class ImportResult(
     fun resolve(name: String): Modulename? {
         return imports[name]
     }
+
+    fun fullname(name: String, moduleName: String): String {
+        val resolved = resolve(name)
+        return if (resolved != null) "$resolved.$name" else "$moduleName.$name"
+    }
 }
 
 /**

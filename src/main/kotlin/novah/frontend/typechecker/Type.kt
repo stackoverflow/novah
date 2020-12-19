@@ -4,7 +4,7 @@ package novah.frontend.typechecker
  * The Type of Types
  */
 sealed class Type {
-    data class TVar(val name: String, val module: String? = null) : Type() {
+    data class TVar(val name: String) : Type() {
         override fun toString(): String = name
     }
 
@@ -20,7 +20,7 @@ sealed class Type {
         override fun toString(): String = "forall $name. $type"
     }
 
-    data class TConstructor(val name: String, val types: List<Type> = listOf(), val module: String? = null) : Type() {
+    data class TConstructor(val name: String, val types: List<Type> = listOf()) : Type() {
         override fun toString(): String = if (types.isEmpty()) {
             name
         } else {
@@ -112,6 +112,20 @@ sealed class Type {
         return if (this is TForall) {
             TForall(replace, type.substTVar(name, TVar(replace)))
         } else this
+    }
+
+    /**
+     * Non qualified version of [toString]
+     */
+    fun simpleName(): String = when (this) {
+        is TVar -> name.split('.').last()
+        is TConstructor -> {
+            val sname = name.split('.').last()
+            if (types.isEmpty()) sname else sname + " " + types.joinToString(" ") { it.simpleName() }
+        }
+        is TFun -> "(${arg.simpleName()} -> ${ret.simpleName()})"
+        is TForall -> "forall $name. ${type.simpleName()}"
+        else -> toString()
     }
 
     companion object {

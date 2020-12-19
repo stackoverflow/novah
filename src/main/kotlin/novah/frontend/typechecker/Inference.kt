@@ -192,7 +192,7 @@ object Inference {
 
         val ctorTypes = mutableListOf<Type>()
         mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
-            dataDeclToType(ddecl).forEach { el ->
+            dataDeclToType(ddecl, mod.name).forEach { el ->
                 context.add(el)
                 if (el is Elem.CVar) ctorTypes += el.type
             }
@@ -217,7 +217,7 @@ object Inference {
      * Takes a data declaration and returns all the types and
      * variables (constructors) that should be added to the context.
      */
-    private fun dataDeclToType(dd: Decl.DataDecl): List<Elem> {
+    private fun dataDeclToType(dd: Decl.DataDecl, moduleName: String): List<Elem> {
         fun nestForalls(acc: List<String>, type: Type): Type {
             return if (acc.isEmpty()) type
             else Type.TForall(acc.first(), nestForalls(acc.drop(1), type))
@@ -229,10 +229,11 @@ object Inference {
         }
 
         val elems = mutableListOf<Elem>()
-        elems += Elem.CTVar(dd.name, dd.tyVars.size)
+        val typeName = "$moduleName." + dd.name
+        elems += Elem.CTVar(typeName, dd.tyVars.size)
 
         val innerTypes = dd.tyVars.map { Type.TVar(it) }
-        val dataType = Type.TConstructor(dd.name, innerTypes)
+        val dataType = Type.TConstructor(typeName, innerTypes)
 
         dd.dataCtors.forEach { ctor ->
             val type = nestForalls(dd.tyVars, nestFuns(ctor.args + dataType))

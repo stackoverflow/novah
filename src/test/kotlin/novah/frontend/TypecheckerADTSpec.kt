@@ -28,8 +28,8 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = inferString(code)
 
-        tys["x"].toString() shouldBe "Day"
-        tys["y"].toString() shouldBe "Day"
+        tys["x"]?.simpleName() shouldBe "Day"
+        tys["y"]?.simpleName() shouldBe "Day"
     }
 
     "typecheck one parameter ADTs" {
@@ -49,9 +49,9 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = inferString(code)
 
-        tys["x"].toString() shouldBe "May String"
-        tys["y"].toString() shouldBe "forall a. May a"
-        tys["w"].toString() shouldBe "May Int"
+        tys["x"]?.simpleName() shouldBe "May String"
+        tys["y"]?.simpleName() shouldBe "forall a. May a"
+        tys["w"]?.simpleName() shouldBe "May Int"
     }
 
     "typecheck 2 parameter ADTs" {
@@ -68,9 +68,9 @@ class TypecheckerADTSpec : StringSpec({
         """.module()
 
         val tys = inferString(code)
-        tys["x"].toString() shouldBe "Result Int String"
+        tys["x"]?.simpleName() shouldBe "Result Int String"
         val y = tys["y"]!!.substFreeVar("k")
-        y.toString() shouldBe "forall k. Result k String"
+        y.simpleName() shouldBe "forall k. Result k String"
     }
 
     "typecheck recursive ADT" {
@@ -85,8 +85,8 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = inferString(code)
 
-        tys["x"].toString() shouldBe "List String"
-        tys["y"].toString() shouldBe "List Int"
+        tys["x"]?.simpleName() shouldBe "List String"
+        tys["y"]?.simpleName() shouldBe "List Int"
     }
 
     "typecheck complex type" {
@@ -104,9 +104,9 @@ class TypecheckerADTSpec : StringSpec({
         val tys = inferString(code)
 
         val x = tys["x"]!!.substFreeVar("b")
-        "$x" shouldBe "forall b. Comp String b"
+        x.simpleName() shouldBe "forall b. Comp String b"
         val y = tys["y"]!!.substFreeVar("a")
-        "$y" shouldBe "forall a. Comp a String"
+        y.simpleName() shouldBe "forall a. Comp a String"
     }
 
     "typecheck complex type 2" {

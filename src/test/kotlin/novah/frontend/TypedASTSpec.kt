@@ -17,6 +17,7 @@ import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tString
+import novah.frontend.typechecker.Prim.tUnit
 import novah.frontend.typechecker.Type
 
 class TypedASTSpec : StringSpec({
@@ -67,7 +68,7 @@ class TypedASTSpec : StringSpec({
         map["ife"]?.type shouldBe tInt
         map["lam"]?.type shouldBe tfun(tInt, tBoolean)
         map["lett"]?.type shouldBe tBoolean
-        map["app"]?.type shouldBe tvar("Unit")
+        map["app"]?.type shouldBe tUnit
         map["fall"]?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tvar("x")))
 
         //map.forEach { (k, v) -> println("$k :: ${v.type}") }

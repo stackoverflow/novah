@@ -62,6 +62,7 @@ class Optimizer(private val ast: CModule) {
             is CExpr.App -> Expr.App(fn.convert(locals), arg.convert(locals), typ)
             is CExpr.If -> Expr.If(cond.convert(locals), thenCase.convert(locals), elseCase.convert(locals), typ)
             is CExpr.Let -> {
+                // TODO: how to solve the problem of which variables are local in lets and lambdas
                 val num = localsCount++
                 val local = letDef.name to num
                 Expr.Let(letDef.convert(num, locals), body.convert(locals + local), typ)
@@ -79,10 +80,7 @@ class Optimizer(private val ast: CModule) {
             if (name[0].isLowerCase()) Type.TVar(originalName(name).toUpperCase(), true)
             else Type.TVar(getPrimitiveTypeName(this))
         }
-        is TType.TConstructor -> {
-            val modName = module ?: ast.name
-            Type.TConstructor(internalize("$modName.$name"), types.map { it.convert() })
-        }
+        is TType.TConstructor -> Type.TConstructor(internalize(name), types.map { it.convert() })
         is TType.TFun -> Type.TFun(arg.convert(), ret.convert())
         is TType.TForall -> type.convert()
         is TType.TMeta -> internalError("got TMeta after type checking")
@@ -90,19 +88,16 @@ class Optimizer(private val ast: CModule) {
 
     // TODO: use primitive types and implement autoboxing
     private fun getPrimitiveTypeName(tvar: TType.TVar): String = when (tvar.name) {
-        "Byte" -> "java/lang/Byte"
-        "Short" -> "java/lang/Short"
-        "Int" -> "java/lang/Integer"
-        "Long" -> "java/lang/Long"
-        "Float" -> "java/lang/Float"
-        "Double" -> "java/lang/Double"
-        "Boolean" -> "java/lang/Boolean"
-        "Char" -> "java/lang/Character"
-        "String" -> "java/lang/String"
-        else -> {
-            val modName = tvar.module ?: ast.name
-            internalize("$modName.${tvar.name}")
-        }
+        "Prim.Byte" -> "java/lang/Byte"
+        "Prim.Short" -> "java/lang/Short"
+        "Prim.Int" -> "java/lang/Integer"
+        "Prim.Long" -> "java/lang/Long"
+        "Prim.Float" -> "java/lang/Float"
+        "Prim.Double" -> "java/lang/Double"
+        "Prim.Boolean" -> "java/lang/Boolean"
+        "Prim.Char" -> "java/lang/Character"
+        "Prim.String" -> "java/lang/String"
+        else -> internalize(tvar.name)
     }
 
     companion object {
