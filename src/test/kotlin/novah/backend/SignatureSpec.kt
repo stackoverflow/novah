@@ -64,7 +64,7 @@ class SignatureSpec : StringSpec({
         }
     }
 
-    "test" {
+    "test full compilation" {
         val code = """
             module novah.test exposing ( x, y )
             
@@ -77,14 +77,14 @@ class SignatureSpec : StringSpec({
             x = 2
             
             y = 45.8E12
-            /*
+            
+            z2 = z
+            
             z = "something"
             
             b = true
             
             c = 'a'
-            
-            z2 = z
             
             i = if true then 6 else 99
             
@@ -92,10 +92,9 @@ class SignatureSpec : StringSpec({
                     l2 = l1
                 in l2
             
-            w = \x -> x
-            */
+            //w = \x -> x
             
-            main args = 8
+            main args = unit
         """.trimIndent()
 
         val outputDir = "output"

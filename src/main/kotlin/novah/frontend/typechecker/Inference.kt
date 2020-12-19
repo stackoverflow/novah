@@ -199,12 +199,18 @@ object Inference {
         }
         ctorTypes.forEach { wfType(it) }
 
-        mod.decls.filterIsInstance<Decl.TypeDecl>().forEach { tdecl ->
-            wfType(tdecl.type)
-            context.add(Elem.CVar(tdecl.name, tdecl.type))
+        val vals = mod.decls.filterIsInstance<Decl.ValDecl>()
+        vals.forEach { decl ->
+            val expr = decl.exp
+            if (expr is Expr.Ann) {
+                wfType(expr.annType)
+                context.add(Elem.CVar(decl.name, expr.annType))
+            } else {
+                context.add(Elem.CVar(decl.name, Type.TForall("t1", Type.TVar("t1"))))
+            }
         }
 
-        mod.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->
+        vals.forEach { decl ->
             val ty = infer(decl.exp)
             if (!context.contains<Elem.CVar>(decl.name))
                 context.add(Elem.CVar(decl.name, ty))

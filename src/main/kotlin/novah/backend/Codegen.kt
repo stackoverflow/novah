@@ -47,7 +47,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private fun genDecl(cw: ClassWriter, decl: Decl) {
         when (decl) {
             is Decl.DataDecl -> ADTGen(decl, ast, onGenClass).run()
-            is Decl.ValDecl -> genFieldVal(cw, decl)
+            is Decl.ValDecl -> if (!isMain(decl)) genFieldVal(cw, decl)
         }
     }
 
@@ -95,6 +95,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLdcInsn(e.f)
                 mv.visitMethodInsn(INVOKESTATIC, FLOAT_CLASS, "valueOf", "(F)L$FLOAT_CLASS;", false)
             }
+            is Expr.StringE -> {
+                mv.visitLdcInsn(e.s)
+            }
             is Expr.CharE -> {
                 // TODO: optimize in case c is small (use byte, not LDC)
                 mv.visitLdcInsn(e.c)
@@ -108,7 +111,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitVarInsn(ALOAD, e.num)
             }
             is Expr.Var -> {
-                mv.visitFieldInsn(GETSTATIC, e.className, e.name, toInternalType(e.type))
+                resolvePrimitiveModule(mv, e)
             }
             is Expr.If -> {
                 genExpr(e.cond, mv)
@@ -131,6 +134,14 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         }
     }
 
+    private fun resolvePrimitiveModule(mv: MethodVisitor, e: Expr.Var) {
+        if (e.fullname() == "prim/Module.unit") {
+            mv.visitInsn(ACONST_NULL)
+        } else {
+            mv.visitFieldInsn(GETSTATIC, e.className, e.name, toInternalType(e.type))
+        }
+    }
+
     private fun genMain(e: Expr, cw: ClassWriter) {
         val main = cw.visitMethod(ACC_PUBLIC + ACC_STATIC, "main", "([Ljava/lang/String;)V", null, emptyArray())
         main.visitCode()
@@ -144,6 +155,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private fun isMain(d: Decl.ValDecl): Boolean {
         if (d.name != "main") return false
         val typ = d.exp.type
-        return typ is Type.TFun
+        if (typ !is Type.TFun) return false
+        val ret = typ.ret
+        return ret is Type.TVar && ret.name == "prim/Unit"
     }
 }

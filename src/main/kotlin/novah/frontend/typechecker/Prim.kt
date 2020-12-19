@@ -9,7 +9,7 @@ import novah.ast.source.Import
  */
 object Prim {
 
-    private const val PRIM = "Prim"
+    private const val PRIM = "prim"
 
     // primitives
     val tInt = Type.TVar("$PRIM.Int")
@@ -34,7 +34,8 @@ object Prim {
             DeclarationRef.RefType("Boolean"),
             DeclarationRef.RefType("Unit"),
             DeclarationRef.RefVar("print"),
-            DeclarationRef.RefVar("println")
+            DeclarationRef.RefVar("println"),
+            DeclarationRef.RefVar("unit")
         )
     )
 
@@ -51,6 +52,7 @@ object Prim {
         Elem.CTVar(tBoolean.name),
         Elem.CTVar(tUnit.name),
         Elem.CVar("$PRIM.print", Type.TFun(tString, tUnit)),
-        Elem.CVar("$PRIM.println", Type.TFun(tString, tUnit))
+        Elem.CVar("$PRIM.println", Type.TFun(tString, tUnit)),
+        Elem.CVar("$PRIM.unit", tUnit)
     )
 }

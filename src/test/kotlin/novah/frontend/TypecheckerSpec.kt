@@ -27,7 +27,11 @@ class TypecheckerSpec : StringSpec({
 
     fun exprX(expr: String) = "x = $expr".module()
 
-    fun inferX(expr: String) = inferString(exprX(expr))["x"]!!
+    fun inferX(expr: String): Type {
+        context.reset()
+        setupContext()
+        return inferString(exprX(expr))["x"]!!
+    }
 
     "typecheck primitive expressions" {
         val tint = inferX("34")
@@ -130,9 +134,7 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck a recursive function" {
-        // only works because of the type annotations for now
         val code = """
-            fact :: Int -> Int
             fact x =
               if x <= 1
               then x
@@ -145,20 +147,32 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck mutually recursive functions" {
-        // only works because of the type annotations for now
         val code = """
-            f1 :: Int -> Int
+            //f1 :: Int -> Int
             f1 x =
               if x > 0
               then f2 x
               else x - 1
             
-            f2 :: Int -> Int
+            //f2 :: Int -> Int
             f2 x =
               if x <= 0
               then f1 x
               else x + 1
         """.module()
+
+        shouldNotThrowAny {
+            inferString(code)
+        }
+    }
+
+    "typecheck mutually recursive functions 2" {
+        val code = """
+            f1 x = f2 x + 1
+            
+            f2 x = f1 x
+        """.module()
+
         shouldNotThrowAny {
             inferString(code)
         }
@@ -166,15 +180,13 @@ class TypecheckerSpec : StringSpec({
 
     "test" {
         val code = """
-            id x = x
+            type Tuple a b = Tuple a b
             
-            //fun :: forall a b. a -> b -> (forall c. c -> c) -> a
-            fun x y f = do
-              f 1
-              f x
+            //fun :: forall a b. (forall c. c -> c) -> Tuple a b
+            fun f tup = Tuple 3 5
         """.module()
         val tys = inferString(code)
 
-        tys.map { println(it) }
+        tys.map { println(it.component1() + "= " + it.component2().simpleName()) }
     }
 })

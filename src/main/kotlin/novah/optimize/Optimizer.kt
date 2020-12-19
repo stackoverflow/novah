@@ -77,7 +77,7 @@ class Optimizer(private val ast: CModule) {
 
     private fun TType.convert(): Type = when (this) {
         is TType.TVar -> {
-            if (name[0].isLowerCase()) Type.TVar(originalName(name).toUpperCase(), true)
+            if (simpleName()[0].isLowerCase()) Type.TVar(originalName(name).toUpperCase(), true)
             else Type.TVar(getPrimitiveTypeName(this))
         }
         is TType.TConstructor -> Type.TConstructor(internalize(name), types.map { it.convert() })
@@ -88,15 +88,15 @@ class Optimizer(private val ast: CModule) {
 
     // TODO: use primitive types and implement autoboxing
     private fun getPrimitiveTypeName(tvar: TType.TVar): String = when (tvar.name) {
-        "Prim.Byte" -> "java/lang/Byte"
-        "Prim.Short" -> "java/lang/Short"
-        "Prim.Int" -> "java/lang/Integer"
-        "Prim.Long" -> "java/lang/Long"
-        "Prim.Float" -> "java/lang/Float"
-        "Prim.Double" -> "java/lang/Double"
-        "Prim.Boolean" -> "java/lang/Boolean"
-        "Prim.Char" -> "java/lang/Character"
-        "Prim.String" -> "java/lang/String"
+        "prim.Byte" -> "java/lang/Byte"
+        "prim.Short" -> "java/lang/Short"
+        "prim.Int" -> "java/lang/Integer"
+        "prim.Long" -> "java/lang/Long"
+        "prim.Float" -> "java/lang/Float"
+        "prim.Double" -> "java/lang/Double"
+        "prim.Boolean" -> "java/lang/Boolean"
+        "prim.Char" -> "java/lang/Character"
+        "prim.String" -> "java/lang/String"
         else -> internalize(tvar.name)
     }
 
