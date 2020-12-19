@@ -27,6 +27,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private val className = "${ast.name}/Module"
 
+    private var localsCount = 0
+
     fun run() {
         val cw = ClassWriter(COMPUTE_FRAMES)
         cw.visit(NOVAH_GENCLASS_VERSION, ACC_PUBLIC + ACC_FINAL, className, null, OBJECT_CLASS, arrayOf<String>())
@@ -88,19 +90,39 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private fun genExpr(e: Expr, mv: MethodVisitor) {
         when (e) {
             is Expr.IntE -> {
-                mv.visitLdcInsn(e.i)
+                val i = e.i
+                when {
+                    i == 0L -> mv.visitInsn(ICONST_0)
+                    i == 1L -> mv.visitInsn(ICONST_1)
+                    i == 2L -> mv.visitInsn(ICONST_2)
+                    i == 3L -> mv.visitInsn(ICONST_3)
+                    i == 4L -> mv.visitInsn(ICONST_4)
+                    i == 5L -> mv.visitInsn(ICONST_5)
+                    i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i.toInt())
+                    i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i.toInt())
+                    else -> mv.visitLdcInsn(i)
+                }
                 mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
             }
             is Expr.FloatE -> {
-                mv.visitLdcInsn(e.f)
+                when (e.f) {
+                    0.0 -> mv.visitInsn(FCONST_0)
+                    1.0 -> mv.visitInsn(FCONST_1)
+                    2.0 -> mv.visitInsn(FCONST_2)
+                    else -> mv.visitLdcInsn(e.f)
+                }
                 mv.visitMethodInsn(INVOKESTATIC, FLOAT_CLASS, "valueOf", "(F)L$FLOAT_CLASS;", false)
             }
             is Expr.StringE -> {
                 mv.visitLdcInsn(e.s)
             }
             is Expr.CharE -> {
-                // TODO: optimize in case c is small (use byte, not LDC)
-                mv.visitLdcInsn(e.c)
+                val i = e.c.toInt()
+                when {
+                    i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
+                    i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i)
+                    else -> mv.visitLdcInsn(i)
+                }
                 mv.visitMethodInsn(INVOKESTATIC, CHAR_CLASS, "valueOf", "(C)L$CHAR_CLASS;", false)
             }
             is Expr.Bool -> {
@@ -127,8 +149,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLabel(thenL)
             }
             is Expr.Let -> {
+                val num = localsCount++
                 genExpr(e.letDef.expr, mv)
-                mv.visitVarInsn(ASTORE, e.letDef.num)
+                mv.visitVarInsn(ASTORE, num)
+                e.body.setLocalVarNum(e.letDef.name, num)
                 genExpr(e.body, mv)
             }
         }

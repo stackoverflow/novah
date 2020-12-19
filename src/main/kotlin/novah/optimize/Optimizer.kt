@@ -17,8 +17,6 @@ import novah.frontend.typechecker.Type as TType
  */
 class Optimizer(private val ast: CModule) {
 
-    private var localsCount = 0
-
     fun convert() = ast.convert()
 
     private fun CModule.convert(): Module {
@@ -38,7 +36,7 @@ class Optimizer(private val ast: CModule) {
     private fun CDataConstructor.convert(): DataConstructor =
         DataConstructor(name, args.map { it.convert() }, visibility)
 
-    private fun CExpr.convert(locals: Map<String, Int> = mapOf()): Expr {
+    private fun CExpr.convert(locals: List<String> = listOf()): Expr {
         val typ = if (type != null) {
             type!!.convert()
         } else {
@@ -51,8 +49,7 @@ class Optimizer(private val ast: CModule) {
             is CExpr.CharE -> Expr.CharE(c, typ)
             is CExpr.Bool -> Expr.Bool(b, typ)
             is CExpr.Var -> {
-                val local = locals[name]
-                if (local != null) Expr.LocalVar(name, local, typ)
+                if (name in locals) Expr.LocalVar(name, type = typ)
                 else {
                     val cname = internalize(if (moduleName != null) "$moduleName" else ast.name) + "/Module"
                     Expr.Var(name, cname, typ)
@@ -61,19 +58,14 @@ class Optimizer(private val ast: CModule) {
             is CExpr.Lambda -> Expr.Lambda(binder, body.convert(locals), typ)
             is CExpr.App -> Expr.App(fn.convert(locals), arg.convert(locals), typ)
             is CExpr.If -> Expr.If(cond.convert(locals), thenCase.convert(locals), elseCase.convert(locals), typ)
-            is CExpr.Let -> {
-                // TODO: how to solve the problem of which variables are local in lets and lambdas
-                val num = localsCount++
-                val local = letDef.name to num
-                Expr.Let(letDef.convert(num, locals), body.convert(locals + local), typ)
-            }
+            is CExpr.Let -> Expr.Let(letDef.convert(locals), body.convert(locals + letDef.name), typ)
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ)
             is CExpr.Match -> internalError("not yet implemented")
         }
     }
 
-    private fun CLetDef.convert(num: Int, locals: Map<String, Int>): LetDef = LetDef(name, num, expr.convert(locals))
+    private fun CLetDef.convert(locals: List<String>): LetDef = LetDef(name, expr.convert(locals))
 
     private fun TType.convert(): Type = when (this) {
         is TType.TVar -> {

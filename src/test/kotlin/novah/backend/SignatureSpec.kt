@@ -86,7 +86,7 @@ class SignatureSpec : StringSpec({
             
             c = 'a'
             
-            i = if true then 6 else 99
+            i = if true then 5 else 99
             
             l = let l1 = 4
                     l2 = l1
