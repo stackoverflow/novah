@@ -139,6 +139,18 @@ class Context {
         }
     }
 
+    fun replaceCVar(name: String, new: Elem.CVar) {
+        var index = -1
+        for (i in ctx.indices) {
+            val e = ctx[i]
+            if (e is Elem.CVar && e.name == name) {
+                index = i
+                break
+            }
+        }
+        if (index >= 0) ctx[index] = new
+    }
+
     companion object {
         internal fun newContext(elems: MutableList<Elem>): Context {
             val ctx = Context()

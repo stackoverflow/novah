@@ -33,8 +33,8 @@ object Prim {
             DeclarationRef.RefType("Char"),
             DeclarationRef.RefType("Boolean"),
             DeclarationRef.RefType("Unit"),
-            DeclarationRef.RefVar("print"),
             DeclarationRef.RefVar("println"),
+            DeclarationRef.RefVar("toString"),
             DeclarationRef.RefVar("unit")
         )
     )
@@ -51,8 +51,8 @@ object Prim {
         Elem.CTVar(tChar.name),
         Elem.CTVar(tBoolean.name),
         Elem.CTVar(tUnit.name),
-        Elem.CVar("$PRIM.print", Type.TFun(tString, tUnit)),
         Elem.CVar("$PRIM.println", Type.TFun(tString, tUnit)),
+        Elem.CVar("$PRIM.toString", Type.TForall("a", Type.TFun(Type.TVar("a"), tString))),
         Elem.CVar("$PRIM.unit", tUnit)
     )
 }

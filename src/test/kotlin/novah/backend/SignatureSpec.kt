@@ -68,17 +68,17 @@ class SignatureSpec : StringSpec({
         val code = """
             module novah.test exposing ( x, y )
             
-            type Maybe a = Just a | Nothing
+            /*type Maybe a = Just a | Nothing
             
             type Day = Weekday | Weekend
             
             type Result k e = Ok k | Err e
-            
+            */
             x = 2
             
             y = 45.8E12
-            
-            z2 = z
+            /*
+            b2 = b
             
             z = "something"
             
@@ -92,9 +92,14 @@ class SignatureSpec : StringSpec({
                     l2 = l1
                 in l2
             
+            d = do
+              4
+              true
+              "asd"
+            */
             //w = \x -> x
             
-            main args = unit
+            main args = println (toString x)
         """.trimIndent()
 
         val outputDir = "output"

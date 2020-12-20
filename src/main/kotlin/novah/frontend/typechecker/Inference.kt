@@ -206,14 +206,14 @@ object Inference {
                 wfType(expr.annType)
                 context.add(Elem.CVar(decl.name, expr.annType))
             } else {
-                context.add(Elem.CVar(decl.name, Type.TForall("t1", Type.TVar("t1"))))
+                val t = store.fresh("t")
+                context.add(Elem.CVar(decl.name, Type.TForall(t, Type.TVar(t))))
             }
         }
 
         vals.forEach { decl ->
             val ty = infer(decl.exp)
-            if (!context.contains<Elem.CVar>(decl.name))
-                context.add(Elem.CVar(decl.name, ty))
+            context.replaceCVar(decl.name, Elem.CVar(decl.name, ty))
             m[decl.name] = ty
         }
         return m

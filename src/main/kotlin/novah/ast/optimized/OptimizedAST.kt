@@ -76,4 +76,10 @@ sealed class Type {
         is TFun -> arg.isGeneric() || ret.isGeneric()
         is TConstructor -> types.any(Type::isGeneric)
     }
+
+    fun getReturnTypeNameOr(notFound: String): String = when (this) {
+        is TVar -> if (isForall) notFound else name
+        is TFun -> ret.getReturnTypeNameOr(notFound)
+        is TConstructor -> name
+    }
 }

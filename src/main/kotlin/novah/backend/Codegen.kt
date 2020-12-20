@@ -68,6 +68,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private fun genStaticCtor(cw: ClassWriter) {
         val init = cw.visitMethod(ACC_STATIC, STATIC_INIT, "()V", null, emptyArray())
         init.visitCode()
+        // TODO: check variable dependencies and sort them in orders
         for (decl in ast.decls.filterIsInstance<Decl.ValDecl>()) {
             if (isMain(decl)) genMain(decl.exp, cw)
             else genValDecl(decl, init)
@@ -86,7 +87,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         mv.visitFieldInsn(PUTSTATIC, className, decl.name, toInternalType(decl.exp.type))
     }
 
-    // TODO: visit local variables
     private fun genExpr(e: Expr, mv: MethodVisitor) {
         when (e) {
             is Expr.IntE -> {
@@ -100,7 +100,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     i == 5L -> mv.visitInsn(ICONST_5)
                     i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i.toInt())
                     i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i.toInt())
-                    else -> mv.visitLdcInsn(i)
+                    else -> mv.visitLdcInsn(i.toInt())
                 }
                 mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
             }
@@ -109,7 +109,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     0.0 -> mv.visitInsn(FCONST_0)
                     1.0 -> mv.visitInsn(FCONST_1)
                     2.0 -> mv.visitInsn(FCONST_2)
-                    else -> mv.visitLdcInsn(e.f)
+                    else -> mv.visitLdcInsn(e.f.toFloat())
                 }
                 mv.visitMethodInsn(INVOKESTATIC, FLOAT_CLASS, "valueOf", "(F)L$FLOAT_CLASS;", false)
             }
@@ -133,7 +133,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitVarInsn(ALOAD, e.num)
             }
             is Expr.Var -> {
-                resolvePrimitiveModule(mv, e)
+                resolvePrimitiveModuleVar(mv, e)
             }
             is Expr.If -> {
                 genExpr(e.cond, mv)
@@ -155,14 +155,37 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 e.body.setLocalVarNum(e.letDef.name, num)
                 genExpr(e.body, mv)
             }
+            is Expr.Do -> {
+                e.exps.forEachIndexed { index, expr ->
+                    // TODO: check when we have to POP
+                    if (index != 0) mv.visitInsn(POP)
+                    genExpr(expr, mv)
+                }
+            }
+            is Expr.App -> {
+                resolvePrimitiveModuleApp(mv, e)
+            }
         }
     }
 
-    private fun resolvePrimitiveModule(mv: MethodVisitor, e: Expr.Var) {
+    private fun resolvePrimitiveModuleVar(mv: MethodVisitor, e: Expr.Var) {
         if (e.fullname() == "prim/Module.unit") {
             mv.visitInsn(ACONST_NULL)
         } else {
             mv.visitFieldInsn(GETSTATIC, e.className, e.name, toInternalType(e.type))
+        }
+    }
+
+    private fun resolvePrimitiveModuleApp(mv: MethodVisitor, e: Expr.App) {
+        val fn = e.fn
+        if (fn is Expr.Var && fn.fullname() == "prim/Module.println") {
+            mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;")
+            genExpr(e.arg, mv)
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false)
+        } else if (fn is Expr.Var && fn.fullname() == "prim/Module.toString") {
+            genExpr(e.arg, mv)
+            val retType = e.arg.type.getReturnTypeNameOr("java/lang/Object")
+            mv.visitMethodInsn(INVOKEVIRTUAL, retType, "toString", "()Ljava/lang/String;", false)
         }
     }
 

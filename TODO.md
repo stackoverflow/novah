@@ -6,6 +6,7 @@
 - [ ] Add warnings to the compiler
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [ ] Add primitive autoboxing to code generation
+- [ ] Report cycles in variable declarations
 - [X] Create a second set of typed expression AST to simplify codegen
 - [X] Validate exports are actually valid
 - [X] Type check type constructors (ex: List Int)
