@@ -6,9 +6,13 @@ import novah.backend.GenUtil.OBJECT_CLASS
 import novah.backend.GenUtil.STATIC_INIT
 import novah.backend.GenUtil.visibility
 import novah.backend.TypeUtil.BOOL_CLASS
+import novah.backend.TypeUtil.BYTE_CLASS
 import novah.backend.TypeUtil.CHAR_CLASS
+import novah.backend.TypeUtil.DOUBLE_CLASS
 import novah.backend.TypeUtil.FLOAT_CLASS
 import novah.backend.TypeUtil.INTEGER_CLASS
+import novah.backend.TypeUtil.LONG_CLASS
+import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.maybeBuildFieldSignature
 import novah.backend.TypeUtil.toInternalType
 import org.objectweb.asm.ClassWriter
@@ -52,7 +56,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private fun genFieldVal(cw: ClassWriter, decl: Decl.ValDecl) {
         // Strings can be inlined directly
-        val value = if (decl.exp is Expr.StringE) decl.exp.s else null
+        val value = if (decl.exp is Expr.StringE) decl.exp.v else null
         cw.visitField(
             ACC_FINAL + ACC_STATIC + visibility(decl),
             decl.name,
@@ -86,35 +90,86 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private fun genExpr(e: Expr, mv: MethodVisitor) {
         when (e) {
-            is Expr.IntE -> {
-                val i = e.i
+            is Expr.ByteE -> {
+                val i = e.v.toInt()
                 when {
-                    i == 0L -> mv.visitInsn(ICONST_0)
-                    i == 1L -> mv.visitInsn(ICONST_1)
-                    i == 2L -> mv.visitInsn(ICONST_2)
-                    i == 3L -> mv.visitInsn(ICONST_3)
-                    i == 4L -> mv.visitInsn(ICONST_4)
-                    i == 5L -> mv.visitInsn(ICONST_5)
-                    i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i.toInt())
-                    i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i.toInt())
-                    else -> mv.visitLdcInsn(i.toInt())
+                    i == 0 -> mv.visitInsn(ICONST_0)
+                    i == 1 -> mv.visitInsn(ICONST_1)
+                    i == 2 -> mv.visitInsn(ICONST_2)
+                    i == 3 -> mv.visitInsn(ICONST_3)
+                    i == 4 -> mv.visitInsn(ICONST_4)
+                    i == 5 -> mv.visitInsn(ICONST_5)
+                    else -> mv.visitIntInsn(BIPUSH, i)
+                }
+                mv.visitMethodInsn(INVOKESTATIC, BYTE_CLASS, "valueOf", "(B)L$BYTE_CLASS;", false)
+            }
+            is Expr.ShortE -> {
+                val i = e.v.toInt()
+                when {
+                    i == 0 -> mv.visitInsn(ICONST_0)
+                    i == 1 -> mv.visitInsn(ICONST_1)
+                    i == 2 -> mv.visitInsn(ICONST_2)
+                    i == 3 -> mv.visitInsn(ICONST_3)
+                    i == 4 -> mv.visitInsn(ICONST_4)
+                    i == 5 -> mv.visitInsn(ICONST_5)
+                    i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
+                    else -> mv.visitIntInsn(SIPUSH, i)
+                }
+                mv.visitMethodInsn(INVOKESTATIC, SHORT_CLASS, "valueOf", "(S)L$SHORT_CLASS;", false)
+            }
+            is Expr.IntE -> {
+                val i = e.v
+                when {
+                    i == 0 -> mv.visitInsn(ICONST_0)
+                    i == 1 -> mv.visitInsn(ICONST_1)
+                    i == 2 -> mv.visitInsn(ICONST_2)
+                    i == 3 -> mv.visitInsn(ICONST_3)
+                    i == 4 -> mv.visitInsn(ICONST_4)
+                    i == 5 -> mv.visitInsn(ICONST_5)
+                    i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
+                    i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i)
+                    else -> mv.visitLdcInsn(i)
                 }
                 mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
             }
+            is Expr.LongE -> {
+                val l = e.v
+                when {
+                    l == 0L -> mv.visitInsn(ICONST_0)
+                    l == 1L -> mv.visitInsn(ICONST_1)
+                    l == 2L -> mv.visitInsn(ICONST_2)
+                    l == 3L -> mv.visitInsn(ICONST_3)
+                    l == 4L -> mv.visitInsn(ICONST_4)
+                    l == 5L -> mv.visitInsn(ICONST_5)
+                    l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, l.toInt())
+                    l >= Short.MIN_VALUE && l <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, l.toInt())
+                    l >= Int.MIN_VALUE && l <= Int.MAX_VALUE -> mv.visitLdcInsn(l.toInt())
+                    else -> mv.visitLdcInsn(l)
+                }
+                mv.visitMethodInsn(INVOKESTATIC, LONG_CLASS, "valueOf", "(J)L$LONG_CLASS;", false)
+            }
             is Expr.FloatE -> {
-                when (e.f) {
-                    0.0 -> mv.visitInsn(FCONST_0)
-                    1.0 -> mv.visitInsn(FCONST_1)
-                    2.0 -> mv.visitInsn(FCONST_2)
-                    else -> mv.visitLdcInsn(e.f.toFloat())
+                when (e.v) {
+                    0.0F -> mv.visitInsn(FCONST_0)
+                    1.0F -> mv.visitInsn(FCONST_1)
+                    2.0F -> mv.visitInsn(FCONST_2)
+                    else -> mv.visitLdcInsn(e.v)
                 }
                 mv.visitMethodInsn(INVOKESTATIC, FLOAT_CLASS, "valueOf", "(F)L$FLOAT_CLASS;", false)
             }
+            is Expr.DoubleE -> {
+                when (e.v) {
+                    0.0 -> mv.visitInsn(DCONST_0)
+                    1.0 -> mv.visitInsn(DCONST_1)
+                    else -> mv.visitLdcInsn(e.v)
+                }
+                mv.visitMethodInsn(INVOKESTATIC, DOUBLE_CLASS, "valueOf", "(D)L$DOUBLE_CLASS;", false)
+            }
             is Expr.StringE -> {
-                mv.visitLdcInsn(e.s)
+                mv.visitLdcInsn(e.v)
             }
             is Expr.CharE -> {
-                val i = e.c.toInt()
+                val i = e.v.toInt()
                 when {
                     i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
                     i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i)
@@ -123,7 +178,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKESTATIC, CHAR_CLASS, "valueOf", "(C)L$CHAR_CLASS;", false)
             }
             is Expr.Bool -> {
-                mv.visitInsn(if (e.b) ICONST_1 else ICONST_0)
+                mv.visitInsn(if (e.v) ICONST_1 else ICONST_0)
                 mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
             }
             is Expr.LocalVar -> {

@@ -41,8 +41,10 @@ sealed class Token {
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
     data class StringT(val s: String) : Token()
-    data class IntT(val i: Long, val text: String) : Token()
-    data class FloatT(val f: Double, val text: String) : Token()
+    data class IntT(val v: Int, val text: String) : Token()
+    data class LongT(val v: Long, val text: String) : Token()
+    data class FloatT(val v: Float, val text: String) : Token()
+    data class DoubleT(val v: Double, val text: String) : Token()
     data class Ident(val v: String) : Token()
     data class UpperIdent(val v: String) : Token()
     data class Op(val op: String) : Token()
@@ -257,9 +259,14 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             return "$e$sign$exp"
         }
 
+        fun genNumIntToken(n: Long, text: String): Token = when {
+            n >= Int.MIN_VALUE && n <= Int.MAX_VALUE -> IntT(n.toInt(), text)
+            else -> LongT(n, text)
+        }
+
         val n = if (negative) -1 else 1
         if (!iter.hasNext()) {
-            return IntT("$init".toSafeLong(10) * n, "$init")
+            return genNumIntToken("$init".toSafeLong(10) * n, "$init")
         }
         return if (init == '0') {
             when (val c = iter.peek()) {
@@ -268,18 +275,24 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     iter.next()
                     val bin = acceptMany("01")
                     if (bin.isEmpty()) lexError("Binary number cannot be empty")
-                    IntT(bin.toSafeLong(2) * n, "0$c$bin")
+                    val l = accept("L")
+                    if (l != null) LongT(bin.toSafeLong(2) * n, "0$c$bin")
+                    else genNumIntToken(bin.toSafeLong(2) * n, "0$c$bin")
                 }
                 // hex numbers
                 'x', 'X' -> {
                     iter.next()
                     val hex = acceptMany("0123456789abcdefABCDEF")
                     if (hex.isEmpty()) lexError("Hexadecimal number cannot be empty")
-                    IntT(hex.toSafeLong(16) * n, "0$c$hex")
+                    val l = accept("L")
+                    if (l != null) LongT(hex.toSafeLong(16) * n, "0$c$hex")
+                    else genNumIntToken(hex.toSafeLong(16) * n, "0$c$hex")
                 }
                 else -> {
                     if (c.isDigit()) lexError("Number 0 can only be followed by b|B or x|X: `$c`")
-                    IntT(0, "0")
+                    val l = accept("L")
+                    if (l != null) LongT(0, "0L")
+                    else IntT(0, "0")
                 }
             }
         } else {
@@ -295,16 +308,26 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     val number = if (iter.hasNext() && iter.peek().toLowerCase() == 'e') {
                         "$num.$end${readE()}"
                     } else "$num.$end"
-                    FloatT(number.toSafeDouble() * n, number)
+
+                    val f = accept("F")
+
+                    if (f != null) FloatT(number.toSafeFloat() * n, number + f)
+                    else DoubleT(number.toSafeDouble() * n, number)
                 }
                 next.toLowerCase() == 'e' -> {
                     // Double
                     val number = "$num${readE()}"
-                    FloatT(number.toSafeDouble() * n, number)
+
+                    val f = accept("F")
+
+                    if (f != null) FloatT(number.toSafeFloat() * n, number + f)
+                    else DoubleT(number.toSafeDouble() * n, number)
                 }
                 else -> {
                     // Int
-                    IntT(num.toSafeLong(10) * n, num)
+                    val l = accept("L")
+                    if (l != null) LongT(num.toSafeLong(10) * n, num + l)
+                    else genNumIntToken(num.toSafeLong(10) * n, num)
                 }
             }
         }
@@ -396,6 +419,14 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
             return this.toLong(radix)
         } catch (e: NumberFormatException) {
             lexError("Invalid number format for integer: `$this`")
+        }
+    }
+
+    private fun String.toSafeFloat(): Float {
+        try {
+            return this.toFloat()
+        } catch (e: NumberFormatException) {
+            lexError("Invalid number format for float: `$this`")
         }
     }
 

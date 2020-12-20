@@ -48,11 +48,13 @@ class Desugar(private val smod: SModule) {
         DataConstructor(name, args.map { it.desugar() }, exports.ctorVisibility(name))
 
     private fun SExpr.desugar(locals: List<String> = listOf()): Expr = when (this) {
-        is SExpr.IntE -> Expr.IntE(i, span)
-        is SExpr.FloatE -> Expr.FloatE(f, span)
-        is SExpr.StringE -> Expr.StringE(s, span)
-        is SExpr.CharE -> Expr.CharE(c, span)
-        is SExpr.Bool -> Expr.Bool(b, span)
+        is SExpr.IntE -> Expr.IntE(v, span)
+        is SExpr.LongE -> Expr.LongE(v, span)
+        is SExpr.FloatE -> Expr.FloatE(v, span)
+        is SExpr.DoubleE -> Expr.DoubleE(v, span)
+        is SExpr.StringE -> Expr.StringE(v, span)
+        is SExpr.CharE -> Expr.CharE(v, span)
+        is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.Var -> {
             if (name in locals) Expr.Var(name, span)
             else Expr.Var(name, span, imports.resolve(this))

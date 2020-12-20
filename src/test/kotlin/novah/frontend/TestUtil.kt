@@ -84,7 +84,7 @@ object TestUtil {
     fun tfun(l: Type, r: Type) = Type.TFun(l, r)
     fun forall(x: String, t: Type) = Type.TForall(x, t)
 
-    fun _i(i: Long) = Expr.IntE(i, "$i")
+    fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)
     fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns, e)
     fun abs(n: String, e: Expr) = Expr.Lambda(listOf(n), e)

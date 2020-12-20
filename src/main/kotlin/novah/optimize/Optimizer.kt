@@ -3,6 +3,9 @@ package novah.optimize
 import novah.Util.internalError
 import novah.ast.optimized.*
 import novah.frontend.typechecker.GenNameStore.Companion.originalName
+import novah.frontend.typechecker.Prim.tByte
+import novah.frontend.typechecker.Prim.tLong
+import novah.frontend.typechecker.Prim.tShort
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.DataDecl as CDataDecl
 import novah.ast.canonical.Decl.ValDecl as CValDecl
@@ -43,11 +46,18 @@ class Optimizer(private val ast: CModule) {
             internalError("Received expression without type after type checking")
         }
         return when (this) {
-            is CExpr.IntE -> Expr.IntE(i, typ)
-            is CExpr.FloatE -> Expr.FloatE(f, typ)
-            is CExpr.StringE -> Expr.StringE(s, typ)
-            is CExpr.CharE -> Expr.CharE(c, typ)
-            is CExpr.Bool -> Expr.Bool(b, typ)
+            is CExpr.IntE -> when (type) {
+                tByte -> Expr.ByteE(v.toByte(), typ)
+                tShort -> Expr.ShortE(v.toShort(), typ)
+                tLong -> Expr.LongE(v.toLong(), typ)
+                else -> Expr.IntE(v, typ)
+            }
+            is CExpr.LongE -> Expr.LongE(v, typ)
+            is CExpr.FloatE -> Expr.FloatE(v, typ)
+            is CExpr.DoubleE -> Expr.DoubleE(v, typ)
+            is CExpr.StringE -> Expr.StringE(v, typ)
+            is CExpr.CharE -> Expr.CharE(v, typ)
+            is CExpr.Bool -> Expr.Bool(v, typ)
             is CExpr.Var -> {
                 if (name in locals) Expr.LocalVar(name, type = typ)
                 else {

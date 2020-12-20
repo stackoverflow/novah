@@ -13,9 +13,13 @@ import novah.frontend.typechecker.Elem
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferenceError
 import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tChar
+import novah.frontend.typechecker.Prim.tDouble
 import novah.frontend.typechecker.Prim.tFloat
 import novah.frontend.typechecker.Prim.tInt
+import novah.frontend.typechecker.Prim.tLong
+import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Type
 
@@ -35,16 +39,77 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck primitive expressions" {
         val tint = inferX("34")
-        val tfloat = inferX("34.0")
+        val tlong = inferX("34L")
+        val tfloat = inferX("34.0F")
+        val tdouble = inferX("34.0")
         val tstring = inferX("\"asd\"")
         val tchar = inferX("'A'")
         val tboolean = inferX("false")
 
         tint shouldBe tInt
+        tlong shouldBe tLong
         tfloat shouldBe tFloat
+        tdouble shouldBe tDouble
         tstring shouldBe tString
         tchar shouldBe tChar
         tboolean shouldBe tBoolean
+    }
+
+    "typecheck number conversions" {
+        val code = """
+            i = 12
+            
+            b :: Byte
+            b = 12
+            
+            b2 = 12 :: Byte
+            
+            s :: Short
+            s = 12
+            
+            l = 9999999999
+            
+            l2 = 12L
+            
+            l3 :: Long
+            l3 = 12
+            
+            d = 12.0
+            
+            f = 12.0F
+            
+            bi = 0b1101011
+            
+            bi2 = 0b1101011L
+            
+            bi3 :: Byte
+            bi3 = 0b1101011
+            
+            hex = 0xFF
+            
+            hex2 = 0xFFL
+            
+            hex3 :: Short
+            hex3 = 0xFF
+        """.module()
+
+        val tys = inferString(code)
+
+        tys["i"] shouldBe tInt
+        tys["b"] shouldBe tByte
+        tys["b2"] shouldBe tByte
+        tys["s"] shouldBe tShort
+        tys["l"] shouldBe tLong
+        tys["l2"] shouldBe tLong
+        tys["l3"] shouldBe tLong
+        tys["d"] shouldBe tDouble
+        tys["f"] shouldBe tFloat
+        tys["bi"] shouldBe tInt
+        tys["bi2"] shouldBe tLong
+        tys["bi3"] shouldBe tByte
+        tys["hex"] shouldBe tInt
+        tys["hex2"] shouldBe tLong
+        tys["hex3"] shouldBe tShort
     }
 
     "typecheck if" {

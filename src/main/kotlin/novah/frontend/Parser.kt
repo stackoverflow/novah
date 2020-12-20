@@ -195,7 +195,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun tryParseAtom(): Expr? = when (iter.peek().value) {
         is IntT -> parseInt()
+        is LongT -> parseLong()
         is FloatT -> parseFloat()
+        is DoubleT -> parseDouble()
         is StringT -> parseString()
         is CharT -> parseChar()
         is BoolT -> parseBool()
@@ -227,12 +229,22 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseInt(): Expr {
         val num = expect<IntT>(withError(E.literalExpected("integer")))
-        return Expr.IntE(num.value.i, num.value.text).withSpanAndComment(num)
+        return Expr.IntE(num.value.v, num.value.text).withSpanAndComment(num)
+    }
+
+    private fun parseLong(): Expr {
+        val num = expect<LongT>(withError(E.literalExpected("long")))
+        return Expr.LongE(num.value.v, num.value.text).withSpanAndComment(num)
     }
 
     private fun parseFloat(): Expr {
         val num = expect<FloatT>(withError(E.literalExpected("float")))
-        return Expr.FloatE(num.value.f, num.value.text).withSpanAndComment(num)
+        return Expr.FloatE(num.value.v, num.value.text).withSpanAndComment(num)
+    }
+
+    private fun parseDouble(): Expr {
+        val num = expect<DoubleT>(withError(E.literalExpected("double")))
+        return Expr.DoubleE(num.value.v, num.value.text).withSpanAndComment(num)
     }
 
     private fun parseString(): Expr {
@@ -427,11 +439,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is IntT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.IntLiteral(tk.value.i))
+                Pattern.LiteralP(LiteralPattern.IntLiteral(tk.value.v.toLong()))
             }
             is FloatT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.FloatLiteral(tk.value.f))
+                Pattern.LiteralP(LiteralPattern.FloatLiteral(tk.value.v.toDouble()))
             }
             is CharT -> {
                 iter.next()

@@ -6,9 +6,13 @@ import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.store
 import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tChar
+import novah.frontend.typechecker.Prim.tDouble
 import novah.frontend.typechecker.Prim.tFloat
 import novah.frontend.typechecker.Prim.tInt
+import novah.frontend.typechecker.Prim.tLong
+import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Subsumption.subsume
 import novah.frontend.typechecker.WellFormed.wfContext
@@ -39,7 +43,9 @@ object Inference {
     fun typesynth(exp: Expr): Type {
         return when (exp) {
             is Expr.IntE -> exp.withType(tInt)
+            is Expr.LongE -> exp.withType(tLong)
             is Expr.FloatE -> exp.withType(tFloat)
+            is Expr.DoubleE -> exp.withType(tDouble)
             is Expr.StringE -> exp.withType(tString)
             is Expr.CharE -> exp.withType(tChar)
             is Expr.Bool -> exp.withType(tBoolean)
@@ -114,11 +120,18 @@ object Inference {
 
     fun typecheck(expr: Expr, type: Type) {
         when {
-            expr is Expr.IntE && type == tInt -> expr.type = tInt
-            expr is Expr.FloatE && type == tFloat -> expr.type = tFloat
-            expr is Expr.StringE && type == tString -> expr.type = tString
-            expr is Expr.CharE && type == tChar -> expr.type = tChar
-            expr is Expr.Bool && type == tBoolean -> expr.type = tBoolean
+            expr is Expr.IntE && type == tByte && expr.v >= Byte.MIN_VALUE && expr.v <= Byte.MAX_VALUE ->
+                expr.withType(tByte)
+            expr is Expr.IntE && type == tShort && expr.v >= Short.MIN_VALUE && expr.v <= Short.MAX_VALUE ->
+                expr.withType(tShort)
+            expr is Expr.IntE && type == tInt -> expr.withType(tInt)
+            expr is Expr.IntE && type == tLong -> expr.withType(tLong)
+            expr is Expr.LongE && type == tLong -> expr.withType(tLong)
+            expr is Expr.FloatE && type == tFloat -> expr.withType(tFloat)
+            expr is Expr.DoubleE && type == tDouble -> expr.withType(tDouble)
+            expr is Expr.StringE && type == tString -> expr.withType(tString)
+            expr is Expr.CharE && type == tChar -> expr.withType(tChar)
+            expr is Expr.Bool && type == tBoolean -> expr.withType(tBoolean)
             type is Type.TForall -> {
                 val x = store.fresh(type.name)
                 val m = store.fresh("m")

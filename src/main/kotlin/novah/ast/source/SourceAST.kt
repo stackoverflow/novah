@@ -78,24 +78,32 @@ data class DataConstructor(val name: String, val args: List<Type>) {
 }
 
 sealed class Expr {
-    data class IntE(val i: Long, val text: String) : Expr() {
+    data class IntE(val v: Int, val text: String) : Expr() {
         override fun toString(): String = text
     }
 
-    data class FloatE(val f: Double, val text: String) : Expr() {
+    data class LongE(val v: Long, val text: String) : Expr() {
         override fun toString(): String = text
     }
 
-    data class StringE(val s: String) : Expr() {
-        override fun toString(): String = "\"$s\""
+    data class FloatE(val v: Float, val text: String) : Expr() {
+        override fun toString(): String = text
     }
 
-    data class CharE(val c: Char) : Expr() {
-        override fun toString(): String = "'$c'"
+    data class DoubleE(val v: Double, val text: String) : Expr() {
+        override fun toString(): String = text
     }
 
-    data class Bool(val b: Boolean) : Expr() {
-        override fun toString(): String = "$b"
+    data class StringE(val v: String) : Expr() {
+        override fun toString(): String = "\"$v\""
+    }
+
+    data class CharE(val v: Char) : Expr() {
+        override fun toString(): String = "'$v'"
+    }
+
+    data class Bool(val v: Boolean) : Expr() {
+        override fun toString(): String = "$v"
     }
 
     data class Var(val name: String, val alias: String? = null) : Expr() {
