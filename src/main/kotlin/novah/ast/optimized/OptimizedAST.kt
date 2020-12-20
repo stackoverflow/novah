@@ -29,10 +29,7 @@ sealed class Expr(open val type: Type) {
     data class StringE(val s: String, override val type: Type) : Expr(type)
     data class CharE(val c: Char, override val type: Type) : Expr(type)
     data class Bool(val b: Boolean, override val type: Type) : Expr(type)
-    data class Var(val name: String, val className: String, override val type: Type) : Expr(type) {
-        fun fullname() = "$className.$name"
-    }
-
+    data class Var(val name: String, val className: String, override val type: Type) : Expr(type)
     data class LocalVar(val name: String, var num: Int = 0, override val type: Type) : Expr(type)
     data class Lambda(val binder: String, val body: Expr, override val type: Type) : Expr(type)
     data class App(val fn: Expr, val arg: Expr, override val type: Type) : Expr(type)
@@ -83,3 +80,5 @@ sealed class Type {
         is TConstructor -> name
     }
 }
+
+fun Expr.Var.fullname() = "$className.$name"

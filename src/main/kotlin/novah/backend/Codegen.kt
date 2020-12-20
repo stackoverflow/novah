@@ -1,9 +1,6 @@
 package novah.backend
 
-import novah.ast.optimized.Decl
-import novah.ast.optimized.Expr
-import novah.ast.optimized.Module
-import novah.ast.optimized.Type
+import novah.ast.optimized.*
 import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
 import novah.backend.GenUtil.OBJECT_CLASS
 import novah.backend.GenUtil.STATIC_INIT
@@ -182,6 +179,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;")
             genExpr(e.arg, mv)
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false)
+            mv.visitInsn(ACONST_NULL)
         } else if (fn is Expr.Var && fn.fullname() == "prim/Module.toString") {
             genExpr(e.arg, mv)
             val retType = e.arg.type.getReturnTypeNameOr("java/lang/Object")
@@ -194,6 +192,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         main.visitCode()
         val exp = (e as Expr.Lambda).body
         genExpr(exp, main)
+        main.visitInsn(POP)
         main.visitInsn(RETURN)
         main.visitMaxs(0, 0)
         main.visitEnd()

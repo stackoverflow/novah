@@ -178,15 +178,35 @@ class TypecheckerSpec : StringSpec({
         }
     }
 
-    "test" {
+    "high ranked types compile with type annotation" {
         val code = """
+            poly :: (forall a. a -> a) -> Boolean
+            poly f = (f 0 < 1) == f true
+            
             type Tuple a b = Tuple a b
             
-            //fun :: forall a b. (forall c. c -> c) -> Tuple a b
-            fun f tup = Tuple 3 5
+            fun :: (forall a. a -> a) -> Tuple Int String
+            fun f = Tuple (f 1) (f "a")
         """.module()
-        val tys = inferString(code)
 
-        tys.map { println(it.component1() + "= " + it.component2().simpleName()) }
+        shouldNotThrowAny {
+            inferString(code)
+        }
+    }
+
+    "high ranked types do not compile without type annotation" {
+        val code = """
+            //poly :: (forall a. a -> a) -> Boolean
+            poly f = (f 0 < 1) == f true
+            
+            type Tuple a b = Tuple a b
+            
+            //fun :: (forall a. a -> a) -> Tuple Int String
+            fun f = Tuple (f 1) (f "a")
+        """.module()
+
+        shouldThrow<InferenceError> {
+            inferString(code)
+        }
     }
 })
