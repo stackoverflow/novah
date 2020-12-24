@@ -49,7 +49,7 @@ sealed class Expr(open val type: Type) {
     data class Do(val exps: List<Expr>, override val type: Type) : Expr(type)
 }
 
-data class LetDef(val name: String, val expr: Expr)
+data class LetDef(val binder: String, val expr: Expr)
 
 sealed class Type {
     data class TVar(val name: String, val isForall: Boolean = false) : Type()

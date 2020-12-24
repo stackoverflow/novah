@@ -20,9 +20,9 @@ import novah.frontend.typechecker.WellFormed.wfType
 
 object Inference {
 
-    fun generalize(unsolved: List<String>, type: Type, expr: Expr): Type {
+    fun generalize(unsolved: List<Name>, type: Type, expr: Expr): Type {
         val ns = type.unsolvedInType(unsolved)
-        val m = mutableMapOf<String, Type.TVar>()
+        val m = mutableMapOf<Name, Type.TVar>()
         ns.forEach { x ->
             val name = store.fresh(x)
             m[x] = Type.TVar(name)
@@ -35,7 +35,7 @@ object Inference {
         return c
     }
 
-    fun generalizeFrom(marker: String, type: Type, expr: Expr): Type {
+    fun generalizeFrom(marker: Name, type: Type, expr: Expr): Type {
         expr.resolveMetas(context)
         return generalize(context.leaveWithUnsolved(marker), type, expr)
     }
@@ -50,14 +50,19 @@ object Inference {
             is Expr.CharE -> exp.withType(tChar)
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.Var -> {
-                val x = context.lookup<Elem.CVar>(exp.canonicalName())
+                val x = context.lookup<Elem.CVar>(exp.name)
                     ?: inferError("undefined variable ${exp.name}", exp)
                 exp.withType(x.type)
             }
             is Expr.Lambda -> {
-                val x = store.fresh(exp.binder)
-                val a = store.fresh(exp.binder)
-                val b = store.fresh(exp.binder)
+                // check if this variable is shadowed
+                val binder = exp.binder.name
+                val shadow = context.lookupShadow<Elem.CVar>(binder)
+                if (shadow != null) inferError("Variable $binder is shadowed", exp.binder.span)
+
+                val x = store.fresh(binder)
+                val a = store.fresh(binder)
+                val b = store.fresh(binder)
                 val ta = Type.TMeta(a)
                 val tb = Type.TMeta(b)
                 val m = store.fresh("m")
@@ -89,7 +94,13 @@ object Inference {
             is Expr.Let -> {
                 // infer the binding
                 val ld = exp.letDef
-                val name = store.fresh(ld.name)
+                val binder = ld.binder.name
+
+                // check if this variable is shadowed
+                val shadow = context.lookupShadow<Elem.CVar>(binder)
+                if (shadow != null) inferError("Variable ${ld.binder} is shadowed", ld.binder.span)
+
+                val name = store.fresh(binder)
                 val binding = if (ld.type != null) {
                     wfType(ld.type)
                     typecheck(ld.expr, ld.type)
@@ -102,7 +113,7 @@ object Inference {
                 // add the binding to the context
                 val m = store.fresh("m")
                 context.enter(m, binding)
-                val subExp = exp.body.substVar(ld.name, Expr.Var(name, Span.empty()))
+                val subExp = exp.body.substVar(binder, Expr.Var(name, Span.empty()))
 
                 // infer the body
                 exp.withType(generalizeFrom(m, _apply(typesynth(subExp)), exp))
@@ -139,7 +150,7 @@ object Inference {
                 context.leave(m)
             }
             type is Type.TFun && expr is Expr.Lambda -> {
-                val x = store.fresh(expr.binder)
+                val x = store.fresh(expr.binder.name)
                 val m = store.fresh("m")
                 context.enter(m, Elem.CVar(x, type.arg))
                 typecheck(expr.openLambda(Expr.Var(x, Span.empty())), type.ret)
@@ -215,18 +226,20 @@ object Inference {
         val vals = mod.decls.filterIsInstance<Decl.ValDecl>()
         vals.forEach { decl ->
             val expr = decl.exp
+            val name = decl.name.raw()
             if (expr is Expr.Ann) {
                 wfType(expr.annType)
-                context.add(Elem.CVar(decl.name, expr.annType))
+                context.add(Elem.CVar(name, expr.annType))
             } else {
                 val t = store.fresh("t")
-                context.add(Elem.CVar(decl.name, Type.TForall(t, Type.TVar(t))))
+                context.add(Elem.CVar(name, Type.TForall(t, Type.TVar(t))))
             }
         }
 
         vals.forEach { decl ->
             val ty = infer(decl.exp)
-            context.replaceCVar(decl.name, Elem.CVar(decl.name, ty))
+            val name = decl.name.raw()
+            context.replaceCVar(name, Elem.CVar(name, ty))
             m[decl.name] = ty
         }
         return m
@@ -237,7 +250,7 @@ object Inference {
      * variables (constructors) that should be added to the context.
      */
     private fun dataDeclToType(dd: Decl.DataDecl, moduleName: String): List<Elem> {
-        fun nestForalls(acc: List<String>, type: Type): Type {
+        fun nestForalls(acc: List<Name>, type: Type): Type {
             return if (acc.isEmpty()) type
             else Type.TForall(acc.first(), nestForalls(acc.drop(1), type))
         }
@@ -248,15 +261,15 @@ object Inference {
         }
 
         val elems = mutableListOf<Elem>()
-        val typeName = "$moduleName." + dd.name
+        val typeName = "$moduleName.${dd.name}".raw()
         elems += Elem.CTVar(typeName, dd.tyVars.size)
 
-        val innerTypes = dd.tyVars.map { Type.TVar(it) }
+        val innerTypes = dd.tyVars.map { Type.TVar(it.raw()) }
         val dataType = Type.TConstructor(typeName, innerTypes)
 
         dd.dataCtors.forEach { ctor ->
-            val type = nestForalls(dd.tyVars, nestFuns(ctor.args + dataType))
-            elems.add(Elem.CVar(ctor.name, type))
+            val type = nestForalls(dd.tyVars.map(Name::Raw), nestFuns(ctor.args + dataType))
+            elems.add(Elem.CVar(ctor.name.raw(), type))
         }
 
         return elems

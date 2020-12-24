@@ -8,6 +8,7 @@ import novah.frontend.TestUtil.module
 import novah.frontend.typechecker.InferContext
 import novah.frontend.typechecker.InferenceError
 import novah.frontend.typechecker.Prim
+import novah.frontend.typechecker.raw
 
 class TypecheckerADTSpec : StringSpec({
 
@@ -69,7 +70,7 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = inferString(code)
         tys["x"]?.simpleName() shouldBe "Result Int String"
-        val y = tys["y"]!!.substFreeVar("k")
+        val y = tys["y"]!!.substFreeVar("k".raw())
         y.simpleName() shouldBe "forall k. Result k String"
     }
 
@@ -103,9 +104,9 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = inferString(code)
 
-        val x = tys["x"]!!.substFreeVar("b")
+        val x = tys["x"]!!.substFreeVar("b".raw())
         x.simpleName() shouldBe "forall b. Comp String b"
-        val y = tys["y"]!!.substFreeVar("a")
+        val y = tys["y"]!!.substFreeVar("a".raw())
         y.simpleName() shouldBe "forall a. Comp a String"
     }
 

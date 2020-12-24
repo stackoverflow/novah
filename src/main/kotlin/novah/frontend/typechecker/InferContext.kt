@@ -7,8 +7,10 @@ import java.util.ArrayDeque
 
 class InferenceError(msg: String) : RuntimeException(msg)
 
-fun inferError(msg: String, expr: Expr? = null): Nothing {
-    val message = if (expr != null) "$msg at ${expr.span}" else msg
+fun inferError(msg: String, expr: Expr? = null): Nothing = inferError(msg, expr?.span)
+
+fun inferError(msg: String, span: Span?): Nothing {
+    val message = if (span != null) "$msg at $span" else msg
     throw InferenceError(message)
 }
 

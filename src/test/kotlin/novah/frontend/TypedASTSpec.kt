@@ -19,6 +19,7 @@ import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Prim.tUnit
 import novah.frontend.typechecker.Type
+import novah.frontend.typechecker.raw
 
 class TypedASTSpec : StringSpec({
 
@@ -39,7 +40,7 @@ class TypedASTSpec : StringSpec({
 
     "expressions have types after typechecking" {
         val code = """
-            x = 0x123fa
+            num = 0x123fa
             
             ife = if true then 3 * 4 else 5 + 2
             
@@ -64,12 +65,12 @@ class TypedASTSpec : StringSpec({
 
         infer(ast)
 
-        map["x"]?.type shouldBe tInt
+        map["num"]?.type shouldBe tInt
         map["ife"]?.type shouldBe tInt
         map["lam"]?.type shouldBe tfun(tInt, tBoolean)
         map["lett"]?.type shouldBe tBoolean
         map["app"]?.type shouldBe tUnit
-        map["fall"]?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tvar("x")))
+        map["fall"]?.type?.substFreeVar("x".raw()) shouldBe forall("x".raw(), tfun(tvar("x".raw()), tvar("x".raw())))
 
         //map.forEach { (k, v) -> println("$k :: ${v.type}") }
     }

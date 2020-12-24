@@ -1,18 +1,16 @@
 package novah.frontend
 
 import novah.ast.Desugar
+import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.Module
-import novah.ast.optimized.Module as OModule
-import novah.frontend.typechecker.Elem
+import novah.frontend.typechecker.*
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.Inference.infer
-import novah.frontend.typechecker.Prim
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tInt
-import novah.frontend.typechecker.Prim.tString
-import novah.frontend.typechecker.Type
 import novah.optimize.Optimizer
+import novah.ast.optimized.Module as OModule
 
 object TestUtil {
 
@@ -67,27 +65,27 @@ object TestUtil {
     fun setupContext() {
         context.reset()
         Prim.addAll(context)
-        context.add(Elem.CVar("*", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("+", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("-", tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("<=", tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar(">=", tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar("<", tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar(">", tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar("==", forall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))))
-        context.add(Elem.CVar("&&", tfun(tBoolean, tfun(tBoolean, tBoolean))))
-        context.add(Elem.CVar("||", tfun(tBoolean, tfun(tBoolean, tBoolean))))
-        context.add(Elem.CVar("id", forall("a", tfun(tvar("a"), tvar("a")))))
+        context.add(Elem.CVar("*".raw(), tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("+".raw(), tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("-".raw(), tfun(tInt, tfun(tInt, tInt))))
+        context.add(Elem.CVar("<=".raw(), tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar(">=".raw(), tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar("<".raw(), tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar(">".raw(), tfun(tInt, tfun(tInt, tBoolean))))
+        context.add(Elem.CVar("==".raw(), forall("a".raw(), tfun(tvar("a".raw()), tfun(tvar("a".raw()), tBoolean)))))
+        context.add(Elem.CVar("&&".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))))
+        context.add(Elem.CVar("||".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))))
+        context.add(Elem.CVar("id".raw(), forall("a".raw(), tfun(tvar("a".raw()), tvar("a".raw())))))
     }
 
-    fun tvar(n: String) = Type.TVar(n)
+    fun tvar(n: Name) = Type.TVar(n)
     fun tfun(l: Type, r: Type) = Type.TFun(l, r)
-    fun forall(x: String, t: Type) = Type.TForall(x, t)
+    fun forall(x: Name, t: Type) = Type.TForall(x, t)
 
     fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)
-    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns, e)
-    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(n), e)
+    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { Binder(it, Span.empty()) }, e)
+    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(Binder(n, Span.empty())), e)
 
     fun String.module() = "module test\n\n${this.trimIndent()}"
 }

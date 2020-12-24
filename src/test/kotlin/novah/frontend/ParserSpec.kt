@@ -28,7 +28,7 @@ class ParserSpec : StringSpec({
     fun compareLambdas(lam1: Expr, lam2: Expr): Boolean {
         val l1 = lam1 as Expr.Lambda
         val l2 = lam2 as Expr.Lambda
-        if (l1.binders != l2.binders) return false
+        if (l1.binders.map { it.name } != l2.binders.map { it.name }) return false
         return if (l1.body is Expr.Lambda && l2.body is Expr.Lambda) {
             compareLambdas(l1.body as Expr.Lambda, l2.body as Expr.Lambda)
         } else l1.body == l2.body
@@ -97,7 +97,7 @@ class ParserSpec : StringSpec({
         val simple = ast.decls[0] as Decl.ValDecl
         val multi = ast.decls[1] as Decl.ValDecl
 
-        simple.exp shouldBe simpleL
+        compareLambdas(simple.exp, simpleL) shouldBe true
         compareLambdas(multi.exp, multiL) shouldBe true
     }
 

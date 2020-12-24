@@ -21,7 +21,9 @@ import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
+import novah.frontend.typechecker.Prim.tUnit
 import novah.frontend.typechecker.Type
+import novah.frontend.typechecker.raw
 
 class TypecheckerSpec : StringSpec({
 
@@ -131,7 +133,7 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck generics" {
-        val ty = inferX("\\x -> x")
+        val ty = inferX("\\y -> y")
 
         // ty shouldBe `forall a. a -> a`
         if (ty is Type.TForall) {
@@ -144,7 +146,7 @@ class TypecheckerSpec : StringSpec({
             } else error("Type should be function")
         } else error("Function should be polymorphic")
 
-        val ty2 = inferX("(\\x -> x) false")
+        val ty2 = inferX("(\\y -> y) false")
 
         ty2 shouldBe tBoolean
     }
@@ -157,8 +159,8 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck let" {
         val code = """
-            x = let x = "bla"
-                    y = x
+            x = let a = "bla"
+                    y = a
                 in y
         """.module()
 
@@ -169,8 +171,8 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck polymorphic let bindings" {
         val code = """
-            x = let id a = a
-                in id 10
+            x = let identity a = a
+                in identity 10
         """.module()
 
         val ty = inferString(code)["x"]
@@ -179,7 +181,7 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck do statements" {
-        context.add(Elem.CVar("store", tfun(tInt, tvar("Unit"))))
+        context.add(Elem.CVar("store".raw(), tfun(tInt, tUnit)))
 
         val code = """
             x = do
@@ -264,6 +266,51 @@ class TypecheckerSpec : StringSpec({
             
             //fun :: (forall a. a -> a) -> Tuple Int String
             fun f = Tuple (f 1) (f "a")
+        """.module()
+
+        shouldThrow<InferenceError> {
+            inferString(code)
+        }
+    }
+
+    "shadowed variables should not compile (top level)" {
+        val code = """
+            x = 12
+            
+            f x = "abc"
+        """.module()
+
+        shouldThrow<InferenceError> {
+            inferString(code)
+        }
+    }
+
+    "shadowed variables should not compile (function parameter)" {
+        val code = """
+            f x = let x = "asd"
+                  in x
+        """.module()
+
+        shouldThrow<InferenceError> {
+            inferString(code)
+        }
+    }
+
+    "shadowed variables should not compile (inner let)" {
+        val code = """
+            f a = let x = "asd"
+                  in let x = 4 in x
+        """.module()
+
+        shouldThrow<InferenceError> {
+            inferString(code)
+        }
+    }
+
+    "shadowed variables should not compile (inner let function)" {
+        val code = """
+            f x = let fun a = let a = "asd" in a
+                  in fun x
         """.module()
 
         shouldThrow<InferenceError> {

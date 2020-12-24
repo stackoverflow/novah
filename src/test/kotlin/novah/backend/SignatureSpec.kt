@@ -67,7 +67,7 @@ class SignatureSpec : StringSpec({
 
     "test full compilation" {
         val code = """
-            module novah.test exposing ( x, y )
+            module novah.test exposing ( num, y )
             
             type Maybe a = Just a | Nothing
             
@@ -75,11 +75,11 @@ class SignatureSpec : StringSpec({
             
             type Result k e = Ok k | Err e
             
-            x = 2
+            num = 2
             
             y = 45.8E12
             
-            b2 = b
+            //b2 = b
             
             z = "something"
             

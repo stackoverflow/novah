@@ -241,10 +241,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
                 // TODO: check if we need to define the variable before generating the letdef
                 // to allow recursion
-                ctx.put(e.letDef.name, num, varStartLabel)
+                ctx.put(e.letDef.binder, num, varStartLabel)
                 genExpr(e.body, mv, ctx)
                 mv.visitLabel(varEndLabel)
-                ctx.setEndLabel(e.letDef.name, varEndLabel)
+                ctx.setEndLabel(e.letDef.binder, varEndLabel)
             }
             is Expr.Do -> {
                 e.exps.forEachIndexed { index, expr ->
@@ -345,7 +345,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.Let -> {
                 for (l in lambdas) {
-                    l.ignores += exp.letDef.name
+                    l.ignores += exp.letDef.binder
                 }
                 go(exp.letDef.expr)
                 go(exp.body)
