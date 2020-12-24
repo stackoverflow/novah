@@ -16,22 +16,7 @@ object InferContext {
     var context = Context()
     val store = GenNameStore()
 
-    // primitives
-    val tInt = Type.TVar("Int")
-    val tFloat = Type.TVar("Float")
-    val tString = Type.TVar("String")
-    val tChar = Type.TVar("Char")
-    val tBoolean = Type.TVar("Boolean")
-
     private val ctxStack = ArrayDeque<Context>()
-
-    fun initDefaultContext() {
-        context.add(Elem.CTVar("Int"))
-        context.add(Elem.CTVar("Float"))
-        context.add(Elem.CTVar("String"))
-        context.add(Elem.CTVar("Char"))
-        context.add(Elem.CTVar("Boolean"))
-    }
 
     fun store() {
         ctxStack.push(context.clone())

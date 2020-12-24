@@ -31,6 +31,15 @@ data class ImportResult(
         return if (op.alias != null) aliases[op.name]
         else imports[op.name]
     }
+
+    private fun resolve(name: String): Modulename? {
+        return imports[name]
+    }
+
+    fun fullname(name: String, moduleName: String): String {
+        val resolved = resolve(name)
+        return if (resolved != null) "$resolved.$name" else "$moduleName.$name"
+    }
 }
 
 /**

@@ -40,11 +40,13 @@ data class DataConstructor(val name: String, val args: List<Type>, val visibilit
 }
 
 sealed class Expr(open val span: Span) {
-    data class IntE(val i: Long, override val span: Span) : Expr(span)
-    data class FloatE(val f: Double, override val span: Span) : Expr(span)
-    data class StringE(val s: String, override val span: Span) : Expr(span)
-    data class CharE(val c: Char, override val span: Span) : Expr(span)
-    data class Bool(val b: Boolean, override val span: Span) : Expr(span)
+    data class IntE(val v: Int, override val span: Span) : Expr(span)
+    data class LongE(val v: Long, override val span: Span) : Expr(span)
+    data class FloatE(val v: Float, override val span: Span) : Expr(span)
+    data class DoubleE(val v: Double, override val span: Span) : Expr(span)
+    data class StringE(val v: String, override val span: Span) : Expr(span)
+    data class CharE(val v: Char, override val span: Span) : Expr(span)
+    data class Bool(val v: Boolean, override val span: Span) : Expr(span)
     data class Var(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class Lambda(val binder: String, val body: Expr, override val span: Span) : Expr(span)
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
@@ -59,7 +61,7 @@ sealed class Expr(open val span: Span) {
 
     fun withType(t: Type): Type {
         type = t
-        if (aliases.isNotEmpty()) aliases.forEach { it.type = t }
+        if (aliases.isNotEmpty()) aliases.forEach { it.withType(t) }
         return t
     }
 
@@ -107,7 +109,9 @@ fun LetDef.substVar(v: String, s: Expr): LetDef {
 fun Expr.substVar(v: String, s: Expr): Expr =
     when (this) {
         is Expr.IntE -> this
+        is Expr.LongE -> this
         is Expr.FloatE -> this
+        is Expr.DoubleE -> this
         is Expr.StringE -> this
         is Expr.CharE -> this
         is Expr.Bool -> this

@@ -11,12 +11,16 @@ import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
 import novah.frontend.typechecker.InferContext.context
-import novah.frontend.typechecker.InferContext.tBoolean
-import novah.frontend.typechecker.InferContext.tChar
-import novah.frontend.typechecker.InferContext.tFloat
-import novah.frontend.typechecker.InferContext.tInt
-import novah.frontend.typechecker.InferContext.tString
 import novah.frontend.typechecker.InferenceError
+import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tByte
+import novah.frontend.typechecker.Prim.tChar
+import novah.frontend.typechecker.Prim.tDouble
+import novah.frontend.typechecker.Prim.tFloat
+import novah.frontend.typechecker.Prim.tInt
+import novah.frontend.typechecker.Prim.tLong
+import novah.frontend.typechecker.Prim.tShort
+import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Type
 
 class TypecheckerSpec : StringSpec({
@@ -27,20 +31,81 @@ class TypecheckerSpec : StringSpec({
 
     fun exprX(expr: String) = "x = $expr".module()
 
-    fun inferX(expr: String) = inferString(exprX(expr))["x"]!!
+    fun inferX(expr: String): Type {
+        context.reset()
+        setupContext()
+        return inferString(exprX(expr))["x"]!!
+    }
 
     "typecheck primitive expressions" {
         val tint = inferX("34")
-        val tfloat = inferX("34.0")
+        val tlong = inferX("34L")
+        val tfloat = inferX("34.0F")
+        val tdouble = inferX("34.0")
         val tstring = inferX("\"asd\"")
         val tchar = inferX("'A'")
         val tboolean = inferX("false")
 
         tint shouldBe tInt
+        tlong shouldBe tLong
         tfloat shouldBe tFloat
+        tdouble shouldBe tDouble
         tstring shouldBe tString
         tchar shouldBe tChar
         tboolean shouldBe tBoolean
+    }
+
+    "typecheck number conversions" {
+        val code = """
+            i = 12
+            
+            b :: Byte
+            b = 12
+            
+            b2 = 12 :: Byte
+            
+            s :: Short
+            s = 12
+            
+            l = 9999999999
+            
+            l2 = 12L
+            
+            d = 12.0
+            
+            f = 12.0F
+            
+            bi = 0b1101011
+            
+            bi2 = 0b1101011L
+            
+            bi3 :: Byte
+            bi3 = 0b1101011
+            
+            hex = 0xFF
+            
+            hex2 = 0xFFL
+            
+            hex3 :: Short
+            hex3 = 0xFF
+        """.module()
+
+        val tys = inferString(code)
+
+        tys["i"] shouldBe tInt
+        tys["b"] shouldBe tByte
+        tys["b2"] shouldBe tByte
+        tys["s"] shouldBe tShort
+        tys["l"] shouldBe tLong
+        tys["l2"] shouldBe tLong
+        tys["d"] shouldBe tDouble
+        tys["f"] shouldBe tFloat
+        tys["bi"] shouldBe tInt
+        tys["bi2"] shouldBe tLong
+        tys["bi3"] shouldBe tByte
+        tys["hex"] shouldBe tInt
+        tys["hex2"] shouldBe tLong
+        tys["hex3"] shouldBe tShort
     }
 
     "typecheck if" {
@@ -130,9 +195,7 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck a recursive function" {
-        // only works because of the type annotations for now
         val code = """
-            fact :: Int -> Int
             fact x =
               if x <= 1
               then x
@@ -145,36 +208,66 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck mutually recursive functions" {
-        // only works because of the type annotations for now
         val code = """
-            f1 :: Int -> Int
+            //f1 :: Int -> Int
             f1 x =
               if x > 0
               then f2 x
               else x - 1
             
-            f2 :: Int -> Int
+            //f2 :: Int -> Int
             f2 x =
               if x <= 0
               then f1 x
               else x + 1
         """.module()
+
         shouldNotThrowAny {
             inferString(code)
         }
     }
 
-    "test" {
+    "typecheck mutually recursive functions 2" {
         val code = """
-            id x = x
+            f1 x = f2 x + 1
             
-            //fun :: forall a b. a -> b -> (forall c. c -> c) -> a
-            fun x y f = do
-              f 1
-              f x
+            f2 x = f1 x
         """.module()
-        val tys = inferString(code)
 
-        tys.map { println(it) }
+        shouldNotThrowAny {
+            inferString(code)
+        }
+    }
+
+    "high ranked types compile with type annotation" {
+        val code = """
+            poly :: (forall a. a -> a) -> Boolean
+            poly f = (f 0 < 1) == f true
+            
+            type Tuple a b = Tuple a b
+            
+            fun :: (forall a. a -> a) -> Tuple Int String
+            fun f = Tuple (f 1) (f "a")
+        """.module()
+
+        shouldNotThrowAny {
+            inferString(code)
+        }
+    }
+
+    "high ranked types do not compile without type annotation" {
+        val code = """
+            //poly :: (forall a. a -> a) -> Boolean
+            poly f = (f 0 < 1) == f true
+            
+            type Tuple a b = Tuple a b
+            
+            //fun :: (forall a. a -> a) -> Tuple Int String
+            fun f = Tuple (f 1) (f "a")
+        """.module()
+
+        shouldThrow<InferenceError> {
+            inferString(code)
+        }
     }
 })

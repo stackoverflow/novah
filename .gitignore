@@ -3,3 +3,4 @@ build
 gradle
 .kotlintest
 .idea/uiDesigner.xml
+output

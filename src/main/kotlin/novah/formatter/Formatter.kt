@@ -129,10 +129,12 @@ class Formatter {
             is Expr.Var -> e.toString()
             is Expr.Operator -> e.toString()
             is Expr.IntE -> e.text
+            is Expr.LongE -> e.text
             is Expr.FloatE -> e.text
-            is Expr.StringE -> "\"${e.s}\""
-            is Expr.CharE -> "'${e.c}'"
-            is Expr.Bool -> "${e.b}"
+            is Expr.DoubleE -> e.text
+            is Expr.StringE -> "\"${e.v}\""
+            is Expr.CharE -> "'${e.v}'"
+            is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
         }
     }

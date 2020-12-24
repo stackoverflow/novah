@@ -3,6 +3,7 @@ package novah.ast
 import novah.ast.canonical.*
 import novah.ast.source.fullName
 import novah.frontend.*
+import novah.frontend.typechecker.Prim
 import novah.frontend.typechecker.Type
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
@@ -24,6 +25,7 @@ class Desugar(private val smod: SModule) {
     private val dataCtors = smod.decls.filterIsInstance<SDecl.DataDecl>().map { it.name }
     private val exports = validateExports()
     private val imports = validateImports()
+    private val moduleName = smod.name.joinToString(".")
 
     fun desugar(): Module {
         return Module(smod.fullName(), smod.sourceName, smod.decls.map { it.desugar() })
@@ -45,22 +47,27 @@ class Desugar(private val smod: SModule) {
     private fun SDataConstructor.desugar(): DataConstructor =
         DataConstructor(name, args.map { it.desugar() }, exports.ctorVisibility(name))
 
-    private fun SExpr.desugar(): Expr = when (this) {
-        is SExpr.IntE -> Expr.IntE(i, span)
-        is SExpr.FloatE -> Expr.FloatE(f, span)
-        is SExpr.StringE -> Expr.StringE(s, span)
-        is SExpr.CharE -> Expr.CharE(c, span)
-        is SExpr.Bool -> Expr.Bool(b, span)
-        is SExpr.Var -> Expr.Var(name, span, imports.resolve(this))
+    private fun SExpr.desugar(locals: List<String> = listOf()): Expr = when (this) {
+        is SExpr.IntE -> Expr.IntE(v, span)
+        is SExpr.LongE -> Expr.LongE(v, span)
+        is SExpr.FloatE -> Expr.FloatE(v, span)
+        is SExpr.DoubleE -> Expr.DoubleE(v, span)
+        is SExpr.StringE -> Expr.StringE(v, span)
+        is SExpr.CharE -> Expr.CharE(v, span)
+        is SExpr.Bool -> Expr.Bool(v, span)
+        is SExpr.Var -> {
+            if (name in locals) Expr.Var(name, span)
+            else Expr.Var(name, span, imports.resolve(this))
+        }
         is SExpr.Operator -> Expr.Var(name, span, imports.resolve(this))
-        is SExpr.Lambda -> nestLambdas(binders, body.desugar())
-        is SExpr.App -> Expr.App(fn.desugar(), arg.desugar(), span)
-        is SExpr.Parens -> exp.desugar()
-        is SExpr.If -> Expr.If(cond.desugar(), thenCase.desugar(), elseCase.desugar(), span)
-        is SExpr.Let -> nestLets(letDefs, body.desugar())
-        is SExpr.Match -> Expr.Match(exp.desugar(), cases.map { it.desugar() }, span)
-        is SExpr.Ann -> Expr.Ann(exp.desugar(), type.desugar(), span)
-        is SExpr.Do -> Expr.Do(exps.map { it.desugar() }, span)
+        is SExpr.Lambda -> nestLambdas(binders, body.desugar(locals + binders))
+        is SExpr.App -> Expr.App(fn.desugar(locals), arg.desugar(locals), span)
+        is SExpr.Parens -> exp.desugar(locals)
+        is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
+        is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name }))
+        is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar() }, span)
+        is SExpr.Ann -> Expr.Ann(exp.desugar(locals), type.desugar(), span)
+        is SExpr.Do -> Expr.Do(exps.map { it.desugar(locals) }, span)
     }
 
     private fun SCase.desugar(): Case = Case(pattern.desugar(), exp.desugar())
@@ -93,15 +100,18 @@ class Desugar(private val smod: SModule) {
 
     private fun SType.desugar(): Type = when (this) {
         is SType.TVar -> {
-            // at this point we know if a type is a normal type
-            // or a no-parameter ADT
-            if (name in dataCtors) Type.TConstructor(name)
-            else Type.TVar(name)
+            if (name[0].isLowerCase()) Type.TVar(name)
+            else {
+                // at this point we know if a type is a normal type
+                // or a no-parameter ADT
+                if (name in dataCtors) Type.TConstructor(imports.fullname(name, moduleName), listOf())
+                else Type.TVar(imports.fullname(name, moduleName))
+            }
         }
         is SType.TFun -> Type.TFun(arg.desugar(), ret.desugar())
         is SType.TForall -> nestForalls(names, type.desugar())
         is SType.TParens -> type.desugar()
-        is SType.TConstructor -> Type.TConstructor(name, types.map { it.desugar() })
+        is SType.TConstructor -> Type.TConstructor(imports.fullname(name, moduleName), types.map { it.desugar() })
     }
 
     private fun nestForalls(names: List<String>, type: Type): Type {
@@ -138,7 +148,8 @@ class Desugar(private val smod: SModule) {
      * Make sure all imports are valid and return them
      */
     private fun validateImports(): ImportResult {
-        val res = consolidateImports(smod.imports)
+        val imps = smod.imports + Prim.primImport
+        val res = consolidateImports(imps)
         // TODO: better error reporting with context
         if (res.errors.isNotEmpty()) {
             throw ParserError(E.importError(res.errors[0]))
