@@ -113,7 +113,7 @@ class ParserSpec : StringSpec({
         vard.comment?.comment should contain("comments on var declaration work")
     }
 
-    "Parser correctly type hints" {
+    "Parse type hints correctly" {
         val ast = parseResource("Hints.novah")
 
         val x = ast.decls.filterIsInstance<Decl.ValDecl>().find { it.name == "x" }?.exp!!

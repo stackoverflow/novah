@@ -34,35 +34,19 @@ sealed class Expr(open val type: Type) {
     data class CharE(val v: Char, override val type: Type) : Expr(type)
     data class Bool(val v: Boolean, override val type: Type) : Expr(type)
     data class Var(val name: String, val className: String, override val type: Type) : Expr(type)
-    data class LocalVar(val name: String, var num: Int = 0, override val type: Type) : Expr(type)
-    data class Lambda(val binder: String, val body: Expr, override val type: Type) : Expr(type)
+    data class LocalVar(val name: String, override val type: Type) : Expr(type)
+    data class Lambda(
+        val binder: String,
+        val body: Expr,
+        var internalName: String = "",
+        var locals: List<LocalVar> = listOf(),
+        override val type: Type
+    ) : Expr(type)
+
     data class App(val fn: Expr, val arg: Expr, override val type: Type) : Expr(type)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val type: Type) : Expr(type)
     data class Let(val letDef: LetDef, val body: Expr, override val type: Type) : Expr(type)
     data class Do(val exps: List<Expr>, override val type: Type) : Expr(type)
-
-    fun setLocalVarNum(vname: String, lnum: Int) {
-        when (this) {
-            is LocalVar -> if (name == vname) num = lnum
-            is Lambda -> if (binder != vname) body.setLocalVarNum(vname, lnum)
-            is App -> {
-                fn.setLocalVarNum(vname, lnum)
-                arg.setLocalVarNum(vname, lnum)
-            }
-            is If -> {
-                cond.setLocalVarNum(vname, lnum)
-                thenCase.setLocalVarNum(vname, lnum)
-                elseCase.setLocalVarNum(vname, lnum)
-            }
-            is Let -> if (letDef.name != vname) {
-                letDef.expr.setLocalVarNum(vname, lnum)
-                body.setLocalVarNum(vname, lnum)
-            }
-            is Do -> exps.forEach { it.setLocalVarNum(vname, lnum) }
-            else -> {
-            }
-        }
-    }
 }
 
 data class LetDef(val name: String, val expr: Expr)
@@ -74,8 +58,8 @@ sealed class Type {
 
     fun isGeneric(): Boolean = when (this) {
         is TVar -> isForall
-        is TFun -> arg.isGeneric() || ret.isGeneric()
-        is TConstructor -> types.any(Type::isGeneric)
+        is TFun -> true
+        is TConstructor -> types.isNotEmpty()
     }
 
     fun getReturnTypeNameOr(notFound: String): String = when (this) {

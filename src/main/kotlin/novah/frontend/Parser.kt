@@ -211,6 +211,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 Expr.Parens(exp)
             }
         }
+        // TODO: store Constructors as its own expression, not vars
         is UpperIdent -> {
             val uident = expect<UpperIdent>(noErr())
             if (iter.peek().value is Dot) {

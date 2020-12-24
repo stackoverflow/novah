@@ -51,6 +51,7 @@ class SignatureSpec : StringSpec({
         forAll(
             row(tvar("java/lang/Integer"), null),
             row(tvar("java/lang/String"), null),
+            row(tcons("JArray", tvar("java/lang/String")), null),
             row(tcons("java/util/List", tfvar("A")), "Ljava/util/List<TA;>;"),
             row(
                 funListString,
@@ -68,16 +69,16 @@ class SignatureSpec : StringSpec({
         val code = """
             module novah.test exposing ( x, y )
             
-            /*type Maybe a = Just a | Nothing
+            type Maybe a = Just a | Nothing
             
             type Day = Weekday | Weekend
             
             type Result k e = Ok k | Err e
-            */
+            
             x = 2
             
             y = 45.8E12
-            /*
+            
             b2 = b
             
             z = "something"
@@ -86,20 +87,27 @@ class SignatureSpec : StringSpec({
             
             c = 'a'
             
-            i = if true then 5 else 99
-            
-            l = let l1 = 4
-                    l2 = l1
-                in l2
-            
             d = do
               4
               true
               "asd"
-            */
-            //w = \x -> x
             
-            main args = println (toString x)
+            i = if true then 5 else 99
+            
+            l = let l1 = toString 4
+                    l2 = toString l1
+                in l2
+            
+            w = \x -> x
+            
+            lamb :: Int -> String -> String
+            lamb x y = do
+              println y
+              toString x
+            
+            main args = do
+              lamb 4 "hello"
+              unit
         """.trimIndent()
 
         val outputDir = "output"

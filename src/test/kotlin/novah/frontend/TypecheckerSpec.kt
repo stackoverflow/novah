@@ -71,9 +71,6 @@ class TypecheckerSpec : StringSpec({
             
             l2 = 12L
             
-            l3 :: Long
-            l3 = 12
-            
             d = 12.0
             
             f = 12.0F
@@ -101,7 +98,6 @@ class TypecheckerSpec : StringSpec({
         tys["s"] shouldBe tShort
         tys["l"] shouldBe tLong
         tys["l2"] shouldBe tLong
-        tys["l3"] shouldBe tLong
         tys["d"] shouldBe tDouble
         tys["f"] shouldBe tFloat
         tys["bi"] shouldBe tInt

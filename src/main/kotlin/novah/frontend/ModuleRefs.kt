@@ -32,7 +32,7 @@ data class ImportResult(
         else imports[op.name]
     }
 
-    fun resolve(name: String): Modulename? {
+    private fun resolve(name: String): Modulename? {
         return imports[name]
     }
 

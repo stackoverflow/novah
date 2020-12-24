@@ -12,17 +12,17 @@ object Prim {
     private const val PRIM = "prim"
 
     // primitives
-    val tByte = Type.TVar("$PRIM.Byte")
-    val tShort = Type.TVar("$PRIM.Short")
-    val tInt = Type.TVar("$PRIM.Int")
-    val tLong = Type.TVar("$PRIM.Long")
-    val tFloat = Type.TVar("$PRIM.Float")
-    val tDouble = Type.TVar("$PRIM.Double")
-    val tString = Type.TVar("$PRIM.String")
-    val tChar = Type.TVar("$PRIM.Char")
-    val tBoolean = Type.TVar("$PRIM.Boolean")
+    val tByte = tvar("$PRIM.Byte")
+    val tShort = tvar("$PRIM.Short")
+    val tInt = tvar("$PRIM.Int")
+    val tLong = tvar("$PRIM.Long")
+    val tFloat = tvar("$PRIM.Float")
+    val tDouble = tvar("$PRIM.Double")
+    val tString = tvar("$PRIM.String")
+    val tChar = tvar("$PRIM.Char")
+    val tBoolean = tvar("$PRIM.Boolean")
 
-    val tUnit = Type.TVar("$PRIM.Unit")
+    val tUnit = tvar("$PRIM.Unit")
 
     /**
      * All primitive types and functions
@@ -43,6 +43,7 @@ object Prim {
             DeclarationRef.RefType("Unit"),
             DeclarationRef.RefVar("println"),
             DeclarationRef.RefVar("toString"),
+            DeclarationRef.RefVar("equals"),
             DeclarationRef.RefVar("unit")
         )
     )
@@ -63,8 +64,13 @@ object Prim {
         Elem.CTVar(tChar.name),
         Elem.CTVar(tBoolean.name),
         Elem.CTVar(tUnit.name),
-        Elem.CVar("$PRIM.println", Type.TFun(tString, tUnit)),
-        Elem.CVar("$PRIM.toString", Type.TForall("a", Type.TFun(Type.TVar("a"), tString))),
+        Elem.CVar("$PRIM.println", tfun(tString, tUnit)),
+        Elem.CVar("$PRIM.toString", tfall("a", tfun(tvar("a"), tString))),
+        Elem.CVar("$PRIM.equals", tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))),
         Elem.CVar("$PRIM.unit", tUnit)
     )
+
+    private fun tvar(x: String) = Type.TVar(x)
+    private fun tfun(a: Type, b: Type) = Type.TFun(a, b)
+    private fun tfall(v: String, t: Type) = Type.TForall(v, t)
 }

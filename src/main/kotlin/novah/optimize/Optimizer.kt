@@ -43,7 +43,7 @@ class Optimizer(private val ast: CModule) {
         val typ = if (type != null) {
             type!!.convert()
         } else {
-            internalError("Received expression without type after type checking")
+            internalError("Received expression without type after type checking: $this")
         }
         return when (this) {
             is CExpr.IntE -> when (type) {
@@ -59,13 +59,13 @@ class Optimizer(private val ast: CModule) {
             is CExpr.CharE -> Expr.CharE(v, typ)
             is CExpr.Bool -> Expr.Bool(v, typ)
             is CExpr.Var -> {
-                if (name in locals) Expr.LocalVar(name, type = typ)
+                if (name in locals) Expr.LocalVar(name, typ)
                 else {
                     val cname = internalize(if (moduleName != null) "$moduleName" else ast.name) + "/Module"
                     Expr.Var(name, cname, typ)
                 }
             }
-            is CExpr.Lambda -> Expr.Lambda(binder, body.convert(locals), typ)
+            is CExpr.Lambda -> Expr.Lambda(binder, body.convert(locals + binder), type = typ)
             is CExpr.App -> Expr.App(fn.convert(locals), arg.convert(locals), typ)
             is CExpr.If -> Expr.If(cond.convert(locals), thenCase.convert(locals), elseCase.convert(locals), typ)
             is CExpr.Let -> Expr.Let(letDef.convert(locals), body.convert(locals + letDef.name), typ)

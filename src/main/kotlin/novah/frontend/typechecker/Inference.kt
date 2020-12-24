@@ -125,7 +125,6 @@ object Inference {
             expr is Expr.IntE && type == tShort && expr.v >= Short.MIN_VALUE && expr.v <= Short.MAX_VALUE ->
                 expr.withType(tShort)
             expr is Expr.IntE && type == tInt -> expr.withType(tInt)
-            expr is Expr.IntE && type == tLong -> expr.withType(tLong)
             expr is Expr.LongE && type == tLong -> expr.withType(tLong)
             expr is Expr.FloatE && type == tFloat -> expr.withType(tFloat)
             expr is Expr.DoubleE && type == tDouble -> expr.withType(tDouble)
@@ -145,6 +144,7 @@ object Inference {
                 context.enter(m, Elem.CVar(x, type.arg))
                 typecheck(expr.openLambda(Expr.Var(x, Span.empty())), type.ret)
                 context.leave(m)
+                expr.withType(type)
             }
             expr is Expr.If -> {
                 typecheck(expr.cond, tBoolean)

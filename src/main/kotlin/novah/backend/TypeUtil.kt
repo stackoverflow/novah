@@ -14,13 +14,26 @@ object TypeUtil {
     const val CHAR_CLASS = "java/lang/Character"
     const val BOOL_CLASS = "java/lang/Boolean"
 
+    const val STRING_CLASS = "java/lang/String"
+
     private const val OBJECT_TYPE = "Ljava/lang/Object;"
     private const val FUNCTION_TYPE = "Ljava/util/function/Function;"
 
     fun toInternalType(type: Type): String = when (type) {
         is Type.TVar -> if (type.isForall) OBJECT_TYPE else descriptor(type.name)
-        is Type.TConstructor -> descriptor(type.name)
+        is Type.TConstructor -> {
+            if (type.name == "JArray") "[" + toInternalType(type.types[0])
+            else descriptor(type.name)
+        }
         is Type.TFun -> FUNCTION_TYPE
+    }
+
+    fun toInternalMethodType(ret: Type, args: List<Type>): String {
+        return args.joinToString("", prefix = "(", postfix = ")") { toInternalType(it) } + toInternalType(ret)
+    }
+
+    fun toInternalMethodType(tfun: Type.TFun): String {
+        return "(${toInternalType(tfun.arg)})${toInternalType(tfun.ret)}"
     }
 
     fun buildClassSignature(tyVars: List<String>, superClass: String = OBJECT_CLASS): String? {
@@ -40,7 +53,8 @@ object TypeUtil {
     }
 
     fun maybeBuildFieldSignature(type: Type): String? {
-        return if (type is Type.TVar && !type.isForall) null
+        return if (!type.isGeneric()) null
+        else if (type is Type.TConstructor && type.name == "JArray") null
         else buildFieldSignature(type)
     }
 
@@ -53,6 +67,12 @@ object TypeUtil {
             if (type.types.isEmpty()) descriptor(type.name)
             else "L${type.name}<" + type.types.joinToString("") { buildFieldSignature(it) } + ">;"
         }
+    }
+
+    fun buildMethodSignature(ret: Type, args: List<Type>): String? {
+        return if ((args + ret).any { it.isGeneric() }) {
+            args.joinToString("", prefix = "(", postfix = ")") { buildFieldSignature(it) } + buildFieldSignature(ret)
+        } else null
     }
 
     fun descriptor(t: String): String = "L$t;"

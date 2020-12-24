@@ -61,7 +61,7 @@ sealed class Expr(open val span: Span) {
 
     fun withType(t: Type): Type {
         type = t
-        if (aliases.isNotEmpty()) aliases.forEach { it.type = t }
+        if (aliases.isNotEmpty()) aliases.forEach { it.withType(t) }
         return t
     }
 

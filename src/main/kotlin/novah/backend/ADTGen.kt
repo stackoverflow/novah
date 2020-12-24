@@ -123,7 +123,7 @@ class ADTGen(
             init.visitVarInsn(ALOAD, 0)
             init.visitMethodInsn(INVOKESPECIAL, OBJECT_CLASS, INIT, "()V", false)
             init.visitInsn(RETURN)
-            init.visitMaxs(1, 1)
+            init.visitMaxs(0, 0)
             init.visitEnd()
         }
 

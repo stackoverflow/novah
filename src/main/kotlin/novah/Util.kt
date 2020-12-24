@@ -2,9 +2,9 @@ package novah
 
 import java.lang.RuntimeException
 
-object Util {
+private class InternalError(msg: String) : RuntimeException(msg)
 
-    private class InternalError(msg: String) : RuntimeException(msg)
+object Util {
 
     /**
      * Represents a compiler bug.
