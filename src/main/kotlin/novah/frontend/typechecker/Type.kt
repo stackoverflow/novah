@@ -118,13 +118,13 @@ sealed class Type {
      * Non qualified version of [toString]
      */
     fun simpleName(): String = when (this) {
-        is TVar -> "$name".split('.').last()
+        is TVar -> name.rawName().split('.').last()
         is TConstructor -> {
             val sname = "$name".split('.').last()
             if (types.isEmpty()) sname else sname + " " + types.joinToString(" ") { it.simpleName() }
         }
         is TFun -> "(${arg.simpleName()} -> ${ret.simpleName()})"
-        is TForall -> "forall $name. ${type.simpleName()}"
+        is TForall -> "forall ${name.rawName()}. ${type.simpleName()}"
         else -> toString()
     }
 
