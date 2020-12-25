@@ -64,14 +64,14 @@ class TypecheckerADTSpec : StringSpec({
             x :: Int -> Result Int String
             x a = Ok 1
             
-            //y :: Result Int String
+            //y :: Int -> Result Int String
             y a = Err "oops"
         """.module()
 
         val tys = inferString(code)
         tys["x"]?.simpleName() shouldBe "(Int -> Result Int String)"
         val y = tys["y"]!!.substFreeVar("k")
-        y.simpleName() shouldBe "forall k. Result k String"
+        y.simpleName() shouldBe "forall k. forall a. (k -> Result a String)"
     }
 
     "typecheck recursive ADT" {
@@ -105,9 +105,9 @@ class TypecheckerADTSpec : StringSpec({
         val tys = inferString(code)
 
         val x = tys["x"]!!.substFreeVar("b")
-        x.simpleName() shouldBe "forall b. Comp String b"
-        val y = tys["y"]!!.substFreeVar("a")
-        y.simpleName() shouldBe "forall a. Comp a String"
+        x.simpleName() shouldBe "forall b. forall a. (b -> Comp String a)"
+        val y = tys["y"]!!.substFreeVar("b")
+        y.simpleName() shouldBe "forall b. forall a. (b -> Comp a String)"
     }
 
     "typecheck complex type 2" {

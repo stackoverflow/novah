@@ -1,7 +1,6 @@
 package novah.frontend.typechecker
 
 import novah.ast.canonical.Expr
-import novah.frontend.Span
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.discard
@@ -47,6 +46,17 @@ object Subsumption {
                     instR(type.arg, ta, ctxExpr)
                     instL(tb, _apply(type.ret), ctxExpr)
                 }
+                is Type.TConstructor -> {
+                    val name = x.name
+                    val total = type.types.size - 1
+                    val freshVars = (0 .. total).map { store.fresh(name) }
+                    val tmetas = freshVars.map { Type.TMeta(it) }
+                    val ctmetas = freshVars.reversed().map { Elem.CTMeta(it) }
+                    context.replace<Elem.CTMeta>(name, ctmetas + Elem.CTMeta(name, Type.TConstructor(type.name, tmetas)))
+                    tmetas.zip(type.types).map { (meta, type) ->
+                        instR(type, meta, ctxExpr)
+                    }
+                }
                 is Type.TForall -> {
                     val name = store.fresh(type.name)
                     val m = store.fresh("m")
@@ -83,6 +93,17 @@ object Subsumption {
                     )
                     instL(ta, type.arg, ctxExpr)
                     instR(_apply(type.ret), tb, ctxExpr)
+                }
+                is Type.TConstructor -> {
+                    val name = x.name
+                    val total = type.types.size - 1
+                    val freshVars = (0 .. total).map { store.fresh(name) }
+                    val tmetas = freshVars.map { Type.TMeta(it) }
+                    val ctmetas = freshVars.reversed().map { Elem.CTMeta(it) }
+                    context.replace<Elem.CTMeta>(name, ctmetas + Elem.CTMeta(name, Type.TConstructor(type.name, tmetas)))
+                    tmetas.zip(type.types).map { (meta, type) ->
+                        instL(meta, type, ctxExpr)
+                    }
                 }
                 is Type.TForall -> {
                     val name = store.fresh(type.name)
