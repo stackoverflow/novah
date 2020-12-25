@@ -1,10 +1,14 @@
 package novah.frontend
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.data.blocking.forAll
+import io.kotest.data.row
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
 import io.kotest.matchers.types.shouldBeInstanceOf
+import novah.ast.Desugar
 import novah.ast.source.Decl
 import novah.ast.source.Expr
 import novah.ast.source.Module
@@ -13,7 +17,9 @@ import novah.formatter.Formatter
 import novah.frontend.TestUtil._i
 import novah.frontend.TestUtil._v
 import novah.frontend.TestUtil.abs
+import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.parseResource
+import novah.frontend.TestUtil.parseString
 
 class ParserSpec : StringSpec({
 
@@ -28,7 +34,7 @@ class ParserSpec : StringSpec({
     fun compareLambdas(lam1: Expr, lam2: Expr): Boolean {
         val l1 = lam1 as Expr.Lambda
         val l2 = lam2 as Expr.Lambda
-        if (l1.binders != l2.binders) return false
+        if (l1.binders.map { it.name } != l2.binders.map { it.name }) return false
         return if (l1.body is Expr.Lambda && l2.body is Expr.Lambda) {
             compareLambdas(l1.body as Expr.Lambda, l2.body as Expr.Lambda)
         } else l1.body == l2.body
@@ -92,12 +98,12 @@ class ParserSpec : StringSpec({
         val ast = parseResource("Lambda.novah")
 
         val simpleL = abs("x", _v("x"))
-        val multiL = abs(listOf("x","y", "z"), _i(1))
+        val multiL = abs(listOf("x", "y", "z"), _i(1))
 
         val simple = ast.decls[0] as Decl.ValDecl
         val multi = ast.decls[1] as Decl.ValDecl
 
-        simple.exp shouldBe simpleL
+        compareLambdas(simple.exp, simpleL) shouldBe true
         compareLambdas(multi.exp, multiL) shouldBe true
     }
 
@@ -120,6 +126,28 @@ class ParserSpec : StringSpec({
 
         x.shouldBeInstanceOf<Expr.Ann>()
         x.type shouldBe Type.TVar("String")
+    }
+
+    "Complex top level definitions are disallowed" {
+
+        forAll(
+            row("decl = if true then 1 else 2"),
+            row("decl = let a = 3 in a"),
+            row("decl = case 1 of _ -> 0"),
+            row("decl = do println 2"),
+            row("decl = do println 2 :: Int")
+        ) { code ->
+            val ast = parseString(code.module())
+            val des = Desugar(ast)
+            shouldThrow<ParserError> {
+                des.desugar()
+            }
+        }
+
+        // Annotations should work
+        val ast = parseString("decl = 2 :: Int".module())
+        val des = Desugar(ast)
+        des.desugar()
     }
 
     "Exported definitions have correct visibility" {

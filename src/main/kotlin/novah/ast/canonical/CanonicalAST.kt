@@ -1,9 +1,7 @@
 package novah.ast.canonical
 
 import novah.frontend.Span
-import novah.frontend.typechecker.Context
-import novah.frontend.typechecker.Elem
-import novah.frontend.typechecker.Type
+import novah.frontend.typechecker.*
 
 /**
  * The canonical AST used after desugaring and after type checking
@@ -47,8 +45,8 @@ sealed class Expr(open val span: Span) {
     data class StringE(val v: String, override val span: Span) : Expr(span)
     data class CharE(val v: Char, override val span: Span) : Expr(span)
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
-    data class Var(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
-    data class Lambda(val binder: String, val body: Expr, override val span: Span) : Expr(span)
+    data class Var(val name: Name, override val span: Span, val moduleName: String? = null) : Expr(span)
+    data class Lambda(val binder: Binder, val body: Expr, override val span: Span) : Expr(span)
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
@@ -68,7 +66,11 @@ sealed class Expr(open val span: Span) {
     fun alias(e: Expr) = apply { aliases.add(e) }
 }
 
-data class LetDef(val name: String, val expr: Expr, val type: Type? = null)
+data class Binder(val name: Name, val span: Span) {
+    override fun toString(): String = "$name"
+}
+
+data class LetDef(val binder: Binder, val expr: Expr, val type: Type? = null)
 
 data class Case(val pattern: Pattern, val exp: Expr)
 
@@ -91,22 +93,17 @@ sealed class LiteralPattern {
 // AST functions
 ////////////////////////////////
 
-fun Expr.Var.canonicalName() = if (moduleName == null) name else "$moduleName.$name"
-
-// TODO: check shadowing of variables (probaly buggy right now)
-fun Case.substVar(v: String, s: Expr): Case {
+fun Case.substVar(v: Name, s: Expr): Case {
     val e = exp.substVar(v, s)
     return if (e == exp) this else Case(pattern, e)
 }
 
-// TODO: check shadowing of variables (probaly buggy right now)
-fun LetDef.substVar(v: String, s: Expr): LetDef {
+fun LetDef.substVar(v: Name, s: Expr): LetDef {
     val sub = expr.substVar(v, s)
-    return if (expr == sub) this else LetDef(name, sub, type)
+    return if (expr == sub) this else LetDef(binder, sub, type)
 }
 
-// TODO: check shadowing of variables (probaly buggy right now)
-fun Expr.substVar(v: String, s: Expr): Expr =
+fun Expr.substVar(v: Name, s: Expr): Expr =
     when (this) {
         is Expr.IntE -> this
         is Expr.LongE -> this
@@ -122,7 +119,7 @@ fun Expr.substVar(v: String, s: Expr): Expr =
             if (left == fn && right == arg) this else Expr.App(left, right, span).alias(this)
         }
         is Expr.Lambda -> {
-            if (binder == v) this
+            if (binder.name == v) this
             else {
                 val b = body.substVar(v, s)
                 if (body == b) this else Expr.Lambda(binder, b, span).alias(this)
@@ -154,7 +151,7 @@ fun Expr.substVar(v: String, s: Expr): Expr =
         }
     }
 
-fun Expr.Lambda.openLambda(s: Expr): Expr = body.substVar(binder, s)
+fun Expr.Lambda.openLambda(s: Expr): Expr = body.substVar(binder.name, s)
 
 /**
  * Resolve solved meta variables
@@ -168,7 +165,7 @@ fun Expr.resolveMetas(ctx: Context) {
         else typ
     }
 
-    val resolved = mutableMapOf<String, Type>()
+    val resolved = mutableMapOf<Name, Type>()
     ctx.forEachMeta { m ->
         val typ = resolveMeta(m)
         if (typ != null) resolved[m.name] = typ
@@ -180,7 +177,7 @@ fun Expr.resolveMetas(ctx: Context) {
 /**
  * Resolve unsolved variables left in this expression
  */
-fun Expr.resolveUnsolved(m: Map<String, Type>) {
+fun Expr.resolveUnsolved(m: Map<Name, Type>) {
     when (this) {
         is Expr.Var -> if (type != null) withType(type!!.substTMetas(m))
         is Expr.App -> {

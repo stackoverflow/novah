@@ -4,11 +4,11 @@ package novah.frontend.typechecker
  * The Type of Types
  */
 sealed class Type {
-    data class TVar(val name: String) : Type() {
-        override fun toString(): String = name
+    data class TVar(val name: Name) : Type() {
+        override fun toString(): String = "$name"
     }
 
-    data class TMeta(val name: String) : Type() {
+    data class TMeta(val name: Name) : Type() {
         override fun toString(): String = "?$name"
     }
 
@@ -16,13 +16,13 @@ sealed class Type {
         override fun toString(): String = "($arg -> $ret)"
     }
 
-    data class TForall(val name: String, val type: Type) : Type() {
+    data class TForall(val name: Name, val type: Type) : Type() {
         override fun toString(): String = "forall $name. $type"
     }
 
-    data class TConstructor(val name: String, val types: List<Type> = listOf()) : Type() {
+    data class TConstructor(val name: Name, val types: List<Type> = listOf()) : Type() {
         override fun toString(): String = if (types.isEmpty()) {
-            name
+            "$name"
         } else {
             "$name " + types.joinToString(" ")
         }
@@ -32,7 +32,7 @@ sealed class Type {
      * Helper functions
      *********************************/
 
-    fun containsTMeta(m: String): Boolean = when (this) {
+    fun containsTMeta(m: Name): Boolean = when (this) {
         is TVar -> false
         is TMeta -> name == m
         is TFun -> arg.containsTMeta(m) || ret.containsTMeta(m)
@@ -47,7 +47,7 @@ sealed class Type {
         is TConstructor -> types.all(Type::isMono)
     }
 
-    fun substTVar(x: String, s: Type): Type = when (this) {
+    fun substTVar(x: Name, s: Type): Type = when (this) {
         is TVar -> if (name == x) s else this
         is TMeta -> this
         is TFun -> {
@@ -71,7 +71,7 @@ sealed class Type {
         }
     }
 
-    fun substTMetas(m: Map<String, Type>): Type = when (this) {
+    fun substTMetas(m: Map<Name, Type>): Type = when (this) {
         is TVar -> this
         is TMeta -> m.getOrDefault(name, this)
         is TFun -> {
@@ -89,7 +89,7 @@ sealed class Type {
         }
     }
 
-    fun unsolvedInType(unsolved: List<String>, ns: MutableList<String> = mutableListOf()): List<String> = when (this) {
+    fun unsolvedInType(unsolved: List<Name>, ns: MutableList<Name> = mutableListOf()): List<Name> = when (this) {
         is TVar -> ns
         is TMeta -> {
             if (unsolved.contains(name) && !ns.contains(name)) {
@@ -110,7 +110,7 @@ sealed class Type {
 
     fun substFreeVar(replace: String): Type {
         return if (this is TForall) {
-            TForall(replace, type.substTVar(name, TVar(replace)))
+            TForall(replace.raw(), type.substTVar(name, TVar(replace.raw())))
         } else this
     }
 
@@ -118,9 +118,9 @@ sealed class Type {
      * Non qualified version of [toString]
      */
     fun simpleName(): String = when (this) {
-        is TVar -> name.split('.').last()
+        is TVar -> "$name".split('.').last()
         is TConstructor -> {
-            val sname = name.split('.').last()
+            val sname = "$name".split('.').last()
             if (types.isEmpty()) sname else sname + " " + types.joinToString(" ") { it.simpleName() }
         }
         is TFun -> "(${arg.simpleName()} -> ${ret.simpleName()})"

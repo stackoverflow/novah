@@ -63,7 +63,7 @@ sealed class Import(open val module: ModuleName) {
 sealed class Decl {
     data class DataDecl(val name: String, val tyVars: List<String>, val dataCtors: List<DataConstructor>) : Decl()
     data class TypeDecl(val name: String, val type: Type) : Decl()
-    data class ValDecl(val name: String, val binders: List<String>, val exp: Expr) : Decl()
+    data class ValDecl(val name: String, val binders: List<Binder>, val exp: Expr) : Decl()
 
     var comment: Comment? = null
     var span = Span.empty()
@@ -114,7 +114,7 @@ sealed class Expr {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
-    data class Lambda(val binders: List<String>, val body: Expr) : Expr() {
+    data class Lambda(val binders: List<Binder>, val body: Expr) : Expr() {
         override fun toString(): String = "\\" + binders.joinToString(" ") + " -> $body"
     }
 
@@ -145,7 +145,11 @@ sealed class Expr {
     }
 }
 
-data class LetDef(val name: String, val binders: List<String>, val expr: Expr, val type: Type? = null)
+data class Binder(val name: String, val span: Span) {
+    override fun toString(): String = name
+}
+
+data class LetDef(val name: Binder, val binders: List<Binder>, val expr: Expr, val type: Type? = null)
 
 data class Case(val pattern: Pattern, val exp: Expr)
 

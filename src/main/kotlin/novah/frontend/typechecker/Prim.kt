@@ -64,13 +64,13 @@ object Prim {
         Elem.CTVar(tChar.name),
         Elem.CTVar(tBoolean.name),
         Elem.CTVar(tUnit.name),
-        Elem.CVar("$PRIM.println", tfun(tString, tUnit)),
-        Elem.CVar("$PRIM.toString", tfall("a", tfun(tvar("a"), tString))),
-        Elem.CVar("$PRIM.equals", tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))),
-        Elem.CVar("$PRIM.unit", tUnit)
+        Elem.CVar("println".raw(), tfun(tString, tUnit)),
+        Elem.CVar("toString".raw(), tfall("a", tfun(tvar("a"), tString))),
+        Elem.CVar("equals".raw(), tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))),
+        Elem.CVar("unit".raw(), tUnit)
     )
 
-    private fun tvar(x: String) = Type.TVar(x)
+    private fun tvar(x: String) = Type.TVar(x.raw())
     private fun tfun(a: Type, b: Type) = Type.TFun(a, b)
-    private fun tfall(v: String, t: Type) = Type.TForall(v, t)
+    private fun tfall(v: String, t: Type) = Type.TForall(v.raw(), t)
 }

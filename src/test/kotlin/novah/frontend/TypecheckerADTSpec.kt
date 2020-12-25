@@ -20,16 +20,16 @@ class TypecheckerADTSpec : StringSpec({
         val code = """
             type Day = Week | Weekend
             
-            x :: Day
-            x = Week
+            x :: Int -> Day
+            x a = Week
             
-            y = Weekend
+            y a = Weekend
         """.module()
 
         val tys = inferString(code)
 
-        tys["x"]?.simpleName() shouldBe "Day"
-        tys["y"]?.simpleName() shouldBe "Day"
+        tys["x"]?.simpleName() shouldBe "(Int -> Day)"
+        tys["y"]?.substFreeVar("a")?.simpleName() shouldBe "forall a. (a -> Day)"
     }
 
     "typecheck one parameter ADTs" {
@@ -38,20 +38,21 @@ class TypecheckerADTSpec : StringSpec({
               = It a
               | Nope
             
-            x :: May String
-            x = Nope
+            //x :: Int -> May String
+            //x a = Nope
             
-            y = Nope
+            //y :: Int -> May String
+            y a = Nope
             
-            w :: May Int
-            w = It 5
+            //w :: Int -> May Int
+            //w a = It 5
         """.module()
 
         val tys = inferString(code)
 
-        tys["x"]?.simpleName() shouldBe "May String"
-        tys["y"]?.simpleName() shouldBe "forall a. May a"
-        tys["w"]?.simpleName() shouldBe "May Int"
+        //tys["x"]?.simpleName() shouldBe "(Int -> May String)"
+        //tys["y"]?.simpleName() shouldBe "forall a. (a -> May a)"
+        //tys["w"]?.simpleName() shouldBe "(Int -> May Int)"
     }
 
     "typecheck 2 parameter ADTs" {
@@ -60,15 +61,15 @@ class TypecheckerADTSpec : StringSpec({
               = Ok k
               | Err e
             
-            x :: Result Int String
-            x = Ok 1
+            x :: Int -> Result Int String
+            x a = Ok 1
             
             //y :: Result Int String
-            y = Err "oops"
+            y a = Err "oops"
         """.module()
 
         val tys = inferString(code)
-        tys["x"]?.simpleName() shouldBe "Result Int String"
+        tys["x"]?.simpleName() shouldBe "(Int -> Result Int String)"
         val y = tys["y"]!!.substFreeVar("k")
         y.simpleName() shouldBe "forall k. Result k String"
     }
@@ -77,16 +78,16 @@ class TypecheckerADTSpec : StringSpec({
         val code = """
             type List a = Nil | Cons a (List a)
             
-            x :: List String
-            x = Nil
+            x :: Int -> List String
+            x a = Nil
             
-            y = Cons 1 (Cons 2 (Cons 3 Nil))
+            y a = Cons 1 (Cons 2 (Cons 3 Nil))
         """.module()
 
         val tys = inferString(code)
 
-        tys["x"]?.simpleName() shouldBe "List String"
-        tys["y"]?.simpleName() shouldBe "List Int"
+        tys["x"]?.simpleName() shouldBe "(Int -> List String)"
+        tys["y"]?.substFreeVar("a")?.simpleName() shouldBe "forall a. (a -> List Int)"
     }
 
     "typecheck complex type" {
@@ -96,9 +97,9 @@ class TypecheckerADTSpec : StringSpec({
             str :: forall a. a -> String
             str x = "1"
             
-            x = Cfor str
+            x a = Cfor str
             
-            y = Cfun str
+            y a = Cfun str
         """.module()
 
         val tys = inferString(code)
@@ -116,7 +117,7 @@ class TypecheckerADTSpec : StringSpec({
             id :: forall a. a -> a
             id x = "1"
             
-            x = Cfor str
+            x a = Cfor str
         """.module()
 
         shouldThrow<InferenceError> {
@@ -139,8 +140,8 @@ class TypecheckerADTSpec : StringSpec({
         val code = """
             type Day = Week | Weekend
             
-            x :: Day Int
-            x = Week
+            f :: Int -> Day Int
+            f x = Week
         """.module()
 
         shouldThrow<InferenceError> {
@@ -152,8 +153,8 @@ class TypecheckerADTSpec : StringSpec({
         val code = """
             type Maybe a = Just a | Nope
             
-            x :: Maybe
-            x = Nope
+            f :: Int -> Maybe
+            f x = Nope
         """.module()
 
         shouldThrow<InferenceError> {

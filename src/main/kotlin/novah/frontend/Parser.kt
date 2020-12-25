@@ -167,11 +167,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return Decl.TypeDecl(name, parsePolytype())
     }
 
-    private fun tryParseIdent(): String? {
-        return when (val tk = iter.peek().value) {
+    private fun tryParseIdent(): Binder? {
+        val tk = iter.peek()
+        return when (tk.value) {
             is Ident -> {
                 iter.next()
-                tk.v
+                Binder(tk.value.v, tk.span)
             }
             else -> null
         }
@@ -355,7 +356,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         return when (iter.peek().value) {
             is DoubleColon -> {
-                if (letDefs.any { it.name == ident.value.v }) {
+                if (letDefs.any { it.name.name == ident.value.v }) {
                     throwError(withError(E.LET_TYPE)(ident))
                 }
                 val tdecl = withOffside {
@@ -370,7 +371,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     val vars = tryParseListOf { tryParseIdent() }
                     expect<Equals>(withError(E.LET_EQUALS))
                     val exp = parseExpression()
-                    val def = LetDef(ident.value.v, vars, exp, types.find { it.name == ident.value.v }?.type)
+                    val span = span(ident.span, exp.span)
+                    val def = LetDef(Binder(ident.value.v, span), vars, exp, types.find { it.name == ident.value.v }?.type)
                     letDefs += def
                     def
                 }
