@@ -72,15 +72,15 @@ object TestUtil {
         context.add(Elem.CVar(">=".raw(), tfun(tInt, tfun(tInt, tBoolean))))
         context.add(Elem.CVar("<".raw(), tfun(tInt, tfun(tInt, tBoolean))))
         context.add(Elem.CVar(">".raw(), tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar("==".raw(), forall("a".raw(), tfun(tvar("a".raw()), tfun(tvar("a".raw()), tBoolean)))))
+        context.add(Elem.CVar("==".raw(), forall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))))
         context.add(Elem.CVar("&&".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))))
         context.add(Elem.CVar("||".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))))
-        context.add(Elem.CVar("id".raw(), forall("a".raw(), tfun(tvar("a".raw()), tvar("a".raw())))))
+        context.add(Elem.CVar("id".raw(), forall("a", tfun(tvar("a"), tvar("a")))))
     }
 
-    fun tvar(n: Name) = Type.TVar(n)
+    fun tvar(n: String) = Type.TVar(n.raw())
     fun tfun(l: Type, r: Type) = Type.TFun(l, r)
-    fun forall(x: Name, t: Type) = Type.TForall(x, t)
+    fun forall(x: String, t: Type) = Type.TForall(x.raw(), t)
 
     fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)

@@ -4,6 +4,7 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.inferString
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.setupContext
@@ -37,6 +38,12 @@ class TypecheckerSpec : StringSpec({
         context.reset()
         setupContext()
         return inferString(exprX(expr))["x"]!!
+    }
+
+    fun inferFX(expr: String): Type {
+        context.reset()
+        setupContext()
+        return inferString("f x = $expr".module())["f"]!!
     }
 
     "typecheck primitive expressions" {
@@ -111,89 +118,80 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck if" {
-        val ty = inferX("if false then 0 else 1")
+        val ty = inferFX("if false then 0 else 1")
 
-        ty shouldBe tInt
+        ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
     }
 
     "typecheck subsumed if" {
         val code = """
-            f = if true then 10 else id 0
+            f a = if true then 10 else id 0
             f2 a = if true then 10 else id a
         """.module()
 
         val tys = inferString(code)
 
-        tys["f"] shouldBe tInt
+        tys["f"]?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
         tys["f2"] shouldBe tfun(tInt, tInt)
 
         shouldThrow<InferenceError> {
-            inferX("if true then 10 else id 'a'")
+            inferFX("if true then 10 else id 'a'")
         }
     }
 
     "typecheck generics" {
         val ty = inferX("\\y -> y")
 
-        // ty shouldBe `forall a. a -> a`
-        if (ty is Type.TForall) {
-            val n = ty.name
-            val t = ty.type
+        ty.substFreeVar("y") shouldBe forall("y", tfun(tvar("y"), tvar("y")))
 
-            if (t is Type.TFun) {
-                t.arg shouldBe tvar(n)
-                t.ret shouldBe tvar(n)
-            } else error("Type should be function")
-        } else error("Function should be polymorphic")
+        val ty2 = inferFX("(\\y -> y) false")
 
-        val ty2 = inferX("(\\y -> y) false")
-
-        ty2 shouldBe tBoolean
+        ty2.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
     }
 
     "typecheck pre-added context vars" {
-        val ty = inferX("id 10")
+        val ty = inferFX("id 10")
 
-        ty shouldBe tInt
+        ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
     }
 
     "typecheck let" {
         val code = """
-            x = let a = "bla"
-                    y = a
-                in y
+            f x = let a = "bla"
+                      y = a
+                  in y
         """.module()
 
-        val ty = inferString(code)["x"]
+        val ty = inferString(code)["f"]
 
-        ty shouldBe tString
+        ty?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tString))
     }
 
     "typecheck polymorphic let bindings" {
         val code = """
-            x = let identity a = a
-                in identity 10
+            f x = let identity a = a
+                  in identity 10
         """.module()
 
-        val ty = inferString(code)["x"]
+        val ty = inferString(code)["f"]
 
-        ty shouldBe tInt
+        ty?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
     }
 
     "typecheck do statements" {
         context.add(Elem.CVar("store".raw(), tfun(tInt, tUnit)))
 
         val code = """
-            x = do
+            f x = do
               println "hello world"
               10 + 10
               store 100
               true
         """.module()
 
-        val ty = inferString(code)["x"]
+        val ty = inferString(code)["f"]
 
-        ty shouldBe tBoolean
+        ty?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
     }
 
     "typecheck a recursive function" {

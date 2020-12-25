@@ -87,16 +87,16 @@ class SignatureSpec : StringSpec({
             
             c = 'a'
             
-            d = do
+            d x = do
               4
               true
               "asd"
             
-            i = if true then 5 else 99
+            i = 99
             
-            l = let l1 = toString 4
-                    l2 = toString l1
-                in l2
+            l x = let l1 = toString 4
+                      l2 = toString l1
+                  in l2
             
             w = \x -> x
             

@@ -39,6 +39,8 @@ class Desugar(private val smod: SModule) {
         is SDecl.DataDecl -> Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, exports.visibility(name))
         is SDecl.ValDecl -> {
             var expr = nestLambdas(binders.map { it.desugar() }, exp.desugar())
+            validateTopLevelExpr(name, expr)
+
             // if the declaration has a type annotation, annotate it
             expr = topLevelTypes[name]?.let { type ->
                 Expr.Ann(expr, type.desugar(), span)
@@ -134,6 +136,23 @@ class Desugar(private val smod: SModule) {
     private fun nestLets(defs: List<SLetDef>, exp: Expr): Expr {
         return if (defs.isEmpty()) exp
         else Expr.Let(defs[0].desugar(), nestLets(defs.drop(1), exp), exp.span)
+    }
+
+    /**
+     * Only lambdas and primitives vars be defined at the top level,
+     * otherwise we throw an error.
+     */
+    private fun validateTopLevelExpr(declName: String, e: Expr) {
+        fun report() {
+            throw ParserError("only lambdas and primitives can be defined at the top level for declaration $declName at ${e.span}")
+        }
+
+        when (e) {
+            is Expr.Var, is Expr.App, is Expr.If, is Expr.Let, is Expr.Match, is Expr.Do -> report()
+            is Expr.Ann -> validateTopLevelExpr(declName, e.exp)
+            else -> {
+            }
+        }
     }
 
     /**

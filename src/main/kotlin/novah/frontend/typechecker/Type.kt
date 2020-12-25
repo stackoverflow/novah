@@ -108,9 +108,9 @@ sealed class Type {
         }
     }
 
-    fun substFreeVar(replace: Name): Type {
+    fun substFreeVar(replace: String): Type {
         return if (this is TForall) {
-            TForall(replace, type.substTVar(name, TVar(replace)))
+            TForall(replace.raw(), type.substTVar(name, TVar(replace.raw())))
         } else this
     }
 
