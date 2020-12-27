@@ -11,8 +11,8 @@ import novah.backend.GenUtil.STATIC_INIT
 import novah.backend.GenUtil.visibility
 import novah.backend.TypeUtil.buildClassSignature
 import novah.backend.TypeUtil.buildFieldSignature
-import novah.backend.TypeUtil.maybeBuildFieldSignature
 import novah.backend.TypeUtil.descriptor
+import novah.backend.TypeUtil.maybeBuildFieldSignature
 import novah.backend.TypeUtil.toInternalType
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes.*
@@ -30,8 +30,14 @@ class ADTGen(
     private val moduleName = ast.name
     private val adtClassName = "$moduleName/${adt.name}"
 
+    // true if this type has only one constructor with the same name as the type
+    // in this case don't generate a superclass
+    private val singleSameCtor = adt.dataCtors.size == 1 && adt.dataCtors.first().name == adt.name
+
     fun run() {
-        genType()
+        if (!singleSameCtor) {
+            genType()
+        }
         for (ctor in adt.dataCtors) {
             genConstructor(ctor)
         }
@@ -59,7 +65,8 @@ class ADTGen(
 
     private fun genConstructor(ctor: DataConstructor) {
         val className = "$moduleName/${ctor.name}"
-        val sig = buildClassSignature(adt.tyVars, adtClassName)
+        val superClass = if (singleSameCtor) OBJECT_CLASS else adtClassName
+        val sig = buildClassSignature(adt.tyVars, superClass)
         val vis = visibility(ctor)
 
         val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)
@@ -68,7 +75,7 @@ class ADTGen(
             vis + ACC_FINAL,
             className,
             sig,
-            adtClassName,
+            superClass,
             emptyArray<String>()
         )
         cw.visitSource(ast.sourceName, null)
@@ -100,7 +107,7 @@ class ADTGen(
             val ct = cw.visitMethod(ACC_PUBLIC, INIT, desc, signature, emptyArray())
             ct.visitCode()
             ct.visitVarInsn(ALOAD, 0)
-            ct.visitMethodInsn(INVOKESPECIAL, adtClassName, INIT, "()V", false)
+            ct.visitMethodInsn(INVOKESPECIAL, superClass, INIT, "()V", false)
             ctor.args.forEachIndexed { i, type ->
                 val index = i + 1
                 ct.visitVarInsn(ALOAD, 0)

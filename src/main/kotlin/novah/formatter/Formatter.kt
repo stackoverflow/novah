@@ -128,6 +128,7 @@ class Formatter {
             }
             is Expr.Var -> e.toString()
             is Expr.Operator -> e.toString()
+            is Expr.Constructor -> e.toString()
             is Expr.IntE -> e.text
             is Expr.LongE -> e.text
             is Expr.FloatE -> e.text

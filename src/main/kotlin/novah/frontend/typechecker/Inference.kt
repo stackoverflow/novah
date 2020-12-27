@@ -56,6 +56,11 @@ object Inference {
                     ?: inferError("undefined variable ${exp.name}", exp)
                 exp.withType(x.type)
             }
+            is Expr.Constructor -> {
+                val x = context.lookup<Elem.CVar>(exp.name)
+                    ?: inferError("undefined constructor ${exp.name}", exp)
+                exp.withType(x.type)
+            }
             is Expr.Lambda -> {
                 val binder = exp.binder.name
                 checkShadow(binder, exp.binder.span)

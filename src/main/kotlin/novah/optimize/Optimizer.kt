@@ -74,6 +74,10 @@ class Optimizer(private val ast: CModule) {
                     Expr.Var(vname, cname, typ)
                 }
             }
+            is CExpr.Constructor -> {
+                val ctorName = internalize(if (moduleName != null) "$moduleName" else ast.name) + "/$name"
+                Expr.Constructor(ctorName, typ)
+            }
             is CExpr.Lambda -> {
                 val bind = binder.convert()
                 Expr.Lambda(bind, body.convert(locals + bind), type = typ)

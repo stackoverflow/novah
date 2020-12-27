@@ -49,6 +49,7 @@ sealed class Expr(open val span: Span) {
     data class CharE(val v: Char, override val span: Span) : Expr(span)
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
     data class Var(val name: Name, override val span: Span, val moduleName: String? = null) : Expr(span)
+    data class Constructor(val name: Name, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class Lambda(val binder: Binder, val body: Expr, override val span: Span) : Expr(span)
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
@@ -135,6 +136,7 @@ fun Expr.substVar(v: Name, s: Expr): Expr =
         is Expr.CharE -> this
         is Expr.Bool -> this
         is Expr.Var -> if (name == v) s.alias(this) else this
+        is Expr.Constructor -> if (name == v) s.alias(this) else this
         is Expr.App -> {
             val left = fn.substVar(v, s)
             val right = arg.substVar(v, s)

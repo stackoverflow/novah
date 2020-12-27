@@ -219,6 +219,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.Var -> {
                 resolvePrimitiveModuleVar(mv, e)
             }
+            is Expr.Constructor -> {
+
+            }
             is Expr.If -> {
                 genExpr(e.cond, mv, ctx)
                 val elseLabel = Label()

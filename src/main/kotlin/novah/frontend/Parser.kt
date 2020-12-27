@@ -212,13 +212,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 Expr.Parens(exp)
             }
         }
-        // TODO: store Constructors as its own expression, not vars
         is UpperIdent -> {
             val uident = expect<UpperIdent>(noErr())
             if (iter.peek().value is Dot) {
                 parseAliasedVar(uident)
             } else {
-                Expr.Var(uident.value.v)
+                Expr.Constructor(uident.value.v)
             }
         }
         is Backslash -> parseLambda()
@@ -282,10 +281,17 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 .withSpan(alias.span, op.span)
                 .withComment(alias.comment)
         } else {
-            val ident = expect<Ident>(withError(E.IMPORTED_DOT))
-            Expr.Var(ident.value.v, alias.value.v)
-                .withSpan(alias.span, ident.span)
-                .withComment(alias.comment)
+            if (iter.peek().value is Ident) {
+                val ident = expect<Ident>(withError(E.IMPORTED_DOT))
+                Expr.Var(ident.value.v, alias.value.v)
+                    .withSpan(alias.span, ident.span)
+                    .withComment(alias.comment)
+            } else {
+                val ident = expect<UpperIdent>(withError(E.IMPORTED_DOT))
+                Expr.Constructor(ident.value.v, alias.value.v)
+                    .withSpan(alias.span, ident.span)
+                    .withComment(alias.comment)
+            }
         }
     }
 
@@ -305,7 +311,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseIf(): Expr {
-        val _if = expect<IfT>(noErr())
+        val ifTk = expect<IfT>(noErr())
 
         val (cond, thens) = withIgnoreOffside {
             val cond = parseExpression()
@@ -321,8 +327,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val elses = parseExpression()
 
         return Expr.If(cond, thens, elses)
-            .withSpan(_if.span, elses.span)
-            .withComment(_if.comment)
+            .withSpan(ifTk.span, elses.span)
+            .withComment(ifTk.comment)
     }
 
     private fun parseLet(): Expr {

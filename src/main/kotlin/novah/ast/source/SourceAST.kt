@@ -114,6 +114,10 @@ sealed class Expr {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
+    data class Constructor(val name: String, val alias: String? = null) : Expr() {
+        override fun toString(): String = if (alias != null) "$alias.$name" else name
+    }
+
     data class Lambda(val binders: List<Binder>, val body: Expr) : Expr() {
         override fun toString(): String = "\\" + binders.joinToString(" ") + " -> $body"
     }
