@@ -81,6 +81,7 @@ object TestUtil {
     fun tvar(n: String) = Type.TVar(n.raw())
     fun tfun(l: Type, r: Type) = Type.TFun(l, r)
     fun forall(x: String, t: Type) = Type.TForall(x.raw(), t)
+    fun tcon(name: String, vararg ts: Type) = Type.TConstructor(name.raw(), ts.toList())
 
     fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)

@@ -3,10 +3,7 @@ package novah.ast
 import novah.ast.canonical.*
 import novah.ast.source.fullName
 import novah.frontend.*
-import novah.frontend.typechecker.Name
-import novah.frontend.typechecker.Prim
-import novah.frontend.typechecker.Type
-import novah.frontend.typechecker.raw
+import novah.frontend.typechecker.*
 import novah.ast.source.Case as SCase
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.DataConstructor as SDataConstructor
@@ -78,18 +75,21 @@ class Desugar(private val smod: SModule) {
     private fun SCase.desugar(): Case = Case(pattern.desugar(), exp.desugar())
 
     private fun SPattern.desugar(): Pattern = when (this) {
-        is SPattern.Wildcard -> Pattern.Wildcard
-        is SPattern.LiteralP -> Pattern.LiteralP(lit.desugar())
-        is SPattern.Var -> Pattern.Var(name)
-        is SPattern.Ctor -> Pattern.Ctor(name, fields.map { it.desugar() })
+        is SPattern.Wildcard -> Pattern.Wildcard(span)
+        is SPattern.LiteralP -> Pattern.LiteralP(lit.desugar(), span)
+        is SPattern.Var -> Pattern.Var(name.raw(), span)
+        is SPattern.Ctor -> Pattern.Ctor(name.raw(), fields.map { it.desugar() }, span)
+        is SPattern.Parens -> pattern.desugar()
     }
 
     private fun SLiteralPattern.desugar(): LiteralPattern = when (this) {
-        is SLiteralPattern.BoolLiteral -> LiteralPattern.BoolLiteral(b)
-        is SLiteralPattern.CharLiteral -> LiteralPattern.CharLiteral(c)
-        is SLiteralPattern.StringLiteral -> LiteralPattern.StringLiteral(s)
-        is SLiteralPattern.IntLiteral -> LiteralPattern.IntLiteral(i)
-        is SLiteralPattern.FloatLiteral -> LiteralPattern.FloatLiteral(f)
+        is SLiteralPattern.BoolLiteral -> LiteralPattern.BoolLiteral(e.desugar() as Expr.Bool)
+        is SLiteralPattern.CharLiteral -> LiteralPattern.CharLiteral(e.desugar() as Expr.CharE)
+        is SLiteralPattern.StringLiteral -> LiteralPattern.StringLiteral(e.desugar() as Expr.StringE)
+        is SLiteralPattern.IntLiteral -> LiteralPattern.IntLiteral(e.desugar() as Expr.IntE)
+        is SLiteralPattern.LongLiteral -> LiteralPattern.LongLiteral(e.desugar() as Expr.LongE)
+        is SLiteralPattern.FloatLiteral -> LiteralPattern.FloatLiteral(e.desugar() as Expr.FloatE)
+        is SLiteralPattern.DoubleLiteral -> LiteralPattern.DoubleLiteral(e.desugar() as Expr.DoubleE)
     }
 
     private fun SLetDef.desugar(): LetDef {
@@ -139,7 +139,7 @@ class Desugar(private val smod: SModule) {
     }
 
     /**
-     * Only lambdas and primitives vars be defined at the top level,
+     * Only lambdas and primitives vars can be defined at the top level,
      * otherwise we throw an error.
      */
     private fun validateTopLevelExpr(declName: String, e: Expr) {
@@ -148,10 +148,11 @@ class Desugar(private val smod: SModule) {
         }
 
         when (e) {
-            is Expr.Var, is Expr.App, is Expr.If, is Expr.Let, is Expr.Match, is Expr.Do -> report()
-            is Expr.Ann -> validateTopLevelExpr(declName, e.exp)
-            else -> {
+            is Expr.IntE, is Expr.LongE, is Expr.FloatE, is Expr.DoubleE,
+            is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Lambda -> {
             }
+            is Expr.Ann -> validateTopLevelExpr(declName, e.exp)
+            else -> report()
         }
     }
 

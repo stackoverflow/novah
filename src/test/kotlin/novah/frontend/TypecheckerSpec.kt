@@ -315,4 +315,17 @@ class TypecheckerSpec : StringSpec({
             inferString(code)
         }
     }
+
+    "shadowed variables should not compile (case expressions)" {
+        val code = """
+            f x = case 4 of
+              0 -> "zero"
+              1 -> "one"
+              x -> toString (x + 4)
+        """.module()
+
+        shouldThrow<InferenceError> {
+            inferString(code)
+        }
+    }
 })

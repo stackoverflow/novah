@@ -1,10 +1,15 @@
 package novah.optimize
 
 import novah.Util.internalError
+import novah.ast.canonical.Pattern
+import novah.ast.canonical.show
 import novah.ast.optimized.*
+import novah.frontend.matching.PatternCompilationResult
+import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
+import novah.frontend.typechecker.inferError
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.DataDecl as CDataDecl
 import novah.ast.canonical.Decl.ValDecl as CValDecl
@@ -20,7 +25,10 @@ import novah.frontend.typechecker.Type as TType
  */
 class Optimizer(private val ast: CModule) {
 
-    fun convert() = ast.convert()
+    fun convert(): Module {
+        PatternMatchingCompiler.addConsToCache(ast)
+        return ast.convert()
+    }
 
     private fun CModule.convert(): Module {
         val ds = mutableListOf<Decl>()
@@ -78,7 +86,12 @@ class Optimizer(private val ast: CModule) {
             }
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ)
-            is CExpr.Match -> internalError("not yet implemented")
+            is CExpr.Match -> {
+                val match = cases.map { PatternMatchingCompiler.convert(it) }
+                val compRes = PatternMatchingCompiler<Pattern>().compile(match)
+                reportPatternMatch(compRes, this)
+                Expr.IntE(1, typ)
+            }
         }
     }
 
@@ -97,21 +110,30 @@ class Optimizer(private val ast: CModule) {
         is TType.TMeta -> internalError("got TMeta after type checking")
     }
 
-    // TODO: use primitive types and implement autoboxing
-    private fun getPrimitiveTypeName(tvar: TType.TVar): String = when (tvar.name.toString()) {
-        "prim.Byte" -> "java/lang/Byte"
-        "prim.Short" -> "java/lang/Short"
-        "prim.Int" -> "java/lang/Integer"
-        "prim.Long" -> "java/lang/Long"
-        "prim.Float" -> "java/lang/Float"
-        "prim.Double" -> "java/lang/Double"
-        "prim.Boolean" -> "java/lang/Boolean"
-        "prim.Char" -> "java/lang/Character"
-        "prim.String" -> "java/lang/String"
-        else -> internalize(tvar.name.toString())
-    }
-
     companion object {
+        private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr) {
+            if (!res.exhaustive) {
+                inferError("a case expression could not be determined to cover all inputs.", expr.span)
+            }
+            if (res.redundantMatches.isNotEmpty()) {
+                val unr = res.redundantMatches.joinToString(", ") { it.show() }
+                inferError("a case expression contains redundant cases: $unr", expr.span)
+            }
+        }
+
+        // TODO: use primitive types and implement autoboxing
+        private fun getPrimitiveTypeName(tvar: TType.TVar): String = when (tvar.name.toString()) {
+            "prim.Byte" -> "java/lang/Byte"
+            "prim.Short" -> "java/lang/Short"
+            "prim.Int" -> "java/lang/Integer"
+            "prim.Long" -> "java/lang/Long"
+            "prim.Float" -> "java/lang/Float"
+            "prim.Double" -> "java/lang/Double"
+            "prim.Boolean" -> "java/lang/Boolean"
+            "prim.Char" -> "java/lang/Character"
+            "prim.String" -> "java/lang/String"
+            else -> internalize(tvar.name.toString())
+        }
 
         private fun internalize(name: String) = name.replace('.', '/')
     }

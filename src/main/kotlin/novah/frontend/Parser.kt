@@ -430,42 +430,50 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return when (tk.value) {
             is Underline -> {
                 iter.next()
-                Pattern.Wildcard
+                Pattern.Wildcard(tk.span)
             }
             is Ident -> {
                 iter.next()
-                Pattern.Var(tk.value.v)
+                Pattern.Var(tk.value.v, tk.span)
             }
             is BoolT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.BoolLiteral(tk.value.b))
+                Pattern.LiteralP(LiteralPattern.BoolLiteral(Expr.Bool(tk.value.b)), tk.span)
             }
             is IntT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.IntLiteral(tk.value.v.toLong()))
+                Pattern.LiteralP(LiteralPattern.IntLiteral(Expr.IntE(tk.value.v, tk.value.text)), tk.span)
+            }
+            is LongT -> {
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.LongLiteral(Expr.LongE(tk.value.v, tk.value.text)), tk.span)
             }
             is FloatT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.FloatLiteral(tk.value.v.toDouble()))
+                Pattern.LiteralP(LiteralPattern.FloatLiteral(Expr.FloatE(tk.value.v, tk.value.text)), tk.span)
+            }
+            is DoubleT -> {
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.DoubleLiteral(Expr.DoubleE(tk.value.v, tk.value.text)), tk.span)
             }
             is CharT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.CharLiteral(tk.value.c))
+                Pattern.LiteralP(LiteralPattern.CharLiteral(Expr.CharE(tk.value.c)), tk.span)
             }
             is StringT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.StringLiteral(tk.value.s))
+                Pattern.LiteralP(LiteralPattern.StringLiteral(Expr.StringE(tk.value.s)), tk.span)
             }
             is LParen -> {
                 iter.next()
                 val pat = parsePattern()
-                expect<RParen>(withError(E.rparensExpected("pattern declaration")))
-                pat
+                val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
+                Pattern.Parens(pat, span(tk.span, tkEnd.span))
             }
             is UpperIdent -> {
                 iter.next()
                 val fields = tryParseListOf { tryParsePattern() }
-                Pattern.Ctor(tk.value.v, fields)
+                Pattern.Ctor(tk.value.v, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
             }
             else -> null
         }

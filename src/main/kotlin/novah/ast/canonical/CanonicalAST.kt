@@ -1,7 +1,10 @@
 package novah.ast.canonical
 
 import novah.frontend.Span
-import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Context
+import novah.frontend.typechecker.Elem
+import novah.frontend.typechecker.Name
+import novah.frontend.typechecker.Type
 
 /**
  * The canonical AST used after desugaring and after type checking
@@ -74,19 +77,38 @@ data class LetDef(val binder: Binder, val expr: Expr, val type: Type? = null)
 
 data class Case(val pattern: Pattern, val exp: Expr)
 
-sealed class Pattern {
-    object Wildcard : Pattern()
-    data class LiteralP(val lit: LiteralPattern) : Pattern()
-    data class Var(val name: String) : Pattern()
-    data class Ctor(val name: String, val fields: List<Pattern>) : Pattern()
+sealed class Pattern(open val span: Span) {
+    data class Wildcard(override val span: Span) : Pattern(span)
+    data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
+    data class Var(val name: Name, override val span: Span) : Pattern(span)
+    data class Ctor(val name: Name, val fields: List<Pattern>, override val span: Span) : Pattern(span)
 }
 
-sealed class LiteralPattern {
-    data class BoolLiteral(val b: Boolean) : LiteralPattern()
-    data class CharLiteral(val c: Char) : LiteralPattern()
-    data class StringLiteral(val s: String) : LiteralPattern()
-    data class IntLiteral(val i: Long) : LiteralPattern()
-    data class FloatLiteral(val f: Double) : LiteralPattern()
+sealed class LiteralPattern(open val e: Expr) {
+    data class BoolLiteral(override val e: Expr.Bool) : LiteralPattern(e)
+    data class CharLiteral(override val e: Expr.CharE) : LiteralPattern(e)
+    data class StringLiteral(override val e: Expr.StringE) : LiteralPattern(e)
+    data class IntLiteral(override val e: Expr.IntE) : LiteralPattern(e)
+    data class LongLiteral(override val e: Expr.LongE) : LiteralPattern(e)
+    data class FloatLiteral(override val e: Expr.FloatE) : LiteralPattern(e)
+    data class DoubleLiteral(override val e: Expr.DoubleE) : LiteralPattern(e)
+}
+
+fun Pattern.show(): String = when (this) {
+    is Pattern.Wildcard -> "_"
+    is Pattern.Var -> name.toString()
+    is Pattern.Ctor -> if (fields.isEmpty()) "$name" else "$name " + fields.joinToString(" ") { it.show() }
+    is Pattern.LiteralP -> lit.show()
+}
+
+fun LiteralPattern.show(): String = when (this) {
+    is LiteralPattern.BoolLiteral -> e.v.toString()
+    is LiteralPattern.CharLiteral -> e.v.toString()
+    is LiteralPattern.StringLiteral -> e.v
+    is LiteralPattern.IntLiteral -> e.v.toString()
+    is LiteralPattern.LongLiteral -> e.v.toString()
+    is LiteralPattern.FloatLiteral -> e.v.toString()
+    is LiteralPattern.DoubleLiteral -> e.v.toString()
 }
 
 ////////////////////////////////
