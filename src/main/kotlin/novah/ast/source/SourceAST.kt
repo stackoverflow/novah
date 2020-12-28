@@ -114,6 +114,10 @@ sealed class Expr {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
+    data class Constructor(val name: String, val alias: String? = null) : Expr() {
+        override fun toString(): String = if (alias != null) "$alias.$name" else name
+    }
+
     data class Lambda(val binders: List<Binder>, val body: Expr) : Expr() {
         override fun toString(): String = "\\" + binders.joinToString(" ") + " -> $body"
     }
@@ -153,19 +157,22 @@ data class LetDef(val name: Binder, val binders: List<Binder>, val expr: Expr, v
 
 data class Case(val pattern: Pattern, val exp: Expr)
 
-sealed class Pattern {
-    object Wildcard : Pattern()
-    data class LiteralP(val lit: LiteralPattern) : Pattern()
-    data class Var(val name: String) : Pattern()
-    data class Ctor(val name: String, val fields: List<Pattern>) : Pattern()
+sealed class Pattern(open val span: Span) {
+    data class Wildcard(override val span: Span) : Pattern(span)
+    data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
+    data class Var(val name: String, override val span: Span) : Pattern(span)
+    data class Ctor(val name: String, val fields: List<Pattern>, override val span: Span) : Pattern(span)
+    data class Parens(val pattern: Pattern, override val span: Span) : Pattern(span)
 }
 
 sealed class LiteralPattern {
-    data class BoolLiteral(val b: Boolean) : LiteralPattern()
-    data class CharLiteral(val c: Char) : LiteralPattern()
-    data class StringLiteral(val s: String) : LiteralPattern()
-    data class IntLiteral(val i: Long) : LiteralPattern()
-    data class FloatLiteral(val f: Double) : LiteralPattern()
+    data class BoolLiteral(val e: Expr.Bool) : LiteralPattern()
+    data class CharLiteral(val e: Expr.CharE) : LiteralPattern()
+    data class StringLiteral(val e: Expr.StringE) : LiteralPattern()
+    data class IntLiteral(val e: Expr.IntE) : LiteralPattern()
+    data class LongLiteral(val e: Expr.LongE) : LiteralPattern()
+    data class FloatLiteral(val e: Expr.FloatE) : LiteralPattern()
+    data class DoubleLiteral(val e: Expr.DoubleE) : LiteralPattern()
 }
 
 sealed class Type {

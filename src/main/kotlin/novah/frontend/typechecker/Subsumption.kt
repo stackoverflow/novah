@@ -1,6 +1,6 @@
 package novah.frontend.typechecker
 
-import novah.ast.canonical.Expr
+import novah.frontend.Span
 import novah.frontend.typechecker.InferContext._apply
 import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferContext.discard
@@ -10,9 +10,9 @@ import novah.frontend.typechecker.WellFormed.wfType
 
 object Subsumption {
 
-    fun solve(x: Type.TMeta, type: Type, ctxExpr: Expr) {
+    fun solve(x: Type.TMeta, type: Type, span: Span) {
         if (!type.isMono()) {
-            inferError("Cannot solve with polytype $x := $type", ctxExpr)
+            inferError("Cannot solve with polytype $x := $type", span)
         }
 
         val newCtx = context.split<Elem.CTMeta>(x.name)
@@ -21,15 +21,15 @@ object Subsumption {
         context.addAll(newCtx)
     }
 
-    fun instL(x: Type.TMeta, type: Type, ctxExpr: Expr) {
+    fun instL(x: Type.TMeta, type: Type, span: Span) {
         store()
         try {
-            solve(x, type, ctxExpr)
+            solve(x, type, span)
             discard()
         } catch (err: InferenceError) {
             restore()
             when (type) {
-                is Type.TMeta -> solve(type, x, ctxExpr)
+                is Type.TMeta -> solve(type, x, span)
                 is Type.TFun -> {
                     val name = x.name
                     val a = store.fresh(name)
@@ -43,8 +43,8 @@ object Subsumption {
                             Elem.CTMeta(name, Type.TFun(ta, tb))
                         )
                     )
-                    instR(type.arg, ta, ctxExpr)
-                    instL(tb, _apply(type.ret), ctxExpr)
+                    instR(type.arg, ta, span)
+                    instL(tb, _apply(type.ret), span)
                 }
                 is Type.TConstructor -> {
                     val name = x.name
@@ -54,30 +54,30 @@ object Subsumption {
                     val ctmetas = freshVars.reversed().map { Elem.CTMeta(it) }
                     context.replace<Elem.CTMeta>(name, ctmetas + Elem.CTMeta(name, Type.TConstructor(type.name, tmetas)))
                     tmetas.zip(type.types).map { (meta, type) ->
-                        instR(type, meta, ctxExpr)
+                        instR(type, meta, span)
                     }
                 }
                 is Type.TForall -> {
                     val name = store.fresh(type.name)
                     val m = store.fresh("m")
                     context.enter(m, Elem.CTVar(name))
-                    instL(x, Type.openTForall(type, Type.TVar(name)), ctxExpr)
+                    instL(x, Type.openTForall(type, Type.TVar(name)), span)
                     context.leave(m)
                 }
-                else -> inferError("instL failed: unknown type $type", ctxExpr)
+                else -> inferError("instL failed: unknown type $type", span)
             }
         }
     }
 
-    fun instR(type: Type, x: Type.TMeta, ctxExpr: Expr) {
+    fun instR(type: Type, x: Type.TMeta, span: Span) {
         store()
         try {
-            solve(x, type, ctxExpr)
+            solve(x, type, span)
             discard()
         } catch (err: InferenceError) {
             restore()
             when (type) {
-                is Type.TMeta -> solve(type, x, ctxExpr)
+                is Type.TMeta -> solve(type, x, span)
                 is Type.TFun -> {
                     val name = x.name
                     val a = store.fresh(name)
@@ -91,8 +91,8 @@ object Subsumption {
                             Elem.CTMeta(name, Type.TFun(ta, tb))
                         )
                     )
-                    instL(ta, type.arg, ctxExpr)
-                    instR(_apply(type.ret), tb, ctxExpr)
+                    instL(ta, type.arg, span)
+                    instR(_apply(type.ret), tb, span)
                 }
                 is Type.TConstructor -> {
                     val name = x.name
@@ -102,35 +102,35 @@ object Subsumption {
                     val ctmetas = freshVars.reversed().map { Elem.CTMeta(it) }
                     context.replace<Elem.CTMeta>(name, ctmetas + Elem.CTMeta(name, Type.TConstructor(type.name, tmetas)))
                     tmetas.zip(type.types).map { (meta, type) ->
-                        instL(meta, type, ctxExpr)
+                        instL(meta, type, span)
                     }
                 }
                 is Type.TForall -> {
                     val name = store.fresh(type.name)
                     val m = store.fresh("m")
                     context.enter(m, Elem.CTVar(name))
-                    instR(Type.openTForall(type, Type.TMeta(name)), x, ctxExpr)
+                    instR(Type.openTForall(type, Type.TMeta(name)), x, span)
                     context.leave(m)
                 }
-                else -> inferError("instR failed: unknown type $type", ctxExpr)
+                else -> inferError("instR failed: unknown type $type", span)
             }
         }
     }
 
-    fun subsume(a: Type, b: Type, ctxExpr: Expr) {
+    fun subsume(a: Type, b: Type, span: Span) {
         if (a == b) return
         if (a is Type.TVar && b is Type.TVar && a.name == b.name) return
         if (a is Type.TMeta && b is Type.TMeta && a.name == b.name) return
         if (a is Type.TFun && b is Type.TFun) {
-            subsume(b.arg, a.arg, ctxExpr)
-            subsume(_apply(a.ret), _apply(b.ret), ctxExpr)
+            subsume(b.arg, a.arg, span)
+            subsume(_apply(a.ret), _apply(b.ret), span)
             return
         }
         // Not sure about this code but seems to work
         if (a is Type.TConstructor && b is Type.TConstructor && a.name == b.name) {
-            kindCheck(a, b, ctxExpr)
+            kindCheck(a, b, span)
             a.types.forEachIndexed { i, ty ->
-                subsume(_apply(ty), _apply(b.types[i]), ctxExpr)
+                subsume(_apply(ty), _apply(b.types[i]), span)
             }
             return
         }
@@ -138,7 +138,7 @@ object Subsumption {
             val x = store.fresh(a.name)
             val m = store.fresh("m")
             context.enter(m, Elem.CTMeta(x))
-            subsume(Type.openTForall(a, Type.TMeta(x)), b, ctxExpr)
+            subsume(Type.openTForall(a, Type.TMeta(x)), b, span)
             context.leave(m)
             return
         }
@@ -146,35 +146,35 @@ object Subsumption {
             val x = store.fresh(b.name)
             val m = store.fresh("m")
             context.enter(m, Elem.CTVar(x))
-            subsume(a, Type.openTForall(b, Type.TVar(x)), ctxExpr)
+            subsume(a, Type.openTForall(b, Type.TVar(x)), span)
             context.leave(m)
             return
         }
         if (a is Type.TMeta) {
             if (b.containsTMeta(a.name)) {
-                inferError("Occurs check L failed: $a in $b", ctxExpr)
+                inferError("Occurs check L failed: $a in $b", span)
             }
-            instL(a, b, ctxExpr)
+            instL(a, b, span)
             return
         }
         if (b is Type.TMeta) {
             if (a.containsTMeta(b.name)) {
-                inferError("Occurs check R failed: $b in $a", ctxExpr)
+                inferError("Occurs check R failed: $b in $a", span)
             }
-            instR(a, b, ctxExpr)
+            instR(a, b, span)
             return
         }
-        inferError("subsume failed: expected type $a but got $b", ctxExpr)
+        inferError("subsume failed: expected type $a but got $b", span)
     }
 
-    private fun kindCheck(a: Type.TConstructor, b: Type.TConstructor, ctxExpr: Expr) {
+    private fun kindCheck(a: Type.TConstructor, b: Type.TConstructor, span: Span) {
         val atypes = a.types.size
         val btypes = b.types.size
 
         if (atypes != btypes) {
             inferError(
                 "type ${a.name} must have kind ${makeKindString(atypes)} but got kind ${makeKindString(btypes)}: $b",
-                ctxExpr
+                span
             )
         }
     }

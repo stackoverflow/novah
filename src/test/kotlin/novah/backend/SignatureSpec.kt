@@ -75,6 +75,10 @@ class SignatureSpec : StringSpec({
             
             type Result k e = Ok k | Err e
             
+            type Tuple a b = Tuple a b
+            
+            type Triple a b c = Triple a b c Int String
+            
             num = 2
             
             y = 45.8E12
@@ -98,7 +102,7 @@ class SignatureSpec : StringSpec({
                       l2 = toString l1
                   in l2
             
-            w = \x -> x
+            w = \x -> Just x
             
             lamb :: Int -> String -> String
             lamb x y = do

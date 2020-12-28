@@ -27,6 +27,11 @@ data class ImportResult(
         else imports[v.name]
     }
 
+    fun resolve(v: Expr.Constructor): Modulename? {
+        return if (v.alias != null) aliases[v.name]
+        else imports[v.name]
+    }
+
     fun resolve(op: Expr.Operator): Modulename? {
         return if (op.alias != null) aliases[op.name]
         else imports[op.name]

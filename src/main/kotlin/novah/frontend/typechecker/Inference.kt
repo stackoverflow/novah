@@ -1,5 +1,7 @@
 package novah.frontend.typechecker
 
+import novah.Util.hasDuplicates
+import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.frontend.Span
 import novah.frontend.typechecker.InferContext._apply
@@ -54,11 +56,14 @@ object Inference {
                     ?: inferError("undefined variable ${exp.name}", exp)
                 exp.withType(x.type)
             }
+            is Expr.Constructor -> {
+                val x = context.lookup<Elem.CVar>(exp.name)
+                    ?: inferError("undefined constructor ${exp.name}", exp)
+                exp.withType(x.type)
+            }
             is Expr.Lambda -> {
-                // check if this variable is shadowed
                 val binder = exp.binder.name
-                val shadow = context.lookupShadow<Elem.CVar>(binder)
-                if (shadow != null) inferError("Variable $binder is shadowed", exp.binder.span)
+                checkShadow(binder, exp.binder.span)
 
                 val x = store.fresh(binder)
                 val a = store.fresh(binder)
@@ -88,17 +93,14 @@ object Inference {
                 typecheck(exp.cond, tBoolean)
                 val tt = typesynth(exp.thenCase)
                 val te = typesynth(exp.elseCase)
-                subsume(_apply(tt), _apply(te), exp)
+                subsume(_apply(tt), _apply(te), exp.span)
                 exp.withType(tt)
             }
             is Expr.Let -> {
                 // infer the binding
                 val ld = exp.letDef
                 val binder = ld.binder.name
-
-                // check if this variable is shadowed
-                val shadow = context.lookupShadow<Elem.CVar>(binder)
-                if (shadow != null) inferError("Variable ${ld.binder} is shadowed", ld.binder.span)
+                checkShadow(binder, ld.binder.span)
 
                 val name = store.fresh(binder)
                 val binding = if (ld.type != null) {
@@ -125,7 +127,19 @@ object Inference {
                 }
                 exp.withType(ty ?: inferError("got empty `do` statement", exp))
             }
-            else -> inferError("cannot infer type for $exp", exp)
+            is Expr.Match -> {
+                val expType = typesynth(exp.exp)
+                var resType: Type? = null
+
+                exp.cases.forEach { case ->
+                    val vars = typecheckpattern(case.pattern, expType)
+                    withEnteringContext(vars) {
+                        if (resType == null) resType = typesynth(case.exp)
+                        else typecheck(case.exp, resType!!)
+                    }
+                }
+                exp.withType(resType ?: internalError("empty pattern matching: $exp"))
+            }
         }
     }
 
@@ -165,7 +179,7 @@ object Inference {
             }
             else -> {
                 val ty = typesynth(expr)
-                subsume(_apply(ty), _apply(type), expr)
+                subsume(_apply(ty), _apply(type), expr.span)
             }
         }
     }
@@ -198,6 +212,53 @@ object Inference {
                 type.ret
             }
             else -> inferError("Cannot typeappsynth: $type @ $expr", expr)
+        }
+    }
+
+    private fun typecheckpattern(pat: Pattern, type: Type): List<Elem.CVar> {
+        tailrec fun peelArgs(args: List<Type>, t: Type): Pair<List<Type>, Type> = when (t) {
+            is Type.TFun -> {
+                if (t.ret is Type.TFun) peelArgs(args + t.arg, t.ret)
+                else args + t.arg to t.ret
+            }
+            else -> args to t
+        }
+
+        return when (pat) {
+            is Pattern.LiteralP -> {
+                typecheck(pat.lit.e, type)
+                listOf()
+            }
+            is Pattern.Wildcard -> listOf()
+            is Pattern.Var -> {
+                checkShadow(pat.name, pat.span)
+                listOf(Elem.CVar(pat.name, type))
+            }
+            is Pattern.Ctor -> {
+                val ctorTyp =
+                    context.lookup<Elem.CVar>(pat.name)?.type ?: inferError("unknown constructor ${pat.name}", pat.span)
+
+                val (ctorTypes, ret) = peelArgs(listOf(), instantiateForalls(ctorTyp))
+                subsume(ret, _apply(type), pat.span)
+
+                val diff = ctorTypes.size - pat.fields.size
+                if (diff > 0) inferError("too few parameters given to type constructor ${pat.name}", pat.span)
+                if (diff < 0) inferError("too many parameters given to type constructor ${pat.name}", pat.span)
+
+                if (ctorTypes.isEmpty()) listOf()
+                else {
+                    val vars = mutableListOf<Elem.CVar>()
+                    ctorTypes.zip(pat.fields).forEach { (type, pattern) ->
+                        vars.addAll(typecheckpattern(pattern, type))
+                    }
+                    val varNames = vars.map { it.name }
+                    if (varNames.hasDuplicates()) inferError(
+                        "overlapping names in binder ${varNames.joinToString()}",
+                        pat.span
+                    )
+                    vars
+                }
+            }
         }
     }
 
@@ -273,5 +334,36 @@ object Inference {
         }
 
         return elems
+    }
+
+    private fun instantiateForalls(type: Type): Type = when (type) {
+        is Type.TForall -> {
+            val x = store.fresh(type.name)
+            context.add(Elem.CTMeta(x))
+            instantiateForalls(Type.openTForall(type, Type.TMeta(x)))
+        }
+        is Type.TFun -> Type.TFun(instantiateForalls(type.arg), instantiateForalls(type.ret))
+        is Type.TConstructor -> Type.TConstructor(type.name, type.types.map { instantiateForalls(it) })
+        else -> type
+    }
+
+    /**
+     * Check if `name` is shadowing some variable
+     * and throw an error if that's the case.
+     */
+    private fun checkShadow(name: Name, span: Span) {
+        val shadow = context.lookupShadow<Elem.CVar>(name)
+        if (shadow != null) inferError("Variable $name is shadowed", span)
+    }
+
+    private inline fun <T> withEnteringContext(vars: List<Elem.CVar>, f: () -> T): T {
+        return if (vars.isEmpty()) f()
+        else {
+            val m = store.fresh("m")
+            context.enter(m, *vars.toTypedArray())
+            val res = f()
+            context.leave(m)
+            res
+        }
     }
 }

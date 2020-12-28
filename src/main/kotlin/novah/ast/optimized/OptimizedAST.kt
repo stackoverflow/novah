@@ -6,7 +6,7 @@ import novah.ast.canonical.Visibility
  * The optmized AST used for code generation
  */
 
-data class Module(val name: String, val sourceName: String, val decls: List<Decl>)
+data class Module(val name: String, val sourceName: String, val hasLambda: Boolean, val decls: List<Decl>)
 
 sealed class Decl(open val lineNumber: Int) {
     data class DataDecl(
@@ -34,6 +34,7 @@ sealed class Expr(open val type: Type) {
     data class CharE(val v: Char, override val type: Type) : Expr(type)
     data class Bool(val v: Boolean, override val type: Type) : Expr(type)
     data class Var(val name: String, val className: String, override val type: Type) : Expr(type)
+    data class Constructor(val fullName: String, val arity: Int, override val type: Type) : Expr(type)
     data class LocalVar(val name: String, override val type: Type) : Expr(type)
     data class Lambda(
         val binder: String,
@@ -44,12 +45,11 @@ sealed class Expr(open val type: Type) {
     ) : Expr(type)
 
     data class App(val fn: Expr, val arg: Expr, override val type: Type) : Expr(type)
+    data class CtorApp(val ctor: Constructor, val args: List<Expr>, override val type: Type) : Expr(type)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val type: Type) : Expr(type)
-    data class Let(val letDef: LetDef, val body: Expr, override val type: Type) : Expr(type)
+    data class Let(val binder: String, val bindExpr: Expr, val body: Expr, override val type: Type) : Expr(type)
     data class Do(val exps: List<Expr>, override val type: Type) : Expr(type)
 }
-
-data class LetDef(val binder: String, val expr: Expr)
 
 sealed class Type {
     data class TVar(val name: String, val isForall: Boolean = false) : Type()

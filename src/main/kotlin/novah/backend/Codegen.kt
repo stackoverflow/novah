@@ -2,21 +2,27 @@ package novah.backend
 
 import novah.Util.internalError
 import novah.ast.optimized.*
+import novah.backend.GenUtil.INSTANCE
+import novah.backend.GenUtil.LAMBDA_CTOR
 import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
 import novah.backend.GenUtil.OBJECT_CLASS
 import novah.backend.GenUtil.STATIC_INIT
+import novah.backend.GenUtil.lambdaHandle
+import novah.backend.GenUtil.lambdaMethodType
 import novah.backend.GenUtil.visibility
 import novah.backend.TypeUtil.BOOL_CLASS
 import novah.backend.TypeUtil.BYTE_CLASS
 import novah.backend.TypeUtil.CHAR_CLASS
 import novah.backend.TypeUtil.DOUBLE_CLASS
 import novah.backend.TypeUtil.FLOAT_CLASS
+import novah.backend.TypeUtil.FUNCTION_TYPE
 import novah.backend.TypeUtil.INTEGER_CLASS
 import novah.backend.TypeUtil.LONG_CLASS
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
 import novah.backend.TypeUtil.buildMethodSignature
 import novah.backend.TypeUtil.maybeBuildFieldSignature
+import novah.backend.TypeUtil.toInternalClass
 import novah.backend.TypeUtil.toInternalMethodType
 import novah.backend.TypeUtil.toInternalType
 import org.objectweb.asm.ClassWriter
@@ -24,8 +30,8 @@ import org.objectweb.asm.ClassWriter.COMPUTE_FRAMES
 import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.Type as ASMType
 import org.objectweb.asm.Opcodes.*
+import org.objectweb.asm.Type as ASMType
 
 /**
  * Takes a typed AST and generates JVM bytecode.
@@ -35,31 +41,29 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private val className = "${ast.name}/Module"
 
-    // Handle used for the invokedynamic of lambdas
-    private val lambdaHandle = Handle(
-        H_INVOKESTATIC,
-        "java/lang/invoke/LambdaMetafactory",
-        "metafactory",
-        "(Ljava/lang/invoke/MethodHandles\$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
-        false
-    )
-
     fun run() {
-        val cw = ClassWriter(COMPUTE_FRAMES)
+        val cw = NovahClassWriter(COMPUTE_FRAMES)
         cw.visit(NOVAH_GENCLASS_VERSION, ACC_PUBLIC + ACC_FINAL, className, null, OBJECT_CLASS, arrayOf<String>())
         cw.visitSource(ast.sourceName, null)
 
-        //cw.visitInnerClass("java/lang/invoke/MethodHandles\$Lookup", "java/lang/invoke/MethodHandles", "Lookup", ACC_PUBLIC + ACC_STATIC + ACC_FINAL)
+        if (ast.hasLambda)
+            cw.visitInnerClass("java/lang/invoke/MethodHandles\$Lookup", "java/lang/invoke/MethodHandles", "Lookup", ACC_PUBLIC + ACC_STATIC + ACC_FINAL)
 
         var main: Decl.ValDecl? = null
         val datas = mutableListOf<Decl.DataDecl>()
         val values = mutableListOf<Decl.ValDecl>()
         for (decl in ast.decls) {
             when (decl) {
-                is Decl.DataDecl -> datas += decl
+                is Decl.DataDecl -> {
+                    for (ctor in decl.dataCtors) {
+                        ctorCache["${ast.name}/${ctor.name}"] = ctor
+                    }
+                    datas += decl
+                }
                 is Decl.ValDecl -> if (isMain(decl)) main = decl else values += decl
             }
         }
+        NovahClassWriter.addADTs(ast.name, datas)
 
         for (data in datas) ADTGen(data, ast, onGenClass).run()
 
@@ -219,11 +223,26 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.Var -> {
                 resolvePrimitiveModuleVar(mv, e)
             }
+            is Expr.Constructor -> {
+                if (e.arity == 0) mv.visitFieldInsn(GETSTATIC, e.fullName, INSTANCE, toInternalType(e.type))
+                else mv.visitFieldInsn(GETSTATIC, e.fullName, LAMBDA_CTOR, FUNCTION_TYPE)
+            }
+            is Expr.CtorApp -> {
+                val name = e.ctor.fullName
+                mv.visitTypeInsn(NEW, name)
+                mv.visitInsn(DUP)
+                var type = ""
+                ctorCache[name]!!.args.forEach { type += toInternalType(it) }
+                e.args.forEach {
+                    genExpr(it, mv, ctx)
+                }
+                mv.visitMethodInsn(INVOKESPECIAL, name, GenUtil.INIT, "($type)V", false)
+            }
             is Expr.If -> {
                 genExpr(e.cond, mv, ctx)
+                mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
                 val elseLabel = Label()
                 val endLabel = Label()
-                mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
                 mv.visitJumpInsn(IFEQ, elseLabel)
                 genExpr(e.thenCase, mv, ctx)
                 mv.visitJumpInsn(GOTO, endLabel)
@@ -235,16 +254,16 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val num = ctx.nextLocal()
                 val varStartLabel = Label()
                 val varEndLabel = Label()
-                genExpr(e.letDef.expr, mv, ctx)
+                genExpr(e.bindExpr, mv, ctx)
                 mv.visitVarInsn(ASTORE, num)
                 mv.visitLabel(varStartLabel)
 
                 // TODO: check if we need to define the variable before generating the letdef
                 // to allow recursion
-                ctx.put(e.letDef.binder, num, varStartLabel)
+                ctx.put(e.binder, num, varStartLabel)
                 genExpr(e.body, mv, ctx)
                 mv.visitLabel(varEndLabel)
-                ctx.setEndLabel(e.letDef.binder, varEndLabel)
+                ctx.setEndLabel(e.binder, varEndLabel)
             }
             is Expr.Do -> {
                 e.exps.forEachIndexed { index, expr ->
@@ -274,13 +293,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     false
                 )
                 val ldesc = ASMType.getMethodType(toInternalMethodType(lambdaType))
-                val methodDesc = ASMType.getMethodType("(Ljava/lang/Object;)Ljava/lang/Object;")
 
                 mv.visitInvokeDynamicInsn(
                     "apply",
                     applyDesc,
                     lambdaHandle,
-                    methodDesc,
+                    lambdaMethodType,
                     handle,
                     ldesc
                 )
@@ -310,6 +328,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         } else {
             genExpr(fn, mv, ctx)
             genExpr(e.arg, mv, ctx)
+            val retClass = toInternalClass((fn.type as Type.TFun).ret)
             mv.visitMethodInsn(
                 INVOKEINTERFACE,
                 "java/util/function/Function",
@@ -317,6 +336,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 "(Ljava/lang/Object;)Ljava/lang/Object;",
                 true
             )
+            if (retClass != OBJECT_CLASS) {
+                mv.visitTypeInsn(CHECKCAST, retClass)
+            }
         }
     }
 
@@ -345,9 +367,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.Let -> {
                 for (l in lambdas) {
-                    l.ignores += exp.letDef.binder
+                    l.ignores += exp.binder
                 }
-                go(exp.letDef.expr)
+                go(exp.bindExpr)
                 go(exp.body)
             }
             is Expr.App -> {
@@ -437,5 +459,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         if (typ !is Type.TFun) return false
         val ret = typ.ret
         return ret is Type.TVar && ret.name == "prim/Unit"
+    }
+
+    companion object {
+        private val ctorCache = mutableMapOf<String, DataConstructor>()
     }
 }

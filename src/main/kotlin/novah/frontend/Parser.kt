@@ -212,13 +212,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 Expr.Parens(exp)
             }
         }
-        // TODO: store Constructors as its own expression, not vars
         is UpperIdent -> {
             val uident = expect<UpperIdent>(noErr())
             if (iter.peek().value is Dot) {
                 parseAliasedVar(uident)
             } else {
-                Expr.Var(uident.value.v)
+                Expr.Constructor(uident.value.v)
             }
         }
         is Backslash -> parseLambda()
@@ -282,10 +281,17 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 .withSpan(alias.span, op.span)
                 .withComment(alias.comment)
         } else {
-            val ident = expect<Ident>(withError(E.IMPORTED_DOT))
-            Expr.Var(ident.value.v, alias.value.v)
-                .withSpan(alias.span, ident.span)
-                .withComment(alias.comment)
+            if (iter.peek().value is Ident) {
+                val ident = expect<Ident>(withError(E.IMPORTED_DOT))
+                Expr.Var(ident.value.v, alias.value.v)
+                    .withSpan(alias.span, ident.span)
+                    .withComment(alias.comment)
+            } else {
+                val ident = expect<UpperIdent>(withError(E.IMPORTED_DOT))
+                Expr.Constructor(ident.value.v, alias.value.v)
+                    .withSpan(alias.span, ident.span)
+                    .withComment(alias.comment)
+            }
         }
     }
 
@@ -305,7 +311,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseIf(): Expr {
-        val _if = expect<IfT>(noErr())
+        val ifTk = expect<IfT>(noErr())
 
         val (cond, thens) = withIgnoreOffside {
             val cond = parseExpression()
@@ -321,8 +327,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val elses = parseExpression()
 
         return Expr.If(cond, thens, elses)
-            .withSpan(_if.span, elses.span)
-            .withComment(_if.comment)
+            .withSpan(ifTk.span, elses.span)
+            .withComment(ifTk.comment)
     }
 
     private fun parseLet(): Expr {
@@ -430,42 +436,50 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return when (tk.value) {
             is Underline -> {
                 iter.next()
-                Pattern.Wildcard
+                Pattern.Wildcard(tk.span)
             }
             is Ident -> {
                 iter.next()
-                Pattern.Var(tk.value.v)
+                Pattern.Var(tk.value.v, tk.span)
             }
             is BoolT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.BoolLiteral(tk.value.b))
+                Pattern.LiteralP(LiteralPattern.BoolLiteral(Expr.Bool(tk.value.b)), tk.span)
             }
             is IntT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.IntLiteral(tk.value.v.toLong()))
+                Pattern.LiteralP(LiteralPattern.IntLiteral(Expr.IntE(tk.value.v, tk.value.text)), tk.span)
+            }
+            is LongT -> {
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.LongLiteral(Expr.LongE(tk.value.v, tk.value.text)), tk.span)
             }
             is FloatT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.FloatLiteral(tk.value.v.toDouble()))
+                Pattern.LiteralP(LiteralPattern.FloatLiteral(Expr.FloatE(tk.value.v, tk.value.text)), tk.span)
+            }
+            is DoubleT -> {
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.DoubleLiteral(Expr.DoubleE(tk.value.v, tk.value.text)), tk.span)
             }
             is CharT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.CharLiteral(tk.value.c))
+                Pattern.LiteralP(LiteralPattern.CharLiteral(Expr.CharE(tk.value.c)), tk.span)
             }
             is StringT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.StringLiteral(tk.value.s))
+                Pattern.LiteralP(LiteralPattern.StringLiteral(Expr.StringE(tk.value.s)), tk.span)
             }
             is LParen -> {
                 iter.next()
                 val pat = parsePattern()
-                expect<RParen>(withError(E.rparensExpected("pattern declaration")))
-                pat
+                val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
+                Pattern.Parens(pat, span(tk.span, tkEnd.span))
             }
             is UpperIdent -> {
                 iter.next()
                 val fields = tryParseListOf { tryParsePattern() }
-                Pattern.Ctor(tk.value.v, fields)
+                Pattern.Ctor(tk.value.v, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
             }
             else -> null
         }

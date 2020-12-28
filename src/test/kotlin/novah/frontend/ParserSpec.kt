@@ -1,5 +1,6 @@
 package novah.frontend
 
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.blocking.forAll
@@ -148,6 +149,26 @@ class ParserSpec : StringSpec({
         val ast = parseString("decl = 2 :: Int".module())
         val des = Desugar(ast)
         des.desugar()
+    }
+
+    "Constructors with the same name as the type are not allowed unless there's only one" {
+        val code = "type Wrong = Wrong | NotWrong".module()
+
+        val ast = parseString(code)
+        val des = Desugar(ast)
+        shouldThrow<ParserError> {
+            des.desugar()
+        }
+    }
+
+    "Constructors with the same name as the type are allowed for single constructor types" {
+        val code = "type Tuple a b = Tuple a b".module()
+
+        val ast = parseString(code)
+        val des = Desugar(ast)
+        shouldNotThrowAny {
+            des.desugar()
+        }
     }
 
     "Exported definitions have correct visibility" {

@@ -128,6 +128,7 @@ class Formatter {
             }
             is Expr.Var -> e.toString()
             is Expr.Operator -> e.toString()
+            is Expr.Constructor -> e.toString()
             is Expr.IntE -> e.text
             is Expr.LongE -> e.text
             is Expr.FloatE -> e.text
@@ -143,22 +144,22 @@ class Formatter {
         return show(c.pattern) + " -> " + show(c.exp)
     }
 
-    private fun show(p: Pattern, nested: Boolean = false): String = when (p) {
+    private fun show(p: Pattern): String = when (p) {
         is Pattern.Wildcard -> "_"
         is Pattern.Var -> p.name
-        is Pattern.Ctor -> {
-            val str = p.name + p.fields.joinToStr(" ", prefix = " ") { show(it, true) }
-            if (nested) "($str)" else str
-        }
+        is Pattern.Ctor -> p.name + p.fields.joinToStr(" ", prefix = " ") { show(it) }
         is Pattern.LiteralP -> show(p.lit)
+        is Pattern.Parens -> "(${show(p.pattern)})"
     }
 
     private fun show(p: LiteralPattern): String = when (p) {
-        is LiteralPattern.BoolLiteral -> "${p.b}"
-        is LiteralPattern.CharLiteral -> "'${p.c}'"
-        is LiteralPattern.StringLiteral -> p.s
-        is LiteralPattern.IntLiteral -> "${p.i}"
-        is LiteralPattern.FloatLiteral -> "${p.f}"
+        is LiteralPattern.BoolLiteral -> show(p.e)
+        is LiteralPattern.CharLiteral -> show(p.e)
+        is LiteralPattern.StringLiteral -> show(p.e)
+        is LiteralPattern.IntLiteral -> show(p.e)
+        is LiteralPattern.LongLiteral -> show(p.e)
+        is LiteralPattern.FloatLiteral -> show(p.e)
+        is LiteralPattern.DoubleLiteral -> show(p.e)
     }
 
     private fun show(l: LetDef): String {
