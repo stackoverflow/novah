@@ -6,7 +6,7 @@ import novah.ast.canonical.Visibility
  * The optmized AST used for code generation
  */
 
-data class Module(val name: String, val sourceName: String, val decls: List<Decl>)
+data class Module(val name: String, val sourceName: String, val hasLambda: Boolean, val decls: List<Decl>)
 
 sealed class Decl(open val lineNumber: Int) {
     data class DataDecl(

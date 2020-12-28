@@ -77,6 +77,8 @@ class SignatureSpec : StringSpec({
             
             type Tuple a b = Tuple a b
             
+            type Triple a b c = Triple a b c Int String
+            
             num = 2
             
             y = 45.8E12

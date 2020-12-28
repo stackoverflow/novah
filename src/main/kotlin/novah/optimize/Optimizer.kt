@@ -25,6 +25,8 @@ import novah.frontend.typechecker.Type as TType
  */
 class Optimizer(private val ast: CModule) {
 
+    private var haslambda = false
+
     fun convert(): Module {
         PatternMatchingCompiler.addConsToCache(ast)
         return ast.convert()
@@ -36,7 +38,7 @@ class Optimizer(private val ast: CModule) {
             if (d is CDataDecl) ds += d.convert()
             if (d is CValDecl) ds += d.convert()
         }
-        return Module(internalize(name), sourceName, ds)
+        return Module(internalize(name), sourceName, haslambda, ds)
     }
 
     private fun CValDecl.convert(): Decl.ValDecl = Decl.ValDecl(name, exp.convert(), visibility, span.start.line)
@@ -79,6 +81,7 @@ class Optimizer(private val ast: CModule) {
                 Expr.Constructor(ctorName, typ)
             }
             is CExpr.Lambda -> {
+                haslambda = true
                 val bind = binder.convert()
                 Expr.Lambda(bind, body.convert(locals + bind), type = typ)
             }

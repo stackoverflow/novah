@@ -16,8 +16,8 @@ object TypeUtil {
 
     const val STRING_CLASS = "java/lang/String"
 
+    const val FUNCTION_TYPE = "Ljava/util/function/Function;"
     private const val OBJECT_TYPE = "Ljava/lang/Object;"
-    private const val FUNCTION_TYPE = "Ljava/util/function/Function;"
 
     fun toInternalType(type: Type): String = when (type) {
         is Type.TVar -> if (type.isForall) OBJECT_TYPE else descriptor(type.name)
@@ -76,4 +76,10 @@ object TypeUtil {
     }
 
     fun descriptor(t: String): String = "L$t;"
+
+    fun buildFunctions(types: List<Type>): Type {
+        val first = types.first()
+        return if (types.size == 1) first
+        else Type.TFun(first, buildFunctions(types.drop(1)))
+    }
 }

@@ -5,16 +5,17 @@ import novah.ast.optimized.DataConstructor
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
 import novah.ast.optimized.Type
+import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type as ASMType
 
 object GenUtil {
 
     const val OBJECT_CLASS = "java/lang/Object"
     const val INIT = "<init>"
     const val STATIC_INIT = "<clinit>"
-    const val INSTANCE = "INSTANCE"
 
     const val NOVAH_GENCLASS_VERSION = Opcodes.V1_8
 
@@ -26,6 +27,17 @@ object GenUtil {
 
     fun visibility(decl: Decl.ValDecl): Int =
         if (decl.visibility == Visibility.PUBLIC) Opcodes.ACC_PUBLIC else Opcodes.ACC_PRIVATE
+
+    // Handle used for the invokedynamic of lambdas
+    val lambdaHandle = Handle(
+        Opcodes.H_INVOKESTATIC,
+        "java/lang/invoke/LambdaMetafactory",
+        "metafactory",
+        "(Ljava/lang/invoke/MethodHandles\$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
+        false
+    )
+
+    val lambdaMethodType: ASMType = ASMType.getMethodType("(Ljava/lang/Object;)Ljava/lang/Object;")
 }
 
 class GenContext {

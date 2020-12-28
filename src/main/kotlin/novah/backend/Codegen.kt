@@ -5,6 +5,8 @@ import novah.ast.optimized.*
 import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
 import novah.backend.GenUtil.OBJECT_CLASS
 import novah.backend.GenUtil.STATIC_INIT
+import novah.backend.GenUtil.lambdaHandle
+import novah.backend.GenUtil.lambdaMethodType
 import novah.backend.GenUtil.visibility
 import novah.backend.TypeUtil.BOOL_CLASS
 import novah.backend.TypeUtil.BYTE_CLASS
@@ -35,21 +37,13 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private val className = "${ast.name}/Module"
 
-    // Handle used for the invokedynamic of lambdas
-    private val lambdaHandle = Handle(
-        H_INVOKESTATIC,
-        "java/lang/invoke/LambdaMetafactory",
-        "metafactory",
-        "(Ljava/lang/invoke/MethodHandles\$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
-        false
-    )
-
     fun run() {
         val cw = ClassWriter(COMPUTE_FRAMES)
         cw.visit(NOVAH_GENCLASS_VERSION, ACC_PUBLIC + ACC_FINAL, className, null, OBJECT_CLASS, arrayOf<String>())
         cw.visitSource(ast.sourceName, null)
 
-        //cw.visitInnerClass("java/lang/invoke/MethodHandles\$Lookup", "java/lang/invoke/MethodHandles", "Lookup", ACC_PUBLIC + ACC_STATIC + ACC_FINAL)
+        if (ast.hasLambda)
+            cw.visitInnerClass("java/lang/invoke/MethodHandles\$Lookup", "java/lang/invoke/MethodHandles", "Lookup", ACC_PUBLIC + ACC_STATIC + ACC_FINAL)
 
         var main: Decl.ValDecl? = null
         val datas = mutableListOf<Decl.DataDecl>()
@@ -220,7 +214,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 resolvePrimitiveModuleVar(mv, e)
             }
             is Expr.Constructor -> {
-
+                // TODO
             }
             is Expr.If -> {
                 genExpr(e.cond, mv, ctx)
@@ -277,13 +271,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     false
                 )
                 val ldesc = ASMType.getMethodType(toInternalMethodType(lambdaType))
-                val methodDesc = ASMType.getMethodType("(Ljava/lang/Object;)Ljava/lang/Object;")
 
                 mv.visitInvokeDynamicInsn(
                     "apply",
                     applyDesc,
                     lambdaHandle,
-                    methodDesc,
+                    lambdaMethodType,
                     handle,
                     ldesc
                 )
