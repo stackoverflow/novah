@@ -45,12 +45,11 @@ sealed class Expr(open val type: Type) {
     ) : Expr(type)
 
     data class App(val fn: Expr, val arg: Expr, override val type: Type) : Expr(type)
+    data class CtorApp(val ctor: Constructor, val args: List<Expr>, override val type: Type) : Expr(type)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val type: Type) : Expr(type)
-    data class Let(val letDef: LetDef, val body: Expr, override val type: Type) : Expr(type)
+    data class Let(val binder: String, val bindExpr: Expr, val body: Expr, override val type: Type) : Expr(type)
     data class Do(val exps: List<Expr>, override val type: Type) : Expr(type)
 }
-
-data class LetDef(val binder: String, val expr: Expr)
 
 sealed class Type {
     data class TVar(val name: String, val isForall: Boolean = false) : Type()

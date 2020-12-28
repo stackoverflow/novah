@@ -57,6 +57,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 is Decl.ValDecl -> if (isMain(decl)) main = decl else values += decl
             }
         }
+        NovahClassWriter.addADTs(ast.name, datas)
 
         for (data in datas) ADTGen(data, ast, onGenClass).run()
 
@@ -220,11 +221,22 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 if (e.arity == 0) mv.visitFieldInsn(GETSTATIC, e.fullName, INSTANCE, toInternalType(e.type))
                 else mv.visitFieldInsn(GETSTATIC, e.fullName, LAMBDA_CTOR, FUNCTION_TYPE)
             }
+            is Expr.CtorApp -> {
+                val name = e.ctor.fullName
+                mv.visitTypeInsn(NEW, name)
+                mv.visitInsn(DUP)
+                var type = ""
+                e.args.forEach {
+                    genExpr(it, mv, ctx)
+                    type += toInternalType(it.type)
+                }
+                mv.visitMethodInsn(INVOKESPECIAL, name, GenUtil.INIT, "($type)V", false)
+            }
             is Expr.If -> {
                 genExpr(e.cond, mv, ctx)
+                mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
                 val elseLabel = Label()
                 val endLabel = Label()
-                mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
                 mv.visitJumpInsn(IFEQ, elseLabel)
                 genExpr(e.thenCase, mv, ctx)
                 mv.visitJumpInsn(GOTO, endLabel)
@@ -236,16 +248,16 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val num = ctx.nextLocal()
                 val varStartLabel = Label()
                 val varEndLabel = Label()
-                genExpr(e.letDef.expr, mv, ctx)
+                genExpr(e.bindExpr, mv, ctx)
                 mv.visitVarInsn(ASTORE, num)
                 mv.visitLabel(varStartLabel)
 
                 // TODO: check if we need to define the variable before generating the letdef
                 // to allow recursion
-                ctx.put(e.letDef.binder, num, varStartLabel)
+                ctx.put(e.binder, num, varStartLabel)
                 genExpr(e.body, mv, ctx)
                 mv.visitLabel(varEndLabel)
-                ctx.setEndLabel(e.letDef.binder, varEndLabel)
+                ctx.setEndLabel(e.binder, varEndLabel)
             }
             is Expr.Do -> {
                 e.exps.forEachIndexed { index, expr ->
@@ -345,9 +357,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.Let -> {
                 for (l in lambdas) {
-                    l.ignores += exp.letDef.binder
+                    l.ignores += exp.binder
                 }
-                go(exp.letDef.expr)
+                go(exp.bindExpr)
                 go(exp.body)
             }
             is Expr.App -> {

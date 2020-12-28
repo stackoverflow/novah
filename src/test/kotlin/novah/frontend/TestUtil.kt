@@ -9,6 +9,7 @@ import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tInt
+import novah.optimize.Converter
 import novah.optimize.Optimizer
 import novah.ast.optimized.Module as OModule
 
@@ -58,8 +59,9 @@ object TestUtil {
         val desugar = Desugar(parser.parseFullModule())
         val canonical = desugar.desugar()
         infer(canonical)
-        val opt = Optimizer(canonical)
-        return opt.convert()
+        val cvt = Converter(canonical)
+        val oast = cvt.convert()
+        return Optimizer.run(oast)
     }
 
     fun setupContext() {

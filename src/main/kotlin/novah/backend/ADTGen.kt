@@ -79,7 +79,7 @@ class ADTGen(
         val sig = buildClassSignature(adt.tyVars, superClass)
         val vis = visibility(ctor)
         val args = ctor.args
-        val ctorType = Type.TConstructor(className, ctor.args)
+        val ctorType = Type.TConstructor(className, ctor.args.filter { it.isGeneric() })
 
         val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)
         cw.visit(
