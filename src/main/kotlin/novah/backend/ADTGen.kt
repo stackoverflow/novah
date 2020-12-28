@@ -5,6 +5,8 @@ import novah.ast.optimized.Decl
 import novah.ast.optimized.Module
 import novah.ast.optimized.Type
 import novah.backend.GenUtil.INIT
+import novah.backend.GenUtil.INSTANCE
+import novah.backend.GenUtil.LAMBDA_CTOR
 import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
 import novah.backend.GenUtil.OBJECT_CLASS
 import novah.backend.GenUtil.STATIC_INIT
@@ -21,9 +23,9 @@ import novah.backend.TypeUtil.toInternalType
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Handle
 import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.Type as ASMType
 import org.objectweb.asm.Opcodes.*
 import java.util.*
+import org.objectweb.asm.Type as ASMType
 
 /**
  * Generate bytecode for Algebraic Data Types.
@@ -161,8 +163,6 @@ class ADTGen(
     }
 
     companion object {
-        const val INSTANCE = "INSTANCE"
-        const val LAMBDA_CTOR = "CREATE"
 
         fun genEmptyConstructor(cw: ClassWriter, access: Int) {
             val init = cw.visitMethod(access, INIT, "()V", null, emptyArray())

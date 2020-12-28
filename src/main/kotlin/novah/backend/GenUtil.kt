@@ -16,6 +16,8 @@ object GenUtil {
     const val OBJECT_CLASS = "java/lang/Object"
     const val INIT = "<init>"
     const val STATIC_INIT = "<clinit>"
+    const val INSTANCE = "INSTANCE"
+    const val LAMBDA_CTOR = "CREATE"
 
     const val NOVAH_GENCLASS_VERSION = Opcodes.V1_8
 

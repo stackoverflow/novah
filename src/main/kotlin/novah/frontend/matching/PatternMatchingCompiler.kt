@@ -6,7 +6,7 @@ import novah.Util.match
 import novah.Util.prepend
 import novah.ast.canonical.*
 
-data class Ctor(val name: String, val arity: Int, val span: Float)
+data class Ctor(val name: String, val arity: Int, val span: Int)
 
 sealed class Pat {
     data class PVar(val name: String) : Pat()
@@ -149,7 +149,7 @@ class PatternMatchingCompiler<R> {
         is Term.Neg -> {
             when {
                 dsc.cons.any { it == pcon } -> MatchRes.No
-                pcon.span == (dsc.cons.size + 1).toFloat() -> MatchRes.Yes
+                pcon.span == dsc.cons.size + 1 -> MatchRes.Yes
                 else -> MatchRes.Maybe
             }
         }
@@ -179,9 +179,9 @@ class PatternMatchingCompiler<R> {
     }
 
     companion object {
-        private val trueCtor = Ctor("true", 0, 2F)
-        private val falseCtor = Ctor("false", 0, 2F)
-        private fun mkPrimCtor(name: String) = Ctor(name, 0, Float.POSITIVE_INFINITY)
+        private val trueCtor = Ctor("true", 0, 2)
+        private val falseCtor = Ctor("false", 0, 2)
+        private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
 
         private val ctorCache = mutableMapOf<String, Ctor>()
 
@@ -190,10 +190,12 @@ class PatternMatchingCompiler<R> {
                 val span = dd.dataCtors.size
                 for (c in dd.dataCtors) {
                     if (ctorCache.containsKey(c.name)) break
-                    ctorCache[c.name] = Ctor(c.name, c.args.size, span.toFloat())
+                    ctorCache[c.name] = Ctor(c.name, c.args.size, span)
                 }
             }
         }
+
+        fun getFromCache(name: String): Ctor? = ctorCache[name]
 
         fun convert(c: Case): MatchRule<Pattern> = MatchRule(convertPattern(c.pattern), c.pattern)
 

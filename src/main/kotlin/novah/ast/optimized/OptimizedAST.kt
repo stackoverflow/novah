@@ -34,7 +34,7 @@ sealed class Expr(open val type: Type) {
     data class CharE(val v: Char, override val type: Type) : Expr(type)
     data class Bool(val v: Boolean, override val type: Type) : Expr(type)
     data class Var(val name: String, val className: String, override val type: Type) : Expr(type)
-    data class Constructor(val fullName: String, override val type: Type) : Expr(type)
+    data class Constructor(val fullName: String, val arity: Int, override val type: Type) : Expr(type)
     data class LocalVar(val name: String, override val type: Type) : Expr(type)
     data class Lambda(
         val binder: String,

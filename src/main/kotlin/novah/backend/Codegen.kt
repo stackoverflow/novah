@@ -2,6 +2,8 @@ package novah.backend
 
 import novah.Util.internalError
 import novah.ast.optimized.*
+import novah.backend.GenUtil.INSTANCE
+import novah.backend.GenUtil.LAMBDA_CTOR
 import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
 import novah.backend.GenUtil.OBJECT_CLASS
 import novah.backend.GenUtil.STATIC_INIT
@@ -13,6 +15,7 @@ import novah.backend.TypeUtil.BYTE_CLASS
 import novah.backend.TypeUtil.CHAR_CLASS
 import novah.backend.TypeUtil.DOUBLE_CLASS
 import novah.backend.TypeUtil.FLOAT_CLASS
+import novah.backend.TypeUtil.FUNCTION_TYPE
 import novah.backend.TypeUtil.INTEGER_CLASS
 import novah.backend.TypeUtil.LONG_CLASS
 import novah.backend.TypeUtil.SHORT_CLASS
@@ -26,8 +29,8 @@ import org.objectweb.asm.ClassWriter.COMPUTE_FRAMES
 import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.Type as ASMType
 import org.objectweb.asm.Opcodes.*
+import org.objectweb.asm.Type as ASMType
 
 /**
  * Takes a typed AST and generates JVM bytecode.
@@ -38,7 +41,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private val className = "${ast.name}/Module"
 
     fun run() {
-        val cw = ClassWriter(COMPUTE_FRAMES)
+        val cw = NovahClassWriter(COMPUTE_FRAMES)
         cw.visit(NOVAH_GENCLASS_VERSION, ACC_PUBLIC + ACC_FINAL, className, null, OBJECT_CLASS, arrayOf<String>())
         cw.visitSource(ast.sourceName, null)
 
@@ -214,7 +217,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 resolvePrimitiveModuleVar(mv, e)
             }
             is Expr.Constructor -> {
-                // TODO
+                if (e.arity == 0) mv.visitFieldInsn(GETSTATIC, e.fullName, INSTANCE, toInternalType(e.type))
+                else mv.visitFieldInsn(GETSTATIC, e.fullName, LAMBDA_CTOR, FUNCTION_TYPE)
             }
             is Expr.If -> {
                 genExpr(e.cond, mv, ctx)
