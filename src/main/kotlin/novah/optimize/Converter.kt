@@ -113,7 +113,7 @@ class Converter(private val ast: CModule) {
         is TType.TConstructor -> Type.TConstructor(internalize("$name"), types.map { it.convert() })
         is TType.TFun -> Type.TFun(arg.convert(), ret.convert())
         is TType.TForall -> type.convert()
-        is TType.TMeta -> internalError("got TMeta after type checking")
+        is TType.TMeta -> internalError("got TMeta after type checking: $this")
     }
 
     companion object {

@@ -22,6 +22,7 @@ import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
 import novah.backend.TypeUtil.buildMethodSignature
 import novah.backend.TypeUtil.maybeBuildFieldSignature
+import novah.backend.TypeUtil.toInternalClass
 import novah.backend.TypeUtil.toInternalMethodType
 import novah.backend.TypeUtil.toInternalType
 import org.objectweb.asm.ClassWriter
@@ -53,7 +54,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val values = mutableListOf<Decl.ValDecl>()
         for (decl in ast.decls) {
             when (decl) {
-                is Decl.DataDecl -> datas += decl
+                is Decl.DataDecl -> {
+                    for (ctor in decl.dataCtors) {
+                        ctorCache["${ast.name}/${ctor.name}"] = ctor
+                    }
+                    datas += decl
+                }
                 is Decl.ValDecl -> if (isMain(decl)) main = decl else values += decl
             }
         }
@@ -226,9 +232,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitTypeInsn(NEW, name)
                 mv.visitInsn(DUP)
                 var type = ""
+                ctorCache[name]!!.args.forEach { type += toInternalType(it) }
                 e.args.forEach {
                     genExpr(it, mv, ctx)
-                    type += toInternalType(it.type)
                 }
                 mv.visitMethodInsn(INVOKESPECIAL, name, GenUtil.INIT, "($type)V", false)
             }
@@ -322,6 +328,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         } else {
             genExpr(fn, mv, ctx)
             genExpr(e.arg, mv, ctx)
+            val retClass = toInternalClass((fn.type as Type.TFun).ret)
             mv.visitMethodInsn(
                 INVOKEINTERFACE,
                 "java/util/function/Function",
@@ -329,6 +336,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 "(Ljava/lang/Object;)Ljava/lang/Object;",
                 true
             )
+            if (retClass != OBJECT_CLASS) {
+                mv.visitTypeInsn(CHECKCAST, retClass)
+            }
         }
     }
 
@@ -449,5 +459,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         if (typ !is Type.TFun) return false
         val ret = typ.ret
         return ret is Type.TVar && ret.name == "prim/Unit"
+    }
+
+    companion object {
+        private val ctorCache = mutableMapOf<String, DataConstructor>()
     }
 }
