@@ -51,12 +51,12 @@ object Inference {
             is Expr.CharE -> exp.withType(tChar)
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.Var -> {
-                val x = context.lookup<Elem.CVar>(exp.name)
+                val x = context.lookup<Elem.CVar>(exp.alias ?: exp.name)
                     ?: inferError("undefined variable ${exp.name}", exp)
                 exp.withType(x.type)
             }
             is Expr.Constructor -> {
-                val x = context.lookup<Elem.CVar>(exp.name)
+                val x = context.lookup<Elem.CVar>(exp.alias ?: exp.name)
                     ?: inferError("undefined constructor ${exp.name}", exp)
                 exp.withType(x.type)
             }
@@ -71,7 +71,7 @@ object Inference {
                 val tb = Type.TMeta(b)
                 val m = store.fresh("m")
                 context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
-                typecheck(exp.openLambda(Expr.Var(x, Span.empty())), tb)
+                typecheck(exp.aliasLambda(x), tb)
 
                 val ty = _apply(Type.TFun(ta, tb))
                 exp.withType(generalizeFrom(m, ty))
@@ -114,7 +114,7 @@ object Inference {
                 // add the binding to the context
                 val m = store.fresh("m")
                 context.enter(m, binding)
-                val subExp = exp.body.substVar(binder, Expr.Var(name, Span.empty()))
+                val subExp = exp.body.aliasVar(binder, name)
 
                 // infer the body
                 exp.withType(generalizeFrom(m, _apply(typesynth(subExp))))
@@ -166,7 +166,7 @@ object Inference {
                 val x = store.fresh(expr.binder.name)
                 val m = store.fresh("m")
                 context.enter(m, Elem.CVar(x, type.arg))
-                typecheck(expr.openLambda(Expr.Var(x, Span.empty())), type.ret)
+                typecheck(expr.aliasLambda(x), type.ret)
                 context.leave(m)
                 expr.withType(type)
             }
