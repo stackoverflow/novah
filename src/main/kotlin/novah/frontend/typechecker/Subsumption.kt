@@ -10,6 +10,8 @@ import novah.frontend.typechecker.WellFormed.wfType
 
 object Subsumption {
 
+    private val solvedMetas = mutableMapOf<Name, Type>()
+
     fun solve(x: Type.TMeta, type: Type, span: Span) {
         if (!type.isMono()) {
             inferError("Cannot solve with polytype $x := $type", span)
@@ -17,6 +19,7 @@ object Subsumption {
 
         val newCtx = context.split<Elem.CTMeta>(x.name)
         wfType(type)
+        setSolved(x.name, type)
         context.add(Elem.CTMeta(x.name, type))
         context.addAll(newCtx)
     }
@@ -181,5 +184,23 @@ object Subsumption {
 
     fun makeKindString(s: Int): String {
         return (0..s).joinToString(" -> ") { "Type" }
+    }
+
+    fun getSolvedMetas(): Map<Name, Type> = solvedMetas
+
+    fun cleanSolvedMetas() = solvedMetas.clear()
+
+    fun setSolved(name: Name, type: Type) {
+        if (type is Type.TMeta) {
+            val solved = solvedMetas[type.name]
+            if (solved != null) solvedMetas[name] = solved
+            else solvedMetas[name] = type
+        } else {
+            solvedMetas[name] = type
+            solvedMetas.forEach { (n, t) ->
+                if (t is Type.TMeta && t.name == name)
+                    solvedMetas[n] = type
+            }
+        }
     }
 }
