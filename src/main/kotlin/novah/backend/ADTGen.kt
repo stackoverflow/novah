@@ -169,8 +169,12 @@ class ADTGen(
 
             genFunctionalConstructor(cw, className, args)
         }
+
         genToString(cw, className, ctor.name, args)
-        if (args.isNotEmpty()) genEquals(cw, className, args)
+        if (args.isNotEmpty()) {
+            genEquals(cw, className, args)
+            genHashCode(cw, className, args)
+        }
 
         cw.visitEnd()
         onGenClass(moduleName, ctor.name, cw.toByteArray())
@@ -371,6 +375,48 @@ class ADTGen(
 
             eq.visitMaxs(0, 0)
             eq.visitEnd()
+        }
+
+        /**
+         * Generates a hashCode function for this class
+         * based on all attributes.
+         */
+        private fun genHashCode(cw: ClassWriter, className: String, fields: List<Type>) {
+            val mv = cw.visitMethod(ACC_PUBLIC, "hashCode", "()I", null, emptyArray())
+            mv.visitCode()
+            val l0 = Label()
+            mv.visitLabel(l0)
+
+            loadSmallNumber(fields.size, mv)
+            mv.visitTypeInsn(ANEWARRAY, OBJECT_CLASS)
+            fields.forEachIndexed { i, type ->
+                mv.visitInsn(DUP)
+                loadSmallNumber(i, mv)
+                mv.visitVarInsn(ALOAD, 0)
+                mv.visitFieldInsn(GETFIELD, className, "v${i + 1}", toInternalType(type))
+                mv.visitInsn(AASTORE)
+            }
+            mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "hash", "([Ljava/lang/Object;)I", false)
+            mv.visitInsn(IRETURN)
+
+            val l1 = Label()
+            mv.visitLabel(l1)
+            mv.visitLocalVariable("this", descriptor(className), null, l0, l1, 0)
+
+            mv.visitMaxs(0, 0)
+            mv.visitEnd()
+        }
+
+        private fun loadSmallNumber(i: Int, mv: MethodVisitor) {
+            when (i) {
+                0 -> mv.visitInsn(ICONST_0)
+                1 -> mv.visitInsn(ICONST_1)
+                2 -> mv.visitInsn(ICONST_2)
+                3 -> mv.visitInsn(ICONST_3)
+                4 -> mv.visitInsn(ICONST_4)
+                5 -> mv.visitInsn(ICONST_5)
+                else -> mv.visitIntInsn(BIPUSH, i)
+            }
         }
 
         private val toStringHandle = Handle(

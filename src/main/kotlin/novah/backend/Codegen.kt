@@ -239,13 +239,17 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKESPECIAL, name, GenUtil.INIT, "($type)V", false)
             }
             is Expr.If -> {
-                genExpr(e.cond, mv, ctx)
-                mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
-                val elseLabel = Label()
                 val endLabel = Label()
-                mv.visitJumpInsn(IFEQ, elseLabel)
-                genExpr(e.thenCase, mv, ctx)
-                mv.visitJumpInsn(GOTO, endLabel)
+                var elseLabel: Label? = null
+                e.conds.forEach { (cond, then) ->
+                    if (elseLabel != null) mv.visitLabel(elseLabel)
+                    genExpr(cond, mv, ctx)
+                    mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+                    elseLabel = Label()
+                    mv.visitJumpInsn(IFEQ, elseLabel)
+                    genExpr(then, mv, ctx)
+                    mv.visitJumpInsn(GOTO, endLabel)
+                }
                 mv.visitLabel(elseLabel)
                 genExpr(e.elseCase, mv, ctx)
                 mv.visitLabel(endLabel)
@@ -325,6 +329,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             genExpr(e.arg, mv, ctx)
             val retType = e.arg.type.getReturnTypeNameOr("java/lang/Object")
             mv.visitMethodInsn(INVOKEVIRTUAL, retType, "toString", "()Ljava/lang/String;", false)
+        } else if (fn is Expr.Var && fn.fullname() == "prim/Module.hashCode") {
+            genExpr(e.arg, mv, ctx)
+            mv.visitMethodInsn(INVOKEVIRTUAL, toInternalClass(e.arg.type), "hashCode", "()I", false)
+            mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
         } else {
             genExpr(fn, mv, ctx)
             genExpr(e.arg, mv, ctx)
@@ -377,8 +385,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 go(exp.arg)
             }
             is Expr.If -> {
-                go(exp.cond)
-                go(exp.thenCase)
+                for ((cond, then) in exp.conds) {
+                    go(cond)
+                    go(then)
+                }
                 go(exp.elseCase)
             }
             is Expr.Do -> {

@@ -44,6 +44,7 @@ object Prim {
             DeclarationRef.RefVar("println"),
             DeclarationRef.RefVar("toString"),
             DeclarationRef.RefVar("equals"),
+            DeclarationRef.RefVar("hashCode"),
             DeclarationRef.RefVar("unit")
         )
     )
@@ -67,6 +68,7 @@ object Prim {
         Elem.CVar("println".raw(), tfun(tString, tUnit)),
         Elem.CVar("toString".raw(), tfall("a", tfun(tvar("a"), tString))),
         Elem.CVar("equals".raw(), tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))),
+        Elem.CVar("hashCode".raw(), tfall("a", tfun(tvar("a"), tInt))),
         Elem.CVar("unit".raw(), tUnit)
     )
 
