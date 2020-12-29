@@ -67,17 +67,13 @@ class SignatureSpec : StringSpec({
 
     "test full compilation" {
         val code = """
-            module novah.test exposing ( num, y )
+            module novah.test // exposing ( num, y )
             
             type Maybe a = Just a | Nothing
             
             type Day = Weekday | Weekend
             
             type Result k e = Ok k | Err e
-            
-            type Tuple a b = Tuple a b
-            
-            type Triple a b c = Triple a b c Int String
             
             num = 2
             
@@ -102,16 +98,40 @@ class SignatureSpec : StringSpec({
                       l2 = toString l1
                   in l2
             
-            w = \x -> Just x
+            w = \x -> x
             
-            lamb :: Int -> String -> String
+            lamb :: Int -> String -> Unit
             lamb x y = do
               println y
-              toString x
+              println (toString x)
+              Just "a"
+              println (toString (Just "a"))
             
             main args = do
+              println "running novah"
               lamb 4 "hello"
-              unit
+        """.trimIndent()
+
+        val outputDir = "output"
+        val ast = preCompile(code, "novah/test.novah")
+        val codegen = Codegen(ast) { dirName, fileName, bytes ->
+            val file = File("$outputDir/$dirName/$fileName.class")
+            File("$outputDir/$dirName").mkdirs()
+            file.writeBytes(bytes)
+        }
+        codegen.run()
+    }
+
+    "test full comp" {
+        val code = """
+            module novah.test
+            
+            type Maybe a = Just a | Nothing
+            
+            f x = Just x
+            
+            main args = do
+              println (toString (f "123"))
         """.trimIndent()
 
         val outputDir = "output"

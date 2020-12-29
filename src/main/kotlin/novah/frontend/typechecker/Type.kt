@@ -114,6 +114,14 @@ sealed class Type {
         } else this
     }
 
+    fun findTMeta(): List<TMeta> = when (this) {
+        is TVar -> emptyList()
+        is TMeta -> listOf(this)
+        is TFun -> arg.findTMeta() + ret.findTMeta()
+        is TForall -> type.findTMeta()
+        is TConstructor -> types.flatMap { it.findTMeta() }
+    }
+
     /**
      * Non qualified version of [toString]
      */

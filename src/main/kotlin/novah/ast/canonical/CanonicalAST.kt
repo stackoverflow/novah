@@ -59,15 +59,12 @@ sealed class Expr(open val span: Span) {
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
 
     var type: Type? = null
-    private var aliases = mutableListOf<Expr>()
+    var alias: Name? = null
 
     fun withType(t: Type): Type {
         type = t
-        if (aliases.isNotEmpty()) aliases.forEach { it.withType(t) }
         return t
     }
-
-    fun alias(e: Expr) = apply { aliases.add(e) }
 }
 
 data class Binder(val name: Name, val span: Span) {
@@ -116,86 +113,38 @@ fun LiteralPattern.show(): String = when (this) {
 // AST functions
 ////////////////////////////////
 
-fun Case.substVar(v: Name, s: Expr): Case {
-    val e = exp.substVar(v, s)
-    return if (e == exp) this else Case(pattern, e)
-}
+fun Expr.Lambda.aliasLambda(newName: Name): Expr = body.aliasVar(binder.name, newName)
 
-fun LetDef.substVar(v: Name, s: Expr): LetDef {
-    val sub = expr.substVar(v, s)
-    return if (expr == sub) this else LetDef(binder, sub, type)
-}
-
-fun Expr.substVar(v: Name, s: Expr): Expr =
+fun Expr.aliasVar(v: Name, newName: Name): Expr {
     when (this) {
-        is Expr.IntE -> this
-        is Expr.LongE -> this
-        is Expr.FloatE -> this
-        is Expr.DoubleE -> this
-        is Expr.StringE -> this
-        is Expr.CharE -> this
-        is Expr.Bool -> this
-        is Expr.Var -> if (name == v) s.alias(this) else this
-        is Expr.Constructor -> if (name == v) s.alias(this) else this
+        is Expr.Var -> if (v == name) this.alias = newName
+        is Expr.Constructor -> if (v == name) this.alias = newName
         is Expr.App -> {
-            val left = fn.substVar(v, s)
-            val right = arg.substVar(v, s)
-            if (left == fn && right == arg) this else Expr.App(left, right, span).alias(this)
+            fn.aliasVar(v, newName)
+            arg.aliasVar(v, newName)
         }
         is Expr.Lambda -> {
-            if (binder.name == v) this
-            else {
-                val b = body.substVar(v, s)
-                if (body == b) this else Expr.Lambda(binder, b, span).alias(this)
-            }
+            if (binder.name != v) body.aliasVar(v, newName)
         }
-        is Expr.Ann -> {
-            val b = exp.substVar(v, s)
-            if (exp == b) this else Expr.Ann(b, annType, span).alias(this)
-        }
+        is Expr.Ann -> exp.aliasVar(v, newName)
         is Expr.If -> {
-            val c = cond.substVar(v, s)
-            val t = thenCase.substVar(v, s)
-            val e = elseCase.substVar(v, s)
-            if (c == cond && t == thenCase && e == elseCase) this else Expr.If(c, t, e, span).alias(this)
+            cond.aliasVar(v, newName)
+            thenCase.aliasVar(v, newName)
+            elseCase.aliasVar(v, newName)
         }
         is Expr.Let -> {
-            val b = body.substVar(v, s)
-            val def = letDef.substVar(v, s)
-            if (b == body && def == letDef) this else Expr.Let(def, b, span).alias(this)
+            body.aliasVar(v, newName)
+            letDef.expr.aliasVar(v, newName)
         }
         is Expr.Match -> {
-            val e = exp.substVar(v, s)
-            val cs = cases.map { it.substVar(v, s) }
-            if (e == exp && cs == cases) this else Expr.Match(e, cs, span).alias(this)
+            exp.aliasVar(v, newName)
+            cases.map { it.exp.aliasVar(v, newName) }
         }
-        is Expr.Do -> {
-            val es = exps.map { it.substVar(v, s) }
-            if (es == exps) this else Expr.Do(es, span).alias(this)
+        is Expr.Do -> exps.forEach { it.aliasVar(v, newName) }
+        else -> {
         }
     }
-
-fun Expr.Lambda.openLambda(s: Expr): Expr = body.substVar(binder.name, s)
-
-/**
- * Resolve solved meta variables
- */
-fun Expr.resolveMetas(ctx: Context) {
-    tailrec fun resolveMeta(meta: Elem.CTMeta): Type? {
-        val typ = meta.type
-        if (typ == null || typ !is Type.TMeta) return typ
-        val t = ctx.lookup<Elem.CTMeta>(typ.name)
-        return if (t?.type != null) resolveMeta(t)
-        else typ
-    }
-
-    val resolved = mutableMapOf<Name, Type>()
-    ctx.forEachMeta { m ->
-        val typ = resolveMeta(m)
-        if (typ != null) resolved[m.name] = typ
-    }
-
-    resolveUnsolved(resolved)
+    return this
 }
 
 /**

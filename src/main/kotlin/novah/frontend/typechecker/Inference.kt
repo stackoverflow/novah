@@ -22,14 +22,14 @@ import novah.frontend.typechecker.WellFormed.wfType
 
 object Inference {
 
-    fun generalize(unsolved: List<Name>, type: Type, expr: Expr): Type {
+    fun generalize(unsolved: List<Name>, type: Type): Type {
         val ns = type.unsolvedInType(unsolved)
         val m = mutableMapOf<Name, Type.TVar>()
         ns.forEach { x ->
-            val name = store.fresh(x)
-            m[x] = Type.TVar(name)
+            val tvar = Type.TVar(store.fresh(x))
+            Subsumption.setSolved(x, tvar)
+            m[x] = tvar
         }
-        if (m.isNotEmpty()) expr.resolveUnsolved(m)
         var c = type.substTMetas(m)
         for (i in ns.indices.reversed()) {
             c = Type.TForall(m[ns[i]]!!.name, c)
@@ -37,10 +37,8 @@ object Inference {
         return c
     }
 
-    fun generalizeFrom(marker: Name, type: Type, expr: Expr): Type {
-        expr.resolveMetas(context)
-        return generalize(context.leaveWithUnsolved(marker), type, expr)
-    }
+    fun generalizeFrom(marker: Name, type: Type): Type =
+        generalize(context.leaveWithUnsolved(marker), type)
 
     fun typesynth(exp: Expr): Type {
         return when (exp) {
@@ -52,12 +50,12 @@ object Inference {
             is Expr.CharE -> exp.withType(tChar)
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.Var -> {
-                val x = context.lookup<Elem.CVar>(exp.name)
+                val x = context.lookup<Elem.CVar>(exp.alias ?: exp.name)
                     ?: inferError("undefined variable ${exp.name}", exp)
                 exp.withType(x.type)
             }
             is Expr.Constructor -> {
-                val x = context.lookup<Elem.CVar>(exp.name)
+                val x = context.lookup<Elem.CVar>(exp.alias ?: exp.name)
                     ?: inferError("undefined constructor ${exp.name}", exp)
                 exp.withType(x.type)
             }
@@ -72,10 +70,10 @@ object Inference {
                 val tb = Type.TMeta(b)
                 val m = store.fresh("m")
                 context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
-                typecheck(exp.openLambda(Expr.Var(x, Span.empty())), tb)
+                typecheck(exp.aliasLambda(x), tb)
 
                 val ty = _apply(Type.TFun(ta, tb))
-                exp.withType(generalizeFrom(m, ty, exp))
+                exp.withType(generalizeFrom(m, ty))
             }
             is Expr.App -> {
                 val left = typesynth(exp.fn)
@@ -115,10 +113,10 @@ object Inference {
                 // add the binding to the context
                 val m = store.fresh("m")
                 context.enter(m, binding)
-                val subExp = exp.body.substVar(binder, Expr.Var(name, Span.empty()))
+                val subExp = exp.body.aliasVar(binder, name)
 
                 // infer the body
-                exp.withType(generalizeFrom(m, _apply(typesynth(subExp)), exp))
+                exp.withType(generalizeFrom(m, _apply(typesynth(subExp))))
             }
             is Expr.Do -> {
                 var ty: Type? = null
@@ -167,7 +165,7 @@ object Inference {
                 val x = store.fresh(expr.binder.name)
                 val m = store.fresh("m")
                 context.enter(m, Elem.CVar(x, type.arg))
-                typecheck(expr.openLambda(Expr.Var(x, Span.empty())), type.ret)
+                typecheck(expr.aliasLambda(x), type.ret)
                 context.leave(m)
                 expr.withType(type)
             }
@@ -264,10 +262,16 @@ object Inference {
 
     fun infer(expr: Expr): Type {
         store.reset()
+        Subsumption.cleanSolvedMetas()
         wfContext()
         val m = store.fresh("m")
         context.enter(m)
-        val ty = generalizeFrom(m, _apply(typesynth(expr)), expr)
+        val ty = generalizeFrom(m, _apply(typesynth(expr)))
+
+        val solvedMetas = Subsumption.getSolvedMetas()
+        if (solvedMetas.isNotEmpty())
+            expr.resolveUnsolved(solvedMetas)
+
         if (!context.isComplete()) inferError("Context is not complete", expr)
         return ty
     }

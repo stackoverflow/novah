@@ -458,7 +458,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val typ = d.exp.type
         if (typ !is Type.TFun) return false
         val ret = typ.ret
-        return ret is Type.TVar && ret.name == "prim/Unit"
+        return ret is Type.TVar && ret.name == OBJECT_CLASS
     }
 
     companion object {

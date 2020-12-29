@@ -105,6 +105,8 @@ class TypedASTSpec : StringSpec({
 
     "metas are resolved after typecheck" {
         val code = """
+            type Maybe a = Just a | Nothing
+            
             ife a = if true then 3 * 4 else id a
             
             lam = \x -> x > 10
@@ -120,14 +122,21 @@ class TypedASTSpec : StringSpec({
                 x + 4
                 true
             
+            lamb :: Int -> String -> Unit
+            lamb x y = do
+              Just "a"
+              unit
+            
+            main args = do
+              lamb 4 "hello"
+            
         """.module()
 
         val ast = parseAndDesugar(code)
         infer(ast)
 
         val tt = TypeTraverser(ast) { _, t ->
-            //println("$n :: $t")
-            t shouldNot beInstanceOf<Type.TMeta>()
+            t?.findTMeta() shouldBe emptyList()
         }
         tt.run()
     }
