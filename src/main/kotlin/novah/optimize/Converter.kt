@@ -138,6 +138,7 @@ class Converter(private val ast: CModule) {
             "prim.Boolean" -> "java/lang/Boolean"
             "prim.Char" -> "java/lang/Character"
             "prim.String" -> "java/lang/String"
+            "prim.Unit" -> "java/lang/Object"
             else -> internalize(tvar.name.toString())
         }
 

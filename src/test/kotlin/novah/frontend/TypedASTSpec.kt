@@ -135,10 +135,8 @@ class TypedASTSpec : StringSpec({
         val ast = parseAndDesugar(code)
         infer(ast)
 
-        val tt = TypeTraverser(ast) { e, t ->
-            val metas = t?.findTMeta() ?: emptyList()
-            if (metas.isNotEmpty()) println("$e: $metas")
-            metas shouldBe emptyList()
+        val tt = TypeTraverser(ast) { _, t ->
+            t?.findTMeta() shouldBe emptyList()
         }
         tt.run()
     }
