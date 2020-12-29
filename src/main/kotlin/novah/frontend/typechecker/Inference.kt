@@ -26,8 +26,7 @@ object Inference {
         val ns = type.unsolvedInType(unsolved)
         val m = mutableMapOf<Name, Type.TVar>()
         ns.forEach { x ->
-            val name = store.fresh(x)
-            val tvar = Type.TVar(name)
+            val tvar = Type.TVar(store.fresh(x))
             Subsumption.setSolved(x, tvar)
             m[x] = tvar
         }
