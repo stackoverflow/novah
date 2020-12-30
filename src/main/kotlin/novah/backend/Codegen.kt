@@ -47,7 +47,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         cw.visitSource(ast.sourceName, null)
 
         if (ast.hasLambda)
-            cw.visitInnerClass("java/lang/invoke/MethodHandles\$Lookup", "java/lang/invoke/MethodHandles", "Lookup", ACC_PUBLIC + ACC_STATIC + ACC_FINAL)
+            cw.visitInnerClass(
+                "java/lang/invoke/MethodHandles\$Lookup",
+                "java/lang/invoke/MethodHandles",
+                "Lookup",
+                ACC_PUBLIC + ACC_STATIC + ACC_FINAL
+            )
 
         var main: Decl.ValDecl? = null
         val datas = mutableListOf<Decl.DataDecl>()
@@ -238,6 +243,55 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 mv.visitMethodInsn(INVOKESPECIAL, name, GenUtil.INIT, "($type)V", false)
             }
+            is Expr.ShortCircuitOp -> {
+                if (e.name == "&&") {
+                    val fail = Label()
+                    val success = Label()
+                    e.operands.forEach { op ->
+                        if (op is Expr.Bool) {
+                            mv.visitInsn(if (op.v) ICONST_1 else ICONST_0)
+                        } else {
+                            genExpr(op, mv, ctx)
+                            mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+                        }
+                        mv.visitJumpInsn(IFEQ, fail)
+                    }
+                    mv.visitInsn(ICONST_1)
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                    mv.visitJumpInsn(GOTO, success)
+                    mv.visitLabel(fail)
+                    mv.visitInsn(ICONST_0)
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                    mv.visitLabel(success)
+                    return
+                }
+                if (e.name == "||") {
+                    val fail = Label()
+                    val success = Label()
+                    val end = Label()
+                    val last = e.operands.size - 1
+                    e.operands.forEachIndexed { i, op ->
+                        if (op is Expr.Bool) {
+                            mv.visitInsn(if (op.v) ICONST_1 else ICONST_0)
+                        } else {
+                            genExpr(op, mv, ctx)
+                            mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+                        }
+                        if (i == last)
+                            mv.visitJumpInsn(IFEQ, fail)
+                        else
+                            mv.visitJumpInsn(IFNE, success)
+                    }
+                    mv.visitLabel(success)
+                    mv.visitInsn(ICONST_1)
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                    mv.visitJumpInsn(GOTO, end)
+                    mv.visitLabel(fail)
+                    mv.visitInsn(ICONST_0)
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                    mv.visitLabel(end)
+                }
+            }
             is Expr.If -> {
                 val endLabel = Label()
                 var elseLabel: Label? = null
@@ -393,6 +447,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.Do -> {
                 for (e in exp.exps) go(e)
+            }
+            is Expr.ShortCircuitOp -> {
+                for (e in exp.operands) go(e)
             }
             else -> {
             }

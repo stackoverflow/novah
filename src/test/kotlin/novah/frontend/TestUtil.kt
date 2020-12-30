@@ -75,8 +75,6 @@ object TestUtil {
         context.add(Elem.CVar("<".raw(), tfun(tInt, tfun(tInt, tBoolean))))
         context.add(Elem.CVar(">".raw(), tfun(tInt, tfun(tInt, tBoolean))))
         context.add(Elem.CVar("==".raw(), forall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))))
-        context.add(Elem.CVar("&&".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))))
-        context.add(Elem.CVar("||".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))))
         context.add(Elem.CVar("id".raw(), forall("a", tfun(tvar("a"), tvar("a")))))
     }
 

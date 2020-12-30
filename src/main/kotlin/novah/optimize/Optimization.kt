@@ -7,7 +7,7 @@ import novah.ast.optimized.Module
 object Optimization {
 
     fun run(ast: Module): Module {
-        return optimize(ast, Optimization::optimizeCtorApplication)
+        return optimize(ast, comp(::optimizeCtorApplication, ::shortCircuitOperators))
     }
 
     private fun optimize(ast: Module, f: (Expr) -> Expr): Module {
@@ -21,6 +21,10 @@ object Optimization {
         return Module(ast.name, ast.sourceName, ast.hasLambda, decls)
     }
 
+    /**
+     * Make a fully applied constructor into a single new call
+     * Ex.: ((Tuple 1) 2) -> new Tuple(1, 2)
+     */
     private fun optimizeCtorApplication(expr: Expr): Expr {
         return everywhere(expr) { e ->
             if (e !is Expr.App) e
@@ -42,6 +46,33 @@ object Optimization {
     }
 
     /**
+     * Unnest applications of && and ||
+     * Ex.: ((&& ((&& true) a)) y) -> (&& true a y)
+     */
+    private fun shortCircuitOperators(expr: Expr): Expr {
+        return everywhere(expr) { e ->
+            if (e !is Expr.App) e
+            else {
+                val fn = e.fn
+                val arg = e.arg
+                when {
+                    fn is Expr.App && fn.fn is Expr.Var && (fn.fn.name == "&&" || fn.fn.name == "||") && fn.fn.className == "prim/Module" -> {
+                        val name = fn.fn.name
+                        if (arg is Expr.ShortCircuitOp && fn.fn.name == arg.name) {
+                            Expr.ShortCircuitOp(name, arg.operands + listOf(fn.arg), e.type)
+                        } else if (fn.arg is Expr.ShortCircuitOp && fn.fn.name == fn.arg.name) {
+                            Expr.ShortCircuitOp(name, fn.arg.operands + listOf(arg), e.type)
+                        } else {
+                            Expr.ShortCircuitOp(name, listOf(fn.arg, arg), e.type)
+                        }
+                    }
+                    else -> e
+                }
+            }
+        }
+    }
+
+    /**
      * Visit every expression in this AST (bottom->up)
      */
     private fun everywhere(expr: Expr, f: (Expr) -> Expr): Expr {
@@ -55,5 +86,9 @@ object Optimization {
             else -> f(e)
         }
         return go(expr)
+    }
+
+    private fun comp(vararg fs: (Expr) -> Expr): (Expr) -> Expr = { e ->
+        fs.fold(e) { ex, f -> f(ex) }
     }
 }
