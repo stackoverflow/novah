@@ -18,6 +18,7 @@ import novah.backend.TypeUtil.FLOAT_CLASS
 import novah.backend.TypeUtil.FUNCTION_TYPE
 import novah.backend.TypeUtil.INTEGER_CLASS
 import novah.backend.TypeUtil.LONG_CLASS
+import novah.backend.TypeUtil.OBJECT_TYPE
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
 import novah.backend.TypeUtil.buildMethodSignature
@@ -47,7 +48,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         cw.visitSource(ast.sourceName, null)
 
         if (ast.hasLambda)
-            cw.visitInnerClass("java/lang/invoke/MethodHandles\$Lookup", "java/lang/invoke/MethodHandles", "Lookup", ACC_PUBLIC + ACC_STATIC + ACC_FINAL)
+            cw.visitInnerClass(
+                "java/lang/invoke/MethodHandles\$Lookup",
+                "java/lang/invoke/MethodHandles",
+                "Lookup",
+                ACC_PUBLIC + ACC_STATIC + ACC_FINAL
+            )
 
         var main: Decl.ValDecl? = null
         val datas = mutableListOf<Decl.DataDecl>()
@@ -238,14 +244,86 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 mv.visitMethodInsn(INVOKESPECIAL, name, GenUtil.INIT, "($type)V", false)
             }
+            is Expr.ConstructorAccess -> {
+                mv.visitFieldInsn(GETSTATIC, e.fullName, "v${e.field}", toInternalType(e.type))
+            }
+            is Expr.OperatorApp -> {
+                if (e.name == "&&") {
+                    val fail = Label()
+                    val success = Label()
+                    e.operands.forEach { op ->
+                        if (op is Expr.Bool) {
+                            mv.visitInsn(if (op.v) ICONST_1 else ICONST_0)
+                        } else {
+                            genExpr(op, mv, ctx)
+                            mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+                        }
+                        mv.visitJumpInsn(IFEQ, fail)
+                    }
+                    mv.visitInsn(ICONST_1)
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                    mv.visitJumpInsn(GOTO, success)
+                    mv.visitLabel(fail)
+                    mv.visitInsn(ICONST_0)
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                    mv.visitLabel(success)
+                    return
+                }
+                if (e.name == "||") {
+                    val fail = Label()
+                    val success = Label()
+                    val end = Label()
+                    val last = e.operands.size - 1
+                    e.operands.forEachIndexed { i, op ->
+                        if (op is Expr.Bool) {
+                            mv.visitInsn(if (op.v) ICONST_1 else ICONST_0)
+                        } else {
+                            genExpr(op, mv, ctx)
+                            mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+                        }
+                        if (i == last)
+                            mv.visitJumpInsn(IFEQ, fail)
+                        else
+                            mv.visitJumpInsn(IFNE, success)
+                    }
+                    mv.visitLabel(success)
+                    mv.visitInsn(ICONST_1)
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                    mv.visitJumpInsn(GOTO, end)
+                    mv.visitLabel(fail)
+                    mv.visitInsn(ICONST_0)
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                    mv.visitLabel(end)
+                    return
+                }
+                if (e.name == "==") {
+                    if (e.operands.size != 2) internalError("got wrong number of operators for == operator")
+                    val op1 = e.operands[0]
+                    val op2 = e.operands[1]
+                    genExpr(op1, mv, ctx)
+                    genExpr(op2, mv, ctx)
+                    mv.visitMethodInsn(
+                        INVOKEVIRTUAL,
+                        toInternalClass(op1.type),
+                        "equals",
+                        "($OBJECT_TYPE)Z",
+                        false
+                    )
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                }
+            }
             is Expr.If -> {
-                genExpr(e.cond, mv, ctx)
-                mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
-                val elseLabel = Label()
                 val endLabel = Label()
-                mv.visitJumpInsn(IFEQ, elseLabel)
-                genExpr(e.thenCase, mv, ctx)
-                mv.visitJumpInsn(GOTO, endLabel)
+                var elseLabel: Label? = null
+                e.conds.forEach { (cond, then) ->
+                    if (elseLabel != null) mv.visitLabel(elseLabel)
+                    genExpr(cond, mv, ctx)
+                    mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+                    elseLabel = Label()
+                    mv.visitJumpInsn(IFEQ, elseLabel)
+                    genExpr(then, mv, ctx)
+                    mv.visitJumpInsn(GOTO, endLabel)
+                }
                 mv.visitLabel(elseLabel)
                 genExpr(e.elseCase, mv, ctx)
                 mv.visitLabel(endLabel)
@@ -303,6 +381,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     ldesc
                 )
             }
+            is Expr.InstanceOf -> {
+                genExpr(e.exp, mv, ctx)
+                mv.visitTypeInsn(INSTANCEOF, toInternalClass(e.type))
+            }
         }
     }
 
@@ -325,6 +407,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             genExpr(e.arg, mv, ctx)
             val retType = e.arg.type.getReturnTypeNameOr("java/lang/Object")
             mv.visitMethodInsn(INVOKEVIRTUAL, retType, "toString", "()Ljava/lang/String;", false)
+        } else if (fn is Expr.Var && fn.fullname() == "prim/Module.hashCode") {
+            genExpr(e.arg, mv, ctx)
+            mv.visitMethodInsn(INVOKEVIRTUAL, toInternalClass(e.arg.type), "hashCode", "()I", false)
+            mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
         } else {
             genExpr(fn, mv, ctx)
             genExpr(e.arg, mv, ctx)
@@ -377,13 +463,19 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 go(exp.arg)
             }
             is Expr.If -> {
-                go(exp.cond)
-                go(exp.thenCase)
+                for ((cond, then) in exp.conds) {
+                    go(cond)
+                    go(then)
+                }
                 go(exp.elseCase)
             }
             is Expr.Do -> {
                 for (e in exp.exps) go(e)
             }
+            is Expr.OperatorApp -> {
+                for (e in exp.operands) go(e)
+            }
+            is Expr.InstanceOf -> go(exp.exp)
             else -> {
             }
         }

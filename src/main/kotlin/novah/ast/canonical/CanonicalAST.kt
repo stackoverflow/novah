@@ -79,7 +79,7 @@ sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
     data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
     data class Var(val name: Name, override val span: Span) : Pattern(span)
-    data class Ctor(val name: Name, val fields: List<Pattern>, override val span: Span) : Pattern(span)
+    data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
 }
 
 sealed class LiteralPattern(open val e: Expr) {
@@ -95,7 +95,7 @@ sealed class LiteralPattern(open val e: Expr) {
 fun Pattern.show(): String = when (this) {
     is Pattern.Wildcard -> "_"
     is Pattern.Var -> name.toString()
-    is Pattern.Ctor -> if (fields.isEmpty()) "$name" else "$name " + fields.joinToString(" ") { it.show() }
+    is Pattern.Ctor -> if (fields.isEmpty()) "${ctor.name}" else "${ctor.name} " + fields.joinToString(" ") { it.show() }
     is Pattern.LiteralP -> lit.show()
 }
 

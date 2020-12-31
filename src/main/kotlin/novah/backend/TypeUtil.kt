@@ -18,7 +18,7 @@ object TypeUtil {
 
     private const val FUNCTION_CLASS = "java/util/function/Function"
     const val FUNCTION_TYPE = "Ljava/util/function/Function;"
-    private const val OBJECT_TYPE = "Ljava/lang/Object;"
+    const val OBJECT_TYPE = "Ljava/lang/Object;"
 
     fun toInternalClass(type: Type): String = when (type) {
         is Type.TVar -> if (type.isForall) OBJECT_CLASS else type.name

@@ -9,8 +9,8 @@ import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.Inference.infer
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tInt
-import novah.optimize.Converter
 import novah.optimize.Optimizer
+import novah.optimize.Optimization
 import novah.ast.optimized.Module as OModule
 
 object TestUtil {
@@ -59,9 +59,9 @@ object TestUtil {
         val desugar = Desugar(parser.parseFullModule())
         val canonical = desugar.desugar()
         infer(canonical)
-        val cvt = Converter(canonical)
+        val cvt = Optimizer(canonical)
         val oast = cvt.convert()
-        return Optimizer.run(oast)
+        return Optimization.run(oast)
     }
 
     fun setupContext() {
@@ -74,9 +74,6 @@ object TestUtil {
         context.add(Elem.CVar(">=".raw(), tfun(tInt, tfun(tInt, tBoolean))))
         context.add(Elem.CVar("<".raw(), tfun(tInt, tfun(tInt, tBoolean))))
         context.add(Elem.CVar(">".raw(), tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar("==".raw(), forall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))))
-        context.add(Elem.CVar("&&".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))))
-        context.add(Elem.CVar("||".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))))
         context.add(Elem.CVar("id".raw(), forall("a", tfun(tvar("a"), tvar("a")))))
     }
 
