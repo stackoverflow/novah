@@ -233,15 +233,14 @@ object Inference {
                 listOf(Elem.CVar(pat.name, type))
             }
             is Pattern.Ctor -> {
-                val ctorTyp =
-                    context.lookup<Elem.CVar>(pat.name)?.type ?: inferError("unknown constructor ${pat.name}", pat.span)
+                val ctorTyp = typesynth(pat.ctor)
 
                 val (ctorTypes, ret) = peelArgs(listOf(), instantiateForalls(ctorTyp))
                 subsume(ret, _apply(type), pat.span)
 
                 val diff = ctorTypes.size - pat.fields.size
-                if (diff > 0) inferError("too few parameters given to type constructor ${pat.name}", pat.span)
-                if (diff < 0) inferError("too many parameters given to type constructor ${pat.name}", pat.span)
+                if (diff > 0) inferError("too few parameters given to type constructor ${pat.ctor.name}", pat.span)
+                if (diff < 0) inferError("too many parameters given to type constructor ${pat.ctor.name}", pat.span)
 
                 if (ctorTypes.isEmpty()) listOf()
                 else {

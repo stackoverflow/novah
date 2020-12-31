@@ -477,12 +477,26 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 Pattern.Parens(pat, span(tk.span, tkEnd.span))
             }
             is UpperIdent -> {
-                iter.next()
+                val ctor = parseConstructor()
                 val fields = tryParseListOf { tryParsePattern() }
-                Pattern.Ctor(tk.value.v, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
+                Pattern.Ctor(ctor, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
             }
             else -> null
         }
+    }
+
+    private fun parseConstructor(): Expr.Constructor {
+        val tk = expect<UpperIdent>(noErr())
+        var alias: Spanned<UpperIdent>? = null
+        var ident: Spanned<UpperIdent> = tk
+        if (iter.peek().value is Dot) {
+            iter.next()
+            alias = tk
+            ident = expect(withError(E.IMPORTED_DOT))
+        }
+        return Expr.Constructor(ident.value.v, alias?.value?.v)
+            .withSpan(tk.span, ident.span)
+            .withComment(tk.comment) as Expr.Constructor
     }
 
     private fun parseDataConstructor(typeVars: List<String>): DataConstructor {
@@ -523,15 +537,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     Expr.Do(exps).withSpan(doo.span, iter.current().span).withComment(doo.comment)
                 }
             }
-        }
-    }
-
-    private fun parseUpperOrLoweIdent(err: (Spanned<Token>) -> String): String {
-        val sp = iter.peek()
-        return when (sp.value) {
-            is UpperIdent -> expect<UpperIdent>(noErr()).value.v
-            is Ident -> expect<Ident>(noErr()).value.v
-            else -> throwError(err(sp))
         }
     }
 

@@ -71,29 +71,29 @@ class Desugar(private val smod: SModule) {
         is SExpr.Parens -> exp.desugar(locals)
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
         is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }))
-        is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar() }, span)
+        is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar(locals) }, span)
         is SExpr.Ann -> Expr.Ann(exp.desugar(locals), type.desugar(), span)
         is SExpr.Do -> Expr.Do(exps.map { it.desugar(locals) }, span)
     }
 
-    private fun SCase.desugar(): Case = Case(pattern.desugar(), exp.desugar())
+    private fun SCase.desugar(locals: List<String>): Case = Case(pattern.desugar(locals), exp.desugar())
 
-    private fun SPattern.desugar(): Pattern = when (this) {
+    private fun SPattern.desugar(locals: List<String>): Pattern = when (this) {
         is SPattern.Wildcard -> Pattern.Wildcard(span)
-        is SPattern.LiteralP -> Pattern.LiteralP(lit.desugar(), span)
+        is SPattern.LiteralP -> Pattern.LiteralP(lit.desugar(locals), span)
         is SPattern.Var -> Pattern.Var(name.raw(), span)
-        is SPattern.Ctor -> Pattern.Ctor(name.raw(), fields.map { it.desugar() }, span)
-        is SPattern.Parens -> pattern.desugar()
+        is SPattern.Ctor -> Pattern.Ctor(ctor.desugar(locals) as Expr.Constructor, fields.map { it.desugar(locals) }, span)
+        is SPattern.Parens -> pattern.desugar(locals)
     }
 
-    private fun SLiteralPattern.desugar(): LiteralPattern = when (this) {
-        is SLiteralPattern.BoolLiteral -> LiteralPattern.BoolLiteral(e.desugar() as Expr.Bool)
-        is SLiteralPattern.CharLiteral -> LiteralPattern.CharLiteral(e.desugar() as Expr.CharE)
-        is SLiteralPattern.StringLiteral -> LiteralPattern.StringLiteral(e.desugar() as Expr.StringE)
-        is SLiteralPattern.IntLiteral -> LiteralPattern.IntLiteral(e.desugar() as Expr.IntE)
-        is SLiteralPattern.LongLiteral -> LiteralPattern.LongLiteral(e.desugar() as Expr.LongE)
-        is SLiteralPattern.FloatLiteral -> LiteralPattern.FloatLiteral(e.desugar() as Expr.FloatE)
-        is SLiteralPattern.DoubleLiteral -> LiteralPattern.DoubleLiteral(e.desugar() as Expr.DoubleE)
+    private fun SLiteralPattern.desugar(locals: List<String>): LiteralPattern = when (this) {
+        is SLiteralPattern.BoolLiteral -> LiteralPattern.BoolLiteral(e.desugar(locals) as Expr.Bool)
+        is SLiteralPattern.CharLiteral -> LiteralPattern.CharLiteral(e.desugar(locals) as Expr.CharE)
+        is SLiteralPattern.StringLiteral -> LiteralPattern.StringLiteral(e.desugar(locals) as Expr.StringE)
+        is SLiteralPattern.IntLiteral -> LiteralPattern.IntLiteral(e.desugar(locals) as Expr.IntE)
+        is SLiteralPattern.LongLiteral -> LiteralPattern.LongLiteral(e.desugar(locals) as Expr.LongE)
+        is SLiteralPattern.FloatLiteral -> LiteralPattern.FloatLiteral(e.desugar(locals) as Expr.FloatE)
+        is SLiteralPattern.DoubleLiteral -> LiteralPattern.DoubleLiteral(e.desugar(locals) as Expr.DoubleE)
     }
 
     private fun SLetDef.desugar(): LetDef {

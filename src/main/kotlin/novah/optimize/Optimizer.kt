@@ -6,6 +6,7 @@ import novah.ast.canonical.show
 import novah.ast.optimized.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
+import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
@@ -87,7 +88,11 @@ class Optimizer(private val ast: CModule) {
                 Expr.Lambda(bind, body.convert(locals + bind), type = typ)
             }
             is CExpr.App -> Expr.App(fn.convert(locals), arg.convert(locals), typ)
-            is CExpr.If -> Expr.If(listOf(cond.convert(locals) to thenCase.convert(locals)), elseCase.convert(locals), typ)
+            is CExpr.If -> Expr.If(
+                listOf(cond.convert(locals) to thenCase.convert(locals)),
+                elseCase.convert(locals),
+                typ
+            )
             is CExpr.Let -> {
                 val binder = letDef.binder.convert()
                 Expr.Let(binder, letDef.expr.convert(locals), body.convert(locals + binder), typ)
@@ -98,6 +103,7 @@ class Optimizer(private val ast: CModule) {
                 val match = cases.map { PatternMatchingCompiler.convert(it) }
                 val compRes = PatternMatchingCompiler<Pattern>().compile(match)
                 reportPatternMatch(compRes, this)
+                //desugarMatch(this, locals)
                 Expr.IntE(1, typ)
             }
         }
@@ -116,20 +122,36 @@ class Optimizer(private val ast: CModule) {
         is TType.TMeta -> internalError("got TMeta after type checking: $this")
     }
 
-    companion object {
+    private fun desugarMatch(m: CExpr.Match, locals: List<String> = listOf()): Expr {
+        val boolType = tBoolean.convert()
+        val tru = Expr.Bool(true, boolType)
 
-        private fun desugarMatch(m: CExpr.Match): Expr {
-            //val let = Expr.Let("x", m.exp.convert())
-            TODO()
+        fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<Expr>> = when (p) {
+            is Pattern.Wildcard -> tru to emptyList()
+            is Pattern.Var -> tru to listOf(Expr.LocalVar(p.name.rawName(), exp.type))
+            is Pattern.LiteralP -> Expr.OperatorApp("==", listOf(exp, p.lit.e.convert(locals)), boolType) to emptyList()
+            is Pattern.Ctor -> {
+//                val ctor = p.ctor.convert(locals) as Expr.Constructor
+//                val typeCheck = Expr.InstanceOf(ctor, exp.type)
+//                val fields = p.fields.mapIndexed { i, pat ->
+//                    val type = dataConstructors[ctor.fullName]!!.args[i]
+//                    desugarPattern(pat, Expr.ConstructorAccess(ctor.fullName, i + 1, type))
+//                }
+                TODO()
+            }
         }
+        //val let = Expr.Let("x", m.exp.convert())
+        TODO()
+    }
 
+    companion object {
         private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr) {
             if (!res.exhaustive) {
                 inferError("a case expression could not be determined to cover all inputs.", expr.span)
             }
             if (res.redundantMatches.isNotEmpty()) {
-                val unr = res.redundantMatches.joinToString(", ") { it.show() }
-                inferError("a case expression contains redundant cases: $unr", expr.span)
+                val unreacheable = res.redundantMatches.joinToString(", ") { it.show() }
+                inferError("a case expression contains redundant cases: $unreacheable", expr.span)
             }
         }
 

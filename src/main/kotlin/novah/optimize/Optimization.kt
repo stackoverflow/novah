@@ -7,7 +7,7 @@ import novah.ast.optimized.Module
 object Optimization {
 
     fun run(ast: Module): Module {
-        return optimize(ast, comp(::optimizeCtorApplication, ::shortCircuitOperators))
+        return optimize(ast, comp(::optimizeCtorApplication, ::optimizeOperatorApplication))
     }
 
     private fun optimize(ast: Module, f: (Expr) -> Expr): Module {
@@ -46,10 +46,10 @@ object Optimization {
     }
 
     /**
-     * Unnest applications of && and ||
+     * Unnest applications of && and || and ==
      * Ex.: ((&& ((&& true) a)) y) -> (&& true a y)
      */
-    private fun shortCircuitOperators(expr: Expr): Expr {
+    private fun optimizeOperatorApplication(expr: Expr): Expr {
         return everywhere(expr) { e ->
             if (e !is Expr.App) e
             else {
@@ -58,13 +58,16 @@ object Optimization {
                 when {
                     fn is Expr.App && fn.fn is Expr.Var && (fn.fn.name == "&&" || fn.fn.name == "||") && fn.fn.className == "prim/Module" -> {
                         val name = fn.fn.name
-                        if (arg is Expr.ShortCircuitOp && fn.fn.name == arg.name) {
-                            Expr.ShortCircuitOp(name, arg.operands + listOf(fn.arg), e.type)
-                        } else if (fn.arg is Expr.ShortCircuitOp && fn.fn.name == fn.arg.name) {
-                            Expr.ShortCircuitOp(name, fn.arg.operands + listOf(arg), e.type)
+                        if (arg is Expr.OperatorApp && fn.fn.name == arg.name) {
+                            Expr.OperatorApp(name, arg.operands + listOf(fn.arg), e.type)
+                        } else if (fn.arg is Expr.OperatorApp && fn.fn.name == fn.arg.name) {
+                            Expr.OperatorApp(name, fn.arg.operands + listOf(arg), e.type)
                         } else {
-                            Expr.ShortCircuitOp(name, listOf(fn.arg, arg), e.type)
+                            Expr.OperatorApp(name, listOf(fn.arg, arg), e.type)
                         }
+                    }
+                    fn is Expr.App && fn.fn is Expr.Var && fn.fn.name == "==" && fn.fn.className == "prim/Module" -> {
+                        Expr.OperatorApp("==", listOf(fn.arg, arg), e.type)
                     }
                     else -> e
                 }

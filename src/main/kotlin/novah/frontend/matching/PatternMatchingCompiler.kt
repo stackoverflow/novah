@@ -202,7 +202,7 @@ class PatternMatchingCompiler<R> {
         private fun convertPattern(p: Pattern): Pat = when (p) {
             is Pattern.Wildcard -> Pat.PVar("_")
             is Pattern.Var -> Pat.PVar(p.name.toString())
-            is Pattern.Ctor -> Pat.PCon(ctorCache[p.name.toString()]!!, p.fields.map { convertPattern(it) })
+            is Pattern.Ctor -> Pat.PCon(ctorCache[p.ctor.name.toString()]!!, p.fields.map { convertPattern(it) })
             is Pattern.LiteralP -> {
                 val con = when (val l = p.lit) {
                     is LiteralPattern.BoolLiteral -> if (l.e.v) trueCtor else falseCtor

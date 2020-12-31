@@ -49,7 +49,9 @@ sealed class Expr(open val type: Type) {
     data class If(val conds: List<Pair<Expr, Expr>>, val elseCase: Expr, override val type: Type) : Expr(type)
     data class Let(val binder: String, val bindExpr: Expr, val body: Expr, override val type: Type) : Expr(type)
     data class Do(val exps: List<Expr>, override val type: Type) : Expr(type)
-    data class ShortCircuitOp(val name: String, val operands: List<Expr>, override val type: Type) : Expr(type)
+    data class ConstructorAccess(val fullName: String, val field: Int, override val type: Type) : Expr(type)
+    data class OperatorApp(val name: String, val operands: List<Expr>, override val type: Type) : Expr(type)
+    data class InstanceOf(val exp: Expr, override val type: Type) : Expr(type)
 }
 
 sealed class Type {

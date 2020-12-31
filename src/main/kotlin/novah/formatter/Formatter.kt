@@ -147,7 +147,7 @@ class Formatter {
     private fun show(p: Pattern): String = when (p) {
         is Pattern.Wildcard -> "_"
         is Pattern.Var -> p.name
-        is Pattern.Ctor -> p.name + p.fields.joinToStr(" ", prefix = " ") { show(it) }
+        is Pattern.Ctor -> show(p.ctor) + p.fields.joinToStr(" ", prefix = " ") { show(it) }
         is Pattern.LiteralP -> show(p.lit)
         is Pattern.Parens -> "(${show(p.pattern)})"
     }

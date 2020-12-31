@@ -415,7 +415,7 @@ class ADTGen(
                 3 -> mv.visitInsn(ICONST_3)
                 4 -> mv.visitInsn(ICONST_4)
                 5 -> mv.visitInsn(ICONST_5)
-                else -> mv.visitIntInsn(BIPUSH, i)
+                else -> mv.visitIntInsn(SIPUSH, i)
             }
         }
 

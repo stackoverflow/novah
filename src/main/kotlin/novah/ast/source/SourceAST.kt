@@ -161,7 +161,7 @@ sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
     data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
     data class Var(val name: String, override val span: Span) : Pattern(span)
-    data class Ctor(val name: String, val fields: List<Pattern>, override val span: Span) : Pattern(span)
+    data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
     data class Parens(val pattern: Pattern, override val span: Span) : Pattern(span)
 }
 

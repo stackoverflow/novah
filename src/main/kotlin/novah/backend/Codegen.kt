@@ -18,6 +18,7 @@ import novah.backend.TypeUtil.FLOAT_CLASS
 import novah.backend.TypeUtil.FUNCTION_TYPE
 import novah.backend.TypeUtil.INTEGER_CLASS
 import novah.backend.TypeUtil.LONG_CLASS
+import novah.backend.TypeUtil.OBJECT_TYPE
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
 import novah.backend.TypeUtil.buildMethodSignature
@@ -243,7 +244,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 mv.visitMethodInsn(INVOKESPECIAL, name, GenUtil.INIT, "($type)V", false)
             }
-            is Expr.ShortCircuitOp -> {
+            is Expr.ConstructorAccess -> {
+                mv.visitFieldInsn(GETSTATIC, e.fullName, "v${e.field}", toInternalType(e.type))
+            }
+            is Expr.OperatorApp -> {
                 if (e.name == "&&") {
                     val fail = Label()
                     val success = Label()
@@ -290,6 +294,22 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitInsn(ICONST_0)
                     mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
                     mv.visitLabel(end)
+                    return
+                }
+                if (e.name == "==") {
+                    if (e.operands.size != 2) internalError("got wrong number of operators for == operator")
+                    val op1 = e.operands[0]
+                    val op2 = e.operands[1]
+                    genExpr(op1, mv, ctx)
+                    genExpr(op2, mv, ctx)
+                    mv.visitMethodInsn(
+                        INVOKEVIRTUAL,
+                        toInternalClass(op1.type),
+                        "equals",
+                        "($OBJECT_TYPE)Z",
+                        false
+                    )
+                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
                 }
             }
             is Expr.If -> {
@@ -360,6 +380,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     handle,
                     ldesc
                 )
+            }
+            is Expr.InstanceOf -> {
+                genExpr(e.exp, mv, ctx)
+                mv.visitTypeInsn(INSTANCEOF, toInternalClass(e.type))
             }
         }
     }
@@ -448,9 +472,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.Do -> {
                 for (e in exp.exps) go(e)
             }
-            is Expr.ShortCircuitOp -> {
+            is Expr.OperatorApp -> {
                 for (e in exp.operands) go(e)
             }
+            is Expr.InstanceOf -> go(exp.exp)
             else -> {
             }
         }
