@@ -1,0 +1,8 @@
+module pack.namespace2 exposing (same)
+
+import pack.namespace1 (sayHello)
+
+same :: Int -> Int -> Boolean
+same x y = x == y
+
+main args = sayHello "Mario"

@@ -31,7 +31,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         ).withComment(comment)
     }
 
-    private fun parseModule(): Triple<ModuleName, ModuleExports, Comment?> {
+    private fun parseModule(): Triple<String, ModuleExports, Comment?> {
         val m = expect<ModuleT>(withError(E.MODULE_DEFINITION))
 
         val name = parseModuleName()
@@ -47,7 +47,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             else -> ModuleExports.ExportAll
         }
-        return Triple(name, exports, m.comment)
+        return Triple(name.joinToString("."), exports, m.comment)
     }
 
     private fun parseDeclarationRefs(ctx: String): List<DeclarationRef> {
@@ -84,13 +84,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
-    private fun parseModuleName(): ModuleName {
+    private fun parseModuleName(): List<String> {
         return between<Dot, String> { expect<Ident>(withError(E.MODULE_NAME)).value.v }
     }
 
     private fun parseImport(): Import {
         val impTk = expect<ImportT>(noErr())
-        val mname = parseModuleName()
+        val mname = parseModuleName().joinToString(".")
 
         val import = when (iter.peek().value) {
             is LParen -> {
@@ -547,7 +547,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             if (tyVars.isEmpty()) throwError(withError(E.FORALL_TVARS)(iter.peek()))
             expect<Dot>(withError(E.FORALL_DOT))
             Type.TForall(tyVars, parseType(inConstructor))
-        } else parseType()
+        } else parseType(inConstructor)
     }
 
     private fun parseType(inConstructor: Boolean = false): Type {
@@ -570,19 +570,26 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is Ident -> Type.TVar(parseTypeVar())
             is UpperIdent -> {
-                val ty = parseUpperIdent().v
+                var ty = parseUpperIdent().v
+                var alias: String? = null
+                if (iter.peek().value is Dot) {
+                    iter.next()
+                    alias = ty
+                    ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
+                }
                 if (inConstructor) {
-                    Type.TVar(ty)
+                    Type.TVar(ty, alias)
                 } else {
                     val pars = tryParseListOf(true) { parseTypeAtom(true) }
 
-                    if (pars.isEmpty()) Type.TVar(ty)
-                    else Type.TConstructor(ty, pars)
+                    if (pars.isEmpty()) Type.TVar(ty, alias)
+                    else Type.TConstructor(ty, pars, alias)
                 }
             }
             else -> null
         } ?: return null
 
+        if (inConstructor) return ty
         return when (iter.peek().value) {
             is Arrow -> {
                 iter.next()

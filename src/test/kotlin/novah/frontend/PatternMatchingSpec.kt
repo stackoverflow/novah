@@ -4,9 +4,7 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.frontend.TestUtil.inferString
 import novah.frontend.TestUtil.module
-import novah.frontend.TestUtil.preCompile
 import novah.frontend.TestUtil.tcon
 import novah.frontend.TestUtil.tfun
 import novah.frontend.typechecker.InferenceError
@@ -15,31 +13,30 @@ import novah.frontend.typechecker.Prim.tString
 
 class PatternMatchingSpec : StringSpec({
 
-    beforeTest {
-        TestUtil.setupContext()
-    }
-
     "pattern matching typechecks" {
         val code = """
             f x = case x of
               0 -> "zero"
               1 -> "one"
-              v -> toString (v + 4)
+              v -> toString v
         """.module()
 
-        val ty = inferString(code)["f"]
+        val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
+
         ty shouldBe tfun(tInt, tString)
     }
 
     "pattern matching with polymorphic types typechecks" {
         val code = """
+            id x = x
+            
             f x = case id x of
               0 -> "zero"
               1 -> "one"
-              v -> toString (v + 4)
+              v -> toString v
         """.module()
 
-        val ty = inferString(code)["f"]
+        val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
         ty shouldBe tfun(tInt, tString)
     }
 
@@ -47,12 +44,13 @@ class PatternMatchingSpec : StringSpec({
         val code = """
             type Maybe a = Just a | Nothing
             
+            f :: Maybe Int -> String
             f x = case x of
-              Just v -> toString (v + 4)
+              Just v -> toString v
               Nothing -> "nope"
         """.module()
 
-        val ty = inferString(code)["f"]
+        val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
         ty shouldBe tfun(tcon("test.Maybe", tInt), tString)
     }
 
@@ -66,12 +64,14 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
     "pattern matching unreacheable cases fails" {
         val code = """
+            id x = x
+            
             f x = case id x of
               0 -> "zero"
               1 -> "one"
@@ -80,7 +80,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            preCompile(code)
+            TestUtil.compileAndOptimizeCode(code)
         }
     }
 
@@ -89,13 +89,13 @@ class PatternMatchingSpec : StringSpec({
             type Maybe a = Just a | Nothing
             
             f x = case x of
-              Just v -> toString (v + 4)
+              Just v -> toString v
               Nothing -> "bla"
               Nothing -> "nope"
         """.module()
 
         shouldThrow<InferenceError> {
-            preCompile(code)
+            TestUtil.compileAndOptimizeCode(code)
         }
     }
 
@@ -108,7 +108,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            preCompile(code)
+            TestUtil.compileAndOptimizeCode(code)
         }
     }
 
@@ -123,7 +123,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            preCompile(code)
+            TestUtil.compileAndOptimizeCode(code)
         }
     }
 
@@ -135,7 +135,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         shouldNotThrowAny {
-            preCompile(code)
+            TestUtil.compileAndOptimizeCode(code)
         }
     }
 })

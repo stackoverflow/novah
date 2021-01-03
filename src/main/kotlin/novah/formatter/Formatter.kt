@@ -19,11 +19,11 @@ class Formatter {
         } else ""
         builder.append(cmt)
 
-        builder.append("module ${m.fullName()}${show(m.exports)}")
+        builder.append("module ${m.name}${show(m.exports)}")
 
         if (m.imports.isNotEmpty()) {
             builder.append("\n\n")
-            builder.append(m.imports.sortedBy { it.fullName() }.joinToString("\n") { show(it) })
+            builder.append(m.imports.sortedBy { it.module }.joinToString("\n") { show(it) })
         }
         if (m.decls.isNotEmpty()) {
             var last = m.decls[0]
@@ -54,7 +54,7 @@ class Formatter {
             if (exposes.length > maxColumns) exposes = showList(i.defs.map { it.toString() })
         }
         val alias = if (i.alias() != null) " as ${i.alias()}" else ""
-        return "${cmt}import ${i.fullName()}$exposes$alias"
+        return "${cmt}import ${i.module}$exposes$alias"
     }
 
     fun show(d: Decl): String {
@@ -179,9 +179,9 @@ class Formatter {
             tlist.joinToString(" -> ")
         }
         is Type.TForall -> "forall " + t.names.joinToString(" ") + ". ${show(t.type)}"
-        is Type.TConstructor -> t.name + t.types.joinToStr(" ", prefix = " ") { show(it) }
+        is Type.TConstructor -> t.fullname() + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
-        is Type.TVar -> t.name
+        is Type.TVar -> t.fullname()
     }
 
     private fun showIndented(t: Type, prefix: String = "::"): String = when (t) {

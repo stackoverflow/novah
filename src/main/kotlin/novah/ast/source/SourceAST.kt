@@ -4,16 +4,16 @@ import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
 
-typealias ModuleName = List<String>
-
 data class Module(
-    val name: ModuleName,
+    val name: String,
     val sourceName: String,
     val imports: List<Import>,
     val exports: ModuleExports,
     val decls: List<Decl>
 ) {
     var comment: Comment? = null
+
+    var resolvedImports = emptyMap<String, String>()
 
     fun withComment(c: Comment?) = apply { comment = c }
 }
@@ -45,9 +45,9 @@ sealed class ModuleExports {
     data class Exposing(val exports: List<DeclarationRef>) : ModuleExports()
 }
 
-sealed class Import(open val module: ModuleName) {
-    data class Raw(override val module: ModuleName, val alias: String? = null) : Import(module)
-    data class Exposing(override val module: ModuleName, val defs: List<DeclarationRef>, val alias: String? = null) :
+sealed class Import(open val module: String) {
+    data class Raw(override val module: String, val alias: String? = null) : Import(module)
+    data class Exposing(override val module: String, val defs: List<DeclarationRef>, val alias: String? = null) :
         Import(module)
 
     fun alias(): String? = when (this) {
@@ -176,10 +176,10 @@ sealed class LiteralPattern {
 }
 
 sealed class Type {
-    data class TVar(val name: String) : Type()
+    data class TVar(val name: String, val alias: String? = null) : Type()
+    data class TConstructor(val name: String, val types: List<Type> = listOf(), val alias: String? = null) : Type()
     data class TFun(val arg: Type, val ret: Type) : Type()
     data class TForall(val names: List<String>, val type: Type) : Type()
-    data class TConstructor(val name: String, val types: List<Type> = listOf()) : Type()
     data class TParens(val type: Type) : Type()
 
     /**
@@ -194,6 +194,5 @@ sealed class Type {
     }
 }
 
-fun Module.fullName() = name.joinToString(".")
-
-fun Import.fullName() = module.joinToString(".")
+fun Type.TVar.fullname(): String = if (alias != null) "$alias.$name" else name
+fun Type.TConstructor.fullname(): String = if (alias != null) "$alias.$name" else name

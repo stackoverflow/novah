@@ -1,5 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.21'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 group 'org.novah'
@@ -15,6 +17,7 @@ def kotestVersion = '4.3.1'
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.ow2.asm:asm:9.0"
+    implementation "com.github.ajalt.clikt:clikt:3.1.0"
 
     testImplementation "io.kotest:kotest-runner-junit5-jvm:$kotestVersion"
     testImplementation "io.kotest:kotest-assertions-core-jvm:$kotestVersion"
@@ -26,6 +29,14 @@ compileKotlin {
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+application {
+    mainClassName = "novah.main.Main"
+}
+
+shadowJar {
+
 }
 
 test {

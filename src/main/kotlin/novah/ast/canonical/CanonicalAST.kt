@@ -1,14 +1,11 @@
 package novah.ast.canonical
 
 import novah.frontend.Span
-import novah.frontend.typechecker.Context
-import novah.frontend.typechecker.Elem
 import novah.frontend.typechecker.Name
 import novah.frontend.typechecker.Type
 
 /**
- * The canonical AST used after desugaring and after type checking
- * the type var T will be Span after desugaring and Type after type checking
+ * The canonical AST used after desugaring and after type checking.
  */
 
 data class Module(

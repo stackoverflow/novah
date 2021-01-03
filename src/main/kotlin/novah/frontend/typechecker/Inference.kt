@@ -275,17 +275,21 @@ object Inference {
         return ty
     }
 
-    fun infer(mod: Module): Map<String, Type> {
-        val m = mutableMapOf<String, Type>()
+    fun infer(mod: Module): ModuleEnv {
+        val decls = mutableMapOf<String, DeclRef>()
+        val types = mutableMapOf<String, TypeDeclRef>()
 
-        val ctorTypes = mutableListOf<Type>()
         mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
-            dataDeclToType(ddecl, mod.name).forEach { el ->
-                context.add(el)
-                if (el is Elem.CVar) ctorTypes += el.type
+            val (ddtype, ddelem) = dataDeclToType(ddecl, mod.name)
+            types[ddecl.name] = TypeDeclRef(ddtype, ddecl.visibility, ddecl.dataCtors.map { it.name })
+            context.add(ddelem)
+
+            dataConstructorsToType(ddecl, ddtype).forEach { (ctor, type) ->
+                decls[ctor.name] = DeclRef(type, ctor.visibility)
+                wfType(type)
+                context.add(Elem.CVar(ctor.name.raw(), type))
             }
         }
-        ctorTypes.forEach { wfType(it) }
 
         val vals = mod.decls.filterIsInstance<Decl.ValDecl>()
         vals.forEach { decl ->
@@ -304,16 +308,29 @@ object Inference {
             val ty = infer(decl.exp)
             val name = decl.name.raw()
             context.replaceCVar(name, Elem.CVar(name, ty))
-            m[decl.name] = ty
+            decls[decl.name] = DeclRef(ty, decl.visibility)
         }
-        return m
+        return ModuleEnv(decls, types)
     }
 
     /**
-     * Takes a data declaration and returns all the types and
-     * variables (constructors) that should be added to the context.
+     * Return the type defined by this ADT and the context element
+     * associated with it.
      */
-    private fun dataDeclToType(dd: Decl.DataDecl, moduleName: String): List<Elem> {
+    private fun dataDeclToType(dd: Decl.DataDecl, moduleName: String): Pair<Type, Elem> {
+        val typeName = "$moduleName.${dd.name}".raw()
+        val elem = Elem.CTVar(typeName, dd.tyVars.size)
+
+        val innerTypes = dd.tyVars.map { Type.TVar(it.raw()) }
+        val dataType = Type.TConstructor(typeName, innerTypes)
+        return dataType to elem
+    }
+
+    /**
+     * Takes a data declaration and returns all variables (constructors)
+     * that should be added to the context.
+     */
+    private fun dataConstructorsToType(dd: Decl.DataDecl, dataType: Type): List<Pair<DataConstructor, Type>> {
         fun nestForalls(acc: List<Name>, type: Type): Type {
             return if (acc.isEmpty()) type
             else Type.TForall(acc.first(), nestForalls(acc.drop(1), type))
@@ -324,16 +341,10 @@ object Inference {
             else Type.TFun(acc.first(), nestFuns(acc.drop(1)))
         }
 
-        val elems = mutableListOf<Elem>()
-        val typeName = "$moduleName.${dd.name}".raw()
-        elems += Elem.CTVar(typeName, dd.tyVars.size)
-
-        val innerTypes = dd.tyVars.map { Type.TVar(it.raw()) }
-        val dataType = Type.TConstructor(typeName, innerTypes)
-
+        val elems = mutableListOf<Pair<DataConstructor, Type>>()
         dd.dataCtors.forEach { ctor ->
             val type = nestForalls(dd.tyVars.map(Name::Raw), nestFuns(ctor.args + dataType))
-            elems.add(Elem.CVar(ctor.name.raw(), type))
+            elems.add(ctor to type)
         }
 
         return elems

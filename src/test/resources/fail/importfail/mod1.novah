@@ -1,0 +1,4 @@
+module mod1 exposing (foo)
+
+foo :: Int
+foo = 1
