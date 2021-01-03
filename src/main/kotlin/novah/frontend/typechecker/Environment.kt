@@ -64,8 +64,7 @@ class Environment(private val verbose: Boolean) {
             if (errors.isNotEmpty()) compilationError(errors.joinToString("\n"))
 
             if (verbose) echo("Typechecking ${mod.data.name}")
-            val desugar = Desugar(mod.data)
-            val canonical = desugar.desugar()
+            val canonical = Desugar(mod.data).desugar()
             val menv = Inference.infer(canonical)
             modules[mod.data.name] = FullModuleEnv(menv, canonical)
         }
