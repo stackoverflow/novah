@@ -3,27 +3,20 @@ package novah.frontend.typechecker
 /**
  * The different types of elements the [Context] can have.
  */
-sealed class Elem {
+sealed class Elem(open val name: Name) {
     // Types in the context
-    data class CTVar(val name: Name, val kind: Int = 0) : Elem() {
+    data class CTVar(override val name: Name, val kind: Int = 0) : Elem(name) {
         override fun toString(): String = name.toString()
     }
-    data class CTMeta(val name: Name, val type: Type? = null) : Elem() {
+    data class CTMeta(override val name: Name, val type: Type? = null) : Elem(name) {
         override fun toString(): String = "?$name${if (type != null) " = $type" else ""}"
     }
     // Variables in the context (with type)
-    data class CVar(val name: Name, val type: Type) : Elem() {
+    data class CVar(override val name: Name, val type: Type) : Elem(name) {
         override fun toString(): String = "$name : $type"
     }
-    data class CMarker(val name: Name) : Elem() {
+    data class CMarker(override val name: Name) : Elem(name) {
         override fun toString(): String = "|$name"
-    }
-
-    fun name() = when (this) {
-        is CTVar -> name
-        is CTMeta -> name
-        is CVar -> name
-        is CMarker -> name
     }
 }
 
@@ -32,7 +25,8 @@ sealed class Elem {
  */
 class Context {
 
-    internal var ctx = mutableListOf<Elem>()
+    // TODO: make the inner context into a map for constant access
+    private var ctx = mutableListOf<Elem>()
 
     override fun toString(): String {
         return ctx.joinToString(", ", transform = Elem::toString)
@@ -50,7 +44,7 @@ class Context {
 
     fun innerContains(clazz: Class<out Elem>, name: Name): Boolean {
         for (e in ctx) {
-            if (e.name() == name && clazz.isInstance(e)) return true
+            if (e.name == name && clazz.isInstance(e)) return true
         }
         return false
     }
@@ -61,7 +55,7 @@ class Context {
 
     fun innerLookup(clazz: Class<out Elem>, name: Name): Elem? {
         for (e in ctx) {
-            if (e.name() == name && clazz.isInstance(e)) return e
+            if (e.name == name && clazz.isInstance(e)) return e
         }
         return null
     }
@@ -72,7 +66,7 @@ class Context {
 
     fun innerLookupShadow(clazz: Class<out Elem>, name: Name): Elem? {
         for (e in ctx) {
-            if (e.name().rawName() == name.rawName() && clazz.isInstance(e)) return e
+            if (e.name.rawName() == name.rawName() && clazz.isInstance(e)) return e
         }
         return null
     }
@@ -91,7 +85,7 @@ class Context {
         for (e in ctx) {
             if (found) {
                 after.add(e)
-            } else if (e.name() == name && clazz.isInstance(e)) {
+            } else if (e.name == name && clazz.isInstance(e)) {
                 found = true
             } else {
                 before.add(e)
@@ -141,12 +135,6 @@ class Context {
     }
 
     fun reset() = ctx.clear()
-
-    fun forEachMeta(f: (Elem.CTMeta) -> Unit) {
-        for (e in ctx) {
-            if (e is Elem.CTMeta) f(e)
-        }
-    }
 
     fun replaceCVar(name: Name, new: Elem.CVar) {
         var index = -1

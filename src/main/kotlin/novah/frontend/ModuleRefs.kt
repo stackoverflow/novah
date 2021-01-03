@@ -2,88 +2,105 @@ package novah.frontend
 
 import novah.ast.canonical.Visibility
 import novah.ast.source.*
+import novah.frontend.typechecker.*
 
 data class ExportResult(
-    val exports: List<String>,
-    val ctorExports: List<String>,
-    val varErrors: List<String> = listOf(),
-    val ctorErrors: List<String> = listOf()
+    val exports: Set<String>,
+    val errors: List<String> = listOf()
 ) {
     fun visibility(value: String) = if (value in exports) Visibility.PUBLIC else Visibility.PRIVATE
-
-    fun ctorVisibility(ctor: String) = if (ctor in ctorExports) Visibility.PUBLIC else Visibility.PRIVATE
 }
 
 typealias VarRef = String
-typealias Modulename = String
+typealias ModuleName = String
 
-data class ImportResult(
-    val aliases: Map<VarRef, Modulename>,
-    val imports: Map<VarRef, Modulename>,
-    val errors: List<VarRef>
-) {
-    fun resolve(v: Expr.Var): Modulename? {
-        return if (v.alias != null) aliases[v.name]
-        else imports[v.name]
-    }
+fun resolveImports(mod: Module, ctx: Context, modules: Map<String, FullModuleEnv>): List<String> {
+    val visible = { (_, tvis): Map.Entry<String, DeclRef> -> tvis.visibility == Visibility.PUBLIC }
+    val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
 
-    fun resolve(v: Expr.Constructor): Modulename? {
-        return if (v.alias != null) aliases[v.name]
-        else imports[v.name]
-    }
-
-    fun resolve(op: Expr.Operator): Modulename? {
-        return if (op.alias != null) aliases[op.name]
-        else imports[op.name]
-    }
-
-    private fun resolve(name: String): Modulename? {
-        return imports[name]
-    }
-
-    fun fullname(name: String, moduleName: String): String {
-        val resolved = resolve(name)
-        return if (resolved != null) "$resolved.$name" else "$moduleName.$name"
-    }
-}
-
-/**
- * Transforms a list of [Import] into a searcheable structure
- * so we can resolve imports at desugar time.
- */
-fun consolidateImports(imports: List<Import>): ImportResult {
-    val aliases = mutableMapOf<VarRef, Modulename>()
-    val imps = mutableMapOf<VarRef, Modulename>()
-    val errors = mutableListOf<VarRef>()
-
-    fun putAlias(k: VarRef, v: Modulename) {
-        if (aliases.containsKey(k)) errors += k
-        aliases[k] = v
-    }
-
-    fun putImport(k: VarRef, v: Modulename) {
-        if (imps.containsKey(k)) errors += k
-        imps[k] = v
-    }
-
-    imports.forEach { imp ->
-        val name = imp.module.joinToString(".")
+    val resolved = mutableMapOf<VarRef, ModuleName>()
+    val errors = mutableListOf<String>()
+    // add the primitive module as import to every module
+    val imports = mod.imports + Prim.primImport
+    for (imp in imports) {
+        val m = if (imp.module == Prim.PRIM) Prim.moduleEnv else modules[imp.module]?.env
+        if (m == null) {
+            errors += "could not find module ${imp.module}"
+            continue
+        }
+        val mname = imp.module
         when (imp) {
+            // Import all declarations and types from this module
             is Import.Raw -> {
-                if (imp.alias != null) putAlias(imp.alias, name)
-                // TODO: collect all exports from this module and resolve them here somehow
+                val alias = if (imp.alias != null) "${imp.alias}." else ""
+                m.types.filter(visibleType).forEach { name, (type, _) ->
+                    resolved["$alias$name"] = mname
+                    ctx.add(Elem.CTVar("$mname.$name".raw(), type.kind()))
+                }
+                m.decls.filter(visible).forEach { name, (type, _) ->
+                    resolved["$alias$name"] = mname
+                    ctx.add(Elem.CVar("$alias$name".raw(), type))
+                }
             }
+            // Import only defined declarations and types
             is Import.Exposing -> {
-                if (imp.alias != null) putAlias(imp.alias, name)
-                imp.defs.forEach { def ->
-                    when (def) {
-                        is DeclarationRef.RefVar -> putImport(def.name, name)
+                val alias = if (imp.alias != null) "${imp.alias}." else ""
+                for (ref in imp.defs) {
+                    when (ref) {
+                        is DeclarationRef.RefVar -> {
+                            val declRef = m.decls[ref.name]
+                            if (declRef == null) {
+                                errors += "could not find declaration ${ref.name} in module $mname"
+                                continue
+                            }
+                            if (declRef.visibility == Visibility.PRIVATE) {
+                                errors += "cannot import private declaration ${ref.name} in module $mname"
+                                continue
+                            }
+                            resolved["$alias${ref.name}"] = mname
+                            ctx.add(Elem.CVar("$alias${ref.name}".raw(), declRef.type))
+                        }
                         is DeclarationRef.RefType -> {
-                            putImport(def.name, name)
-                            if (def.ctors != null && def.ctors.isEmpty()) {
-                                // TODO: resolve the constructors of this type
-                            } else if (def.ctors != null) {
-                                def.ctors.forEach { putImport(it, name) }
+                            val declRef = m.types[ref.name]
+                            if (declRef == null) {
+                                errors += "could not find declaration ${ref.name} in module $mname"
+                                continue
+                            }
+                            if (declRef.visibility == Visibility.PRIVATE) {
+                                errors += "cannot import private declaration ${ref.name} in module $mname"
+                                continue
+                            }
+                            ctx.add(Elem.CTVar("$mname.${ref.name}".raw(), declRef.type.kind()))
+                            resolved["$alias${ref.name}"] = mname
+                            when {
+                                ref.ctors == null -> {
+                                }
+                                ref.ctors.isEmpty() -> {
+                                    for (ctor in declRef.ctors) {
+                                        val ctorDecl = m.decls[ctor]!! // cannot fail
+                                        if (ctorDecl.visibility == Visibility.PRIVATE) {
+                                            errors += "cannot import private constructor $ctor in module $mname"
+                                            continue
+                                        }
+                                        ctx.add(Elem.CVar("$alias$ctor".raw(), ctorDecl.type))
+                                        resolved["$alias$ctor"] = mname
+                                    }
+                                }
+                                else -> {
+                                    for (ctor in ref.ctors) {
+                                        val ctorDecl = m.decls[ctor]
+                                        if (ctorDecl == null) {
+                                            errors += "could not find declaration ${ref.name} in module $mname"
+                                            continue
+                                        }
+                                        if (ctorDecl.visibility == Visibility.PRIVATE) {
+                                            errors += "cannot import private constructor $ctor in module $mname"
+                                            continue
+                                        }
+                                        ctx.add(Elem.CVar("$alias$ctor".raw(), ctorDecl.type))
+                                        resolved["$alias$ctor"] = mname
+                                    }
+                                }
                             }
                         }
                     }
@@ -91,7 +108,8 @@ fun consolidateImports(imports: List<Import>): ImportResult {
             }
         }
     }
-    return ImportResult(aliases, imps, errors)
+    mod.resolvedImports = resolved
+    return errors
 }
 
 /**
@@ -114,7 +132,7 @@ fun consolidateExports(exps: ModuleExports, decls: List<Decl>): ExportResult {
     val ctors = ctorsMap.values.flatten()
 
     return when (exps) {
-        is ModuleExports.ExportAll -> ExportResult(varDecls.toList(), ctors)
+        is ModuleExports.ExportAll -> ExportResult(varDecls + ctors.toSet())
         is ModuleExports.Hiding -> {
             val hides = exps.hides.map { it.name }
             val hiddenCtors = getExportedCtors(exps.hides, ctorsMap)
@@ -123,7 +141,7 @@ fun consolidateExports(exps: ModuleExports, decls: List<Decl>): ExportResult {
             val ctorExports = ctors.filter { it !in hiddenCtors }
             val errors = hides.filter { it !in varDecls }
             val ctorErrors = hiddenCtors.filter { it !in ctors }
-            ExportResult(exports, ctorExports, errors, ctorErrors)
+            ExportResult((exports + ctorExports).toSet(), errors + ctorErrors)
         }
         is ModuleExports.Exposing -> {
             val exposes = exps.exports.map { it.name }
@@ -133,7 +151,7 @@ fun consolidateExports(exps: ModuleExports, decls: List<Decl>): ExportResult {
             val ctorExports = ctors.filter { it in exposedCtors }
             val errors = exposes.filter { it !in varDecls }
             val ctorErrors = exposedCtors.filter { it !in ctors }
-            ExportResult(exports, ctorExports, errors, ctorErrors)
+            ExportResult((exports + ctorExports).toSet(), errors + ctorErrors)
         }
     }
 }

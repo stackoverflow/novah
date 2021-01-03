@@ -5,9 +5,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.forall
-import novah.frontend.TestUtil.inferString
 import novah.frontend.TestUtil.module
-import novah.frontend.TestUtil.setupContext
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
@@ -28,22 +26,14 @@ import novah.frontend.typechecker.raw
 
 class TypecheckerSpec : StringSpec({
 
-    beforeTest {
-        setupContext()
-    }
-
     fun exprX(expr: String) = "x = $expr".module()
 
     fun inferX(expr: String): Type {
-        context.reset()
-        setupContext()
-        return inferString(exprX(expr))["x"]!!
+        return TestUtil.compileCode(exprX(expr)).env.decls["x"]!!.type
     }
 
     fun inferFX(expr: String): Type {
-        context.reset()
-        setupContext()
-        return inferString("f x = $expr".module())["f"]!!
+        return TestUtil.compileCode("f x = $expr".module()).env.decls["f"]!!.type
     }
 
     "typecheck primitive expressions" {
@@ -99,22 +89,22 @@ class TypecheckerSpec : StringSpec({
             hex3 = 0xFF
         """.module()
 
-        val tys = inferString(code)
+        val tys = TestUtil.compileCode(code).env.decls
 
-        tys["i"] shouldBe tInt
-        tys["b"] shouldBe tByte
-        tys["b2"] shouldBe tByte
-        tys["s"] shouldBe tShort
-        tys["l"] shouldBe tLong
-        tys["l2"] shouldBe tLong
-        tys["d"] shouldBe tDouble
-        tys["f"] shouldBe tFloat
-        tys["bi"] shouldBe tInt
-        tys["bi2"] shouldBe tLong
-        tys["bi3"] shouldBe tByte
-        tys["hex"] shouldBe tInt
-        tys["hex2"] shouldBe tLong
-        tys["hex3"] shouldBe tShort
+        tys["i"]?.type shouldBe tInt
+        tys["b"]?.type shouldBe tByte
+        tys["b2"]?.type shouldBe tByte
+        tys["s"]?.type shouldBe tShort
+        tys["l"]?.type shouldBe tLong
+        tys["l2"]?.type shouldBe tLong
+        tys["d"]?.type shouldBe tDouble
+        tys["f"]?.type shouldBe tFloat
+        tys["bi"]?.type shouldBe tInt
+        tys["bi2"]?.type shouldBe tLong
+        tys["bi3"]?.type shouldBe tByte
+        tys["hex"]?.type shouldBe tInt
+        tys["hex2"]?.type shouldBe tLong
+        tys["hex3"]?.type shouldBe tShort
     }
 
     "typecheck if" {
@@ -125,14 +115,16 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck subsumed if" {
         val code = """
+            id x = x
+            
             f a = if true then 10 else id 0
             f2 a = if true then 10 else id a
         """.module()
 
-        val tys = inferString(code)
+        val tys = TestUtil.compileCode(code).env.decls
 
-        tys["f"]?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
-        tys["f2"] shouldBe tfun(tInt, tInt)
+        tys["f"]?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
+        tys["f2"]?.type shouldBe tfun(tInt, tInt)
 
         shouldThrow<InferenceError> {
             inferFX("if true then 10 else id 'a'")
@@ -150,9 +142,9 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck pre-added context vars" {
-        val ty = inferFX("id 10")
+        val ty = inferFX("toString 10")
 
-        ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
+        ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tString))
     }
 
     "typecheck let" {
@@ -162,9 +154,9 @@ class TypecheckerSpec : StringSpec({
                   in y
         """.module()
 
-        val ty = inferString(code)["f"]
+        val ty = TestUtil.compileCode(code).env.decls["f"]
 
-        ty?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tString))
+        ty?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tString))
     }
 
     "typecheck polymorphic let bindings" {
@@ -173,9 +165,9 @@ class TypecheckerSpec : StringSpec({
                   in identity 10
         """.module()
 
-        val ty = inferString(code)["f"]
+        val ty = TestUtil.compileCode(code).env.decls["f"]
 
-        ty?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
+        ty?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
     }
 
     "typecheck do statements" {
@@ -184,31 +176,33 @@ class TypecheckerSpec : StringSpec({
         val code = """
             f x = do
               println "hello world"
-              10 + 10
-              store 100
+              toString 10
+              println (toString 100)
               true
         """.module()
 
-        val ty = inferString(code)["f"]
+        val ty = TestUtil.compileCode(code).env.decls["f"]
 
-        ty?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
+        ty?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
     }
 
     "typecheck a recursive function" {
+        // TODO: write a factorial when we have stdlib
         val code = """
-            fact x =
-              if x <= 1
+            pseudofact x =
+              if x == 1
               then x
-              else x * fact (x - 1)
+              else pseudofact x
         """.module()
 
-        val ty = inferString(code)["fact"]
+        val ty = TestUtil.compileCode(code).env.decls["pseudofact"]
 
-        ty shouldBe tfun(tInt, tInt)
+        ty?.type shouldBe tfun(tInt, tInt)
     }
 
     "typecheck mutually recursive functions" {
-        val code = """
+        // TODO: uncomment when we have stdlib
+        val codeCommented = """
             //f1 :: Int -> Int
             f1 x =
               if x > 0
@@ -222,28 +216,19 @@ class TypecheckerSpec : StringSpec({
               else x + 1
         """.module()
 
-        shouldNotThrowAny {
-            inferString(code)
-        }
-    }
-
-    "typecheck mutually recursive functions 2" {
         val code = """
-            f1 x = f2 x + 1
+            f1 x = f2 x
             
             f2 x = f1 x
         """.module()
 
         shouldNotThrowAny {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
     "high ranked types compile with type annotation" {
         val code = """
-            poly :: (forall a. a -> a) -> Boolean
-            poly f = (f 0 < 1) == f true
-            
             type Tuple a b = Tuple a b
             
             fun :: (forall a. a -> a) -> Tuple Int String
@@ -251,15 +236,12 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldNotThrowAny {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
     "high ranked types do not compile without type annotation" {
         val code = """
-            //poly :: (forall a. a -> a) -> Boolean
-            poly f = (f 0 < 1) == f true
-            
             type Tuple a b = Tuple a b
             
             //fun :: (forall a. a -> a) -> Tuple Int String
@@ -267,7 +249,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
@@ -279,7 +261,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
@@ -290,7 +272,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
@@ -301,7 +283,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
@@ -312,7 +294,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
@@ -325,7 +307,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 })

@@ -3,18 +3,10 @@ package novah.frontend
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.frontend.TestUtil.inferString
 import novah.frontend.TestUtil.module
-import novah.frontend.typechecker.InferContext
 import novah.frontend.typechecker.InferenceError
-import novah.frontend.typechecker.Prim
 
 class TypecheckerADTSpec : StringSpec({
-
-    beforeTest {
-        InferContext.context.reset()
-        Prim.addAll(InferContext.context)
-    }
 
     "typecheck no parameter ADTs" {
         val code = """
@@ -26,10 +18,10 @@ class TypecheckerADTSpec : StringSpec({
             y a = Weekend
         """.module()
 
-        val tys = inferString(code)
+        val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.simpleName() shouldBe "(Int -> Day)"
-        tys["y"]?.substFreeVar("a")?.simpleName() shouldBe "forall a. (a -> Day)"
+        tys["x"]?.type?.simpleName() shouldBe "(Int -> Day)"
+        tys["y"]?.type?.substFreeVar("a")?.simpleName() shouldBe "forall a. (a -> Day)"
     }
 
     "typecheck one parameter ADTs" {
@@ -38,21 +30,21 @@ class TypecheckerADTSpec : StringSpec({
               = It a
               | Nope
             
-            //x :: Int -> May String
-            //x a = Nope
+            x :: Int -> May String
+            x a = Nope
             
-            //y :: Int -> May String
+            y :: forall a. a -> May a
             y a = Nope
             
-            //w :: Int -> May Int
-            //w a = It 5
+            w :: Int -> May Int
+            w a = It 5
         """.module()
 
-        val tys = inferString(code)
+        val tys = TestUtil.compileCode(code).env.decls
 
-        //tys["x"]?.simpleName() shouldBe "(Int -> May String)"
-        //tys["y"]?.simpleName() shouldBe "forall a. (a -> May a)"
-        //tys["w"]?.simpleName() shouldBe "(Int -> May Int)"
+        tys["x"]?.type?.simpleName() shouldBe "(Int -> May String)"
+        tys["y"]?.type?.simpleName() shouldBe "forall a. (a -> May a)"
+        tys["w"]?.type?.simpleName() shouldBe "(Int -> May Int)"
     }
 
     "typecheck 2 parameter ADTs" {
@@ -68,9 +60,9 @@ class TypecheckerADTSpec : StringSpec({
             y a = Err "oops"
         """.module()
 
-        val tys = inferString(code)
-        tys["x"]?.simpleName() shouldBe "(Int -> Result Int String)"
-        val y = tys["y"]!!.substFreeVar("k")
+        val tys = TestUtil.compileCode(code).env.decls
+        tys["x"]?.type?.simpleName() shouldBe "(Int -> Result Int String)"
+        val y = tys["y"]!!.type.substFreeVar("k")
         y.simpleName() shouldBe "forall k. forall a. (k -> Result a String)"
     }
 
@@ -84,10 +76,10 @@ class TypecheckerADTSpec : StringSpec({
             y a = Cons 1 (Cons 2 (Cons 3 Nil))
         """.module()
 
-        val tys = inferString(code)
+        val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.simpleName() shouldBe "(Int -> List String)"
-        tys["y"]?.substFreeVar("a")?.simpleName() shouldBe "forall a. (a -> List Int)"
+        tys["x"]?.type?.simpleName() shouldBe "(Int -> List String)"
+        tys["y"]?.type?.substFreeVar("a")?.simpleName() shouldBe "forall a. (a -> List Int)"
     }
 
     "typecheck complex type" {
@@ -102,11 +94,11 @@ class TypecheckerADTSpec : StringSpec({
             y a = Cfun str
         """.module()
 
-        val tys = inferString(code)
+        val tys = TestUtil.compileCode(code).env.decls
 
-        val x = tys["x"]!!.substFreeVar("b")
+        val x = tys["x"]!!.type.substFreeVar("b")
         x.simpleName() shouldBe "forall b. forall a. (b -> Comp String a)"
-        val y = tys["y"]!!.substFreeVar("b")
+        val y = tys["y"]!!.type.substFreeVar("b")
         y.simpleName() shouldBe "forall b. forall a. (b -> Comp a String)"
     }
 
@@ -121,9 +113,8 @@ class TypecheckerADTSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
-
     }
 
     "unbounded variables should not compile" {
@@ -132,7 +123,7 @@ class TypecheckerADTSpec : StringSpec({
         """.module()
 
         shouldThrow<ParserError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
@@ -145,7 +136,7 @@ class TypecheckerADTSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
@@ -158,7 +149,7 @@ class TypecheckerADTSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 
@@ -172,7 +163,7 @@ class TypecheckerADTSpec : StringSpec({
         """.module()
 
         shouldThrow<InferenceError> {
-            inferString(code)
+            TestUtil.compileCode(code)
         }
     }
 })

@@ -1,16 +1,15 @@
 package novah.frontend
 
-import novah.ast.Desugar
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.Module
-import novah.frontend.typechecker.*
-import novah.frontend.typechecker.InferContext.context
-import novah.frontend.typechecker.Inference.infer
-import novah.frontend.typechecker.Prim.tBoolean
-import novah.frontend.typechecker.Prim.tInt
-import novah.optimize.Optimizer
+import novah.frontend.typechecker.FullModuleEnv
+import novah.frontend.typechecker.Type
+import novah.frontend.typechecker.raw
+import novah.main.Compiler
 import novah.optimize.Optimization
+import novah.optimize.Optimizer
+import java.io.File
 import novah.ast.optimized.Module as OModule
 
 object TestUtil {
@@ -45,36 +44,32 @@ object TestUtil {
         return parser.parseFullModule()
     }
 
-    fun inferString(code: String): Map<String, Type> {
-        val lexer = Lexer(code)
-        val parser = Parser(lexer)
-        val desugar = Desugar(parser.parseFullModule())
-        val canonical = desugar.desugar()
-        return infer(canonical)
+    fun cleanAndGetOutDir(output: String = "output"): File {
+        val out = File(output)
+        out.deleteRecursively()
+        out.mkdir()
+        return out
     }
 
-    fun preCompile(code: String, sourceName: String = "<test>"): OModule {
-        val lexer = Lexer(code)
-        val parser = Parser(lexer, sourceName)
-        val desugar = Desugar(parser.parseFullModule())
-        val canonical = desugar.desugar()
-        infer(canonical)
-        val cvt = Optimizer(canonical)
-        val oast = cvt.convert()
-        return Optimization.run(oast)
+    fun compilerFor(path: String, verbose: Boolean = true): Compiler {
+        val sources = File("src/test/resources/$path").walkBottomUp().filter { it.extension == "novah" }
+        return Compiler.new(sources, verbose)
     }
 
-    fun setupContext() {
-        context.reset()
-        Prim.addAll(context)
-        context.add(Elem.CVar("*".raw(), tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("+".raw(), tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("-".raw(), tfun(tInt, tfun(tInt, tInt))))
-        context.add(Elem.CVar("<=".raw(), tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar(">=".raw(), tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar("<".raw(), tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar(">".raw(), tfun(tInt, tfun(tInt, tBoolean))))
-        context.add(Elem.CVar("id".raw(), forall("a", tfun(tvar("a"), tvar("a")))))
+    fun compilerForCode(code: String, verbose: Boolean = true): Compiler {
+        val sources = listOf(Compiler.Entry("namespace", code)).asSequence()
+        return Compiler(sources, verbose)
+    }
+
+    fun compileCode(code: String, verbose: Boolean = true): FullModuleEnv {
+        val compiler = compilerForCode(code, verbose)
+        return compiler.compile().values.first()
+    }
+
+    fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
+        val ast = compileCode(code, verbose).ast
+        val opt = Optimizer(ast)
+        return Optimization.run(opt.convert())
     }
 
     fun tvar(n: String) = Type.TVar(n.raw())

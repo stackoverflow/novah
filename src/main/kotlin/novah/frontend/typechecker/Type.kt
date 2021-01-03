@@ -108,6 +108,11 @@ sealed class Type {
         }
     }
 
+    fun kind(): Int = when (this) {
+        is TConstructor -> types.size
+        else -> 0
+    }
+
     fun substFreeVar(replace: String): Type {
         return if (this is TForall) {
             TForall(replace.raw(), type.substTVar(name, TVar(replace.raw())))

@@ -1,11 +1,11 @@
 # TODO
 
-- [ ] Add spans to types
 - [ ] Revamp the error reporting, so it can return json as well as print to the console
 - [ ] Add warnings to the compiler
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [ ] Add primitive autoboxing to code generation
 - [ ] Report cycles in variable declarations
+- [X] Full compilation cycle and runnable main
 - [X] Support all Java primitives
 - [X] Create a second set of typed expression AST to simplify codegen
 - [X] Validate exports are actually valid

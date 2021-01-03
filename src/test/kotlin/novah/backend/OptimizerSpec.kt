@@ -7,13 +7,8 @@ import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
 import novah.frontend.TestUtil
 import novah.frontend.TestUtil.module
-import novah.frontend.TestUtil.preCompile
 
 class OptimizerSpec : StringSpec({
-
-    beforeTest {
-        TestUtil.setupContext()
-    }
 
     "fully applied constructors are optimized" {
         val code = """
@@ -22,7 +17,7 @@ class OptimizerSpec : StringSpec({
             f x = M 'a' 2.3F 5 "d"
         """.module()
 
-        val res = preCompile(code)
+        val res = TestUtil.compileAndOptimizeCode(code)
         val f = res.decls.find { it is Decl.ValDecl && it.name == "f" }!! as Decl.ValDecl
         val app = (f.exp as Expr.Lambda).body
         app.shouldBeInstanceOf<Expr.CtorApp>()

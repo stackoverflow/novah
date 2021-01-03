@@ -1,5 +1,6 @@
 package novah.frontend.typechecker
 
+import novah.ast.canonical.Visibility
 import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
 
@@ -9,7 +10,7 @@ import novah.ast.source.Import
  */
 object Prim {
 
-    private const val PRIM = "prim"
+    const val PRIM = "prim"
 
     // primitives
     val tByte = tvar("$PRIM.Byte")
@@ -29,52 +30,33 @@ object Prim {
      * that should be auto-added to every
      * module.
      */
-    val primImport = Import.Exposing(
-        listOf(PRIM), listOf(
-            DeclarationRef.RefType("Byte"),
-            DeclarationRef.RefType("Short"),
-            DeclarationRef.RefType("Int"),
-            DeclarationRef.RefType("Long"),
-            DeclarationRef.RefType("Float"),
-            DeclarationRef.RefType("Double"),
-            DeclarationRef.RefType("String"),
-            DeclarationRef.RefType("Char"),
-            DeclarationRef.RefType("Boolean"),
-            DeclarationRef.RefType("Unit"),
-            DeclarationRef.RefVar("println"),
-            DeclarationRef.RefVar("toString"),
-            DeclarationRef.RefVar("equals"),
-            DeclarationRef.RefVar("hashCode"),
-            DeclarationRef.RefVar("&&"),
-            DeclarationRef.RefVar("||"),
-            DeclarationRef.RefVar("=="),
-            DeclarationRef.RefVar("unit")
+    val primImport = Import.Raw(PRIM)
+
+    private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC)
+    private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
+
+    val moduleEnv = ModuleEnv(
+        mapOf(
+            "println" to decl(tfun(tString, tUnit)),
+            "toString" to decl(tfall("a", tfun(tvar("a"), tString))),
+            "hashCode" to decl(tfall("a", tfun(tvar("a"), tInt))),
+            "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
+            "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
+            "==" to decl(tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))),
+            "unit" to decl(tUnit)
+        ),
+        mapOf(
+            "Byte" to tdecl(tByte),
+            "Short" to tdecl(tShort),
+            "Int" to tdecl(tInt),
+            "Long" to tdecl(tLong),
+            "Float" to tdecl(tFloat),
+            "Double" to tdecl(tDouble),
+            "String" to tdecl(tString),
+            "Char" to tdecl(tChar),
+            "Boolean" to tdecl(tBoolean),
+            "Unit" to tdecl(tUnit)
         )
-    )
-
-
-    fun addAll(ctx: Context) {
-        ctx.addAll(primModule)
-    }
-
-    private val primModule = listOf(
-        Elem.CTVar(tByte.name),
-        Elem.CTVar(tShort.name),
-        Elem.CTVar(tInt.name),
-        Elem.CTVar(tLong.name),
-        Elem.CTVar(tFloat.name),
-        Elem.CTVar(tDouble.name),
-        Elem.CTVar(tString.name),
-        Elem.CTVar(tChar.name),
-        Elem.CTVar(tBoolean.name),
-        Elem.CTVar(tUnit.name),
-        Elem.CVar("println".raw(), tfun(tString, tUnit)),
-        Elem.CVar("toString".raw(), tfall("a", tfun(tvar("a"), tString))),
-        Elem.CVar("hashCode".raw(), tfall("a", tfun(tvar("a"), tInt))),
-        Elem.CVar("&&".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        Elem.CVar("||".raw(), tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        Elem.CVar("==".raw(), tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))),
-        Elem.CVar("unit".raw(), tUnit)
     )
 
     private fun tvar(x: String) = Type.TVar(x.raw())

@@ -70,7 +70,7 @@ object Errors {
     val LET_TYPE = """Types should be defined before their declaration, not after.
         |
         |ex: let x :: Int
-        |    and x = 8 in x
+        |        x = 8 in x
     """.trimMargin()
 
     const val CASE_OF = "Expected `of` after a case expression."
@@ -81,10 +81,7 @@ object Errors {
 
     const val IMPORTED_DOT = "Expected identifier after imported variable reference."
 
-    val IMPORT_NOT_FOUND = """Could not find imported alias. Make sure the module is imported.
-        |
-        |ex: import some.namespace as M
-    """.trimMargin()
+    const val TYPEALIAS_DOT = "Expected type identifier after dot."
 
     const val MISMATCHED_INDENTATION = "Mismatched indentation."
 
@@ -98,16 +95,11 @@ object Errors {
         else "The variables ${typeVars.joinToString()} are undefined in constructor $name."
     }
 
-    fun importError(v: String) = "Duplicated import $v."
-
     fun exportError(v: String) = if (v[0].isLowerCase()) {
         "Cannot export unknown value $v"
     } else {
-        "Cannot export unknown type $v"
+        "Cannot export unknown type or constructor $v"
     }
-
-    fun exportCtorError(ctor: String) =
-        "Cannot export undeclared constructor $ctor."
 
     fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
 
@@ -121,8 +113,6 @@ object Errors {
 
     fun lsbracketExpected(ctx: String) = "Expected `[` after $ctx."
     fun rsbracketExpected(ctx: String) = "Expected `]` after $ctx."
-
-    fun semicolonExpected(ctx: String) = "Expected `;` after $ctx."
 
     fun pipeExpected(ctx: String) = "Expected `|` after $ctx."
 }
