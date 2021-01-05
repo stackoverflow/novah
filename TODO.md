@@ -5,6 +5,7 @@
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [ ] Add primitive autoboxing to code generation
 - [ ] Report cycles in variable declarations
+- [ ] Change typechecker to not use globals
 - [X] Full compilation cycle and runnable main
 - [X] Support all Java primitives
 - [X] Create a second set of typed expression AST to simplify codegen

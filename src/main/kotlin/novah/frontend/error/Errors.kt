@@ -1,4 +1,4 @@
-package novah.frontend
+package novah.frontend.error
 
 object Errors {
     val MODULE_DEFINITION = """Expected file to begin with a module declaration.

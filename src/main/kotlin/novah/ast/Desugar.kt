@@ -14,7 +14,7 @@ import novah.ast.source.LiteralPattern as SLiteralPattern
 import novah.ast.source.Module as SModule
 import novah.ast.source.Pattern as SPattern
 import novah.ast.source.Type as SType
-import novah.frontend.Errors as E
+import novah.frontend.error.Errors as E
 
 /**
  * Converts a source AST to the canonical spanned AST

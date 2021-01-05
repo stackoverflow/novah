@@ -2,7 +2,7 @@ package novah.frontend
 
 import novah.ast.source.*
 import novah.frontend.Token.*
-import novah.frontend.Errors as E
+import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "<Unknown>") {
     private val iter = PeekableIterator(tokens, ::throwMismatchedIndentation)
