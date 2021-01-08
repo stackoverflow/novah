@@ -37,5 +37,6 @@ data class CompilerProblem(
 enum class ProblemContext {
     MODULE,
     PARSER,
-    IMPORT;
+    IMPORT,
+    DESUGAR;
 }

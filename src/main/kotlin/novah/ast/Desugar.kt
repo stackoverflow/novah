@@ -1,8 +1,13 @@
 package novah.ast
 
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import novah.ast.canonical.*
 import novah.ast.source.fullname
 import novah.frontend.*
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
@@ -27,8 +32,12 @@ class Desugar(private val smod: SModule) {
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
 
-    fun desugar(): Module {
-        return Module(moduleName, smod.sourceName, smod.decls.map { it.desugar() })
+    fun desugar(): Result<Module, CompilerProblem> {
+        return try {
+            Ok(Module(moduleName, smod.sourceName, smod.decls.map { it.desugar() }))
+        } catch (pe: ParserError) {
+            Err(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name))
+        }
     }
 
     private fun SDecl.desugar(): Decl = when (this) {

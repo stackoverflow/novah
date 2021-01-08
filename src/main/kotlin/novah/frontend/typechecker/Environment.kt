@@ -3,6 +3,7 @@ package novah.frontend.typechecker
 import com.github.ajalt.clikt.output.TermUi.echo
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.unwrap
 import novah.ast.Desugar
 import novah.ast.canonical.Visibility
 import novah.ast.source.Module
@@ -88,7 +89,7 @@ class Environment(private val verbose: Boolean) {
             }
 
             if (verbose) echo("Typechecking ${mod.data.name}")
-            val canonical = Desugar(mod.data).desugar()
+            val canonical = Desugar(mod.data).desugar().unwrap()
             val menv = Inference.infer(canonical)
             modules[mod.data.name] = FullModuleEnv(menv, canonical)
         }
