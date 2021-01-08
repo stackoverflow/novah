@@ -98,8 +98,8 @@ object Application {
             val left = input[i - 1]
             val ope = input[i]
             val right = input[i + 1]
-            val innerSpan = Span(ope.span.start, left.span.end)
-            val outerSpan = Span(ope.span.start, right.span.end)
+            val innerSpan = Span(ope.span.startLine, ope.span.startColumn, left.span.endLine, left.span.endColumn)
+            val outerSpan = Span(ope.span.startLine, ope.span.startColumn, right.span.endLine, left.span.endColumn)
             val app = Expr.App(Expr.App(ope, left).withSpan(innerSpan), right).withSpan(outerSpan)
 
             input.removeAt(i - 1)

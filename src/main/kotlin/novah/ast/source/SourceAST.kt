@@ -9,7 +9,8 @@ data class Module(
     val sourceName: String,
     val imports: List<Import>,
     val exports: ModuleExports,
-    val decls: List<Decl>
+    val decls: List<Decl>,
+    val span: Span
 ) {
     var comment: Comment? = null
 
@@ -46,13 +47,23 @@ sealed class ModuleExports {
 }
 
 sealed class Import(open val module: String) {
-    data class Raw(override val module: String, val alias: String? = null) : Import(module)
-    data class Exposing(override val module: String, val defs: List<DeclarationRef>, val alias: String? = null) :
+    data class Raw(override val module: String, val span: Span, val alias: String? = null) : Import(module)
+    data class Exposing(
+        override val module: String,
+        val defs: List<DeclarationRef>,
+        val span: Span,
+        val alias: String? = null
+    ) :
         Import(module)
 
     fun alias(): String? = when (this) {
         is Raw -> alias
         is Exposing -> alias
+    }
+
+    fun span(): Span = when (this) {
+        is Raw -> span
+        is Exposing -> span
     }
 
     var comment: Comment? = null
@@ -68,7 +79,7 @@ sealed class Decl {
     var comment: Comment? = null
     var span = Span.empty()
 
-    fun withSpan(s: Span, e: Span) = apply { span = Span(s.start, e.end) }
+    fun withSpan(s: Span, e: Span) = apply { span = Span(s.startLine, s.startColumn, e.endLine, e.endColumn) }
 }
 
 data class DataConstructor(val name: String, val args: List<Type>) {
@@ -139,7 +150,7 @@ sealed class Expr {
     var comment: Comment? = null
 
     fun withSpan(s: Span) = apply { span = s }
-    fun withSpan(s: Span, e: Span) = apply { span = Span(s.start, e.end) }
+    fun withSpan(s: Span, e: Span) = apply { span = Span(s.startLine, s.startColumn, e.endLine, e.endColumn) }
 
     fun withComment(c: Comment?) = apply { comment = c }
 

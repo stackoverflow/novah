@@ -1,7 +1,12 @@
 package novah.frontend
 
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import novah.ast.source.*
 import novah.frontend.Token.*
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.ProblemContext
 import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "<Unknown>") {
@@ -9,8 +14,24 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private var nested = false
 
-    fun parseFullModule(): Module {
-        val (mname, exports, comment) = parseModule()
+    private var moduleName: String? = null
+
+    private data class ModuleDef(val name: String, val exports: ModuleExports, val span: Span, val comment: Comment?)
+
+    fun parseFullModule(): Result<Module, CompilerProblem> {
+        return try {
+            Ok(innerParseFullModule())
+        } catch (le: LexError) {
+            // for now we just return the first error
+            Err(CompilerProblem(le.msg, ProblemContext.PARSER, le.pos.span(), sourceName, moduleName))
+        } catch (pe: ParserError) {
+            Err(CompilerProblem(pe.msg, ProblemContext.PARSER, pe.span, sourceName, moduleName))
+        }
+    }
+
+    private fun innerParseFullModule(): Module {
+        val (mname, exports, mspan, comment) = parseModule()
+        moduleName = mname
 
         val imports = mutableListOf<Import>()
         while (iter.peek().value is ImportT) {
@@ -27,11 +48,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             sourceName,
             imports,
             exports,
-            decls
+            decls,
+            mspan
         ).withComment(comment)
     }
 
-    private fun parseModule(): Triple<String, ModuleExports, Comment?> {
+    private fun parseModule(): ModuleDef {
         val m = expect<ModuleT>(withError(E.MODULE_DEFINITION))
 
         val name = parseModuleName()
@@ -47,7 +69,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             else -> ModuleExports.ExportAll
         }
-        return Triple(name.joinToString("."), exports, m.comment)
+        return ModuleDef(name.joinToString("."), exports, span(m.span, iter.current().span), m.comment)
     }
 
     private fun parseDeclarationRefs(ctx: String): List<DeclarationRef> {
@@ -98,15 +120,15 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 if (iter.peek().value is As) {
                     iter.next()
                     val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
-                    Import.Exposing(mname, imp, alias.value.v)
-                } else Import.Exposing(mname, imp)
+                    Import.Exposing(mname, imp, span(impTk.span, alias.span), alias.value.v)
+                } else Import.Exposing(mname, imp, span(impTk.span, iter.current().span))
             }
             is As -> {
                 iter.next()
                 val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
-                Import.Raw(mname, alias.value.v)
+                Import.Raw(mname, span(impTk.span, alias.span), alias.value.v)
             }
-            else -> Import.Raw(mname)
+            else -> Import.Raw(mname, span(impTk.span, iter.current().span))
         }
 
         return import.withComment(impTk.comment)
@@ -645,12 +667,15 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
      * an exception with the supplied error handler.
      */
     @Suppress("UNCHECKED_CAST")
-    private inline fun <reified T> expect(err: (Spanned<Token>) -> String): Spanned<T> {
+    private inline fun <reified T> expect(err: (Spanned<Token>) -> Pair<String, Span>): Spanned<T> {
         val tk = iter.next()
 
         return when (tk.value) {
             is T -> tk as Spanned<T>
-            else -> throw ParserError(err(tk))
+            else -> {
+                val (msg, span) = err(tk)
+                throw ParserError(msg, span)
+            }
         }
     }
 
@@ -677,12 +702,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         /**
          * Creates an error handler with the supplied message.
          */
-        private fun withError(msg: String): (Spanned<Token>) -> String = { token ->
-            "$msg\n\nGot: ${token.value} at ${token.span}"
+        private fun withError(msg: String): (Spanned<Token>) -> Pair<String, Span> = { token ->
+            msg to token.span
         }
 
-        private fun throwError(err: String): Nothing {
-            throw ParserError(err)
+        private fun throwError(err: Pair<String, Span>): Nothing {
+            throw ParserError(err.first, err.second)
         }
 
         private fun throwMismatchedIndentation(tk: Spanned<Token>): Nothing {
@@ -692,12 +717,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         /**
          * Represents an error that cannot happen
          */
-        private fun noErr() = { tk: Spanned<Token> -> "Cannot happen, token: $tk" }
+        private fun noErr() = { tk: Spanned<Token> -> "Cannot happen, token: $tk" to tk.span }
 
-        private fun span(s: Span, e: Span) = Span(s.start, e.end)
+        private fun span(s: Span, e: Span) = Span(s.startLine, s.startColumn, e.endLine, e.endColumn)
 
         private val statementEnding = listOf(RParen, RSBracket, RBracket, EOF)
     }
 }
 
-class ParserError(msg: String) : java.lang.RuntimeException(msg)
+class ParserError(val msg: String, val span: Span) : java.lang.RuntimeException(msg)

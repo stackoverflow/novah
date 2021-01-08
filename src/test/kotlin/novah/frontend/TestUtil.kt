@@ -1,5 +1,6 @@
 package novah.frontend
 
+import com.github.michaelbull.result.unwrap
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.Module
@@ -10,6 +11,7 @@ import novah.main.Compiler
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import java.io.File
+import java.nio.file.Path
 import novah.ast.optimized.Module as OModule
 
 object TestUtil {
@@ -41,7 +43,7 @@ object TestUtil {
     fun parseString(code: String): Module {
         val lexer = Lexer(code)
         val parser = Parser(lexer)
-        return parser.parseFullModule()
+        return parser.parseFullModule().unwrap()
     }
 
     fun cleanAndGetOutDir(output: String = "output"): File {
@@ -53,11 +55,12 @@ object TestUtil {
 
     fun compilerFor(path: String, verbose: Boolean = true): Compiler {
         val sources = File("src/test/resources/$path").walkBottomUp().filter { it.extension == "novah" }
+            .map { it.toPath() }
         return Compiler.new(sources, verbose)
     }
 
     fun compilerForCode(code: String, verbose: Boolean = true): Compiler {
-        val sources = listOf(Compiler.Entry("namespace", code)).asSequence()
+        val sources = listOf(Compiler.Entry(Path.of("namespace"), code)).asSequence()
         return Compiler(sources, verbose)
     }
 

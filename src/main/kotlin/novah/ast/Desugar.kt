@@ -151,7 +151,7 @@ class Desugar(private val smod: SModule) {
      */
     private fun validateTopLevelExpr(declName: String, e: Expr) {
         fun report() {
-            parserError("only lambdas and primitives can be defined at the top level for declaration $declName at ${e.span}")
+            parserError(E.topLevelDisallowed(declName), e.span)
         }
 
         when (e) {
@@ -172,7 +172,7 @@ class Desugar(private val smod: SModule) {
             val typeName = dd.name
             dd.dataCtors.forEach { dc ->
                 if (dc.name == typeName)
-                    parserError("multi constructor type cannot have the same name as their type: $typeName at ${dd.span}")
+                    parserError(E.wrongConstructorName(typeName), dd.span)
             }
         }
     }
@@ -184,10 +184,10 @@ class Desugar(private val smod: SModule) {
         val res = consolidateExports(smod.exports, smod.decls)
         // TODO: better error reporting with context
         if (res.errors.isNotEmpty()) {
-            parserError(E.exportError(res.errors[0]))
+            parserError(E.exportError(res.errors[0]), smod.span)
         }
         return res
     }
 
-    private fun parserError(msg: String): Nothing = throw ParserError(msg)
+    private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
 }

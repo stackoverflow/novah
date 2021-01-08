@@ -1,8 +1,8 @@
 package novah.frontend.typechecker
 
 import novah.ast.canonical.Visibility
-import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
+import novah.frontend.Span
 
 /**
  * Primitive types and functions that should be always
@@ -30,7 +30,7 @@ object Prim {
      * that should be auto-added to every
      * module.
      */
-    val primImport = Import.Raw(PRIM)
+    val primImport = Import.Raw(PRIM, Span.empty())
 
     private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC)
     private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())

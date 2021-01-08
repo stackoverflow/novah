@@ -96,14 +96,28 @@ object Errors {
     }
 
     fun exportError(v: String) = if (v[0].isLowerCase()) {
-        "Cannot export unknown value $v"
+        "Cannot export unknown value $v."
     } else {
-        "Cannot export unknown type or constructor $v"
+        "Cannot export unknown type or constructor $v."
     }
 
     fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
 
     fun literalExpected(name: String) = "Expected $name literal."
+
+    fun duplicateModule(name: String) = "Found duplicate module $name."
+
+    fun cycleFound(nodes: List<String>) =
+        nodes.joinToString(", ", prefix = "Found cycle between modules ", postfix = ".")
+
+    fun moduleNotFound(name: String) = "Could not find module $name."
+
+    fun cannotFindInModule(name: String, module: String) = "Cannot find $name in module $module."
+    fun cannotImportInModule(name: String, module: String) = "Cannot import private $name in module $module."
+
+    fun topLevelDisallowed(declName: String) = "Only lambdas and primitives can be defined at the top level for declaration $declName."
+
+    fun wrongConstructorName(typeName: String) = "Multi constructor type cannot have the same name as their type: $typeName."
 
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."
     fun rparensExpected(ctx: String) = "Expected `)` after $ctx."

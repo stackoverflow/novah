@@ -6,6 +6,8 @@
 - [ ] Add primitive autoboxing to code generation
 - [ ] Report cycles in variable declarations
 - [ ] Change typechecker to not use globals
+- [ ] Add spans to individual exports with error reporting
+- [ ] Add spans to individual imports with error reporting
 - [X] Full compilation cycle and runnable main
 - [X] Support all Java primitives
 - [X] Create a second set of typed expression AST to simplify codegen

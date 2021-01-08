@@ -1,6 +1,8 @@
 package novah.frontend.typechecker
 
 import com.github.ajalt.clikt.output.TermUi.echo
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
 import novah.ast.Desugar
 import novah.ast.canonical.Visibility
 import novah.ast.source.Module
@@ -9,13 +11,16 @@ import novah.data.DAG
 import novah.data.DagNode
 import novah.frontend.Lexer
 import novah.frontend.Parser
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.Errors
+import novah.frontend.error.ProblemContext
 import novah.frontend.resolveImports
 import novah.frontend.typechecker.InferContext.context
+import novah.main.Compiler
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import java.io.File
 import novah.ast.canonical.Module as TypedModule
-import novah.main.Compiler
 
 /**
  * The environment where a full compilation
@@ -23,6 +28,8 @@ import novah.main.Compiler
  */
 class Environment(private val verbose: Boolean) {
     private val modules = mutableMapOf<String, FullModuleEnv>()
+
+    private val errors = mutableListOf<CompilerProblem>()
 
     /**
      * Lex, parse and typecheck all modules and store them.
@@ -35,12 +42,27 @@ class Environment(private val verbose: Boolean) {
             if (verbose) echo("Parsing $path")
 
             val lexer = Lexer(code)
-            val parser = Parser(lexer, path)
-            val mod = parser.parseFullModule()
-            val node = DagNode(mod.name, mod)
-            if (modMap.containsKey(mod.name)) compilationError("found duplicate module ${mod.name}")
-            modMap[mod.name] = node
+            val parser = Parser(lexer, path.toString())
+            when (val modRes = parser.parseFullModule()) {
+                is Ok -> {
+                    val mod = modRes.value
+                    val node = DagNode(mod.name, mod)
+                    if (modMap.containsKey(mod.name)) {
+                        errors += CompilerProblem(
+                            Errors.duplicateModule(mod.name),
+                            ProblemContext.MODULE,
+                            mod.span,
+                            path.toString(),
+                            mod.name
+                        )
+                    }
+                    modMap[mod.name] = node
+                }
+                is Err -> errors += modRes.error
+            }
         }
+        if (errors.isNotEmpty()) throwErrors()
+
         if (modMap.isEmpty()) {
             println("No files to compile")
             return modules
@@ -54,14 +76,16 @@ class Environment(private val verbose: Boolean) {
                 modMap[imp.module]?.link(node)
             }
         }
-        val cycle = modGraph.findCycle()
-        if (cycle != null) reportCycle(cycle)
+        modGraph.findCycle()?.let { reportCycle(it) }
 
         val orderedMods = modGraph.topoSort()
         orderedMods.forEach { mod ->
             context.reset()
-            val errors = resolveImports(mod.data, context, modules)
-            if (errors.isNotEmpty()) compilationError(errors.joinToString("\n"))
+            val errs = resolveImports(mod.data, context, modules)
+            if (errs.isNotEmpty()) {
+                errors.addAll(errs)
+                throwErrors()
+            }
 
             if (verbose) echo("Typechecking ${mod.data.name}")
             val canonical = Desugar(mod.data).desugar()
@@ -90,15 +114,20 @@ class Environment(private val verbose: Boolean) {
     }
 
     private fun reportCycle(nodes: Set<DagNode<String, Module>>) {
-        compilationError("found cycle between modules " + nodes.joinToString(", ") { it.value })
+        val msg = Errors.cycleFound(nodes.map { it.value })
+        nodes.forEach { n ->
+            val mod = n.data
+            errors += CompilerProblem(msg, ProblemContext.MODULE, mod.span, mod.sourceName, mod.name)
+        }
+        throwErrors()
     }
 
-    private fun compilationError(msg: String): Nothing {
-        throw CompilationError(msg)
+    private fun throwErrors(): Nothing {
+        throw CompilationError(errors)
     }
 }
 
-class CompilationError(msg: String) : RuntimeException(msg)
+class CompilationError(val problems: List<CompilerProblem>) : RuntimeException(problems.joinToString("\n") { it.msg })
 
 data class FullModuleEnv(val env: ModuleEnv, val ast: TypedModule)
 

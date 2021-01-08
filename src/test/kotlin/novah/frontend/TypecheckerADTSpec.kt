@@ -4,6 +4,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.module
+import novah.frontend.typechecker.CompilationError
 import novah.frontend.typechecker.InferenceError
 
 class TypecheckerADTSpec : StringSpec({
@@ -122,7 +123,7 @@ class TypecheckerADTSpec : StringSpec({
             type Typ b = Empty | Jus a b
         """.module()
 
-        shouldThrow<ParserError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
