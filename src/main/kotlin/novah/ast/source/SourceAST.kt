@@ -82,7 +82,7 @@ sealed class Decl {
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.startLine, s.startColumn, e.endLine, e.endColumn) }
 }
 
-data class DataConstructor(val name: String, val args: List<Type>) {
+data class DataConstructor(val name: String, val args: List<Type>, val span: Span) {
     override fun toString(): String {
         return name + args.joinToString(" ", prefix = " ")
     }

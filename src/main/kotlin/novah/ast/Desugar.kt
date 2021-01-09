@@ -59,7 +59,7 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SDataConstructor.desugar(): DataConstructor =
-        DataConstructor(name, args.map { it.desugar() }, exports.visibility(name))
+        DataConstructor(name, args.map { it.desugar() }, exports.visibility(name), span)
 
     private fun SExpr.desugar(locals: List<String> = listOf()): Expr = when (this) {
         is SExpr.IntE -> Expr.IntE(v, span)

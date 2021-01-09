@@ -1,6 +1,7 @@
 package novah.frontend.typechecker
 
 import novah.ast.canonical.Expr
+import novah.ast.canonical.Module
 import novah.frontend.Span
 import java.lang.RuntimeException
 import java.util.ArrayDeque
@@ -20,9 +21,11 @@ class InferContext {
     
     private val wellFormed = WellFormed(store, this)
     private val subsumption = Subsumption(wellFormed, store, this)
-    val infer = Inference(subsumption, wellFormed, store, this)
+    private val infer = Inference(subsumption, wellFormed, store, this)
 
     private val ctxStack = ArrayDeque<Context>()
+    
+    fun infer(mod: Module): ModuleEnv = infer.infer(mod)
 
     fun store() {
         ctxStack.push(context.clone())

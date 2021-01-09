@@ -89,7 +89,7 @@ class Environment(private val verbose: Boolean) {
 
             if (verbose) echo("Typechecking ${mod.data.name}")
             val canonical = Desugar(mod.data).desugar().unwrap()
-            val menv = ictx.infer.infer(canonical)
+            val menv = ictx.infer(canonical)
             modules[mod.data.name] = FullModuleEnv(menv, canonical)
         }
         return modules
