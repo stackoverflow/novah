@@ -38,5 +38,6 @@ enum class ProblemContext {
     MODULE,
     PARSER,
     IMPORT,
-    DESUGAR;
+    DESUGAR,
+    TYPECHECK;
 }

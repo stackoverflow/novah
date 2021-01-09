@@ -16,7 +16,7 @@ class Subsumption(
         }
 
         val newCtx = ictx.context.split<Elem.CTMeta>(x.name)
-        wf.wfType(type)
+        wf.wfType(type, span)
         setSolved(x.name, type)
         ictx.context.add(Elem.CTMeta(x.name, type))
         ictx.context.addAll(newCtx)

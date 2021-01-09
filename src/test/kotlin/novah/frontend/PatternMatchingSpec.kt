@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.tcon
 import novah.frontend.TestUtil.tfun
+import novah.frontend.typechecker.CompilationError
 import novah.frontend.typechecker.InferenceError
 import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tString
@@ -63,7 +64,7 @@ class PatternMatchingSpec : StringSpec({
               Tuple t _ -> t
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }

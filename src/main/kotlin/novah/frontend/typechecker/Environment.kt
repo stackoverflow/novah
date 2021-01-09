@@ -1,9 +1,8 @@
 package novah.frontend.typechecker
 
 import com.github.ajalt.clikt.output.TermUi.echo
-import com.github.michaelbull.result.Err
-import com.github.michaelbull.result.Ok
-import com.github.michaelbull.result.unwrap
+import com.github.michaelbull.result.getOrElse
+import com.github.michaelbull.result.mapBoth
 import novah.ast.Desugar
 import novah.ast.canonical.Visibility
 import novah.ast.source.Module
@@ -43,9 +42,8 @@ class Environment(private val verbose: Boolean) {
 
             val lexer = Lexer(code)
             val parser = Parser(lexer, path.toString())
-            when (val modRes = parser.parseFullModule()) {
-                is Ok -> {
-                    val mod = modRes.value
+            parser.parseFullModule().mapBoth(
+                { mod ->
                     val node = DagNode(mod.name, mod)
                     if (modMap.containsKey(mod.name)) {
                         errors += CompilerProblem(
@@ -57,9 +55,9 @@ class Environment(private val verbose: Boolean) {
                         )
                     }
                     modMap[mod.name] = node
-                }
-                is Err -> errors += modRes.error
-            }
+                },
+                { errors += it }
+            )
         }
         if (errors.isNotEmpty()) throwErrors()
 
@@ -82,14 +80,12 @@ class Environment(private val verbose: Boolean) {
         orderedMods.forEach { mod ->
             val ictx = InferContext()
             val errs = resolveImports(mod.data, ictx, modules)
-            if (errs.isNotEmpty()) {
-                errors.addAll(errs)
-                throwErrors()
-            }
+            if (errs.isNotEmpty()) throwErrors(errs)
 
             if (verbose) echo("Typechecking ${mod.data.name}")
-            val canonical = Desugar(mod.data).desugar().unwrap()
-            val menv = ictx.infer(canonical)
+
+            val canonical = Desugar(mod.data).desugar().getOrElse { throwError(it) }
+            val menv = ictx.infer(canonical).getOrElse { throwError(it) }
             modules[mod.data.name] = FullModuleEnv(menv, canonical)
         }
         return modules
@@ -122,9 +118,8 @@ class Environment(private val verbose: Boolean) {
         throwErrors()
     }
 
-    private fun throwErrors(): Nothing {
-        throw CompilationError(errors)
-    }
+    private fun throwErrors(errs: List<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
+    private fun throwError(err: CompilerProblem): Nothing = throw CompilationError(listOf(err))
 }
 
 class CompilationError(val problems: List<CompilerProblem>) : RuntimeException(problems.joinToString("\n") { it.msg })

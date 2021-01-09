@@ -1,31 +1,35 @@
 package novah.frontend.typechecker
 
-import novah.ast.canonical.Expr
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import novah.ast.canonical.Module
 import novah.frontend.Span
-import java.lang.RuntimeException
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.ProblemContext
 import java.util.ArrayDeque
 
-class InferenceError(msg: String) : RuntimeException(msg)
+class InferenceError(val msg: String, val span: Span) : RuntimeException(msg)
 
-fun inferError(msg: String, expr: Expr? = null): Nothing = inferError(msg, expr?.span)
-
-fun inferError(msg: String, span: Span?): Nothing {
-    val message = if (span != null) "$msg at $span" else msg
-    throw InferenceError(message)
-}
+fun inferError(msg: String, span: Span): Nothing = throw InferenceError(msg, span)
 
 class InferContext {
     var context = Context()
     private val store = GenNameStore()
-    
+
     private val wellFormed = WellFormed(store, this)
     private val subsumption = Subsumption(wellFormed, store, this)
     private val infer = Inference(subsumption, wellFormed, store, this)
 
     private val ctxStack = ArrayDeque<Context>()
-    
-    fun infer(mod: Module): ModuleEnv = infer.infer(mod)
+
+    fun infer(mod: Module): Result<ModuleEnv, CompilerProblem> {
+        return try {
+            Ok(infer.infer(mod))
+        } catch (ie: InferenceError) {
+            Err(CompilerProblem(ie.msg, ProblemContext.TYPECHECK, ie.span, mod.sourceName, mod.name))
+        }
+    }
 
     fun store() {
         ctxStack.push(context.clone())

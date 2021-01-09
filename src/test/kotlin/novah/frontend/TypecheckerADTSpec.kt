@@ -5,7 +5,6 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.module
 import novah.frontend.typechecker.CompilationError
-import novah.frontend.typechecker.InferenceError
 
 class TypecheckerADTSpec : StringSpec({
 
@@ -113,7 +112,7 @@ class TypecheckerADTSpec : StringSpec({
             x a = Cfor str
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
@@ -136,7 +135,7 @@ class TypecheckerADTSpec : StringSpec({
             f x = Week
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
@@ -149,7 +148,7 @@ class TypecheckerADTSpec : StringSpec({
             f x = Nope
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
@@ -163,7 +162,7 @@ class TypecheckerADTSpec : StringSpec({
             type Foo a = Bar Day | Baz May
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }

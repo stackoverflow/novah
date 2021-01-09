@@ -50,12 +50,12 @@ class Inference(
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.Var -> {
                 val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
-                    ?: inferError("undefined variable ${exp.name}", exp)
+                    ?: inferError("undefined variable ${exp.name}", exp.span)
                 exp.withType(x.type)
             }
             is Expr.Constructor -> {
                 val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
-                    ?: inferError("undefined constructor ${exp.name}", exp)
+                    ?: inferError("undefined constructor ${exp.name}", exp.span)
                 exp.withType(x.type)
             }
             is Expr.Lambda -> {
@@ -80,7 +80,7 @@ class Inference(
             }
             is Expr.Ann -> {
                 val ty = exp.annType
-                wf.wfType(ty)
+                wf.wfType(ty, exp.span)
                 typecheck(exp.exp, ty)
                 // set not only the type of the annotation but the type of the inner expression
                 exp.exp.withType(ty)
@@ -101,7 +101,7 @@ class Inference(
 
                 val name = store.fresh(binder)
                 val binding = if (ld.type != null) {
-                    wf.wfType(ld.type)
+                    wf.wfType(ld.type, ld.binder.span)
                     typecheck(ld.expr, ld.type)
                     Elem.CVar(name, ld.type)
                 } else {
@@ -122,7 +122,7 @@ class Inference(
                 for (e in exp.exps) {
                     ty = typesynth(e)
                 }
-                exp.withType(ty ?: inferError("got empty `do` statement", exp))
+                exp.withType(ty ?: inferError("got empty `do` statement", exp.span))
             }
             is Expr.Match -> {
                 val expType = typesynth(exp.exp)
@@ -208,7 +208,7 @@ class Inference(
                 typecheck(expr, type.arg)
                 type.ret
             }
-            else -> inferError("Cannot typeappsynth: $type @ $expr", expr)
+            else -> inferError("Cannot typeappsynth: $type @ $expr", expr.span)
         }
     }
 
@@ -261,7 +261,7 @@ class Inference(
     fun infer(expr: Expr): Type {
         store.reset()
         sub.cleanSolvedMetas()
-        wf.wfContext()
+        wf.wfContext(expr.span)
         val m = store.fresh("m")
         ictx.context.enter(m)
         val ty = generalizeFrom(m, ictx.apply(typesynth(expr)))
@@ -270,7 +270,7 @@ class Inference(
         if (solvedMetas.isNotEmpty())
             expr.resolveUnsolved(solvedMetas)
 
-        if (!ictx.context.isComplete()) inferError("Context is not complete", expr)
+        if (!ictx.context.isComplete()) inferError("Context is not complete", expr.span)
         return ty
     }
 
@@ -285,7 +285,7 @@ class Inference(
 
             dataConstructorsToType(ddecl, ddtype).forEach { (ctor, type) ->
                 decls[ctor.name] = DeclRef(type, ctor.visibility)
-                wf.wfType(type)
+                wf.wfType(type, ctor.span)
                 ictx.context.add(Elem.CVar(ctor.name.raw(), type))
             }
         }
@@ -295,7 +295,7 @@ class Inference(
             val expr = decl.exp
             val name = decl.name.raw()
             if (expr is Expr.Ann) {
-                wf.wfType(expr.annType)
+                wf.wfType(expr.annType, expr.span)
                 ictx.context.add(Elem.CVar(name, expr.annType))
             } else {
                 val t = store.fresh("t")

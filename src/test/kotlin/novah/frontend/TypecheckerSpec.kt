@@ -8,8 +8,7 @@ import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
-import novah.frontend.typechecker.Elem
-import novah.frontend.typechecker.InferenceError
+import novah.frontend.typechecker.CompilationError
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tChar
@@ -19,9 +18,7 @@ import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
-import novah.frontend.typechecker.Prim.tUnit
 import novah.frontend.typechecker.Type
-import novah.frontend.typechecker.raw
 
 class TypecheckerSpec : StringSpec({
 
@@ -125,7 +122,7 @@ class TypecheckerSpec : StringSpec({
         tys["f"]?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
         tys["f2"]?.type shouldBe tfun(tInt, tInt)
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             inferFX("if true then 10 else id 'a'")
         }
     }
@@ -245,7 +242,7 @@ class TypecheckerSpec : StringSpec({
             fun f = Tuple (f 1) (f "a")
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
@@ -257,7 +254,7 @@ class TypecheckerSpec : StringSpec({
             f x = "abc"
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
@@ -268,7 +265,7 @@ class TypecheckerSpec : StringSpec({
                   in x
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
@@ -279,7 +276,7 @@ class TypecheckerSpec : StringSpec({
                   in let x = 4 in x
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
@@ -290,7 +287,7 @@ class TypecheckerSpec : StringSpec({
                   in fun x
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
@@ -303,7 +300,7 @@ class TypecheckerSpec : StringSpec({
               x -> toString (x + 4)
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }
