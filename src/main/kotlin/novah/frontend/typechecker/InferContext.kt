@@ -14,9 +14,13 @@ fun inferError(msg: String, span: Span?): Nothing {
     throw InferenceError(message)
 }
 
-object InferContext {
+class InferContext {
     var context = Context()
-    val store = GenNameStore()
+    private val store = GenNameStore()
+    
+    private val wellFormed = WellFormed(store, this)
+    private val subsumption = Subsumption(wellFormed, store, this)
+    val infer = Inference(subsumption, wellFormed, store, this)
 
     private val ctxStack = ArrayDeque<Context>()
 
@@ -32,16 +36,16 @@ object InferContext {
         if (ctxStack.isNotEmpty()) ctxStack.pop()
     }
 
-    fun _apply(type: Type, ctx: Context = context): Type {
+    fun apply(type: Type, ctx: Context = context): Type {
         return when (type) {
             is Type.TVar -> type
             is Type.TMeta -> {
                 val t = ctx.lookup<Elem.CTMeta>(type.name)
-                if (t?.type != null) _apply(t.type, ctx) else type
+                if (t?.type != null) apply(t.type, ctx) else type
             }
             is Type.TFun -> {
-                val left = _apply(type.arg, ctx)
-                val right = _apply(type.ret, ctx)
+                val left = apply(type.arg, ctx)
+                val right = apply(type.ret, ctx)
                 if (type.arg == left && type.ret == right) {
                     type
                 } else {
@@ -49,11 +53,11 @@ object InferContext {
                 }
             }
             is Type.TForall -> {
-                val body = _apply(type.type, ctx)
+                val body = apply(type.type, ctx)
                 if (type.type == body) type else Type.TForall(type.name, body)
             }
             is Type.TConstructor -> {
-                val body = type.types.map { _apply(it, ctx) }
+                val body = type.types.map { apply(it, ctx) }
                 if (type.types == body) type else Type.TConstructor(type.name, body)
             }
         }

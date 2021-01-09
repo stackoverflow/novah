@@ -17,7 +17,7 @@ data class ExportResult(
 typealias VarRef = String
 typealias ModuleName = String
 
-fun resolveImports(mod: Module, ctx: Context, modules: Map<String, FullModuleEnv>): List<CompilerProblem> {
+fun resolveImports(mod: Module, ictx: InferContext, modules: Map<String, FullModuleEnv>): List<CompilerProblem> {
     val visible = { (_, tvis): Map.Entry<String, DeclRef> -> tvis.visibility == Visibility.PUBLIC }
     val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
 
@@ -25,6 +25,7 @@ fun resolveImports(mod: Module, ctx: Context, modules: Map<String, FullModuleEnv
         CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name)
     }
 
+    val ctx = ictx.context
     val resolved = mutableMapOf<VarRef, ModuleName>()
     val errors = mutableListOf<CompilerProblem>()
     // add the primitive module as import to every module

@@ -1,7 +1,7 @@
 package novah.frontend
 
+import com.github.michaelbull.result.Err
 import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.blocking.forAll
 import io.kotest.data.row
@@ -140,9 +140,7 @@ class ParserSpec : StringSpec({
         ) { code ->
             val ast = parseString(code.module())
             val des = Desugar(ast)
-            shouldThrow<ParserError> {
-                des.desugar()
-            }
+            des.desugar().shouldBeInstanceOf<Err<*>>()
         }
 
         // Annotations should work
@@ -156,9 +154,7 @@ class ParserSpec : StringSpec({
 
         val ast = parseString(code)
         val des = Desugar(ast)
-        shouldThrow<ParserError> {
-            des.desugar()
-        }
+        des.desugar().shouldBeInstanceOf<Err<*>>()
     }
 
     "Constructors with the same name as the type are allowed for single constructor types" {

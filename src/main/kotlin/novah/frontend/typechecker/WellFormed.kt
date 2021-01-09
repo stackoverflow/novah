@@ -1,16 +1,14 @@
 package novah.frontend.typechecker
 
-import novah.frontend.typechecker.InferContext.context
-import novah.frontend.typechecker.InferContext.store
-import novah.frontend.typechecker.Subsumption.makeKindString
+import novah.frontend.typechecker.Subsumption.Companion.makeKindString
 
-object WellFormed {
+class WellFormed(private val store: GenNameStore, private val ictx: InferContext) {
 
     fun wfType(type: Type) {
-        if (type is Type.TVar && !context.contains<Elem.CTVar>(type.name)) {
+        if (type is Type.TVar && !ictx.context.contains<Elem.CTVar>(type.name)) {
             inferError("undefined TVar ${type.name}")
         }
-        if (type is Type.TMeta && !context.contains<Elem.CTMeta>(type.name)) {
+        if (type is Type.TMeta && !ictx.context.contains<Elem.CTMeta>(type.name)) {
             inferError("undefined TMeta ?${type.name}")
         }
         if (type is Type.TFun) {
@@ -20,12 +18,12 @@ object WellFormed {
         if (type is Type.TForall) {
             val t = store.fresh(type.name)
             val m = store.fresh("m")
-            context.enter(m, Elem.CTVar(t))
+            ictx.context.enter(m, Elem.CTVar(t))
             wfType(Type.openTForall(type, Type.TVar(t)))
-            context.leave(m)
+            ictx.context.leave(m)
         }
         if (type is Type.TConstructor) {
-            val elem = context.lookup<Elem.CTVar>(type.name) ?: inferError("undefined TConstructor ${type.name}")
+            val elem = ictx.context.lookup<Elem.CTVar>(type.name) ?: inferError("undefined TConstructor ${type.name}")
 
             if (elem.kind != type.types.size) {
                 val should = makeKindString(elem.kind)
@@ -39,22 +37,22 @@ object WellFormed {
     fun wfElem(elem: Elem) {
         when (elem) {
             is Elem.CTVar -> {
-                if (context.contains<Elem.CTVar>(elem.name)) {
+                if (ictx.context.contains<Elem.CTVar>(elem.name)) {
                     inferError("duplicated tvar ${elem.name}")
                 }
             }
             is Elem.CTMeta -> {
-                if (context.contains<Elem.CTMeta>(elem.name)) {
+                if (ictx.context.contains<Elem.CTMeta>(elem.name)) {
                     inferError("duplicated mvar ?${elem.name}")
                 }
             }
             is Elem.CVar -> {
-                if (context.contains<Elem.CVar>(elem.name)) {
+                if (ictx.context.contains<Elem.CVar>(elem.name)) {
                     inferError("duplicated cvar ${elem.name}")
                 }
             }
             is Elem.CMarker -> {
-                if (context.contains<Elem.CMarker>(elem.name)) {
+                if (ictx.context.contains<Elem.CMarker>(elem.name)) {
                     inferError("duplicated cmarker |${elem.name}")
                 }
             }
@@ -62,12 +60,12 @@ object WellFormed {
     }
 
     fun wfContext() {
-        store()
-        var elem = context.pop()
+        ictx.store()
+        var elem = ictx.context.pop()
         while (elem != null) {
             wfElem(elem)
-            elem = context.pop()
+            elem = ictx.context.pop()
         }
-        InferContext.restore()
+        ictx.restore()
     }
 }

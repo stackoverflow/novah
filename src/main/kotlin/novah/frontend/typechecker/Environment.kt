@@ -16,7 +16,6 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.frontend.resolveImports
-import novah.frontend.typechecker.InferContext.context
 import novah.main.Compiler
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
@@ -81,8 +80,8 @@ class Environment(private val verbose: Boolean) {
 
         val orderedMods = modGraph.topoSort()
         orderedMods.forEach { mod ->
-            context.reset()
-            val errs = resolveImports(mod.data, context, modules)
+            val ictx = InferContext()
+            val errs = resolveImports(mod.data, ictx, modules)
             if (errs.isNotEmpty()) {
                 errors.addAll(errs)
                 throwErrors()
@@ -90,7 +89,7 @@ class Environment(private val verbose: Boolean) {
 
             if (verbose) echo("Typechecking ${mod.data.name}")
             val canonical = Desugar(mod.data).desugar().unwrap()
-            val menv = Inference.infer(canonical)
+            val menv = ictx.infer.infer(canonical)
             modules[mod.data.name] = FullModuleEnv(menv, canonical)
         }
         return modules

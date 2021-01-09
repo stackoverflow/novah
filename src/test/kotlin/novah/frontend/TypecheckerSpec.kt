@@ -9,7 +9,6 @@ import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
 import novah.frontend.typechecker.Elem
-import novah.frontend.typechecker.InferContext.context
 import novah.frontend.typechecker.InferenceError
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
@@ -171,8 +170,6 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck do statements" {
-        context.add(Elem.CVar("store".raw(), tfun(tInt, tUnit)))
-
         val code = """
             f x = do
               println "hello world"
