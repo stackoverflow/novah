@@ -42,5 +42,6 @@ enum class ProblemContext {
     TYPECHECK,
     SUBSUMPTION,
     INSTL,
-    INSTR;
+    INSTR,
+    PATTERN_MATCHING;
 }

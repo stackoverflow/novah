@@ -98,6 +98,8 @@ object Errors {
     const val EMPTY_MATCH = "Pattern match needs at least 1 case."
     
     const val INCOMPLETE_CONTEXT = "Context is not complete."
+    
+    const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
 
     fun undefinedVarInCtor(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
@@ -174,6 +176,13 @@ object Errors {
     """.trimIndent()
     
     fun shadowedVariable(name: Name) = "Variable $name is shadowed."
+    
+    fun redundantMatches(pats: List<String>) = """
+        A case expression contains redundant cases:
+        
+            ${pats.joinToString()}
+        
+    """.trimIndent()
     
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."
     fun rparensExpected(ctx: String) = "Expected `)` after $ctx."

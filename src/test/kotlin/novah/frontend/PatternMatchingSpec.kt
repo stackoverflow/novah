@@ -8,7 +8,6 @@ import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.tcon
 import novah.frontend.TestUtil.tfun
 import novah.frontend.typechecker.CompilationError
-import novah.frontend.typechecker.InferenceError
 import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tString
 
@@ -80,7 +79,7 @@ class PatternMatchingSpec : StringSpec({
               5 -> "five"
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileAndOptimizeCode(code)
         }
     }
@@ -95,7 +94,7 @@ class PatternMatchingSpec : StringSpec({
               Nothing -> "nope"
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileAndOptimizeCode(code)
         }
     }
@@ -108,7 +107,7 @@ class PatternMatchingSpec : StringSpec({
               5 -> "five"
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileAndOptimizeCode(code)
         }
     }
@@ -123,7 +122,7 @@ class PatternMatchingSpec : StringSpec({
               Nothing -> "b"
         """.module()
 
-        shouldThrow<InferenceError> {
+        shouldThrow<CompilationError> {
             TestUtil.compileAndOptimizeCode(code)
         }
     }

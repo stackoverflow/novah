@@ -96,8 +96,8 @@ class Environment(private val verbose: Boolean) {
      */
     fun generateCode(output: File) {
         modules.values.forEach { menv ->
-            val opt = Optimizer(menv.ast)
-            val optAST = Optimization.run(opt.convert())
+            val opt = Optimizer(menv.ast).convert().getOrElse { throwError(it) }
+            val optAST = Optimization.run(opt)
 
             val codegen = Codegen(optAST) { dirName, fileName, bytes ->
                 val dir = output.resolve(dirName)
