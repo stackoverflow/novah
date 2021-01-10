@@ -1,5 +1,8 @@
 package novah.frontend.error
 
+import novah.frontend.typechecker.Name
+import novah.frontend.typechecker.Type
+
 object Errors {
     val MODULE_DEFINITION = """Expected file to begin with a module declaration.
         |Example:
@@ -89,8 +92,14 @@ object Errors {
         |
         |ex: import namespace (fun1, SomeType(..), fun2)
     """.trimMargin()
+    
+    const val EMPTY_DO = "`do` statement cannot be empty."
+    
+    const val EMPTY_MATCH = "Pattern match needs at least 1 case."
+    
+    const val INCOMPLETE_CONTEXT = "Context is not complete."
 
-    fun undefinedVar(name: String, typeVars: List<String>): String {
+    fun undefinedVarInCtor(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
         else "The variables ${typeVars.joinToString()} are undefined in constructor $name."
     }
@@ -118,7 +127,54 @@ object Errors {
     fun topLevelDisallowed(declName: String) = "Only lambdas and primitives can be defined at the top level for declaration $declName."
 
     fun wrongConstructorName(typeName: String) = "Multi constructor type cannot have the same name as their type: $typeName."
+    
+    fun undefinedType(type: Name) = "Undefined type $type."
 
+    fun wrongKind(expected: String, got: String) = """
+        Could not match kind
+        
+            $expected
+            
+        with kind
+        
+            $got
+        
+    """.trimIndent()
+    
+    fun duplicatedType(name: Name) = "Duplicated type $name."
+    
+    fun cannotSolvePolytype(name: Name, type: Type) = "Cannot solve type $name with polytype $type."
+    
+    fun unknownType(name: Type) = "Unknown type $name."
+    
+    fun infiniteType(name: Type) = "Occurs check failed: infinite type $name."
+    
+    fun subsumptionFailed(a: Type, b: Type) = """
+        Cannot subsume type
+        
+            $a
+        
+        with type
+        
+            $b
+        
+    """.trimIndent()
+    
+    fun undefinedVar(name: Name) = "Undefined variable $name."
+
+    fun cannotCheck(type: Type) = "Cannot check type of $type."
+    
+    fun wrongArgumentsToCtor(name: Name, quant: String) = "Too $quant arguments given to type constructor $name."
+    
+    fun overlappingNamesInBinder(names: List<Name>) = """
+        Overlapping names in binder:
+        
+            ${names.joinToString()}
+        
+    """.trimIndent()
+    
+    fun shadowedVariable(name: Name) = "Variable $name is shadowed."
+    
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."
     fun rparensExpected(ctx: String) = "Expected `)` after $ctx."
 

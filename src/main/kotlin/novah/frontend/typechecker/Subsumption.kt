@@ -1,6 +1,8 @@
 package novah.frontend.typechecker
 
 import novah.frontend.Span
+import novah.frontend.error.ProblemContext
+import novah.frontend.error.Errors as E
 
 class Subsumption(
     private val wf: WellFormed,
@@ -12,7 +14,7 @@ class Subsumption(
 
     fun solve(x: Type.TMeta, type: Type, span: Span) {
         if (!type.isMono()) {
-            inferError("Cannot solve with polytype $x := $type", span)
+            inferError(E.cannotSolvePolytype(x.name, type), span, ProblemContext.SUBSUMPTION)
         }
 
         val newCtx = ictx.context.split<Elem.CTMeta>(x.name)
@@ -68,7 +70,7 @@ class Subsumption(
                     instL(x, Type.openTForall(type, Type.TVar(name)), span)
                     ictx.context.leave(m)
                 }
-                else -> inferError("instL failed: unknown type $type", span)
+                else -> inferError(E.unknownType(type), span, ProblemContext.INSTL)
             }
         }
     }
@@ -119,7 +121,7 @@ class Subsumption(
                     instR(Type.openTForall(type, Type.TMeta(name)), x, span)
                     ictx.context.leave(m)
                 }
-                else -> inferError("instR failed: unknown type $type", span)
+                else -> inferError(E.unknownType(type), span, ProblemContext.INSTR)
             }
         }
     }
@@ -159,19 +161,19 @@ class Subsumption(
         }
         if (a is Type.TMeta) {
             if (b.containsTMeta(a.name)) {
-                inferError("Occurs check L failed: $a in $b", span)
+                inferError(E.infiniteType(b), span, ProblemContext.SUBSUMPTION)
             }
             instL(a, b, span)
             return
         }
         if (b is Type.TMeta) {
             if (a.containsTMeta(b.name)) {
-                inferError("Occurs check R failed: $b in $a", span)
+                inferError(E.infiniteType(a), span, ProblemContext.SUBSUMPTION)
             }
             instR(a, b, span)
             return
         }
-        inferError("subsume failed: expected type $a but got $b", span)
+        inferError(E.subsumptionFailed(a, b), span, ProblemContext.SUBSUMPTION)
     }
 
     private fun kindCheck(a: Type.TConstructor, b: Type.TConstructor, span: Span) {
@@ -179,10 +181,7 @@ class Subsumption(
         val btypes = b.types.size
 
         if (atypes != btypes) {
-            inferError(
-                "type ${a.name} must have kind ${makeKindString(atypes)} but got kind ${makeKindString(btypes)}: $b",
-                span
-            )
+            inferError(E.wrongKind(makeKindString(atypes), makeKindString(btypes)), span, ProblemContext.SUBSUMPTION)
         }
     }
 

@@ -13,6 +13,7 @@ import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
+import novah.frontend.error.Errors as E
 
 class Inference(
     private val sub: Subsumption,
@@ -50,12 +51,12 @@ class Inference(
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.Var -> {
                 val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
-                    ?: inferError("undefined variable ${exp.name}", exp.span)
+                    ?: inferError(E.undefinedVar(exp.name), exp.span)
                 exp.withType(x.type)
             }
             is Expr.Constructor -> {
                 val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
-                    ?: inferError("undefined constructor ${exp.name}", exp.span)
+                    ?: inferError(E.undefinedVar(exp.name), exp.span)
                 exp.withType(x.type)
             }
             is Expr.Lambda -> {
@@ -122,7 +123,7 @@ class Inference(
                 for (e in exp.exps) {
                     ty = typesynth(e)
                 }
-                exp.withType(ty ?: inferError("got empty `do` statement", exp.span))
+                exp.withType(ty ?: inferError(E.EMPTY_DO, exp.span))
             }
             is Expr.Match -> {
                 val expType = typesynth(exp.exp)
@@ -135,7 +136,7 @@ class Inference(
                         else typecheck(case.exp, resType!!)
                     }
                 }
-                exp.withType(resType ?: internalError("empty pattern matching: $exp"))
+                exp.withType(resType ?: internalError(E.EMPTY_MATCH))
             }
         }
     }
@@ -208,7 +209,7 @@ class Inference(
                 typecheck(expr, type.arg)
                 type.ret
             }
-            else -> inferError("Cannot typeappsynth: $type @ $expr", expr.span)
+            else -> inferError(E.cannotCheck(type), expr.span)
         }
     }
 
@@ -238,8 +239,8 @@ class Inference(
                 sub.subsume(ret, ictx.apply(type), pat.span)
 
                 val diff = ctorTypes.size - pat.fields.size
-                if (diff > 0) inferError("too few parameters given to type constructor ${pat.ctor.name}", pat.span)
-                if (diff < 0) inferError("too many parameters given to type constructor ${pat.ctor.name}", pat.span)
+                if (diff > 0) inferError(E.wrongArgumentsToCtor(pat.ctor.name, "few"), pat.span)
+                if (diff < 0) inferError(E.wrongArgumentsToCtor(pat.ctor.name, "many"), pat.span)
 
                 if (ctorTypes.isEmpty()) listOf()
                 else {
@@ -248,10 +249,7 @@ class Inference(
                         vars.addAll(typecheckpattern(pattern, type))
                     }
                     val varNames = vars.map { it.name }
-                    if (varNames.hasDuplicates()) inferError(
-                        "overlapping names in binder ${varNames.joinToString()}",
-                        pat.span
-                    )
+                    if (varNames.hasDuplicates()) inferError(E.overlappingNamesInBinder(varNames), pat.span)
                     vars
                 }
             }
@@ -270,7 +268,7 @@ class Inference(
         if (solvedMetas.isNotEmpty())
             expr.resolveUnsolved(solvedMetas)
 
-        if (!ictx.context.isComplete()) inferError("Context is not complete", expr.span)
+        if (!ictx.context.isComplete()) inferError(E.INCOMPLETE_CONTEXT, expr.span)
         return ty
     }
 
@@ -366,7 +364,7 @@ class Inference(
      */
     private fun checkShadow(name: Name, span: Span) {
         val shadow = ictx.context.lookupShadow<Elem.CVar>(name)
-        if (shadow != null) inferError("Variable $name is shadowed", span)
+        if (shadow != null) inferError(E.shadowedVariable(name), span)
     }
 
     private inline fun <T> withEnteringContext(vars: List<Elem.CVar>, f: () -> T): T {

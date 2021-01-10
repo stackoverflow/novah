@@ -9,9 +9,10 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import java.util.ArrayDeque
 
-class InferenceError(val msg: String, val span: Span) : RuntimeException(msg)
+class InferenceError(val msg: String, val span: Span, val ctx: ProblemContext) : RuntimeException(msg)
 
-fun inferError(msg: String, span: Span): Nothing = throw InferenceError(msg, span)
+fun inferError(msg: String, span: Span, ctx: ProblemContext = ProblemContext.TYPECHECK): Nothing =
+    throw InferenceError(msg, span, ctx)
 
 class InferContext {
     var context = Context()
@@ -27,7 +28,7 @@ class InferContext {
         return try {
             Ok(infer.infer(mod))
         } catch (ie: InferenceError) {
-            Err(CompilerProblem(ie.msg, ProblemContext.TYPECHECK, ie.span, mod.sourceName, mod.name))
+            Err(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name))
         }
     }
 
