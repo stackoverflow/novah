@@ -31,7 +31,7 @@ sealed class Decl {
     data class ValDecl(val name: String, val exp: Expr, val span: Span, val visibility: Visibility) : Decl()
 }
 
-data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility) {
+data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
     override fun toString(): String {
         return name + args.joinToString(" ", prefix = " ")
     }

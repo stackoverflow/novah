@@ -4,9 +4,6 @@ import novah.Util.hasDuplicates
 import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.frontend.Span
-import novah.frontend.typechecker.InferContext._apply
-import novah.frontend.typechecker.InferContext.context
-import novah.frontend.typechecker.InferContext.store
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tChar
@@ -16,18 +13,24 @@ import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
-import novah.frontend.typechecker.Subsumption.subsume
-import novah.frontend.typechecker.WellFormed.wfContext
-import novah.frontend.typechecker.WellFormed.wfType
+import novah.main.DeclRef
+import novah.main.ModuleEnv
+import novah.main.TypeDeclRef
+import novah.frontend.error.Errors as E
 
-object Inference {
+class Inference(
+    private val sub: Subsumption,
+    private val wf: WellFormed,
+    private val store: GenNameStore,
+    private val ictx: InferContext
+) {
 
     fun generalize(unsolved: List<Name>, type: Type): Type {
         val ns = type.unsolvedInType(unsolved)
         val m = mutableMapOf<Name, Type.TVar>()
         ns.forEach { x ->
             val tvar = Type.TVar(store.fresh(x))
-            Subsumption.setSolved(x, tvar)
+            sub.setSolved(x, tvar)
             m[x] = tvar
         }
         var c = type.substTMetas(m)
@@ -38,7 +41,7 @@ object Inference {
     }
 
     fun generalizeFrom(marker: Name, type: Type): Type =
-        generalize(context.leaveWithUnsolved(marker), type)
+        generalize(ictx.context.leaveWithUnsolved(marker), type)
 
     fun typesynth(exp: Expr): Type {
         return when (exp) {
@@ -50,13 +53,13 @@ object Inference {
             is Expr.CharE -> exp.withType(tChar)
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.Var -> {
-                val x = context.lookup<Elem.CVar>(exp.alias ?: exp.name)
-                    ?: inferError("undefined variable ${exp.name}", exp)
+                val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
+                    ?: inferError(E.undefinedVar(exp.name), exp.span)
                 exp.withType(x.type)
             }
             is Expr.Constructor -> {
-                val x = context.lookup<Elem.CVar>(exp.alias ?: exp.name)
-                    ?: inferError("undefined constructor ${exp.name}", exp)
+                val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
+                    ?: inferError(E.undefinedVar(exp.name), exp.span)
                 exp.withType(x.type)
             }
             is Expr.Lambda -> {
@@ -69,19 +72,19 @@ object Inference {
                 val ta = Type.TMeta(a)
                 val tb = Type.TMeta(b)
                 val m = store.fresh("m")
-                context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
+                ictx.context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
                 typecheck(exp.aliasLambda(x), tb)
 
-                val ty = _apply(Type.TFun(ta, tb))
+                val ty = ictx.apply(Type.TFun(ta, tb))
                 exp.withType(generalizeFrom(m, ty))
             }
             is Expr.App -> {
                 val left = typesynth(exp.fn)
-                exp.withType(typeappsynth(_apply(left), exp.arg))
+                exp.withType(typeappsynth(ictx.apply(left), exp.arg))
             }
             is Expr.Ann -> {
                 val ty = exp.annType
-                wfType(ty)
+                wf.wfType(ty, exp.span)
                 typecheck(exp.exp, ty)
                 // set not only the type of the annotation but the type of the inner expression
                 exp.exp.withType(ty)
@@ -91,7 +94,7 @@ object Inference {
                 typecheck(exp.cond, tBoolean)
                 val tt = typesynth(exp.thenCase)
                 val te = typesynth(exp.elseCase)
-                subsume(_apply(tt), _apply(te), exp.span)
+                sub.subsume(ictx.apply(tt), ictx.apply(te), exp.span)
                 exp.withType(tt)
             }
             is Expr.Let -> {
@@ -102,7 +105,7 @@ object Inference {
 
                 val name = store.fresh(binder)
                 val binding = if (ld.type != null) {
-                    wfType(ld.type)
+                    wf.wfType(ld.type, ld.binder.span)
                     typecheck(ld.expr, ld.type)
                     Elem.CVar(name, ld.type)
                 } else {
@@ -112,18 +115,18 @@ object Inference {
 
                 // add the binding to the context
                 val m = store.fresh("m")
-                context.enter(m, binding)
+                ictx.context.enter(m, binding)
                 val subExp = exp.body.aliasVar(binder, name)
 
                 // infer the body
-                exp.withType(generalizeFrom(m, _apply(typesynth(subExp))))
+                exp.withType(generalizeFrom(m, ictx.apply(typesynth(subExp))))
             }
             is Expr.Do -> {
                 var ty: Type? = null
                 for (e in exp.exps) {
                     ty = typesynth(e)
                 }
-                exp.withType(ty ?: inferError("got empty `do` statement", exp))
+                exp.withType(ty ?: inferError(E.EMPTY_DO, exp.span))
             }
             is Expr.Match -> {
                 val expType = typesynth(exp.exp)
@@ -136,7 +139,7 @@ object Inference {
                         else typecheck(case.exp, resType!!)
                     }
                 }
-                exp.withType(resType ?: internalError("empty pattern matching: $exp"))
+                exp.withType(resType ?: internalError(E.EMPTY_MATCH))
             }
         }
     }
@@ -157,16 +160,16 @@ object Inference {
             type is Type.TForall -> {
                 val x = store.fresh(type.name)
                 val m = store.fresh("m")
-                context.enter(m, Elem.CTVar(x))
+                ictx.context.enter(m, Elem.CTVar(x))
                 typecheck(expr, Type.openTForall(type, Type.TVar(x)))
-                context.leave(m)
+                ictx.context.leave(m)
             }
             type is Type.TFun && expr is Expr.Lambda -> {
                 val x = store.fresh(expr.binder.name)
                 val m = store.fresh("m")
-                context.enter(m, Elem.CVar(x, type.arg))
+                ictx.context.enter(m, Elem.CVar(x, type.arg))
                 typecheck(expr.aliasLambda(x), type.ret)
-                context.leave(m)
+                ictx.context.leave(m)
                 expr.withType(type)
             }
             expr is Expr.If -> {
@@ -177,7 +180,7 @@ object Inference {
             }
             else -> {
                 val ty = typesynth(expr)
-                subsume(_apply(ty), _apply(type), expr.span)
+                sub.subsume(ictx.apply(ty), ictx.apply(type), expr.span)
             }
         }
     }
@@ -186,7 +189,7 @@ object Inference {
         return when (type) {
             is Type.TForall -> {
                 val x = store.fresh(type.name)
-                context.add(Elem.CTMeta(x))
+                ictx.context.add(Elem.CTMeta(x))
                 typeappsynth(Type.openTForall(type, Type.TMeta(x)), expr)
             }
             is Type.TMeta -> {
@@ -195,7 +198,7 @@ object Inference {
                 val b = store.fresh(x)
                 val ta = Type.TMeta(a)
                 val tb = Type.TMeta(b)
-                context.replace<Elem.CTMeta>(
+                ictx.context.replace<Elem.CTMeta>(
                     x, listOf(
                         Elem.CTMeta(b),
                         Elem.CTMeta(a),
@@ -209,7 +212,7 @@ object Inference {
                 typecheck(expr, type.arg)
                 type.ret
             }
-            else -> inferError("Cannot typeappsynth: $type @ $expr", expr)
+            else -> inferError(E.cannotCheck(type), expr.span)
         }
     }
 
@@ -236,11 +239,11 @@ object Inference {
                 val ctorTyp = typesynth(pat.ctor)
 
                 val (ctorTypes, ret) = peelArgs(listOf(), instantiateForalls(ctorTyp))
-                subsume(ret, _apply(type), pat.span)
+                sub.subsume(ret, ictx.apply(type), pat.span)
 
                 val diff = ctorTypes.size - pat.fields.size
-                if (diff > 0) inferError("too few parameters given to type constructor ${pat.ctor.name}", pat.span)
-                if (diff < 0) inferError("too many parameters given to type constructor ${pat.ctor.name}", pat.span)
+                if (diff > 0) inferError(E.wrongArgumentsToCtor(pat.ctor.name, "few"), pat.span)
+                if (diff < 0) inferError(E.wrongArgumentsToCtor(pat.ctor.name, "many"), pat.span)
 
                 if (ctorTypes.isEmpty()) listOf()
                 else {
@@ -249,10 +252,7 @@ object Inference {
                         vars.addAll(typecheckpattern(pattern, type))
                     }
                     val varNames = vars.map { it.name }
-                    if (varNames.hasDuplicates()) inferError(
-                        "overlapping names in binder ${varNames.joinToString()}",
-                        pat.span
-                    )
+                    if (varNames.hasDuplicates()) inferError(E.overlappingNamesInBinder(varNames), pat.span)
                     vars
                 }
             }
@@ -261,17 +261,17 @@ object Inference {
 
     fun infer(expr: Expr): Type {
         store.reset()
-        Subsumption.cleanSolvedMetas()
-        wfContext()
+        sub.cleanSolvedMetas()
+        wf.wfContext(expr.span)
         val m = store.fresh("m")
-        context.enter(m)
-        val ty = generalizeFrom(m, _apply(typesynth(expr)))
+        ictx.context.enter(m)
+        val ty = generalizeFrom(m, ictx.apply(typesynth(expr)))
 
-        val solvedMetas = Subsumption.getSolvedMetas()
+        val solvedMetas = sub.getSolvedMetas()
         if (solvedMetas.isNotEmpty())
             expr.resolveUnsolved(solvedMetas)
 
-        if (!context.isComplete()) inferError("Context is not complete", expr)
+        if (!ictx.context.isComplete()) inferError(E.INCOMPLETE_CONTEXT, expr.span)
         return ty
     }
 
@@ -282,12 +282,12 @@ object Inference {
         mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
             val (ddtype, ddelem) = dataDeclToType(ddecl, mod.name)
             types[ddecl.name] = TypeDeclRef(ddtype, ddecl.visibility, ddecl.dataCtors.map { it.name })
-            context.add(ddelem)
+            ictx.context.add(ddelem)
 
             dataConstructorsToType(ddecl, ddtype).forEach { (ctor, type) ->
                 decls[ctor.name] = DeclRef(type, ctor.visibility)
-                wfType(type)
-                context.add(Elem.CVar(ctor.name.raw(), type))
+                wf.wfType(type, ctor.span)
+                ictx.context.add(Elem.CVar(ctor.name.raw(), type))
             }
         }
 
@@ -296,18 +296,18 @@ object Inference {
             val expr = decl.exp
             val name = decl.name.raw()
             if (expr is Expr.Ann) {
-                wfType(expr.annType)
-                context.add(Elem.CVar(name, expr.annType))
+                wf.wfType(expr.annType, expr.span)
+                ictx.context.add(Elem.CVar(name, expr.annType))
             } else {
                 val t = store.fresh("t")
-                context.add(Elem.CVar(name, Type.TForall(t, Type.TVar(t))))
+                ictx.context.add(Elem.CVar(name, Type.TForall(t, Type.TVar(t))))
             }
         }
 
         vals.forEach { decl ->
             val ty = infer(decl.exp)
             val name = decl.name.raw()
-            context.replaceCVar(name, Elem.CVar(name, ty))
+            ictx.context.replaceCVar(name, Elem.CVar(name, ty))
             decls[decl.name] = DeclRef(ty, decl.visibility)
         }
         return ModuleEnv(decls, types)
@@ -353,7 +353,7 @@ object Inference {
     private fun instantiateForalls(type: Type): Type = when (type) {
         is Type.TForall -> {
             val x = store.fresh(type.name)
-            context.add(Elem.CTMeta(x))
+            ictx.context.add(Elem.CTMeta(x))
             instantiateForalls(Type.openTForall(type, Type.TMeta(x)))
         }
         is Type.TFun -> Type.TFun(instantiateForalls(type.arg), instantiateForalls(type.ret))
@@ -366,17 +366,17 @@ object Inference {
      * and throw an error if that's the case.
      */
     private fun checkShadow(name: Name, span: Span) {
-        val shadow = context.lookupShadow<Elem.CVar>(name)
-        if (shadow != null) inferError("Variable $name is shadowed", span)
+        val shadow = ictx.context.lookupShadow<Elem.CVar>(name)
+        if (shadow != null) inferError(E.shadowedVariable(name), span)
     }
 
     private inline fun <T> withEnteringContext(vars: List<Elem.CVar>, f: () -> T): T {
         return if (vars.isEmpty()) f()
         else {
             val m = store.fresh("m")
-            context.enter(m, *vars.toTypedArray())
+            ictx.context.enter(m, *vars.toTypedArray())
             val res = f()
-            context.leave(m)
+            ictx.context.leave(m)
             res
         }
     }

@@ -2,11 +2,18 @@ package novah.main
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
+import com.github.ajalt.clikt.parameters.types.path
+import novah.frontend.error.CompilerProblem.Companion.RED
+import novah.frontend.error.CompilerProblem.Companion.RESET
+import novah.frontend.error.CompilerProblem.Companion.YELLOW
+import novah.frontend.error.Severity
 import java.io.File
+import kotlin.system.exitProcess
 
 class CompileCommand : CliktCommand() {
 
@@ -22,11 +29,7 @@ class CompileCommand : CliktCommand() {
         help = "Prints information about the compilation process to stdout"
     ).flag(default = false)
 
-    private val src by argument(help = "Directory containing source files").file(
-        mustExist = true,
-        canBeDir = true,
-        canBeFile = false
-    )
+    private val srcs by argument(help = "Source files").path(mustExist = true, canBeDir = false).multiple()
 
     override fun run() {
         if (out.isFile) {
@@ -40,9 +43,24 @@ class CompileCommand : CliktCommand() {
                 return
             }
         }
-        val sources = src.walkBottomUp().filter { file -> file.isFile && file.extension == "novah" }
-        if (verbose) echo("Compiling files at ${src.absolutePath}")
-        Compiler.new(sources, verbose).run(out)
+        if (verbose) echo("Compiling files to $out")
+
+        try {
+            Compiler.new(srcs.asSequence(), verbose).run(out)
+        } catch (ce: CompilationError) {
+            val (errors, warns) = ce.problems.partition { it.severity == Severity.ERROR }
+            if (warns.isNotEmpty()) {
+                val label = if (warns.size > 1) "Warnings" else "Warning"
+                echo("$YELLOW$label:$RESET\n")
+                warns.forEach { echo(it.formatToConsole(), err = true) }
+            }
+            if (errors.isNotEmpty()) {
+                val label = if (errors.size > 1) "Errors" else "Error"
+                echo("$RED$label:$RESET\n")
+                errors.forEach { echo(it.formatToConsole(), err = true) }
+            }
+            exitProcess(1)
+        }
     }
 }
 

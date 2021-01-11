@@ -1,0 +1,7 @@
+module [33mtest[0m
+at src/test/resources/failure/source/pattern match unreacheable constructor.novah:5:7 - 8:20
+
+  A case expression contains redundant cases:
+  
+      Nothing
+

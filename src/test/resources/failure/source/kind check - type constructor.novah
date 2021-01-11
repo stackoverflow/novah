@@ -1,0 +1,7 @@
+module test
+
+type Day = Week | Weekend
+            
+type May a = Just a | Nope
+
+type Foo a = Bar Day | Baz May

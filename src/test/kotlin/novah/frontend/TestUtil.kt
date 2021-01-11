@@ -1,21 +1,27 @@
 package novah.frontend
 
+import com.github.michaelbull.result.getOrElse
+import com.github.michaelbull.result.map
+import com.github.michaelbull.result.unwrap
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.Module
-import novah.frontend.typechecker.FullModuleEnv
 import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.raw
+import novah.main.CompilationError
 import novah.main.Compiler
+import novah.main.FullModuleEnv
+import novah.main.Source
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import java.io.File
+import java.nio.file.Path
 import novah.ast.optimized.Module as OModule
 
 object TestUtil {
 
     private fun lexString(input: String): MutableList<Spanned<Token>> {
-        val lex = Lexer(input)
+        val lex = Lexer(input.iterator())
         val tks = mutableListOf<Spanned<Token>>()
         while (lex.hasNext()) {
             tks += lex.next()
@@ -39,9 +45,9 @@ object TestUtil {
     }
 
     fun parseString(code: String): Module {
-        val lexer = Lexer(code)
+        val lexer = Lexer(code.iterator())
         val parser = Parser(lexer)
-        return parser.parseFullModule()
+        return parser.parseFullModule().unwrap()
     }
 
     fun cleanAndGetOutDir(output: String = "output"): File {
@@ -51,13 +57,14 @@ object TestUtil {
         return out
     }
 
-    fun compilerFor(path: String, verbose: Boolean = true): Compiler {
+    fun compilerFor(path: String, verbose: Boolean = false): Compiler {
         val sources = File("src/test/resources/$path").walkBottomUp().filter { it.extension == "novah" }
+            .map { it.toPath() }
         return Compiler.new(sources, verbose)
     }
 
-    fun compilerForCode(code: String, verbose: Boolean = true): Compiler {
-        val sources = listOf(Compiler.Entry("namespace", code)).asSequence()
+    fun compilerForCode(code: String, verbose: Boolean = false): Compiler {
+        val sources = listOf(Source.SString(Path.of("namespace"), code)).asSequence()
         return Compiler(sources, verbose)
     }
 
@@ -69,7 +76,7 @@ object TestUtil {
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
         val ast = compileCode(code, verbose).ast
         val opt = Optimizer(ast)
-        return Optimization.run(opt.convert())
+        return opt.convert().map { Optimization.run(it) }.getOrElse { throw CompilationError(listOf(it)) }
     }
 
     fun tvar(n: String) = Type.TVar(n.raw())

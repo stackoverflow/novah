@@ -1,0 +1,7 @@
+module test
+
+type Tuple a b = Tuple a b
+
+f x = case x of
+  Tuple v v -> v
+  Tuple t _ -> t

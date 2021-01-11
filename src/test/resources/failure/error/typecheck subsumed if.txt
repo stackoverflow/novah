@@ -1,0 +1,11 @@
+module [33mtest[0m
+at src/test/resources/failure/source/typecheck subsumed if.novah:5:28 - 5:34
+
+  Cannot subsume type
+  
+      prim.Char
+  
+  with type
+  
+      prim.Int
+

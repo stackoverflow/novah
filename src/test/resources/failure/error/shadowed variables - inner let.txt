@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/failure/source/shadowed variables - inner let.novah:4:14 - 4:19
+
+  Variable x is shadowed.
+

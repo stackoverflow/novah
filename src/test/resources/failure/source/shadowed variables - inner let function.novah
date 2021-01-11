@@ -1,0 +1,4 @@
+module test
+
+f x = let fun a = let a = "asd" in a
+      in fun x

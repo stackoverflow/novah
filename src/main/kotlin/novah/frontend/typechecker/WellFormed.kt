@@ -1,73 +1,73 @@
 package novah.frontend.typechecker
 
-import novah.frontend.typechecker.InferContext.context
-import novah.frontend.typechecker.InferContext.store
-import novah.frontend.typechecker.Subsumption.makeKindString
+import novah.frontend.Span
+import novah.frontend.typechecker.Subsumption.Companion.makeKindString
+import novah.frontend.error.Errors as E
 
-object WellFormed {
+class WellFormed(private val store: GenNameStore, private val ictx: InferContext) {
 
-    fun wfType(type: Type) {
-        if (type is Type.TVar && !context.contains<Elem.CTVar>(type.name)) {
-            inferError("undefined TVar ${type.name}")
+    fun wfType(type: Type, span: Span) {
+        if (type is Type.TVar && !ictx.context.contains<Elem.CTVar>(type.name)) {
+            inferError(E.undefinedType(type.name), span)
         }
-        if (type is Type.TMeta && !context.contains<Elem.CTMeta>(type.name)) {
-            inferError("undefined TMeta ?${type.name}")
+        if (type is Type.TMeta && !ictx.context.contains<Elem.CTMeta>(type.name)) {
+            inferError(E.undefinedType(type.name), span)
         }
         if (type is Type.TFun) {
-            wfType(type.arg)
-            wfType(type.ret)
+            wfType(type.arg, span)
+            wfType(type.ret, span)
         }
         if (type is Type.TForall) {
             val t = store.fresh(type.name)
             val m = store.fresh("m")
-            context.enter(m, Elem.CTVar(t))
-            wfType(Type.openTForall(type, Type.TVar(t)))
-            context.leave(m)
+            ictx.context.enter(m, Elem.CTVar(t))
+            wfType(Type.openTForall(type, Type.TVar(t)), span)
+            ictx.context.leave(m)
         }
         if (type is Type.TConstructor) {
-            val elem = context.lookup<Elem.CTVar>(type.name) ?: inferError("undefined TConstructor ${type.name}")
+            val elem = ictx.context.lookup<Elem.CTVar>(type.name) ?: inferError(E.undefinedType(type.name), span)
 
             if (elem.kind != type.types.size) {
                 val should = makeKindString(elem.kind)
                 val has = makeKindString(type.types.size)
-                inferError("type $type must have kind $should but got kind $has")
+                inferError(E.wrongKind(should, has), span)
             }
-            type.types.forEach { wfType(it) }
+            type.types.forEach { wfType(it, span) }
         }
     }
 
-    fun wfElem(elem: Elem) {
+    private fun wfElem(elem: Elem, span: Span) {
         when (elem) {
             is Elem.CTVar -> {
-                if (context.contains<Elem.CTVar>(elem.name)) {
-                    inferError("duplicated tvar ${elem.name}")
+                if (ictx.context.contains<Elem.CTVar>(elem.name)) {
+                    inferError(E.duplicatedType(elem.name), span)
                 }
             }
             is Elem.CTMeta -> {
-                if (context.contains<Elem.CTMeta>(elem.name)) {
-                    inferError("duplicated mvar ?${elem.name}")
+                if (ictx.context.contains<Elem.CTMeta>(elem.name)) {
+                    inferError(E.duplicatedType(elem.name), span)
                 }
             }
             is Elem.CVar -> {
-                if (context.contains<Elem.CVar>(elem.name)) {
-                    inferError("duplicated cvar ${elem.name}")
+                if (ictx.context.contains<Elem.CVar>(elem.name)) {
+                    inferError(E.duplicatedType(elem.name), span)
                 }
             }
             is Elem.CMarker -> {
-                if (context.contains<Elem.CMarker>(elem.name)) {
-                    inferError("duplicated cmarker |${elem.name}")
+                if (ictx.context.contains<Elem.CMarker>(elem.name)) {
+                    inferError(E.duplicatedType(elem.name), span)
                 }
             }
         }
     }
 
-    fun wfContext() {
-        store()
-        var elem = context.pop()
+    fun wfContext(span: Span) {
+        ictx.store()
+        var elem = ictx.context.pop()
         while (elem != null) {
-            wfElem(elem)
-            elem = context.pop()
+            wfElem(elem, span)
+            elem = ictx.context.pop()
         }
-        InferContext.restore()
+        ictx.restore()
     }
 }

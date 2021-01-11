@@ -9,7 +9,7 @@ import novah.frontend.TestUtil.lexResource
 class LexerSpec : StringSpec({
 
     fun span(start: Pair<Int, Int>, end: Pair<Int, Int>) =
-        Span(Position(start.first, start.second), Position(end.first, end.second))
+        Span(start.first, start.second, end.first, end.second)
 
     "Lex spans correctly" {
         val tokens = lexResource("Spans.novah")
@@ -35,9 +35,5 @@ class LexerSpec : StringSpec({
 
         myFun.span shouldBe span(10 to 1, 10 to 6)
         myFun.comment shouldBe Comment("comments on var\n types work", true)
-    }
-
-    "Lex whole file" {
-        lexResource("Example.novah")
     }
 })

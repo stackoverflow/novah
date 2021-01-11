@@ -55,29 +55,30 @@ sealed class Token {
 data class Position(val line: Int, val column: Int) {
     override fun toString(): String = "$line:$column"
 
-    fun shift(n: Int) = copy(column = column + n)
+    fun span() = Span(line, column, line, column)
 }
 
-data class Span(val start: Position, val end: Position) {
-    override fun toString(): String = "$start - $end"
+data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val endColumn: Int) {
+    override fun toString(): String = "$startLine:$startColumn - $endLine:$endColumn"
 
     companion object {
-        fun empty() = Span(Position(-1, -1), Position(-1, -1))
+        fun empty() = Span(-1, -1, -1, -1)
     }
 }
 
 data class Spanned<out T>(val span: Span, val value: T, val comment: Comment? = null) {
     override fun toString(): String = "$value($span)"
 
-    fun offside() = span.start.column
+    fun offside() = span.startColumn
 }
 
-class LexError(msg: String, pos: Position) : RuntimeException("$msg at $pos")
+class LexError(val msg: String, val pos: Position) : RuntimeException("$msg at $pos")
 
 class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 
     private var lookahead: Char? = null
-    var position = Position(1, 1)
+    var line = 1
+    var column = 1
 
     override fun hasNext(): Boolean = lookahead != null || chars.hasNext()
 
@@ -88,7 +89,7 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
             advancePos(temp)
         } else {
             if (!chars.hasNext()) {
-                throw LexError("Unexpected end of file", position)
+                throw LexError("Unexpected end of file", Position(line, column))
             }
             advancePos(chars.next())
         }
@@ -96,25 +97,28 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 
     fun peek(): Char {
         if (!chars.hasNext() && lookahead == null) {
-            throw LexError("Unexpected end of file", position)
+            throw LexError("Unexpected end of file", Position(line, column))
         }
         lookahead = lookahead ?: chars.next()
         return lookahead!!
     }
+    
+    fun position() = Position(line, column)
 
     private fun advancePos(c: Char): Char {
-        position = if (c == '\n') {
-            Position(position.line + 1, 1)
+        if (c == '\n') {
+            line++
+            column = 1
         } else {
-            position.shift(1)
+            column++
         }
         return c
     }
 }
 
-class Lexer(input: String) : Iterator<Spanned<Token>> {
+class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
-    private val iter = CharPositionIterator(input.iterator())
+    private val iter = CharPositionIterator(input)
 
     private val operators = "$=<>|&+-:*/%^."
 
@@ -123,8 +127,9 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
     override fun next(): Spanned<Token> {
         consumeAllWhitespace()
 
-        val start = iter.position
-        if (!iter.hasNext()) return Spanned(Span(start, start), EOF)
+        val startLine = iter.line
+        val startColumn = iter.column
+        if (!iter.hasNext()) return Spanned(Span(startLine, startColumn, startLine, startColumn), EOF)
 
         var comment: Comment? = null
 
@@ -175,12 +180,12 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
                     c.isDigit() -> number(c)
                     c.isValidOperator() -> operator(c)
                     c.isValidIdentifierStart() -> ident(c)
-                    else -> throw LexError("Unexpected Identifier: `$c`", start)
+                    else -> lexError("Unexpected Identifier: `$c`")
                 }
             }
         }
 
-        return Spanned(Span(start, iter.position), token, comment)
+        return Spanned(Span(startLine, startColumn, iter.line, iter.column), token, comment)
     }
 
     private val validEscapes = arrayOf('t', 'b', 'n', 'r', '\'', '\"', '\\')
@@ -401,7 +406,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
     }
 
     private fun lexError(msg: String): Nothing {
-        throw LexError(msg, iter.position)
+        throw LexError(msg, iter.position())
     }
 
     private fun Char.isValidIdentifierStart(): Boolean {
@@ -434,7 +439,7 @@ class Lexer(input: String) : Iterator<Spanned<Token>> {
         try {
             return this.toDouble()
         } catch (e: NumberFormatException) {
-            lexError("Invalid number format for float: `$this`")
+            lexError("Invalid number format for double: `$this`")
         }
     }
 }

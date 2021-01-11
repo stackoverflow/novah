@@ -1,0 +1,3 @@
+module test
+
+type Typ b = Empty | Jus a b

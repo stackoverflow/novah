@@ -1,5 +1,6 @@
 package novah.frontend
 
+import com.github.michaelbull.result.unwrap
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.ast.Desugar
@@ -37,7 +38,7 @@ class DesugarSpec : StringSpec({
         """.trimIndent()
 
         val ast = parseString(code)
-        val dast = Desugar(ast).desugar()
+        val dast = Desugar(ast).desugar().unwrap()
 
         val tds = dast.decls.filterIsInstance<Decl.DataDecl>()
 

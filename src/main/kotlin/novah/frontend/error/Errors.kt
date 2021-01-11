@@ -1,4 +1,7 @@
-package novah.frontend
+package novah.frontend.error
+
+import novah.frontend.typechecker.Name
+import novah.frontend.typechecker.Type
 
 object Errors {
     val MODULE_DEFINITION = """Expected file to begin with a module declaration.
@@ -89,22 +92,94 @@ object Errors {
         |
         |ex: import namespace (fun1, SomeType(..), fun2)
     """.trimMargin()
+    
+    const val EMPTY_DO = "`do` statement cannot be empty."
+    
+    const val EMPTY_MATCH = "Pattern match needs at least 1 case."
+    
+    const val INCOMPLETE_CONTEXT = "Context is not complete."
+    
+    const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
 
-    fun undefinedVar(name: String, typeVars: List<String>): String {
+    fun undefinedVarInCtor(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
         else "The variables ${typeVars.joinToString()} are undefined in constructor $name."
     }
 
     fun exportError(v: String) = if (v[0].isLowerCase()) {
-        "Cannot export unknown value $v"
+        "Cannot export unknown value $v."
     } else {
-        "Cannot export unknown type or constructor $v"
+        "Cannot export unknown type or constructor $v."
     }
 
     fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
 
     fun literalExpected(name: String) = "Expected $name literal."
 
+    fun duplicateModule(name: String) = "Found duplicate module $name."
+
+    fun cycleFound(nodes: List<String>) =
+        nodes.joinToString(", ", prefix = "Found cycle between modules ", postfix = ".")
+
+    fun moduleNotFound(name: String) = "Could not find module $name."
+
+    fun cannotFindInModule(name: String, module: String) = "Cannot find $name in module $module."
+    fun cannotImportInModule(name: String, module: String) = "Cannot import private $name in module $module."
+
+    fun topLevelDisallowed(declName: String) = "Only lambdas and primitives can be defined at the top level for declaration $declName."
+
+    fun wrongConstructorName(typeName: String) = "Multi constructor type cannot have the same name as their type: $typeName."
+    
+    fun undefinedType(type: Name) = "Undefined type $type."
+
+    fun wrongKind(expected: String, got: String) = """
+        Could not match kind
+        
+            $expected
+            
+        with kind
+        
+            $got
+    """.trimIndent()
+    
+    fun duplicatedType(name: Name) = "Duplicated type $name."
+    
+    fun cannotSolvePolytype(name: Name, type: Type) = "Cannot solve type $name with polytype $type."
+    
+    fun unknownType(name: Type) = "Unknown type $name."
+    
+    fun infiniteType(name: Type) = "Occurs check failed: infinite type $name."
+    
+    fun subsumptionFailed(a: Type, b: Type) = """
+        Cannot subsume type
+        
+            $a
+        
+        with type
+        
+            $b
+    """.trimIndent()
+    
+    fun undefinedVar(name: Name) = "Undefined variable $name."
+
+    fun cannotCheck(type: Type) = "Cannot check type of $type."
+    
+    fun wrongArgumentsToCtor(name: Name, quant: String) = "Too $quant arguments given to type constructor $name."
+    
+    fun overlappingNamesInBinder(names: List<Name>) = """
+        Overlapping names in binder:
+        
+            ${names.joinToString()}
+    """.trimIndent()
+    
+    fun shadowedVariable(name: Name) = "Variable $name is shadowed."
+    
+    fun redundantMatches(pats: List<String>) = """
+        A case expression contains redundant cases:
+        
+            ${pats.joinToString()}
+    """.trimIndent()
+    
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."
     fun rparensExpected(ctx: String) = "Expected `)` after $ctx."
 

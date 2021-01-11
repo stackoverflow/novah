@@ -1,0 +1,11 @@
+module [33mtest[0m
+at src/test/resources/failure/source/typecheck complex type.novah:6:8 - 6:11
+
+  Cannot subsume type
+  
+      prim.String
+  
+  with type
+  
+      a1
+

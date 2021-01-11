@@ -1,8 +1,13 @@
 package novah.ast
 
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import novah.ast.canonical.*
 import novah.ast.source.fullname
 import novah.frontend.*
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
@@ -14,7 +19,7 @@ import novah.ast.source.LiteralPattern as SLiteralPattern
 import novah.ast.source.Module as SModule
 import novah.ast.source.Pattern as SPattern
 import novah.ast.source.Type as SType
-import novah.frontend.Errors as E
+import novah.frontend.error.Errors as E
 
 /**
  * Converts a source AST to the canonical spanned AST
@@ -27,8 +32,12 @@ class Desugar(private val smod: SModule) {
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
 
-    fun desugar(): Module {
-        return Module(moduleName, smod.sourceName, smod.decls.map { it.desugar() })
+    fun desugar(): Result<Module, CompilerProblem> {
+        return try {
+            Ok(Module(moduleName, smod.sourceName, smod.decls.map { it.desugar() }))
+        } catch (pe: ParserError) {
+            Err(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name))
+        }
     }
 
     private fun SDecl.desugar(): Decl = when (this) {
@@ -50,7 +59,7 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SDataConstructor.desugar(): DataConstructor =
-        DataConstructor(name, args.map { it.desugar() }, exports.visibility(name))
+        DataConstructor(name, args.map { it.desugar() }, exports.visibility(name), span)
 
     private fun SExpr.desugar(locals: List<String> = listOf()): Expr = when (this) {
         is SExpr.IntE -> Expr.IntE(v, span)
@@ -151,7 +160,7 @@ class Desugar(private val smod: SModule) {
      */
     private fun validateTopLevelExpr(declName: String, e: Expr) {
         fun report() {
-            parserError("only lambdas and primitives can be defined at the top level for declaration $declName at ${e.span}")
+            parserError(E.topLevelDisallowed(declName), e.span)
         }
 
         when (e) {
@@ -172,7 +181,7 @@ class Desugar(private val smod: SModule) {
             val typeName = dd.name
             dd.dataCtors.forEach { dc ->
                 if (dc.name == typeName)
-                    parserError("multi constructor type cannot have the same name as their type: $typeName at ${dd.span}")
+                    parserError(E.wrongConstructorName(typeName), dd.span)
             }
         }
     }
@@ -184,10 +193,10 @@ class Desugar(private val smod: SModule) {
         val res = consolidateExports(smod.exports, smod.decls)
         // TODO: better error reporting with context
         if (res.errors.isNotEmpty()) {
-            parserError(E.exportError(res.errors[0]))
+            parserError(E.exportError(res.errors[0]), smod.span)
         }
         return res
     }
 
-    private fun parserError(msg: String): Nothing = throw ParserError(msg)
+    private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
 }

@@ -1,30 +1,26 @@
 package novah.main
 
-import novah.frontend.typechecker.Environment
-import novah.frontend.typechecker.FullModuleEnv
 import java.io.File
+import java.nio.file.Path
 
-class Compiler(private val sources: Sequence<Entry>, private val verbose: Boolean) {
+class Compiler(private val sources: Sequence<Source>, private val verbose: Boolean) {
 
     fun compile(): Map<String, FullModuleEnv> {
         val env = Environment(verbose)
         return env.parseSources(sources)
     }
 
-    fun run(output: File) {
+    fun run(output: File, dryRun: Boolean = false) {
         val env = Environment(verbose)
-        // TODO: check errors
         env.parseSources(sources)
 
-        env.generateCode(output)
+        env.generateCode(output, dryRun)
     }
 
     companion object {
-        fun new(sources: Sequence<File>, verbose: Boolean): Compiler {
-            val entries = sources.map { file -> Entry(file.path, file.readText(charset = Charsets.UTF_8)) }
+        fun new(sources: Sequence<Path>, verbose: Boolean): Compiler {
+            val entries = sources.map { path -> Source.SPath(path) }
             return Compiler(entries, verbose)
         }
     }
-
-    data class Entry(val fileName: String, val code: String)
 }

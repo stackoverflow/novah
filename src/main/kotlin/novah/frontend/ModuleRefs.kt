@@ -2,7 +2,16 @@ package novah.frontend
 
 import novah.ast.canonical.Visibility
 import novah.ast.source.*
-import novah.frontend.typechecker.*
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.Errors
+import novah.frontend.error.ProblemContext
+import novah.frontend.typechecker.Elem
+import novah.frontend.typechecker.InferContext
+import novah.frontend.typechecker.Prim
+import novah.frontend.typechecker.raw
+import novah.main.DeclRef
+import novah.main.FullModuleEnv
+import novah.main.TypeDeclRef
 
 data class ExportResult(
     val exports: Set<String>,
@@ -14,18 +23,24 @@ data class ExportResult(
 typealias VarRef = String
 typealias ModuleName = String
 
-fun resolveImports(mod: Module, ctx: Context, modules: Map<String, FullModuleEnv>): List<String> {
+fun resolveImports(mod: Module, ictx: InferContext, modules: Map<String, FullModuleEnv>): List<CompilerProblem> {
     val visible = { (_, tvis): Map.Entry<String, DeclRef> -> tvis.visibility == Visibility.PUBLIC }
     val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
 
+    fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
+        CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name)
+    }
+
+    val ctx = ictx.context
     val resolved = mutableMapOf<VarRef, ModuleName>()
-    val errors = mutableListOf<String>()
+    val errors = mutableListOf<CompilerProblem>()
     // add the primitive module as import to every module
     val imports = mod.imports + Prim.primImport
     for (imp in imports) {
+        val mkError = makeError(imp.span())
         val m = if (imp.module == Prim.PRIM) Prim.moduleEnv else modules[imp.module]?.env
         if (m == null) {
-            errors += "could not find module ${imp.module}"
+            errors += mkError(Errors.moduleNotFound(imp.module))
             continue
         }
         val mname = imp.module
@@ -50,11 +65,11 @@ fun resolveImports(mod: Module, ctx: Context, modules: Map<String, FullModuleEnv
                         is DeclarationRef.RefVar -> {
                             val declRef = m.decls[ref.name]
                             if (declRef == null) {
-                                errors += "could not find declaration ${ref.name} in module $mname"
+                                errors += mkError(Errors.cannotFindInModule("declaration ${ref.name}", mname))
                                 continue
                             }
                             if (declRef.visibility == Visibility.PRIVATE) {
-                                errors += "cannot import private declaration ${ref.name} in module $mname"
+                                errors += mkError(Errors.cannotImportInModule("declaration ${ref.name}", mname))
                                 continue
                             }
                             resolved["$alias${ref.name}"] = mname
@@ -63,11 +78,11 @@ fun resolveImports(mod: Module, ctx: Context, modules: Map<String, FullModuleEnv
                         is DeclarationRef.RefType -> {
                             val declRef = m.types[ref.name]
                             if (declRef == null) {
-                                errors += "could not find declaration ${ref.name} in module $mname"
+                                errors += mkError(Errors.cannotFindInModule("type ${ref.name}", mname))
                                 continue
                             }
                             if (declRef.visibility == Visibility.PRIVATE) {
-                                errors += "cannot import private declaration ${ref.name} in module $mname"
+                                errors += mkError(Errors.cannotImportInModule("type ${ref.name}", mname))
                                 continue
                             }
                             ctx.add(Elem.CTVar("$mname.${ref.name}".raw(), declRef.type.kind()))
@@ -79,7 +94,7 @@ fun resolveImports(mod: Module, ctx: Context, modules: Map<String, FullModuleEnv
                                     for (ctor in declRef.ctors) {
                                         val ctorDecl = m.decls[ctor]!! // cannot fail
                                         if (ctorDecl.visibility == Visibility.PRIVATE) {
-                                            errors += "cannot import private constructor $ctor in module $mname"
+                                            errors += mkError(Errors.cannotImportInModule("constructor $ctor", mname))
                                             continue
                                         }
                                         ctx.add(Elem.CVar("$alias$ctor".raw(), ctorDecl.type))
@@ -90,11 +105,11 @@ fun resolveImports(mod: Module, ctx: Context, modules: Map<String, FullModuleEnv
                                     for (ctor in ref.ctors) {
                                         val ctorDecl = m.decls[ctor]
                                         if (ctorDecl == null) {
-                                            errors += "could not find declaration ${ref.name} in module $mname"
+                                            errors += mkError(Errors.cannotFindInModule("constructor $ctor", mname))
                                             continue
                                         }
                                         if (ctorDecl.visibility == Visibility.PRIVATE) {
-                                            errors += "cannot import private constructor $ctor in module $mname"
+                                            errors += mkError(Errors.cannotImportInModule("constructor $ctor", mname))
                                             continue
                                         }
                                         ctx.add(Elem.CVar("$alias$ctor".raw(), ctorDecl.type))

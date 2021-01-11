@@ -1,11 +1,17 @@
 package novah.optimize
 
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import novah.Util.internalError
 import novah.ast.canonical.Pattern
 import novah.ast.canonical.show
 import novah.ast.optimized.*
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.ProblemContext
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
+import novah.frontend.typechecker.InferenceError
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tLong
@@ -18,6 +24,7 @@ import novah.ast.canonical.Decl.ValDecl as CValDecl
 import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
 import novah.frontend.typechecker.Type as TType
+import novah.frontend.error.Errors as E
 
 /**
  * Converts the canonical AST to the
@@ -27,9 +34,13 @@ class Optimizer(private val ast: CModule) {
 
     private var haslambda = false
 
-    fun convert(): Module {
-        PatternMatchingCompiler.addConsToCache(ast)
-        return ast.convert()
+    fun convert(): Result<Module, CompilerProblem> {
+        return try {
+            PatternMatchingCompiler.addConsToCache(ast)
+            Ok(ast.convert())
+        } catch (ie: InferenceError) {
+            Err(CompilerProblem(ie.msg, ie.ctx, ie.span, ast.sourceName, ast.name))
+        }
     }
 
     private fun CModule.convert(): Module {
@@ -41,10 +52,10 @@ class Optimizer(private val ast: CModule) {
         return Module(internalize(name), sourceName, haslambda, ds)
     }
 
-    private fun CValDecl.convert(): Decl.ValDecl = Decl.ValDecl(name, exp.convert(), visibility, span.start.line)
+    private fun CValDecl.convert(): Decl.ValDecl = Decl.ValDecl(name, exp.convert(), visibility, span.startLine)
 
     private fun CDataDecl.convert(): Decl.DataDecl =
-        Decl.DataDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span.start.line)
+        Decl.DataDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span.startLine)
 
     private fun CDataConstructor.convert(): DataConstructor =
         DataConstructor(name, args.map { it.convert() }, visibility)
@@ -147,11 +158,11 @@ class Optimizer(private val ast: CModule) {
     companion object {
         private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr) {
             if (!res.exhaustive) {
-                inferError("a case expression could not be determined to cover all inputs.", expr.span)
+                inferError(E.NON_EXHAUSTIVE_PATTERN, expr.span, ProblemContext.PATTERN_MATCHING)
             }
             if (res.redundantMatches.isNotEmpty()) {
-                val unreacheable = res.redundantMatches.joinToString(", ") { it.show() }
-                inferError("a case expression contains redundant cases: $unreacheable", expr.span)
+                val unreacheable = res.redundantMatches.map { it.show() }
+                inferError(E.redundantMatches(unreacheable), expr.span, ProblemContext.PATTERN_MATCHING)
             }
         }
 

@@ -1,0 +1,5 @@
+module test
+
+id x = x
+
+f x = if true then 10 else id 'a'
