@@ -7,6 +7,7 @@ import novah.ast.canonical.Module
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.main.ModuleEnv
 import java.util.ArrayDeque
 
 class InferenceError(val msg: String, val span: Span, val ctx: ProblemContext) : RuntimeException(msg)

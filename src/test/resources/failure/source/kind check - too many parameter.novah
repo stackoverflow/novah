@@ -1,0 +1,6 @@
+module test
+
+type Day = Week | Weekend
+            
+f :: Int -> Day Int
+f x = Week

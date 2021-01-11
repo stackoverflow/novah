@@ -1,14 +1,34 @@
 package novah.main
 
+import io.kotest.assertions.failure
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil
-import novah.frontend.typechecker.CompilationError
+import java.io.File
 
 class FailureSpec : StringSpec({
+    
+    "run all tests" {
+        val basePath = "src/test/resources/failure"
+        File("$basePath/source").walkTopDown().filter { it.extension == "novah" }.forEach { file ->
+            val path = file.toPath()
+            val testName = file.nameWithoutExtension
+            val output = File("$basePath/error/$testName.txt")
+
+            val compiler = Compiler.new(sequenceOf(path), false)
+            try {
+                compiler.run(File("."), true)
+                throw failure("Expected test `$testName` to fail with a CompilationError.")
+            } catch (ce: CompilationError) {
+                val error = ce.problems.joinToString("\n") { it.formatToConsole() }
+                error shouldBe output.readText()
+            }
+        }
+    }
 
     "duplicate modules fail" {
-        val compiler = TestUtil.compilerFor("fail/duplication")
+        val compiler = TestUtil.compilerFor("multimodulefail/duplication")
 
         shouldThrowExactly<CompilationError> {
             compiler.compile()
@@ -16,24 +36,7 @@ class FailureSpec : StringSpec({
     }
 
     "cycling modules fail" {
-        val compiler = TestUtil.compilerFor("fail/cycle")
-
-        shouldThrowExactly<CompilationError> {
-            compiler.compile()
-        }
-    }
-
-    "non-existing import module fail" {
-        val code = """
-            module importfail
-
-            import non.existing.mod (foo)
-
-            x :: Int
-            x = 1
-        """.trimIndent()
-
-        val compiler = TestUtil.compilerForCode(code)
+        val compiler = TestUtil.compilerFor("multimodulefail/cycle")
 
         shouldThrowExactly<CompilationError> {
             compiler.compile()
@@ -41,7 +44,7 @@ class FailureSpec : StringSpec({
     }
 
     "non-existing import declaration fail" {
-        val compiler = TestUtil.compilerFor("fail/importfail")
+        val compiler = TestUtil.compilerFor("multimodulefail/importfail")
 
         shouldThrowExactly<CompilationError> {
             compiler.compile()
@@ -49,7 +52,7 @@ class FailureSpec : StringSpec({
     }
 
     "private import declaration fail" {
-        val compiler = TestUtil.compilerFor("fail/privateimport")
+        val compiler = TestUtil.compilerFor("multimodulefail/privateimport")
 
         shouldThrowExactly<CompilationError> {
             compiler.compile()

@@ -1,6 +1,7 @@
 package novah.frontend
 
 import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.unwrap
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.blocking.forAll
@@ -146,7 +147,7 @@ class ParserSpec : StringSpec({
         // Annotations should work
         val ast = parseString("decl = 2 :: Int".module())
         val des = Desugar(ast)
-        des.desugar()
+        des.desugar().unwrap()
     }
 
     "Constructors with the same name as the type are not allowed unless there's only one" {

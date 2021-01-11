@@ -1,4 +1,4 @@
-package novah.frontend.typechecker
+package novah.main
 
 import com.github.ajalt.clikt.output.TermUi.echo
 import com.github.michaelbull.result.getOrElse
@@ -15,10 +15,14 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.frontend.resolveImports
-import novah.main.Compiler
+import novah.frontend.typechecker.InferContext
+import novah.frontend.typechecker.Type
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
+import novah.util.BufferedCharIterator
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
 import novah.ast.canonical.Module as TypedModule
 
 /**
@@ -33,31 +37,28 @@ class Environment(private val verbose: Boolean) {
     /**
      * Lex, parse and typecheck all modules and store them.
      */
-    fun parseSources(sources: Sequence<Compiler.Entry>): Map<String, FullModuleEnv> {
+    fun parseSources(sources: Sequence<Source>): Map<String, FullModuleEnv> {
         val modMap = mutableMapOf<String, DagNode<String, Module>>()
         val modGraph = DAG<String, Module>()
 
-        sources.forEach { (path, code) ->
+        sources.forEach { source ->
+            val path = source.path
             if (verbose) echo("Parsing $path")
 
-            val lexer = Lexer(code)
-            val parser = Parser(lexer, path.toString())
-            parser.parseFullModule().mapBoth(
-                { mod ->
-                    val node = DagNode(mod.name, mod)
-                    if (modMap.containsKey(mod.name)) {
-                        errors += CompilerProblem(
-                            Errors.duplicateModule(mod.name),
-                            ProblemContext.MODULE,
-                            mod.span,
-                            path.toString(),
-                            mod.name
-                        )
-                    }
-                    modMap[mod.name] = node
-                },
-                { errors += it }
-            )
+            source.withIterator { iter ->
+                val lexer = Lexer(iter)
+                val parser = Parser(lexer, path.toString())
+                parser.parseFullModule().mapBoth(
+                    { mod ->
+                        val node = DagNode(mod.name, mod)
+                        if (modMap.containsKey(mod.name)) {
+                            errors += duplicateError(mod, path)
+                        }
+                        modMap[mod.name] = node
+                    },
+                    { err -> errors += err }
+                )
+            }
         }
         if (errors.isNotEmpty()) throwErrors()
 
@@ -94,11 +95,12 @@ class Environment(private val verbose: Boolean) {
     /**
      * Optimize and generate jvm bytecode for all modules.
      */
-    fun generateCode(output: File) {
+    fun generateCode(output: File, dryRun: Boolean = false) {
         modules.values.forEach { menv ->
             val opt = Optimizer(menv.ast).convert().getOrElse { throwError(it) }
             val optAST = Optimization.run(opt)
 
+            if (dryRun) return
             val codegen = Codegen(optAST) { dirName, fileName, bytes ->
                 val dir = output.resolve(dirName)
                 dir.mkdirs()
@@ -118,8 +120,30 @@ class Environment(private val verbose: Boolean) {
         throwErrors()
     }
 
+    private fun duplicateError(mod: Module, path: Path): CompilerProblem {
+        return CompilerProblem(
+            Errors.duplicateModule(mod.name),
+            ProblemContext.MODULE,
+            mod.span,
+            path.toString(),
+            mod.name
+        )
+    }
+
     private fun throwErrors(errs: List<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
     private fun throwError(err: CompilerProblem): Nothing = throw CompilationError(listOf(err))
+}
+
+sealed class Source(val path: Path) {
+    class SPath(path: Path) : Source(path)
+    class SString(path: Path, val str: String) : Source(path)
+
+    fun withIterator(action: (Iterator<Char>) -> Unit): Unit = when (this) {
+        is SPath -> Files.newBufferedReader(path, Charsets.UTF_8).use {
+            action(BufferedCharIterator(it))
+        }
+        is SString -> action(str.iterator())
+    }
 }
 
 class CompilationError(val problems: List<CompilerProblem>) : RuntimeException(problems.joinToString("\n") { it.msg })

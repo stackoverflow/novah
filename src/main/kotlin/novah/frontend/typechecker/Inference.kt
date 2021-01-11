@@ -13,6 +13,9 @@ import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
+import novah.main.DeclRef
+import novah.main.ModuleEnv
+import novah.main.TypeDeclRef
 import novah.frontend.error.Errors as E
 
 class Inference(

@@ -1,10 +1,8 @@
 package novah.frontend
 
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.module
-import novah.frontend.typechecker.CompilationError
 
 class TypecheckerADTSpec : StringSpec({
 
@@ -100,70 +98,5 @@ class TypecheckerADTSpec : StringSpec({
         x.simpleName() shouldBe "forall b. forall a. (b -> Comp String a)"
         val y = tys["y"]!!.type.substFreeVar("b")
         y.simpleName() shouldBe "forall b. forall a. (b -> Comp a String)"
-    }
-
-    "typecheck complex type 2" {
-        val code = """
-            type Comp a b = Cfun (a -> b) | Cfor (forall c. c -> a)
-            
-            id :: forall a. a -> a
-            id x = "1"
-            
-            x a = Cfor str
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "unbounded variables should not compile" {
-        val code = """
-            type Typ b = Empty | Jus a b
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "kind error check (too many parameter)" {
-        val code = """
-            type Day = Week | Weekend
-            
-            f :: Int -> Day Int
-            f x = Week
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "kind error check (too few parameters)" {
-        val code = """
-            type Maybe a = Just a | Nope
-            
-            f :: Int -> Maybe
-            f x = Nope
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "kind error in type constructor" {
-        val code = """
-            type Day = Week | Weekend
-            
-            type May a = Just a | Nope
-            
-            type Foo a = Bar Day | Baz May
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
     }
 })

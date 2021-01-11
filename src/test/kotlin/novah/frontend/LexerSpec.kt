@@ -36,8 +36,4 @@ class LexerSpec : StringSpec({
         myFun.span shouldBe span(10 to 1, 10 to 6)
         myFun.comment shouldBe Comment("comments on var\n types work", true)
     }
-
-    "Lex whole file" {
-        lexResource("Example.novah")
-    }
 })

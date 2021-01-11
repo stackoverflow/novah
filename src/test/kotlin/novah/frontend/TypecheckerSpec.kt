@@ -1,14 +1,12 @@
 package novah.frontend
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.tfun
 import novah.frontend.TestUtil.tvar
-import novah.frontend.typechecker.CompilationError
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tChar
@@ -121,10 +119,6 @@ class TypecheckerSpec : StringSpec({
 
         tys["f"]?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
         tys["f2"]?.type shouldBe tfun(tInt, tInt)
-
-        shouldThrow<CompilationError> {
-            inferFX("if true then 10 else id 'a'")
-        }
     }
 
     "typecheck generics" {
@@ -230,77 +224,6 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldNotThrowAny {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "high ranked types do not compile without type annotation" {
-        val code = """
-            type Tuple a b = Tuple a b
-            
-            //fun :: (forall a. a -> a) -> Tuple Int String
-            fun f = Tuple (f 1) (f "a")
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "shadowed variables should not compile (top level)" {
-        val code = """
-            x = 12
-            
-            f x = "abc"
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "shadowed variables should not compile (function parameter)" {
-        val code = """
-            f x = let x = "asd"
-                  in x
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "shadowed variables should not compile (inner let)" {
-        val code = """
-            f a = let x = "asd"
-                  in let x = 4 in x
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "shadowed variables should not compile (inner let function)" {
-        val code = """
-            f x = let fun a = let a = "asd" in a
-                  in fun x
-        """.module()
-
-        shouldThrow<CompilationError> {
-            TestUtil.compileCode(code)
-        }
-    }
-
-    "shadowed variables should not compile (case expressions)" {
-        val code = """
-            f x = case 4 of
-              0 -> "zero"
-              1 -> "one"
-              x -> toString (x + 4)
-        """.module()
-
-        shouldThrow<CompilationError> {
             TestUtil.compileCode(code)
         }
     }

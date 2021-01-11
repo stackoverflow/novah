@@ -1,0 +1,6 @@
+module importfail
+
+import non.existing.mod (foo)
+
+x :: Int
+x = 1

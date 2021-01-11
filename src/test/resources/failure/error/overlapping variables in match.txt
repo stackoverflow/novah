@@ -1,0 +1,7 @@
+module [33mtest[0m
+at src/test/resources/failure/source/overlapping variables in match.novah:6:3 - 6:12
+
+  Overlapping names in binder:
+  
+      v, v
+

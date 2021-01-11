@@ -1,0 +1,11 @@
+module [33mtest[0m
+at src/test/resources/failure/source/kind check - too many parameter.novah:6:1 - -1:-1
+
+  Could not match kind
+  
+      Type
+    
+  with kind
+  
+      Type -> Type
+

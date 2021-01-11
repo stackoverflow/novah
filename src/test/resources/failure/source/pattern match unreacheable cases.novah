@@ -1,0 +1,10 @@
+module test
+
+id x = x
+
+f x = case id x of
+  0 -> "zero"
+  1 -> "one"
+  _ -> "asd"
+  5 -> "five"
+  10 -> "ten"

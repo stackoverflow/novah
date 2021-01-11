@@ -13,7 +13,7 @@ class CompilationSpec : StringSpec({
     }
 
     "empty modules succeed" {
-        val compiler = TestUtil.compilerFor("fullCompilation")
+        val compiler = TestUtil.compilerFor("fullCompilation/empty")
 
         shouldNotThrowAny {
             compiler.run(cleanAndGetOutDir())

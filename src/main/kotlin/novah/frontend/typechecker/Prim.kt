@@ -3,6 +3,9 @@ package novah.frontend.typechecker
 import novah.ast.canonical.Visibility
 import novah.ast.source.Import
 import novah.frontend.Span
+import novah.main.DeclRef
+import novah.main.ModuleEnv
+import novah.main.TypeDeclRef
 
 /**
  * Primitive types and functions that should be always

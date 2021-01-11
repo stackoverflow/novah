@@ -1,0 +1,8 @@
+module test
+
+type Comp a b = Cfun (a -> b) | Cfor (forall c. c -> a)
+            
+id :: forall a. a -> a
+id x = "1"
+
+x a = Cfor str

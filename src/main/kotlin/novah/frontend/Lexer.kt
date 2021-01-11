@@ -116,9 +116,9 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
     }
 }
 
-class Lexer(input: String) : Iterator<Spanned<Token>> {
+class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
-    private val iter = CharPositionIterator(input.iterator())
+    private val iter = CharPositionIterator(input)
 
     private val operators = "$=<>|&+-:*/%^."
 

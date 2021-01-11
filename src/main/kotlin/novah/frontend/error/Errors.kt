@@ -140,7 +140,6 @@ object Errors {
         with kind
         
             $got
-        
     """.trimIndent()
     
     fun duplicatedType(name: Name) = "Duplicated type $name."
@@ -159,7 +158,6 @@ object Errors {
         with type
         
             $b
-        
     """.trimIndent()
     
     fun undefinedVar(name: Name) = "Undefined variable $name."
@@ -172,7 +170,6 @@ object Errors {
         Overlapping names in binder:
         
             ${names.joinToString()}
-        
     """.trimIndent()
     
     fun shadowedVariable(name: Name) = "Variable $name is shadowed."
@@ -181,7 +178,6 @@ object Errors {
         A case expression contains redundant cases:
         
             ${pats.joinToString()}
-        
     """.trimIndent()
     
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."

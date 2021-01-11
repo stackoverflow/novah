@@ -5,7 +5,13 @@ import novah.ast.source.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
-import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Elem
+import novah.frontend.typechecker.InferContext
+import novah.frontend.typechecker.Prim
+import novah.frontend.typechecker.raw
+import novah.main.DeclRef
+import novah.main.FullModuleEnv
+import novah.main.TypeDeclRef
 
 data class ExportResult(
     val exports: Set<String>,

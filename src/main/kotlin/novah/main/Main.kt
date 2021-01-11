@@ -12,7 +12,6 @@ import novah.frontend.error.CompilerProblem.Companion.RED
 import novah.frontend.error.CompilerProblem.Companion.RESET
 import novah.frontend.error.CompilerProblem.Companion.YELLOW
 import novah.frontend.error.Severity
-import novah.frontend.typechecker.CompilationError
 import java.io.File
 import kotlin.system.exitProcess
 

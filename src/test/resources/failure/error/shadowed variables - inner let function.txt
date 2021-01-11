@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/failure/source/shadowed variables - inner let function.novah:3:23 - 3:32
+
+  Variable a is shadowed.
+

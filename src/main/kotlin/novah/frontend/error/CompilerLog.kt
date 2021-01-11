@@ -18,9 +18,9 @@ data class CompilerProblem(
     val severity: Severity = Severity.ERROR
 ) {
     fun formatToConsole(): String {
-        val mod = if (module != null) "module $YELLOW$module\n$RESET" else ""
+        val mod = if (module != null) "module $YELLOW$module$RESET\n" else ""
         val at = "at $fileName:$span\n\n"
-        return "$mod$at${msg.prependIndent("  ")}\n\n$context\n\n"
+        return "$mod$at${msg.prependIndent("  ")}\n\n"
     }
 
     companion object {
