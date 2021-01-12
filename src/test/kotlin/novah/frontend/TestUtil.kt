@@ -1,11 +1,10 @@
 package novah.frontend
 
-import com.github.michaelbull.result.getOrElse
-import com.github.michaelbull.result.map
-import com.github.michaelbull.result.unwrap
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.Module
+import novah.data.map
+import novah.data.unwrapOrElse
 import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.raw
 import novah.main.CompilationError
@@ -76,7 +75,7 @@ object TestUtil {
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
         val ast = compileCode(code, verbose).ast
         val opt = Optimizer(ast)
-        return opt.convert().map { Optimization.run(it) }.getOrElse { throw CompilationError(listOf(it)) }
+        return opt.convert().map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
     }
 
     fun tvar(n: String) = Type.TVar(n.raw())

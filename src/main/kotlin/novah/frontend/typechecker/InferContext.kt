@@ -1,8 +1,8 @@
 package novah.frontend.typechecker
 
-import com.github.michaelbull.result.Err
-import com.github.michaelbull.result.Ok
-import com.github.michaelbull.result.Result
+import novah.data.Result
+import novah.data.Ok
+import novah.data.Err
 import novah.ast.canonical.Module
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem

@@ -1,8 +1,8 @@
 package novah.optimize
 
-import com.github.michaelbull.result.Err
-import com.github.michaelbull.result.Ok
-import com.github.michaelbull.result.Result
+import novah.data.Result
+import novah.data.Ok
+import novah.data.Err
 import novah.Util.internalError
 import novah.ast.canonical.Pattern
 import novah.ast.canonical.show
