@@ -1,14 +1,14 @@
 package novah.main
 
 import com.github.ajalt.clikt.output.TermUi.echo
-import com.github.michaelbull.result.getOrElse
-import com.github.michaelbull.result.mapBoth
 import novah.ast.Desugar
 import novah.ast.canonical.Visibility
 import novah.ast.source.Module
 import novah.backend.Codegen
 import novah.data.DAG
 import novah.data.DagNode
+import novah.data.mapBoth
+import novah.data.unwrapOrElse
 import novah.frontend.Lexer
 import novah.frontend.Parser
 import novah.frontend.error.CompilerProblem
@@ -85,8 +85,8 @@ class Environment(private val verbose: Boolean) {
 
             if (verbose) echo("Typechecking ${mod.data.name}")
 
-            val canonical = Desugar(mod.data).desugar().getOrElse { throwError(it) }
-            val menv = ictx.infer(canonical).getOrElse { throwError(it) }
+            val canonical = Desugar(mod.data).desugar().unwrapOrElse { throwError(it) }
+            val menv = ictx.infer(canonical).unwrapOrElse { throwError(it) }
             modules[mod.data.name] = FullModuleEnv(menv, canonical)
         }
         return modules
@@ -97,7 +97,7 @@ class Environment(private val verbose: Boolean) {
      */
     fun generateCode(output: File, dryRun: Boolean = false) {
         modules.values.forEach { menv ->
-            val opt = Optimizer(menv.ast).convert().getOrElse { throwError(it) }
+            val opt = Optimizer(menv.ast).convert().unwrapOrElse { throwError(it) }
             val optAST = Optimization.run(opt)
 
             if (dryRun) return

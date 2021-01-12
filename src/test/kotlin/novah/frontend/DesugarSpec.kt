@@ -1,6 +1,5 @@
 package novah.frontend
 
-import com.github.michaelbull.result.unwrap
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.ast.Desugar

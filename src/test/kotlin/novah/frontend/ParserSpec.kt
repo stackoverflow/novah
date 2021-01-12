@@ -1,7 +1,5 @@
 package novah.frontend
 
-import com.github.michaelbull.result.Err
-import com.github.michaelbull.result.unwrap
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.blocking.forAll
@@ -15,6 +13,7 @@ import novah.ast.source.Decl
 import novah.ast.source.Expr
 import novah.ast.source.Module
 import novah.ast.source.Type
+import novah.data.Err
 import novah.formatter.Formatter
 import novah.frontend.TestUtil._i
 import novah.frontend.TestUtil._v

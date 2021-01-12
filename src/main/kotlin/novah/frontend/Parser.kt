@@ -1,9 +1,9 @@
 package novah.frontend
 
-import com.github.michaelbull.result.Err
-import com.github.michaelbull.result.Ok
-import com.github.michaelbull.result.Result
 import novah.ast.source.*
+import novah.data.Err
+import novah.data.Ok
+import novah.data.Result
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
