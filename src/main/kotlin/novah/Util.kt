@@ -33,4 +33,8 @@ object Util {
     fun <E> List<E>.prepend(e: E): List<E> = listOf(e) + this
 
     fun <E> List<E>.hasDuplicates(): Boolean = toSet().size != size
+    
+    fun String.splitAt(index: Int): Pair<String, String> {
+        return substring(0, index) to substring(index + 1)
+    }
 }

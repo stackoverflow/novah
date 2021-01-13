@@ -7,6 +7,7 @@
 - [ ] Report cycles in variable declarations
 - [ ] Add spans to individual exports with error reporting
 - [ ] Add spans to individual imports with error reporting
+- [ ] Allow foreign imports with novah reserved words
 - [X] Change typechecker to not use globals
 - [X] Full compilation cycle and runnable main
 - [X] Support all Java primitives

@@ -37,6 +37,7 @@ sealed class Token {
     object Of : Token()
     object In : Token()
     object Do : Token()
+    object ForeignT : Token()
 
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
@@ -163,8 +164,6 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             '}' -> RBracket
             '#' -> Hash
             ',' -> Comma
-            '∀' -> Forall
-            '→' -> Arrow
             '\\' -> Backslash
             '\'' -> char()
             '"' -> string()
@@ -228,6 +227,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "do" -> Do
             "hiding" -> Hiding
             "exposing" -> Exposing
+            "foreign" -> ForeignT
             else ->
                 if (id[0].isUpperCase()) {
                     UpperIdent(id)

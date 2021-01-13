@@ -9,6 +9,7 @@ data class Module(
     val sourceName: String,
     val imports: List<Import>,
     val exports: ModuleExports,
+    val foreigns: List<ForeignImport>,
     val decls: List<Decl>,
     val span: Span
 ) {
@@ -53,8 +54,7 @@ sealed class Import(open val module: String) {
         val defs: List<DeclarationRef>,
         val span: Span,
         val alias: String? = null
-    ) :
-        Import(module)
+    ) : Import(module)
 
     fun alias(): String? = when (this) {
         is Raw -> alias
@@ -69,6 +69,21 @@ sealed class Import(open val module: String) {
     var comment: Comment? = null
 
     fun withComment(c: Comment?) = apply { comment = c }
+}
+
+sealed class ForeignImport(val span: Span) {
+    class Type(val fqType: String, val alias: String?, span: Span) : ForeignImport(span)
+    class Ctor(val type: String, val pars: List<String>, val alias: String, span: Span) : ForeignImport(span)
+    class Method(val type: String, val name: String, val pars: List<String>, val alias: String?, span: Span) :
+        ForeignImport(span)
+
+    class Getter(val type: String, val name: String, val alias: String?, span: Span) : ForeignImport(span)
+    class Setter(val type: String, val name: String, val alias: String, span: Span) : ForeignImport(span)
+    class StaticMethod(val type: String, val name: String, val pars: List<String>, val alias: String?, span: Span) :
+        ForeignImport(span)
+
+    class StaticGetter(val type: String, val name: String, val alias: String?, span: Span) : ForeignImport(span)
+    class StaticSetter(val type: String, val name: String, val alias: String, span: Span) : ForeignImport(span)
 }
 
 sealed class Decl {

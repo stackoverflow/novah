@@ -1,5 +1,6 @@
 package novah.frontend
 
+import novah.Util.splitAt
 import novah.ast.source.*
 import novah.data.Err
 import novah.data.Ok
@@ -34,8 +35,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         moduleName = mname
 
         val imports = mutableListOf<Import>()
-        while (iter.peek().value is ImportT) {
-            imports += parseImport()
+        val foreigns = mutableListOf<ForeignImport>()
+        while (true) {
+            when (iter.peek().value) {
+                is ImportT -> imports += parseImport()
+                is ForeignT -> foreigns += parseForeignImport()
+                else -> break
+            }
         }
 
         val decls = mutableListOf<Decl>()
@@ -48,6 +54,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             sourceName,
             imports,
             exports,
+            foreigns,
             decls,
             mspan
         ).withComment(comment)
@@ -132,6 +139,125 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
 
         return import.withComment(impTk.comment)
+    }
+
+    private fun parseForeignImport(): ForeignImport {
+        val tkSpan = expect<ForeignT>(noErr()).span
+        expect<ImportT>(withError(E.FOREIGN_IMPORT))
+
+        val gf = genericParseForeign()
+        val span = span(tkSpan, iter.current().span)
+        return when (gf.verb) {
+            null -> {
+                if (gf.pars == null) throwError(E.invalidForeign("method") to span)
+                if (gf.staticIdent != null) {
+                    ForeignImport.StaticMethod(gf.name, gf.staticIdent, gf.pars, gf.alias, span)
+                } else {
+                    if (!gf.name.contains('.')) throwError(E.invalidForeign("method") to span)
+                    val idx = gf.name.lastIndexOf('.')
+                    val (type, name) = gf.name.splitAt(idx)
+                    ForeignImport.Method(type, name, gf.pars, gf.alias, span)
+                }
+            }
+            "type" -> {
+                if (gf.pars != null || gf.staticIdent != null)
+                    throwError(E.invalidForeign("type") to span)
+                ForeignImport.Type(gf.name, gf.alias, span)
+            }
+            "new" -> {
+                if (gf.pars == null || gf.staticIdent != null || gf.alias == null)
+                    throwError(E.invalidForeign("constructor") to span)
+                ForeignImport.Ctor(gf.name, gf.pars, gf.alias, span)
+            }
+            "get" -> {
+                if (gf.staticIdent != null) {
+                    ForeignImport.StaticGetter(gf.name, gf.staticIdent, gf.alias, span)
+                } else {
+                    if (!gf.name.contains('.')) throwError(E.invalidForeign("getter") to span)
+                    val idx = gf.name.lastIndexOf('.')
+                    val (type, name) = gf.name.splitAt(idx)
+                    ForeignImport.Getter(type, name, gf.alias, span)
+                }
+            }
+            "set" -> {
+                if (gf.alias == null) throwError(E.invalidForeign("setter") to span)
+                if (gf.staticIdent != null) {
+                    ForeignImport.StaticSetter(gf.name, gf.staticIdent, gf.alias, span)
+                } else {
+                    if (!gf.name.contains('.')) throwError(E.invalidForeign("setter") to span)
+                    val idx = gf.name.lastIndexOf('.')
+                    val (type, name) = gf.name.splitAt(idx)
+                    ForeignImport.Setter(type, name, gf.alias, span)
+                }
+            }
+            else -> throwError(E.invalidForeign(null) to span)
+        }
+    }
+
+    private class GenericForeign(
+        val verb: String?,
+        val name: String,
+        val pars: List<String>?,
+        val staticIdent: String?,
+        val alias: String?
+    )
+
+    private fun genericParseForeign(): GenericForeign {
+        fun parseAlias(): String? {
+            if (iter.peek().value !is As) return null
+            iter.next()
+            return expect<Ident>(withError(E.LOWER_CASE)).value.v
+        }
+
+        fun parseFullName() = between<Dot, String>(::parseUpperOrLowerIdent).joinToString(".")
+
+        var pars: List<String>? = null
+        var verb: String? = null
+        var name = ""
+        if (iter.peek().value is TypeT) {
+            iter.next()
+            verb = "type"
+            name = parseFullName()
+        } else {
+            val ident = parseUpperOrLowerIdent()
+            if (iter.peek().value is Dot) {
+                iter.next()
+                name = "$ident." + parseFullName()
+            } else {
+                verb = ident
+                name = parseFullName()
+            }
+        }
+
+        val tk = iter.peek().value
+        if (tk is LParen) {
+            iter.next()
+            if (iter.peek().value is RParen) {
+                iter.next()
+                pars = emptyList()
+            } else {
+                pars = between<Comma, String>(::parseFullName)
+                expect<RParen>(withError(E.rparensExpected("constructor import")))
+            }
+
+            return GenericForeign(verb, name, pars, null, parseAlias())
+        }
+        var staticIdent: String? = null
+        if (tk is Op && tk.op == ":") {
+            iter.next()
+            staticIdent = parseUpperOrLowerIdent()
+            if (iter.peek().value is LParen) {
+                iter.next()
+                if (iter.peek().value is RParen) {
+                    iter.next()
+                    pars = emptyList()
+                } else {
+                    pars = between<Comma, String>(::parseFullName)
+                    expect<RParen>(withError(E.rparensExpected("constructor import")))
+                }
+            }
+        }
+        return GenericForeign(verb, name, pars, staticIdent, parseAlias())
     }
 
     private fun parseDecl(): Decl {
@@ -400,7 +526,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     expect<Equals>(withError(E.LET_EQUALS))
                     val exp = parseExpression()
                     val span = span(ident.span, exp.span)
-                    val def = LetDef(Binder(ident.value.v, span), vars, exp, types.find { it.name == ident.value.v }?.type)
+                    val def =
+                        LetDef(Binder(ident.value.v, span), vars, exp, types.find { it.name == ident.value.v }?.type)
                     letDefs += def
                     def
                 }
@@ -618,6 +745,15 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 Type.TFun(ty, parseType())
             }
             else -> ty
+        }
+    }
+
+    private fun parseUpperOrLowerIdent(): String {
+        val tk = iter.next()
+        return when (tk.value) {
+            is UpperIdent -> tk.value.v
+            is Ident -> tk.value.v
+            else -> throwError(withError(E.UPPER_LOWER)(tk))
         }
     }
 

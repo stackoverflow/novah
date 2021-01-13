@@ -69,7 +69,7 @@ maybe def sm = case sm of
   Some x -> B.brain x
   Nope -> def
 
-id :: ∀ a. a -> a
+id :: forall a. a -> a
 id x = x
 
 compl :: forall a b c. (a -> b) -> (b -> c) -> a -> c
