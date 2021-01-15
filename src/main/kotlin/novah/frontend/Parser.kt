@@ -4,6 +4,7 @@ import novah.Util.splitAt
 import novah.ast.source.*
 import novah.data.Err
 import novah.data.Ok
+import novah.data.PeekableIterator
 import novah.data.Result
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
@@ -144,120 +145,64 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseForeignImport(): ForeignImport {
         val tkSpan = expect<ForeignT>(noErr()).span
         expect<ImportT>(withError(E.FOREIGN_IMPORT))
-
-        val gf = genericParseForeign()
-        val span = span(tkSpan, iter.current().span)
-        return when (gf.verb) {
-            null -> {
-                if (gf.pars == null) throwError(E.invalidForeign("method") to span)
-                if (gf.staticIdent != null) {
-                    ForeignImport.StaticMethod(gf.name, gf.staticIdent, gf.pars, gf.alias, span)
-                } else {
-                    if (!gf.name.contains('.')) throwError(E.invalidForeign("method") to span)
-                    val idx = gf.name.lastIndexOf('.')
-                    val (type, name) = gf.name.splitAt(idx)
-                    ForeignImport.Method(type, name, gf.pars, gf.alias, span)
-                }
-            }
-            "type" -> {
-                if (gf.pars != null || gf.staticIdent != null)
-                    throwError(E.invalidForeign("type") to span)
-                ForeignImport.Type(gf.name, gf.alias, span)
-            }
-            "new" -> {
-                if (gf.pars == null || gf.staticIdent != null || gf.alias == null)
-                    throwError(E.invalidForeign("constructor") to span)
-                ForeignImport.Ctor(gf.name, gf.pars, gf.alias, span)
-            }
-            "get" -> {
-                if (gf.staticIdent != null) {
-                    ForeignImport.StaticGetter(gf.name, gf.staticIdent, gf.alias, span)
-                } else {
-                    if (!gf.name.contains('.')) throwError(E.invalidForeign("getter") to span)
-                    val idx = gf.name.lastIndexOf('.')
-                    val (type, name) = gf.name.splitAt(idx)
-                    ForeignImport.Getter(type, name, gf.alias, span)
-                }
-            }
-            "set" -> {
-                if (gf.alias == null) throwError(E.invalidForeign("setter") to span)
-                if (gf.staticIdent != null) {
-                    ForeignImport.StaticSetter(gf.name, gf.staticIdent, gf.alias, span)
-                } else {
-                    if (!gf.name.contains('.')) throwError(E.invalidForeign("setter") to span)
-                    val idx = gf.name.lastIndexOf('.')
-                    val (type, name) = gf.name.splitAt(idx)
-                    ForeignImport.Setter(type, name, gf.alias, span)
-                }
-            }
-            else -> throwError(E.invalidForeign(null) to span)
-        }
-    }
-
-    private class GenericForeign(
-        val verb: String?,
-        val name: String,
-        val pars: List<String>?,
-        val staticIdent: String?,
-        val alias: String?
-    )
-
-    private fun genericParseForeign(): GenericForeign {
+        
+        fun mkspan() = span(tkSpan, iter.current().span)
         fun parseAlias(): String? {
             if (iter.peek().value !is As) return null
             iter.next()
             return expect<Ident>(withError(E.LOWER_CASE)).value.v
         }
 
-        fun parseFullName() = between<Dot, String>(::parseUpperOrLowerIdent).joinToString(".")
-
-        var pars: List<String>? = null
-        var verb: String? = null
-        var name = ""
-        if (iter.peek().value is TypeT) {
-            iter.next()
-            verb = "type"
-            name = parseFullName()
-        } else {
-            val ident = parseUpperOrLowerIdent()
-            if (iter.peek().value is Dot) {
+        fun parseStatic(): Boolean {
+            val tk = iter.peek().value
+            return if (tk is Op && tk.op == ":") {
                 iter.next()
-                name = "$ident." + parseFullName()
-            } else {
-                verb = ident
-                name = parseFullName()
+                true
+            } else false
+        }
+
+        fun forceAlias(ctx: String) = parseAlias() ?: throwError(E.invalidForeign(ctx) to mkspan())
+        fun parseFullName() = between<Dot, String>(::parseUpperOrLowerIdent).joinToString(".")
+        fun parsePars(ctx: String): List<String> {
+            expect<LParen>(withError(E.invalidForeign(ctx)))
+            if (iter.peek().value is RParen) {
+                iter.next()
+                return listOf()
             }
+            val pars = between<Comma, String>(::parseFullName)
+            expect<RParen>(withError(E.rparensExpected("$ctx import")))
+            return pars
         }
 
         val tk = iter.peek().value
-        if (tk is LParen) {
-            iter.next()
-            if (iter.peek().value is RParen) {
+        return when {
+            tk is TypeT -> {
                 iter.next()
-                pars = emptyList()
-            } else {
-                pars = between<Comma, String>(::parseFullName)
-                expect<RParen>(withError(E.rparensExpected("constructor import")))
+                ForeignImport.Type(parseFullName(), parseAlias(), mkspan())
             }
-
-            return GenericForeign(verb, name, pars, null, parseAlias())
-        }
-        var staticIdent: String? = null
-        if (tk is Op && tk.op == ":") {
-            iter.next()
-            staticIdent = parseUpperOrLowerIdent()
-            if (iter.peek().value is LParen) {
+            tk is Ident && tk.v == "new" -> {
                 iter.next()
-                if (iter.peek().value is RParen) {
-                    iter.next()
-                    pars = emptyList()
-                } else {
-                    pars = between<Comma, String>(::parseFullName)
-                    expect<RParen>(withError(E.rparensExpected("constructor import")))
-                }
+                val name = parseFullName()
+                val pars = parsePars("constructor")
+                ForeignImport.Ctor(name, pars, forceAlias("constructor"), mkspan())
+            }
+            tk is Ident && (tk.v == "get" || tk.v == "set") -> {
+                iter.next()
+                val maybename = parseFullName()
+                val static = parseStatic()
+                val idx = maybename.lastIndexOf('.')
+                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseFullName()
+                if (tk.v == "get") ForeignImport.Getter(type, name, static, parseAlias(), mkspan())
+                else ForeignImport.Setter(type, name, static, forceAlias("setter"), mkspan())
+            }
+            else -> {
+                val maybename = parseFullName()
+                val static = parseStatic()
+                val idx = maybename.lastIndexOf('.')
+                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseFullName()
+                ForeignImport.Method(type, name, parsePars("method"), static, parseAlias(), mkspan())
             }
         }
-        return GenericForeign(verb, name, pars, staticIdent, parseAlias())
     }
 
     private fun parseDecl(): Decl {

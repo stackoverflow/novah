@@ -1,4 +1,6 @@
-package novah.frontend
+package novah.data
+
+import novah.frontend.Spanned
 
 /**
  * An iterator that allows peeking the next value

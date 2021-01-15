@@ -71,19 +71,23 @@ sealed class Import(open val module: String) {
     fun withComment(c: Comment?) = apply { comment = c }
 }
 
-sealed class ForeignImport(val span: Span) {
-    class Type(val fqType: String, val alias: String?, span: Span) : ForeignImport(span)
-    class Ctor(val type: String, val pars: List<String>, val alias: String, span: Span) : ForeignImport(span)
-    class Method(val type: String, val name: String, val pars: List<String>, val alias: String?, span: Span) :
-        ForeignImport(span)
+sealed class ForeignImport(val type: String, val span: Span) {
+    class Type(type: String, val alias: String?, span: Span) : ForeignImport(type, span)
+    class Ctor(type: String, val pars: List<String>, val alias: String, span: Span) : ForeignImport(type, span)
+    class Method(
+        type: String,
+        val name: String,
+        val pars: List<String>,
+        val static: Boolean,
+        val alias: String?,
+        span: Span
+    ) : ForeignImport(type, span)
 
-    class Getter(val type: String, val name: String, val alias: String?, span: Span) : ForeignImport(span)
-    class Setter(val type: String, val name: String, val alias: String, span: Span) : ForeignImport(span)
-    class StaticMethod(val type: String, val name: String, val pars: List<String>, val alias: String?, span: Span) :
-        ForeignImport(span)
+    class Getter(type: String, val name: String, val static: Boolean, val alias: String?, span: Span) :
+        ForeignImport(type, span)
 
-    class StaticGetter(val type: String, val name: String, val alias: String?, span: Span) : ForeignImport(span)
-    class StaticSetter(val type: String, val name: String, val alias: String, span: Span) : ForeignImport(span)
+    class Setter(type: String, val name: String, val static: Boolean, val alias: String, span: Span) :
+        ForeignImport(type, span)
 }
 
 sealed class Decl {

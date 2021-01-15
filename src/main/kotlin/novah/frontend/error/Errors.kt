@@ -109,7 +109,7 @@ object Errors {
     const val INCOMPLETE_CONTEXT = "Context is not complete."
 
     const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
-
+    
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field
@@ -134,6 +134,26 @@ object Errors {
         |$example
     """.trimMargin()
     }
+    
+    fun classNotFound(name: String) = "Could not find class $name in classpath."
+    
+    fun methodNotFound(name: String, type: String) = "Could not find method $name for type $type."
+    
+    fun hiddenMethod(name: String, type: String) = "Method $name of class $type is not public."
+    
+    fun nonStaticMethod(name: String, type: String) = "Method $name of class $type is not static."
+    
+    fun ctorNotFound(type: String) = "Could not find constructor of class $type."
+    
+    fun hiddenCtor(type: String) = "Constructor for class $type is not public."
+    
+    fun fieldNotFound(name: String, type: String) = "Could not find field $name for class $type."
+    
+    fun hiddenField(name: String, type: String) = "Field $name of class $type is not public."
+    
+    fun nonStaticField(name: String, type: String) = "Field $name of class $type is not static."
+    
+    fun immutableField(name: String, type: String) = "Field $name of class $type is not mutable."
 
     fun undefinedVarInCtor(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."

@@ -38,6 +38,7 @@ enum class ProblemContext {
     MODULE,
     PARSER,
     IMPORT,
+    FOREIGN_IMPORT,
     DESUGAR,
     TYPECHECK,
     SUBSUMPTION,
