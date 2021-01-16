@@ -1,6 +1,7 @@
 package novah.ast
 
 import novah.ast.canonical.*
+import novah.ast.source.ForeignRef
 import novah.ast.source.fullname
 import novah.data.Err
 import novah.data.Ok
@@ -74,7 +75,20 @@ class Desugar(private val smod: SModule) {
         is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.Var -> {
             if (name in locals) Expr.Var(name.raw(), span)
-            else Expr.Var(name.raw(), span, imports[this.toString()])
+            else {
+                val foreign = smod.foreignVars[name]
+                // this var is a native call/field
+                if (foreign != null) {
+                    when (foreign) {
+                        is ForeignRef.FieldRef -> {
+                            if (foreign.isSetter) Expr.NativeFieldSet(name.raw(), foreign.field, span)
+                            else Expr.NativeFieldGet(name.raw(), foreign.field, span)
+                        }
+                        is ForeignRef.MethodRef -> Expr.NativeMethod(name.raw(), foreign.method, span)
+                        is ForeignRef.CtorRef -> Expr.NativeConstructor(name.raw(), foreign.ctor, span)
+                    }
+                } else Expr.Var(name.raw(), span, imports[this.toString()])
+            }
         }
         is SExpr.Operator -> Expr.Var(name.raw(), span, imports[this.toString()])
         is SExpr.Constructor -> Expr.Constructor(name.raw(), span, imports[this.toString()])

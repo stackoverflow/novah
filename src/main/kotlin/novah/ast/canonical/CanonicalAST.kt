@@ -3,6 +3,9 @@ package novah.ast.canonical
 import novah.frontend.Span
 import novah.frontend.typechecker.Name
 import novah.frontend.typechecker.Type
+import java.lang.reflect.Constructor as JConstructor
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 
 /**
  * The canonical AST used after desugaring and after type checking.
@@ -54,6 +57,10 @@ sealed class Expr(open val span: Span) {
     data class Match(val exp: Expr, val cases: List<Case>, override val span: Span) : Expr(span)
     data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
+    data class NativeFieldGet(val name: Name, val field: Field, override val span: Span) : Expr(span)
+    data class NativeFieldSet(val name: Name, val field: Field, override val span: Span) : Expr(span)
+    data class NativeMethod(val name: Name, val method: Method, override val span: Span) : Expr(span)
+    data class NativeConstructor(val name: Name, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
 
     var type: Type? = null
     var alias: Name? = null

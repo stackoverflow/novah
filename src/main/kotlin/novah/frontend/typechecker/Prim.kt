@@ -46,9 +46,16 @@ object Prim {
         "long" -> long
         "float" -> float
         "double" -> double
-        "java.lang.String" -> string
         "char" -> char
         "boolean" -> boolean
+        "java.lang.String" -> string
+        "java.lang.Byte" -> byte
+        "java.lang.Short" -> short
+        "java.lang.Integer" -> int
+        "java.lang.Long" -> long
+        "java.lang.Float" -> float
+        "java.lang.Double" -> double
+        "java.lang.Character" -> char
         else -> jname
     }
 

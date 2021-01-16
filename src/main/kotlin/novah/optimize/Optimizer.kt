@@ -1,17 +1,19 @@
 package novah.optimize
 
-import novah.data.Result
-import novah.data.Ok
-import novah.data.Err
 import novah.Util.internalError
 import novah.ast.canonical.Pattern
 import novah.ast.canonical.show
 import novah.ast.optimized.*
+import novah.data.Err
+import novah.data.Ok
+import novah.data.Result
+import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.InferenceError
+import novah.frontend.typechecker.Name
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tLong
@@ -23,8 +25,8 @@ import novah.ast.canonical.Decl.DataDecl as CDataDecl
 import novah.ast.canonical.Decl.ValDecl as CValDecl
 import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
-import novah.frontend.typechecker.Type as TType
 import novah.frontend.error.Errors as E
+import novah.frontend.typechecker.Type as TType
 
 /**
  * Converts the canonical AST to the
@@ -98,7 +100,18 @@ class Optimizer(private val ast: CModule) {
                 val bind = binder.convert()
                 Expr.Lambda(bind, body.convert(locals + bind), type = typ)
             }
-            is CExpr.App -> Expr.App(fn.convert(locals), arg.convert(locals), typ)
+            is CExpr.App -> {
+                val pair = unrollForeignApp(this)
+                if (pair != null) {
+                    val (exp, pars) = pair
+                    when (exp) {
+                        is CExpr.NativeFieldSet -> Expr.NativeFieldSet(exp.field, pars[0].convert(locals), typ)
+                        is CExpr.NativeMethod -> Expr.NativeMethod(exp.method, pars.map { it.convert(locals) }, typ)
+                        is CExpr.NativeConstructor -> Expr.NativeCtor(exp.ctor, pars.map { it.convert(locals) }, typ)
+                        else -> internalError("Problem in `unrollForeignApp`, got non-native expression: $exp")
+                    }
+                } else Expr.App(fn.convert(locals), arg.convert(locals), typ)
+            }
             is CExpr.If -> Expr.If(
                 listOf(cond.convert(locals) to thenCase.convert(locals)),
                 elseCase.convert(locals),
@@ -117,6 +130,14 @@ class Optimizer(private val ast: CModule) {
                 //desugarMatch(this, locals)
                 Expr.IntE(1, typ)
             }
+            is CExpr.NativeFieldGet -> Expr.NativeFieldGet(field, typ)
+            is CExpr.NativeFieldSet -> inferError(E.unkonwnArgsToNative(name, "setter"), span, ProblemContext.FOREIGN)
+            is CExpr.NativeMethod -> inferError(E.unkonwnArgsToNative(name, "method"), span, ProblemContext.FOREIGN)
+            is CExpr.NativeConstructor -> inferError(
+                E.unkonwnArgsToNative(name, "constructor"),
+                span,
+                ProblemContext.FOREIGN
+            )
         }
     }
 
@@ -155,6 +176,43 @@ class Optimizer(private val ast: CModule) {
         TODO()
     }
 
+    /**
+     * Unrolls a native java call, as native
+     * calls can't be partially applied.
+     * @return the native call and it's parameters or null
+     */
+    private fun unrollForeignApp(app: CExpr.App): Pair<CExpr, List<CExpr>>? {
+        // (((newFile path) "bla") true)
+        var depth = 0
+        val pars = mutableListOf<CExpr>()
+        var exp: CExpr = app
+        while (exp is CExpr.App) {
+            depth++
+            pars += exp.arg
+            exp = exp.fn
+        }
+        pars.reverse()
+        return when (exp) {
+            is CExpr.NativeFieldSet -> {
+                if (depth != 1) throwArgs(exp.name, exp.span, "setter", 1, depth)
+                exp to pars
+            }
+            is CExpr.NativeMethod -> {
+                if (depth != exp.method.parameterCount) {
+                    throwArgs(exp.name, exp.span, "method", exp.method.parameterCount, depth)
+                }
+                exp to pars
+            }
+            is CExpr.NativeConstructor -> {
+                if (depth != exp.ctor.parameterCount) {
+                    throwArgs(exp.name, exp.span, "constructor", exp.ctor.parameterCount, depth)
+                }
+                exp to pars
+            }
+            else -> null
+        }
+    }
+
     companion object {
         private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr) {
             if (!res.exhaustive) {
@@ -179,6 +237,14 @@ class Optimizer(private val ast: CModule) {
             "prim.String" -> "java/lang/String"
             "prim.Unit" -> "java/lang/Object"
             else -> internalize(tvar.name.toString())
+        }
+
+        private fun throwArgs(name: Name, span: Span, ctx: String, should: Int, got: Int): Nothing {
+            inferError(
+                E.wrongArgsToNative(name, ctx, should, got),
+                span,
+                ProblemContext.FOREIGN
+            )
         }
 
         private fun internalize(name: String) = name.replace('.', '/')

@@ -62,6 +62,26 @@ class Inference(
                     ?: inferError(E.undefinedVar(exp.name), exp.span)
                 exp.withType(x.type)
             }
+            is Expr.NativeFieldGet -> {
+                val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
+                    ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(x.type)
+            }
+            is Expr.NativeFieldSet -> {
+                val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
+                    ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(x.type)
+            }
+            is Expr.NativeMethod -> {
+                val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
+                    ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(x.type)
+            }
+            is Expr.NativeConstructor -> {
+                val x = ictx.context.lookup<Elem.CVar>(exp.alias ?: exp.name)
+                    ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(x.type)
+            }
             is Expr.Lambda -> {
                 val binder = exp.binder.name
                 checkShadow(binder, exp.binder.span)

@@ -44,5 +44,6 @@ enum class ProblemContext {
     SUBSUMPTION,
     INSTL,
     INSTR,
-    PATTERN_MATCHING;
+    PATTERN_MATCHING,
+    FOREIGN;
 }
