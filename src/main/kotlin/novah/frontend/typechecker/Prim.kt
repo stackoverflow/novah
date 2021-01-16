@@ -46,7 +46,7 @@ object Prim {
         "long" -> long
         "float" -> float
         "double" -> double
-        "String" -> string
+        "java.lang.String" -> string
         "char" -> char
         "boolean" -> boolean
         else -> jname

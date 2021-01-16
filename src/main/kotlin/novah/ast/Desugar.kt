@@ -5,7 +5,10 @@ import novah.ast.source.fullname
 import novah.data.Err
 import novah.data.Ok
 import novah.data.Result
-import novah.frontend.*
+import novah.frontend.ExportResult
+import novah.frontend.ParserError
+import novah.frontend.Span
+import novah.frontend.consolidateExports
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
@@ -91,7 +94,11 @@ class Desugar(private val smod: SModule) {
         is SPattern.Wildcard -> Pattern.Wildcard(span)
         is SPattern.LiteralP -> Pattern.LiteralP(lit.desugar(locals), span)
         is SPattern.Var -> Pattern.Var(name.raw(), span)
-        is SPattern.Ctor -> Pattern.Ctor(ctor.desugar(locals) as Expr.Constructor, fields.map { it.desugar(locals) }, span)
+        is SPattern.Ctor -> Pattern.Ctor(
+            ctor.desugar(locals) as Expr.Constructor,
+            fields.map { it.desugar(locals) },
+            span
+        )
         is SPattern.Parens -> pattern.desugar(locals)
     }
 
@@ -122,20 +129,20 @@ class Desugar(private val smod: SModule) {
         is SType.TVar -> {
             if (name[0].isLowerCase()) Type.TVar(name.raw())
             else {
-                val module = imports[fullname()] ?: moduleName
+                val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
                 // at this point we know if a type is a normal type
                 // or a no-parameter constructor
                 // TODO: this is wrong, only finds constructors defined in this module, not imported
-                if (name in dataCtors) Type.TConstructor("$module.$name".raw(), listOf())
-                else Type.TVar("$module.$name".raw())
+                if (name in dataCtors) Type.TConstructor(varName.raw(), listOf())
+                else Type.TVar(varName.raw())
             }
         }
         is SType.TFun -> Type.TFun(arg.desugar(), ret.desugar())
         is SType.TForall -> nestForalls(names.map(Name::Raw), type.desugar())
         is SType.TParens -> type.desugar()
         is SType.TConstructor -> {
-            val module = imports[fullname()] ?: moduleName
-            Type.TConstructor("$module.$name".raw(), types.map { it.desugar() })
+            val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
+            Type.TConstructor(varName.raw(), types.map { it.desugar() })
         }
     }
 

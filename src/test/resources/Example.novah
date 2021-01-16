@@ -27,6 +27,13 @@ import data.perhaps
 import control.brain as B
 import some.mod (fun1, Type2) as Mod
 
+foreign import type java.util.ArrayList
+foreign import ArrayList.add(Object)
+foreign import new ArrayList() as newArrayList
+foreign import Int:parseInt(String)
+foreign import get Int:MIN_VALUE as minValue
+//foreign import set some.package.AClass.value as setValue
+
 type Maybe a
   = Nope
   | Just a

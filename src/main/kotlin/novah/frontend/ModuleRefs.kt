@@ -1,5 +1,6 @@
 package novah.frontend
 
+import novah.Util.internalError
 import novah.ast.canonical.Visibility
 import novah.ast.source.*
 import novah.data.NovahClassLoader
@@ -148,7 +149,7 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
     }
 
     val typealiases = mutableMapOf<String, String>()
-    val aliases = mutableMapOf<String, String>()
+    val foreigVars = mutableMapOf<String, ForeignRef>()
     val ctx = ictx.context
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
     for (type in (types as List<ForeignImport.Type>)) {
@@ -193,6 +194,7 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                 }
                 val ctxType = methodTofunction(method)
                 val name = imp.alias ?: imp.name
+                foreigVars[name] = ForeignRef.MethodRef(method)
                 ctx.add(Elem.CVar(name.raw(), ctxType))
             }
             is ForeignImport.Ctor -> {
@@ -207,6 +209,7 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     continue
                 }
                 val ctxType = ctorToFunction(ctor, type)
+                foreigVars[imp.alias] = ForeignRef.CtorRef(ctor)
                 ctx.add(Elem.CVar(imp.alias.raw(), ctxType))
             }
             is ForeignImport.Getter -> {
@@ -225,6 +228,7 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                 }
                 val ctxType = Type.TVar(javaToNovah(field.type.canonicalName).raw())
                 val name = imp.alias ?: imp.name
+                foreigVars[name] = ForeignRef.FieldRef(field, false)
                 ctx.add(Elem.CVar(name.raw(), ctxType))
             }
             is ForeignImport.Setter -> {
@@ -246,11 +250,15 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     continue
                 }
                 val parType = Type.TVar(javaToNovah(field.type.canonicalName).raw())
+                foreigVars[imp.alias] = ForeignRef.FieldRef(field, true)
                 ctx.add(Elem.CVar(imp.alias.raw(), Type.TFun(parType, tUnit)))
             }
+            else -> internalError("Got imported type: ${imp.type}")
         }
     }
-
+    
+    mod.foreignTypes = typealiases
+    mod.foreignVars = foreigVars
     return errors
 }
 
