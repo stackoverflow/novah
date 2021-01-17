@@ -1,13 +1,13 @@
 # TODO
 
 - [ ] Revamp the error reporting, so it can return json as well as print to the console
-- [ ] Add warnings to the compiler
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [ ] Add primitive autoboxing to code generation
 - [ ] Report cycles in variable declarations
 - [ ] Add spans to individual exports with error reporting
 - [ ] Add spans to individual imports with error reporting
-- [ ] Allow foreign imports with novah reserved words
+- [X] Add warnings to the compiler
+- [X] Allow foreign imports with novah reserved words
 - [X] Change typechecker to not use globals
 - [X] Full compilation cycle and runnable main
 - [X] Support all Java primitives
