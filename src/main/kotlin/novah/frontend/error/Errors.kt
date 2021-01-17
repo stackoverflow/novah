@@ -188,9 +188,10 @@ object Errors {
 
     fun undefinedType(type: Name) = "Undefined type $type."
 
-    fun wrongArgsToNative(name: Name, ctx: String, should: Int, got: Int) =
-        """Foreign setters, methods and constructors cannot be partially applied.
-           Foreign $ctx $name needs $should parameter(s), got $got.""".trimIndent()
+    fun wrongArgsToNative(name: Name, ctx: String, should: Int, got: Int) = """
+        Foreign setters, methods and constructors cannot be partially applied.
+        Foreign $ctx $name needs $should parameter(s), got $got.
+    """.trimIndent()
     
     fun unkonwnArgsToNative(name: Name, ctx: String) = """
         Foreign setters, methods and constructors cannot be partially applied.

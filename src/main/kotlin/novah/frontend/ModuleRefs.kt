@@ -192,7 +192,7 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.hiddenMethod(imp.name, type))
                     continue
                 }
-                val ctxType = methodTofunction(method)
+                val ctxType = methodTofunction(method, type, imp.static)
                 val name = imp.alias ?: imp.name
                 foreigVars[name] = ForeignRef.MethodRef(method)
                 ctx.add(Elem.CVar(name.raw(), ctxType))
@@ -226,9 +226,13 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.nonStaticField(imp.name, type))
                     continue
                 }
-                val ctxType = Type.TVar(javaToNovah(field.type.canonicalName).raw())
                 val name = imp.alias ?: imp.name
                 foreigVars[name] = ForeignRef.FieldRef(field, false)
+                val ctxType = if (imp.static) {
+                    Type.TVar(javaToNovah(field.type.canonicalName).raw())
+                } else {
+                    Type.TFun(Type.TVar(type.raw()), Type.TVar(javaToNovah(field.type.canonicalName).raw()))
+                }
                 ctx.add(Elem.CVar(name.raw(), ctxType))
             }
             is ForeignImport.Setter -> {
@@ -249,14 +253,19 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.immutableField(imp.name, type))
                     continue
                 }
-                val parType = Type.TVar(javaToNovah(field.type.canonicalName).raw())
                 foreigVars[imp.alias] = ForeignRef.FieldRef(field, true)
-                ctx.add(Elem.CVar(imp.alias.raw(), Type.TFun(parType, tUnit)))
+                val parType = Type.TVar(javaToNovah(field.type.canonicalName).raw())
+                val ctxType = if (imp.static) {
+                    Type.TFun(parType, tUnit)
+                } else {
+                    Type.TFun(Type.TFun(Type.TVar(type.raw()), parType), tUnit)
+                }
+                ctx.add(Elem.CVar(imp.alias.raw(), ctxType))
             }
             else -> internalError("Got imported type: ${imp.type}")
         }
     }
-    
+
     mod.foreignTypes = typealiases
     mod.foreignVars = foreigVars
     return errors
@@ -316,10 +325,12 @@ private fun getExportedCtors(exports: List<DeclarationRef>, ctors: Map<String, L
     }
 }
 
-private fun methodTofunction(m: Method): Type {
-    val mpars = if (m.parameterTypes.isEmpty()) listOf("prim.Unit") else m.parameterTypes.map { it.canonicalName }
-    val ret = if (m.returnType.canonicalName == "void") "prim.Unit" else m.returnType.canonicalName
-    val pars = (mpars + ret).map { javaToNovah(it) }
+private fun methodTofunction(m: Method, type: String, static: Boolean): Type {
+    val mpars = mutableListOf<String>()
+    if (!static) mpars += type // `this` is always first paramenter of non-static methods
+    if (static && m.parameterTypes.isEmpty()) mpars += "prim.Unit" else mpars.addAll(m.parameterTypes.map { it.canonicalName })
+    mpars += if (m.returnType.canonicalName == "void") "prim.Unit" else m.returnType.canonicalName
+    val pars = mpars.map { javaToNovah(it) }
     val tpars = pars.map { Type.TVar(it.raw()) } as List<Type>
 
     return tpars.reduceRight { tVar, acc -> Type.TFun(tVar, acc) }

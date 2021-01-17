@@ -1,5 +1,10 @@
 module pack.test exposing ( num, y )
 
+foreign import type java.io.File
+foreign import new File(String) as newFile
+foreign import File.getAbsolutePath()
+foreign import get Int:MAX_VALUE as maxInt
+
 type Maybe a = Just a | Nothing
 
 type Day = Weekday | Weekend
@@ -43,5 +48,7 @@ lamb x y = do
 
 main args = do
   println "running novah"
-  //lamb false "hello"
-  println (toString (Just 12))
+  let file = newFile "."
+  //in println (toString file)
+  in println (getAbsolutePath file)
+  println (toString maxInt)

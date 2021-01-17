@@ -2,6 +2,7 @@ package novah.backend
 
 import novah.Util.internalError
 import novah.ast.optimized.*
+import novah.backend.GenUtil.INIT
 import novah.backend.GenUtil.INSTANCE
 import novah.backend.GenUtil.LAMBDA_CTOR
 import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
@@ -32,7 +33,7 @@ import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes.*
-import org.objectweb.asm.Type as ASMType
+import org.objectweb.asm.Type.*
 
 /**
  * Takes a typed AST and generates JVM bytecode.
@@ -132,94 +133,39 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private fun genExpr(e: Expr, mv: MethodVisitor, ctx: GenContext) {
         when (e) {
             is Expr.ByteE -> {
-                when (val i = e.v.toInt()) {
-                    0 -> mv.visitInsn(ICONST_0)
-                    1 -> mv.visitInsn(ICONST_1)
-                    2 -> mv.visitInsn(ICONST_2)
-                    3 -> mv.visitInsn(ICONST_3)
-                    4 -> mv.visitInsn(ICONST_4)
-                    5 -> mv.visitInsn(ICONST_5)
-                    else -> mv.visitIntInsn(BIPUSH, i)
-                }
+                genByte(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, BYTE_CLASS, "valueOf", "(B)L$BYTE_CLASS;", false)
             }
             is Expr.ShortE -> {
-                val i = e.v.toInt()
-                when {
-                    i == 0 -> mv.visitInsn(ICONST_0)
-                    i == 1 -> mv.visitInsn(ICONST_1)
-                    i == 2 -> mv.visitInsn(ICONST_2)
-                    i == 3 -> mv.visitInsn(ICONST_3)
-                    i == 4 -> mv.visitInsn(ICONST_4)
-                    i == 5 -> mv.visitInsn(ICONST_5)
-                    i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
-                    else -> mv.visitIntInsn(SIPUSH, i)
-                }
+                genShort(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, SHORT_CLASS, "valueOf", "(S)L$SHORT_CLASS;", false)
             }
             is Expr.IntE -> {
-                val i = e.v
-                when {
-                    i == 0 -> mv.visitInsn(ICONST_0)
-                    i == 1 -> mv.visitInsn(ICONST_1)
-                    i == 2 -> mv.visitInsn(ICONST_2)
-                    i == 3 -> mv.visitInsn(ICONST_3)
-                    i == 4 -> mv.visitInsn(ICONST_4)
-                    i == 5 -> mv.visitInsn(ICONST_5)
-                    i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
-                    i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i)
-                    else -> mv.visitLdcInsn(i)
-                }
+                genInt(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
             }
             is Expr.LongE -> {
-                val l = e.v
-                when {
-                    l == 0L -> mv.visitInsn(ICONST_0)
-                    l == 1L -> mv.visitInsn(ICONST_1)
-                    l == 2L -> mv.visitInsn(ICONST_2)
-                    l == 3L -> mv.visitInsn(ICONST_3)
-                    l == 4L -> mv.visitInsn(ICONST_4)
-                    l == 5L -> mv.visitInsn(ICONST_5)
-                    l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, l.toInt())
-                    l >= Short.MIN_VALUE && l <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, l.toInt())
-                    l >= Int.MIN_VALUE && l <= Int.MAX_VALUE -> mv.visitLdcInsn(l.toInt())
-                    else -> mv.visitLdcInsn(l)
-                }
+                genLong(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, LONG_CLASS, "valueOf", "(J)L$LONG_CLASS;", false)
             }
             is Expr.FloatE -> {
-                when (e.v) {
-                    0.0F -> mv.visitInsn(FCONST_0)
-                    1.0F -> mv.visitInsn(FCONST_1)
-                    2.0F -> mv.visitInsn(FCONST_2)
-                    else -> mv.visitLdcInsn(e.v)
-                }
+                genFloat(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, FLOAT_CLASS, "valueOf", "(F)L$FLOAT_CLASS;", false)
             }
             is Expr.DoubleE -> {
-                when (e.v) {
-                    0.0 -> mv.visitInsn(DCONST_0)
-                    1.0 -> mv.visitInsn(DCONST_1)
-                    else -> mv.visitLdcInsn(e.v)
-                }
+                genDouble(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, DOUBLE_CLASS, "valueOf", "(D)L$DOUBLE_CLASS;", false)
             }
-            is Expr.StringE -> {
-                mv.visitLdcInsn(e.v)
-            }
             is Expr.CharE -> {
-                val i = e.v.toInt()
-                when {
-                    i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
-                    i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i)
-                    else -> mv.visitLdcInsn(i)
-                }
+                genChar(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, CHAR_CLASS, "valueOf", "(C)L$CHAR_CLASS;", false)
             }
             is Expr.Bool -> {
-                mv.visitInsn(if (e.v) ICONST_1 else ICONST_0)
+                genBool(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+            }
+            is Expr.StringE -> {
+                mv.visitLdcInsn(e.v)
             }
             is Expr.LocalVar -> {
                 val local = ctx[e.name] ?: internalError("unmapped local variable in code generation: $e")
@@ -370,7 +316,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     lambdaMethodDesc,
                     false
                 )
-                val ldesc = ASMType.getMethodType(toInternalMethodType(lambdaType))
+                val ldesc = getMethodType(toInternalMethodType(lambdaType))
 
                 mv.visitInvokeDynamicInsn(
                     "apply",
@@ -385,7 +331,184 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 genExpr(e.exp, mv, ctx)
                 mv.visitTypeInsn(INSTANCEOF, toInternalClass(e.type))
             }
+            is Expr.NativeStaticFieldGet -> {
+                val f = e.field
+                mv.visitFieldInsn(GETSTATIC, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
+                if (f.type.isPrimitive) box(f.type, mv)
+            }
+            is Expr.NativeFieldGet -> {
+                val f = e.field
+                genExprForNativeCall(e.thisPar, f.declaringClass, mv, ctx)
+                mv.visitFieldInsn(GETFIELD, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
+                if (f.type.isPrimitive) box(f.type, mv)
+            }
+            is Expr.NativeStaticFieldSet -> {
+                val f = e.field
+                genExprForNativeCall(e.par, f.type, mv, ctx)
+                mv.visitFieldInsn(PUTSTATIC, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
+                mv.visitInsn(ACONST_NULL)
+            }
+            is Expr.NativeFieldSet -> {
+                val f = e.field
+                genExprForNativeCall(e.thisPar, f.declaringClass, mv, ctx)
+                genExprForNativeCall(e.par, f.type, mv, ctx)
+                mv.visitFieldInsn(PUTFIELD, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
+                mv.visitInsn(ACONST_NULL)
+            }
+            is Expr.NativeStaticMethod -> {
+                val m = e.method
+                m.parameterTypes.forEachIndexed { i, type ->
+                    genExprForNativeCall(e.pars[i], type, mv, ctx)
+                }
+                val desc = getMethodDescriptor(m)
+                mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, false)
+            }
+            is Expr.NativeMethod -> {
+                val m = e.method
+                genExprForNativeCall(e.thisPar, m.declaringClass, mv, ctx) // load `this`
+                m.parameterTypes.forEachIndexed { i, type ->
+                    genExprForNativeCall(e.pars[i], type, mv, ctx)
+                }
+                val (op, isInterface) = if (m.declaringClass.isInterface) INVOKEINTERFACE to true else INVOKEVIRTUAL to false
+                mv.visitMethodInsn(op, getInternalName(m.declaringClass), m.name, getMethodDescriptor(m), isInterface)
+            }
+            is Expr.NativeCtor -> {
+                val c = e.ctor
+                val internal = getInternalName(c.declaringClass)
+                mv.visitTypeInsn(NEW, internal)
+                mv.visitInsn(DUP)
+                c.parameterTypes.forEachIndexed { i, type ->
+                    genExprForNativeCall(e.pars[i], type, mv, ctx)
+                }
+                mv.visitMethodInsn(INVOKESPECIAL, internal, INIT, getConstructorDescriptor(c), false)
+            }
         }
+    }
+
+    private fun genExprForNativeCall(e: Expr, type: Class<*>, mv: MethodVisitor, ctx: GenContext) {
+        if (!type.isPrimitive) {
+            genExpr(e, mv, ctx)
+            return
+        }
+        val name = type.canonicalName
+        when {
+            name == "byte" && e is Expr.ByteE -> genByte(e, mv)
+            name == "short" && e is Expr.ShortE -> genShort(e, mv)
+            name == "int" && e is Expr.IntE -> genInt(e, mv)
+            name == "long" && e is Expr.LongE -> genLong(e, mv)
+            name == "float" && e is Expr.FloatE -> genFloat(e, mv)
+            name == "double" && e is Expr.DoubleE -> genDouble(e, mv)
+            name == "char" && e is Expr.CharE -> genChar(e, mv)
+            name == "boolean" && e is Expr.Bool -> genBool(e, mv)
+            else -> {
+                genExpr(e, mv, ctx)
+                unbox(type, mv)
+            }
+        }
+    }
+
+    private fun genByte(e: Expr.ByteE, mv: MethodVisitor) {
+        when (val i = e.v.toInt()) {
+            0 -> mv.visitInsn(ICONST_0)
+            1 -> mv.visitInsn(ICONST_1)
+            2 -> mv.visitInsn(ICONST_2)
+            3 -> mv.visitInsn(ICONST_3)
+            4 -> mv.visitInsn(ICONST_4)
+            5 -> mv.visitInsn(ICONST_5)
+            else -> mv.visitIntInsn(BIPUSH, i)
+        }
+    }
+
+    private fun genShort(e: Expr.ShortE, mv: MethodVisitor) {
+        val i = e.v.toInt()
+        when {
+            i == 0 -> mv.visitInsn(ICONST_0)
+            i == 1 -> mv.visitInsn(ICONST_1)
+            i == 2 -> mv.visitInsn(ICONST_2)
+            i == 3 -> mv.visitInsn(ICONST_3)
+            i == 4 -> mv.visitInsn(ICONST_4)
+            i == 5 -> mv.visitInsn(ICONST_5)
+            i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
+            else -> mv.visitIntInsn(SIPUSH, i)
+        }
+    }
+
+    private fun genInt(e: Expr.IntE, mv: MethodVisitor) {
+        val i = e.v
+        when {
+            i == 0 -> mv.visitInsn(ICONST_0)
+            i == 1 -> mv.visitInsn(ICONST_1)
+            i == 2 -> mv.visitInsn(ICONST_2)
+            i == 3 -> mv.visitInsn(ICONST_3)
+            i == 4 -> mv.visitInsn(ICONST_4)
+            i == 5 -> mv.visitInsn(ICONST_5)
+            i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
+            i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i)
+            else -> mv.visitLdcInsn(i)
+        }
+    }
+
+    private fun genLong(e: Expr.LongE, mv: MethodVisitor) {
+        val l = e.v
+        when {
+            l == 0L -> mv.visitInsn(ICONST_0)
+            l == 1L -> mv.visitInsn(ICONST_1)
+            l == 2L -> mv.visitInsn(ICONST_2)
+            l == 3L -> mv.visitInsn(ICONST_3)
+            l == 4L -> mv.visitInsn(ICONST_4)
+            l == 5L -> mv.visitInsn(ICONST_5)
+            l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, l.toInt())
+            l >= Short.MIN_VALUE && l <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, l.toInt())
+            l >= Int.MIN_VALUE && l <= Int.MAX_VALUE -> mv.visitLdcInsn(l.toInt())
+            else -> mv.visitLdcInsn(l)
+        }
+    }
+
+    private fun genFloat(e: Expr.FloatE, mv: MethodVisitor) {
+        when (e.v) {
+            0.0F -> mv.visitInsn(FCONST_0)
+            1.0F -> mv.visitInsn(FCONST_1)
+            2.0F -> mv.visitInsn(FCONST_2)
+            else -> mv.visitLdcInsn(e.v)
+        }
+    }
+
+    private fun genDouble(e: Expr.DoubleE, mv: MethodVisitor) {
+        when (e.v) {
+            0.0 -> mv.visitInsn(DCONST_0)
+            1.0 -> mv.visitInsn(DCONST_1)
+            else -> mv.visitLdcInsn(e.v)
+        }
+    }
+
+    private fun genChar(e: Expr.CharE, mv: MethodVisitor) {
+        val i = e.v.toInt()
+        when {
+            i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
+            i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i)
+            else -> mv.visitLdcInsn(i)
+        }
+    }
+
+    private fun genBool(e: Expr.Bool, mv: MethodVisitor): Unit = mv.visitInsn(if (e.v) ICONST_1 else ICONST_0)
+
+    /**
+     * Box a primitive type
+     */
+    private fun box(primitiveType: Class<*>, mv: MethodVisitor) {
+        val name = primitiveType.canonicalName
+        val wrapper = primitiveWrappers[name]
+        val desc = "(" + getDescriptor(primitiveType) + ")" + getDescriptor(wrapper)
+        mv.visitMethodInsn(INVOKESTATIC, getInternalName(wrapper), "valueOf", desc, false)
+    }
+
+    /**
+     * Unbox a primitive type
+     */
+    private fun unbox(primitiveType: Class<*>, mv: MethodVisitor) {
+        val name = primitiveType.canonicalName
+        val internal = getInternalName(primitiveWrappers[name])
+        mv.visitMethodInsn(INVOKEVIRTUAL, internal, "${name}Value", "()" + getDescriptor(primitiveType), false)
     }
 
     private fun resolvePrimitiveModuleVar(mv: MethodVisitor, e: Expr.Var) {
@@ -555,5 +678,16 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     companion object {
         private val ctorCache = mutableMapOf<String, DataConstructor>()
+
+        private val primitiveWrappers = mutableMapOf(
+            "byte" to Byte::class.javaObjectType,
+            "short" to Short::class.javaObjectType,
+            "int" to Int::class.javaObjectType,
+            "long" to Long::class.javaObjectType,
+            "float" to Float::class.javaObjectType,
+            "double" to Double::class.javaObjectType,
+            "char" to Char::class.javaObjectType,
+            "boolean" to Boolean::class.javaObjectType
+        )
     }
 }

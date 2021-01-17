@@ -6,6 +6,7 @@ import novah.ast.canonical.show
 import novah.ast.optimized.*
 import novah.data.Err
 import novah.data.Ok
+import novah.data.Reflection
 import novah.data.Result
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
@@ -105,8 +106,21 @@ class Optimizer(private val ast: CModule) {
                 if (pair != null) {
                     val (exp, pars) = pair
                     when (exp) {
-                        is CExpr.NativeFieldSet -> Expr.NativeFieldSet(exp.field, pars[0].convert(locals), typ)
-                        is CExpr.NativeMethod -> Expr.NativeMethod(exp.method, pars.map { it.convert(locals) }, typ)
+                        // native getter will never be static here
+                        is CExpr.NativeFieldGet -> Expr.NativeFieldGet(exp.field, pars[0].convert(locals), typ)
+                        is CExpr.NativeFieldSet -> {
+                            if (Reflection.isStatic(exp.field))
+                                Expr.NativeStaticFieldSet(exp.field, pars[0].convert(locals), typ)
+                            else Expr.NativeFieldSet(exp.field, pars[0].convert(locals), pars[1].convert(locals), typ)
+                        }
+                        is CExpr.NativeMethod -> {
+                            if (Reflection.isStatic(exp.method))
+                                Expr.NativeStaticMethod(exp.method, pars.map { it.convert(locals) }, typ)
+                            else {
+                                val nativePars = pars.map { it.convert(locals) }
+                                Expr.NativeMethod(exp.method, nativePars[0], nativePars.drop(1), typ)
+                            }
+                        }
                         is CExpr.NativeConstructor -> Expr.NativeCtor(exp.ctor, pars.map { it.convert(locals) }, typ)
                         else -> internalError("Problem in `unrollForeignApp`, got non-native expression: $exp")
                     }
@@ -130,7 +144,11 @@ class Optimizer(private val ast: CModule) {
                 //desugarMatch(this, locals)
                 Expr.IntE(1, typ)
             }
-            is CExpr.NativeFieldGet -> Expr.NativeFieldGet(field, typ)
+            is CExpr.NativeFieldGet -> {
+                if (!Reflection.isStatic(field))
+                    inferError(E.unkonwnArgsToNative(name, "getter"), span, ProblemContext.FOREIGN)
+                Expr.NativeStaticFieldGet(field, typ)
+            }
             is CExpr.NativeFieldSet -> inferError(E.unkonwnArgsToNative(name, "setter"), span, ProblemContext.FOREIGN)
             is CExpr.NativeMethod -> inferError(E.unkonwnArgsToNative(name, "method"), span, ProblemContext.FOREIGN)
             is CExpr.NativeConstructor -> inferError(
@@ -182,7 +200,6 @@ class Optimizer(private val ast: CModule) {
      * @return the native call and it's parameters or null
      */
     private fun unrollForeignApp(app: CExpr.App): Pair<CExpr, List<CExpr>>? {
-        // (((newFile path) "bla") true)
         var depth = 0
         val pars = mutableListOf<CExpr>()
         var exp: CExpr = app
@@ -193,13 +210,23 @@ class Optimizer(private val ast: CModule) {
         }
         pars.reverse()
         return when (exp) {
+            is CExpr.NativeFieldGet -> {
+                if (Reflection.isStatic(exp.field)) null
+                else {
+                    if (depth != 1) throwArgs(exp.name, exp.span, "getter", 1, depth)
+                    exp to pars
+                }
+            }
             is CExpr.NativeFieldSet -> {
-                if (depth != 1) throwArgs(exp.name, exp.span, "setter", 1, depth)
+                val should = if (Reflection.isStatic(exp.field)) 1 else 2
+                if (depth != should) throwArgs(exp.name, exp.span, "setter", should, depth)
                 exp to pars
             }
             is CExpr.NativeMethod -> {
-                if (depth != exp.method.parameterCount) {
-                    throwArgs(exp.name, exp.span, "method", exp.method.parameterCount, depth)
+                var count = exp.method.parameterCount
+                if (!Reflection.isStatic(exp.method)) count++
+                if (depth != count) {
+                    throwArgs(exp.name, exp.span, "method", count, depth)
                 }
                 exp to pars
             }
