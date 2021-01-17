@@ -338,7 +338,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.NativeFieldGet -> {
                 val f = e.field
-                genExprForNativeCall(e.thisPar, f.declaringClass, mv, ctx)
+                genExpr(e.thisPar, mv, ctx)
                 mv.visitFieldInsn(GETFIELD, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
                 if (f.type.isPrimitive) box(f.type, mv)
             }
@@ -350,7 +350,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.NativeFieldSet -> {
                 val f = e.field
-                genExprForNativeCall(e.thisPar, f.declaringClass, mv, ctx)
+                genExpr(e.thisPar, mv, ctx)
                 genExprForNativeCall(e.par, f.type, mv, ctx)
                 mv.visitFieldInsn(PUTFIELD, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
                 mv.visitInsn(ACONST_NULL)
@@ -366,7 +366,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.NativeMethod -> {
                 val m = e.method
-                genExprForNativeCall(e.thisPar, m.declaringClass, mv, ctx) // load `this`
+                genExpr(e.thisPar, mv, ctx) // load `this`
                 m.parameterTypes.forEachIndexed { i, type ->
                     genExprForNativeCall(e.pars[i], type, mv, ctx)
                 }
