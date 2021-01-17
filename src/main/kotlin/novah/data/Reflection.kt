@@ -30,6 +30,8 @@ object Reflection {
         "float" -> "java.lang.Float" == par
         "double" -> "java.lang.Double" == par
         "char" -> "java.lang.Character" == par
+        // better check if this is really safe
+        "java.lang.Object" -> true
         else -> javaType == par
     }
     

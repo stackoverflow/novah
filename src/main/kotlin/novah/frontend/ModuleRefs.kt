@@ -140,7 +140,7 @@ fun resolveImports(mod: Module, ictx: InferContext, modules: Map<String, FullMod
  */
 @Suppress("UNCHECKED_CAST")
 fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem> {
-    // TODO: pass the real classpath here
+    // TODO: pass the real classpath here, for now it only works for stdlib types
     val cl = NovahClassLoader("")
     val errors = mutableListOf<CompilerProblem>()
 
@@ -193,7 +193,7 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.staticMethod(imp.name, type))
                     continue
                 }
-                val ctxType = methodTofunction(method, type, imp.static)
+                val ctxType = methodTofunction(method, type, imp.static, pars)
                 val name = imp.alias ?: imp.name
                 foreigVars[name] = ForeignRef.MethodRef(method)
                 ctx.add(Elem.CVar(name.raw(), ctxType))
@@ -205,7 +205,7 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.ctorNotFound(type))
                     continue
                 }
-                val ctxType = ctorToFunction(ctor, type)
+                val ctxType = ctorToFunction(ctor, type, pars)
                 foreigVars[imp.alias] = ForeignRef.CtorRef(ctor)
                 ctx.add(Elem.CVar(imp.alias.raw(), ctxType))
             }
@@ -324,10 +324,13 @@ private fun getExportedCtors(exports: List<DeclarationRef>, ctors: Map<String, L
     }
 }
 
-private fun methodTofunction(m: Method, type: String, static: Boolean): Type {
+private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars: List<String>): Type {
     val mpars = mutableListOf<String>()
     if (!static) mpars += type // `this` is always first paramenter of non-static methods
-    if (static && m.parameterTypes.isEmpty()) mpars += "prim.Unit" else mpars.addAll(m.parameterTypes.map { it.canonicalName })
+    
+    if (static && m.parameterTypes.isEmpty()) mpars += "prim.Unit"
+    else mpars.addAll(novahPars.map { Reflection.novahToJava(it) })
+
     mpars += if (m.returnType.canonicalName == "void") "prim.Unit" else m.returnType.canonicalName
     val pars = mpars.map { javaToNovah(it) }
     val tpars = pars.map { Type.TVar(it.raw()) } as List<Type>
@@ -335,8 +338,8 @@ private fun methodTofunction(m: Method, type: String, static: Boolean): Type {
     return tpars.reduceRight { tVar, acc -> Type.TFun(tVar, acc) }
 }
 
-private fun ctorToFunction(c: Constructor<*>, type: String): Type {
-    val mpars = if (c.parameterTypes.isEmpty()) listOf("prim.Unit") else c.parameterTypes.map { it.canonicalName }
+private fun ctorToFunction(c: Constructor<*>, type: String, novahPars: List<String>): Type {
+    val mpars = if (c.parameterTypes.isEmpty()) listOf("prim.Unit") else novahPars.map { Reflection.novahToJava(it) }
     val pars = (mpars + type).map { javaToNovah(it) }
     val tpars = pars.map { Type.TVar(it.raw()) } as List<Type>
 

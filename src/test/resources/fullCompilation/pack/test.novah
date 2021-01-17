@@ -5,7 +5,9 @@ foreign import new File(String) as newFile
 foreign import File.getAbsolutePath()
 foreign import get Int:MAX_VALUE
 foreign import String.compareTo(String)
-foreign import new Object() as newObject
+foreign import type java.util.ArrayList
+foreign import new ArrayList() as newArrayList
+foreign import ArrayList.add(String)
 
 type Maybe a = Just a | Nothing
 
@@ -50,6 +52,8 @@ lamb x y = do
 
 main args = do
   println "running novah"
-  let obj = newObject unit
-      res = compareTo "asd" "asd"
-  in println (toString res)
+  let arr = newArrayList unit
+  in do
+    add arr "asd"
+    add arr "oops"
+    println (toString arr)
