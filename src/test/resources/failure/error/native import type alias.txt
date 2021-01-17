@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/failure/source/native import type alias.novah:3:44 - 3:53
+
+  Type alias has to start with a upper case letter.
+

@@ -362,6 +362,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 val desc = getMethodDescriptor(m)
                 mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, false)
+                if (m.returnType.isPrimitive) box(m.returnType, mv)
             }
             is Expr.NativeMethod -> {
                 val m = e.method
@@ -371,6 +372,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 val (op, isInterface) = if (m.declaringClass.isInterface) INVOKEINTERFACE to true else INVOKEVIRTUAL to false
                 mv.visitMethodInsn(op, getInternalName(m.declaringClass), m.name, getMethodDescriptor(m), isInterface)
+                if (m.returnType.isPrimitive) box(m.returnType, mv)
             }
             is Expr.NativeCtor -> {
                 val c = e.ctor

@@ -20,6 +20,7 @@ import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.inferError
+import kotlin.math.max
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.DataDecl as CDataDecl
@@ -231,8 +232,9 @@ class Optimizer(private val ast: CModule) {
                 exp to pars
             }
             is CExpr.NativeConstructor -> {
-                if (depth != exp.ctor.parameterCount) {
-                    throwArgs(exp.name, exp.span, "constructor", exp.ctor.parameterCount, depth)
+                val count = max(exp.ctor.parameterCount, 1)
+                if (depth != count) {
+                    throwArgs(exp.name, exp.span, "constructor", count, depth)
                 }
                 exp to pars
             }

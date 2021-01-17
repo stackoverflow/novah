@@ -110,6 +110,10 @@ object Errors {
 
     const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
 
+    const val FOREIGN_TYPE_ALIAS = "Type alias has to start with a upper case letter."
+
+    const val FOREIGN_ALIAS = "Alias has to start with a lower case letter."
+
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field
@@ -139,19 +143,17 @@ object Errors {
 
     fun methodNotFound(name: String, type: String) = "Could not find method $name for type $type."
 
-    fun hiddenMethod(name: String, type: String) = "Method $name of class $type is not public."
-
     fun nonStaticMethod(name: String, type: String) = "Method $name of class $type is not static."
+
+    fun staticMethod(name: String, type: String) = "Method $name of class $type is static."
 
     fun ctorNotFound(type: String) = "Could not find constructor of class $type."
 
-    fun hiddenCtor(type: String) = "Constructor for class $type is not public."
-
     fun fieldNotFound(name: String, type: String) = "Could not find field $name for class $type."
 
-    fun hiddenField(name: String, type: String) = "Field $name of class $type is not public."
-
     fun nonStaticField(name: String, type: String) = "Field $name of class $type is not static."
+
+    fun staticField(name: String, type: String) = "Field $name of class $type is static."
 
     fun immutableField(name: String, type: String) = "Field $name of class $type is not mutable."
 
@@ -192,7 +194,7 @@ object Errors {
         Foreign setters, methods and constructors cannot be partially applied.
         Foreign $ctx $name needs $should parameter(s), got $got.
     """.trimIndent()
-    
+
     fun unkonwnArgsToNative(name: Name, ctx: String) = """
         Foreign setters, methods and constructors cannot be partially applied.
         For $ctx $name.

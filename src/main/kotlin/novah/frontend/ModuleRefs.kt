@@ -184,12 +184,13 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.methodNotFound(imp.name, type))
                     continue
                 }
-                if (imp.static && !Reflection.isStatic(method)) {
+                val isStatic = Reflection.isStatic(method)
+                if (imp.static && !isStatic) {
                     errors += error(Errors.nonStaticMethod(imp.name, type))
                     continue
                 }
-                if (!Reflection.isAccessible(method)) {
-                    errors += error(Errors.hiddenMethod(imp.name, type))
+                if (!imp.static && isStatic) {
+                    errors += error(Errors.staticMethod(imp.name, type))
                     continue
                 }
                 val ctxType = methodTofunction(method, type, imp.static)
@@ -204,10 +205,6 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.ctorNotFound(type))
                     continue
                 }
-                if (!Reflection.isAccessible(ctor)) {
-                    errors += error(Errors.hiddenCtor(type))
-                    continue
-                }
                 val ctxType = ctorToFunction(ctor, type)
                 foreigVars[imp.alias] = ForeignRef.CtorRef(ctor)
                 ctx.add(Elem.CVar(imp.alias.raw(), ctxType))
@@ -218,12 +215,13 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.fieldNotFound(imp.name, type))
                     continue
                 }
-                if (!Reflection.isAccessible(field)) {
-                    errors += error(Errors.hiddenField(imp.name, type))
+                val isStatic = Reflection.isStatic(field)
+                if (imp.static && !isStatic) {
+                    errors += error(Errors.nonStaticField(imp.name, type))
                     continue
                 }
-                if (imp.static && !Reflection.isStatic(field)) {
-                    errors += error(Errors.nonStaticField(imp.name, type))
+                if (!imp.static && isStatic) {
+                    errors += error(Errors.staticField(imp.name, type))
                     continue
                 }
                 val name = imp.alias ?: imp.name
@@ -241,12 +239,13 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     errors += error(Errors.fieldNotFound(imp.name, type))
                     continue
                 }
-                if (!Reflection.isAccessible(field)) {
-                    errors += error(Errors.hiddenField(imp.name, type))
+                val isStatic = Reflection.isStatic(field)
+                if (imp.static && !isStatic) {
+                    errors += error(Errors.nonStaticField(imp.name, type))
                     continue
                 }
-                if (imp.static && !Reflection.isStatic(field)) {
-                    errors += error(Errors.nonStaticField(imp.name, type))
+                if (!imp.static && isStatic) {
+                    errors += error(Errors.staticField(imp.name, type))
                     continue
                 }
                 if (Reflection.isImutable(field)) {

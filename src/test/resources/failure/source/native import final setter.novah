@@ -1,0 +1,3 @@
+module test
+
+foreign import set java.io.File:separator as setSeparator

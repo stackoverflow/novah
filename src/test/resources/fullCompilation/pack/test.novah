@@ -3,7 +3,9 @@ module pack.test exposing ( num, y )
 foreign import type java.io.File
 foreign import new File(String) as newFile
 foreign import File.getAbsolutePath()
-foreign import get Int:MAX_VALUE as maxInt
+foreign import get Int:MAX_VALUE
+foreign import String.compareTo(String)
+foreign import new Object() as newObject
 
 type Maybe a = Just a | Nothing
 
@@ -48,7 +50,6 @@ lamb x y = do
 
 main args = do
   println "running novah"
-  let file = newFile "."
-  //in println (toString file)
-  in println (getAbsolutePath file)
-  println (toString maxInt)
+  let obj = newObject unit
+      res = compareTo "asd" "asd"
+  in println (toString res)

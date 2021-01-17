@@ -62,12 +62,6 @@ object Reflection {
         return clazz.fields.find { it.name == name }
     }
     
-    fun isAccessible(method: Method): Boolean = Modifier.isPublic(method.modifiers)
-    
-    fun isAccessible(ctor: Constructor<*>): Boolean = Modifier.isPublic(ctor.modifiers)
-    
-    fun isAccessible(field: Field): Boolean = Modifier.isPublic(field.modifiers)
-    
     fun isStatic(method: Method): Boolean = Modifier.isStatic(method.modifiers)
     
     fun isStatic(field: Field): Boolean = Modifier.isStatic(field.modifiers)

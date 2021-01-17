@@ -145,12 +145,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseForeignImport(): ForeignImport {
         val tkSpan = expect<ForeignT>(noErr()).span
         expect<ImportT>(withError(E.FOREIGN_IMPORT))
-        
+
         fun mkspan() = span(tkSpan, iter.current().span)
-        fun parseAlias(): String? {
+        fun parseAlias(lower: Boolean = true): String? {
             if (iter.peek().value !is As) return null
             iter.next()
-            return expect<Ident>(withError(E.LOWER_CASE)).value.v
+            return if (lower) expect<Ident>(withError(E.FOREIGN_ALIAS)).value.v
+            else expect<UpperIdent>(withError(E.FOREIGN_TYPE_ALIAS)).value.v
         }
 
         fun parseStatic(): Boolean {
@@ -161,7 +162,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             } else false
         }
 
-        fun forceAlias(ctx: String) = parseAlias() ?: throwError(E.invalidForeign(ctx) to mkspan())
+        fun forceAlias(ctx: String, lower: Boolean = true) =
+            parseAlias(lower) ?: throwError(E.invalidForeign(ctx) to mkspan())
+
         fun parseFullName() = between<Dot, String>(::parseUpperOrLowerIdent).joinToString(".")
         fun parsePars(ctx: String): List<String> {
             expect<LParen>(withError(E.invalidForeign(ctx)))
@@ -178,7 +181,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return when {
             tk is TypeT -> {
                 iter.next()
-                ForeignImport.Type(parseFullName(), parseAlias(), mkspan())
+                ForeignImport.Type(parseFullName(), parseAlias(false), mkspan())
             }
             tk is Ident && tk.v == "new" -> {
                 iter.next()
