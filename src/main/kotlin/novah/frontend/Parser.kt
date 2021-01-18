@@ -181,7 +181,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return when {
             tk is TypeT -> {
                 iter.next()
-                ForeignImport.Type(parseFullName(), parseAlias(false), mkspan())
+                val fullName = parseFullName()
+                if (fullName.split(".").last()[0].isLowerCase()) {
+                    throwError(E.FOREIGN_TYPE_ALIAS to span(tkSpan, iter.current().span))
+                }
+                ForeignImport.Type(fullName, parseAlias(false), mkspan())
             }
             tk is Ident && tk.v == "new" -> {
                 iter.next()
@@ -194,16 +198,27 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val maybename = parseFullName()
                 val static = parseStatic()
                 val idx = maybename.lastIndexOf('.')
-                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseFullName()
-                if (tk.v == "get") ForeignImport.Getter(type, name, static, parseAlias(), mkspan())
+                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseUpperOrLowerIdent()
+                if (tk.v == "get") {
+                    val alias = parseAlias()
+                    if (alias == null && name[0].isUpperCase()) {
+                        throwError(E.FOREIGN_ALIAS to span(tkSpan, iter.current().span))
+                    }
+                    ForeignImport.Getter(type, name, static, alias, mkspan())
+                }
                 else ForeignImport.Setter(type, name, static, forceAlias("setter"), mkspan())
             }
             else -> {
                 val maybename = parseFullName()
                 val static = parseStatic()
                 val idx = maybename.lastIndexOf('.')
-                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseFullName()
-                ForeignImport.Method(type, name, parsePars("method"), static, parseAlias(), mkspan())
+                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseUpperOrLowerIdent()
+                val pars = parsePars("method")
+                val alias = parseAlias()
+                if (alias == null && name[0].isUpperCase()) {
+                    throwError(E.FOREIGN_ALIAS to span(tkSpan, iter.current().span))
+                }
+                ForeignImport.Method(type, name, pars, static, alias, mkspan())
             }
         }
     }

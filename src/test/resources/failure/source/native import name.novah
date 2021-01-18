@@ -1,0 +1,3 @@
+module test
+
+foreign import get Int:MIN_VALUE

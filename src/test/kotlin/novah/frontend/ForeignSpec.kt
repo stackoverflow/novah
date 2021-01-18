@@ -15,7 +15,7 @@ class ForeignSpec : StringSpec({
             foreign import new ArrayList() as newArrayList
             foreign import new File(String) as newFile
             foreign import Int:parseInt(String)
-            foreign import get java.lang.Integer:MIN_VALUE as minValue
+            foreign import get Int:MIN_VALUE as minValue
             foreign import String.compareTo(Object)
             //foreign import set File:separator as setSeparator
             

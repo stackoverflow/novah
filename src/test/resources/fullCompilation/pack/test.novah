@@ -3,7 +3,7 @@ module pack.test exposing ( num, y )
 foreign import type java.io.File
 foreign import new File(String) as newFile
 foreign import File.getAbsolutePath()
-foreign import get Int:MAX_VALUE
+foreign import get Int:MAX_VALUE as maxValue
 foreign import String.compareTo(String)
 foreign import type java.util.ArrayList
 foreign import new ArrayList() as newArrayList
