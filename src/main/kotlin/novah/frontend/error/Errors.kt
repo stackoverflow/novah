@@ -110,9 +110,9 @@ object Errors {
 
     const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
 
-    const val FOREIGN_TYPE_ALIAS = "Type alias has to start with a upper case letter."
+    const val FOREIGN_TYPE_ALIAS = "Type has to start with a upper case letter."
 
-    const val FOREIGN_ALIAS = "Alias has to start with a lower case letter."
+    const val FOREIGN_ALIAS = "Identifier has to start with a lower case letter."
 
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
