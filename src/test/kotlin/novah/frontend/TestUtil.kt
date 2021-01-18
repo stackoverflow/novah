@@ -46,7 +46,10 @@ object TestUtil {
     fun parseString(code: String): Module {
         val lexer = Lexer(code.iterator())
         val parser = Parser(lexer)
-        return parser.parseFullModule().unwrap()
+        return parser.parseFullModule().unwrapOrElse {
+            println(it.formatToConsole())
+            throw CompilationError(listOf(it))
+        }
     }
 
     fun cleanAndGetOutDir(output: String = "output"): File {

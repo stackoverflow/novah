@@ -25,6 +25,10 @@ class Formatter {
             builder.append("\n\n")
             builder.append(m.imports.sortedBy { it.module }.joinToString("\n") { show(it) })
         }
+        if (m.foreigns.isNotEmpty()) {
+            builder.append("\n\n")
+            builder.append(m.foreigns.joinToString("\n") { show(it) })
+        }
         if (m.decls.isNotEmpty()) {
             var last = m.decls[0]
             builder.append("\n\n")
@@ -55,6 +59,26 @@ class Formatter {
         }
         val alias = if (i.alias() != null) " as ${i.alias()}" else ""
         return "${cmt}import ${i.module}$exposes$alias"
+    }
+
+    fun show(fi: ForeignImport): String {
+        // TODO: show comments
+        fun alias(al: String?) = if (al != null) " as $al" else ""
+        fun sep(static: Boolean) = if (static) ":" else "."
+        val imp = when (fi) {
+            is ForeignImport.Type -> "type " + fi.type + alias(fi.alias)
+            is ForeignImport.Method -> fi.type + sep(fi.static) + fi.name + fi.pars.joinToString(
+                prefix = "(",
+                postfix = ")"
+            ) + alias(fi.alias)
+            is ForeignImport.Ctor -> "new " + fi.type + fi.pars.joinToString(
+                prefix = "(",
+                postfix = ")"
+            ) + alias(fi.alias)
+            is ForeignImport.Getter -> "get " + fi.type + sep(fi.static) + fi.name + alias(fi.alias)
+            is ForeignImport.Setter -> "set " + fi.type + sep(fi.static) + fi.name + alias(fi.alias)
+        }
+        return "foreign import $imp"
     }
 
     fun show(d: Decl): String {

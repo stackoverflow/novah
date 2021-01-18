@@ -1,6 +1,9 @@
 package novah.ast.optimized
 
 import novah.ast.canonical.Visibility
+import java.lang.reflect.Constructor as JConstructor
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 
 /**
  * The optmized AST used for code generation
@@ -52,6 +55,15 @@ sealed class Expr(open val type: Type) {
     data class ConstructorAccess(val fullName: String, val field: Int, override val type: Type) : Expr(type)
     data class OperatorApp(val name: String, val operands: List<Expr>, override val type: Type) : Expr(type)
     data class InstanceOf(val exp: Expr, override val type: Type) : Expr(type)
+    data class NativeFieldGet(val field: Field, val thisPar: Expr, override val type: Type) : Expr(type)
+    data class NativeStaticFieldGet(val field: Field, override val type: Type) : Expr(type)
+    data class NativeFieldSet(val field: Field, val thisPar: Expr, val par: Expr, override val type: Type) : Expr(type)
+    data class NativeStaticFieldSet(val field: Field, val par: Expr, override val type: Type) : Expr(type)
+    data class NativeMethod(val method: Method, val thisPar: Expr, val pars: List<Expr>, override val type: Type) :
+        Expr(type)
+
+    data class NativeStaticMethod(val method: Method, val pars: List<Expr>, override val type: Type) : Expr(type)
+    data class NativeCtor(val ctor: JConstructor<*>, val pars: List<Expr>, override val type: Type) : Expr(type)
 }
 
 sealed class Type {

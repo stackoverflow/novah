@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/failure/source/native import private.novah:4:1 - 4:29
+
+  Could not find field path for class java.io.File.
+

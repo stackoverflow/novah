@@ -10,11 +10,20 @@ object Errors {
         |module some.namespace
     """.trimMargin()
 
-    const val MODULE_NAME = "Module names should be composed of upper case identifiers separated by dots."
+    const val MODULE_NAME =
+        "Module names should be composed of identifiers started with a lower case character and separated by dots."
 
-    val IMPORT_ALIAS = """Expected module import alias to be an upper case identifier:
+    val IMPORT_ALIAS = """Expected module import alias to be capitalized:
         |Example: import data.namespace as Mod
     """.trimMargin()
+
+    val FOREIGN_IMPORT = """Expected keyword `import` after foreign:
+        |Example: foreign import java.util.ArrayList as AList
+    """.trimMargin()
+
+    const val UPPER_LOWER = "Expected upper or lower case starting identifier."
+
+    const val LOWER_CASE = "Expected lower case identifier."
 
     const val EXPORT_REFER =
         "Expected exposing/hiding definitions to be a comma-separated list of upper or lower case identifiers."
@@ -92,14 +101,61 @@ object Errors {
         |
         |ex: import namespace (fun1, SomeType(..), fun2)
     """.trimMargin()
-    
+
     const val EMPTY_DO = "`do` statement cannot be empty."
-    
+
     const val EMPTY_MATCH = "Pattern match needs at least 1 case."
-    
+
     const val INCOMPLETE_CONTEXT = "Context is not complete."
-    
+
     const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
+
+    const val FOREIGN_TYPE_ALIAS = "Type has to start with a upper case letter."
+
+    const val FOREIGN_ALIAS = "Identifier has to start with a lower case letter."
+
+    private val foreignExamples = mapOf(
+        "getter" to """foreign import get my.java.SomeClass.field
+            |// static field
+            |foreign import get java.lang.Integer:MAX_VALUE as maxValue""".trimMargin(),
+        "type" to """foreign import type java.util.ArrayList as List
+            |foreign import type java.io.File""".trimMargin(),
+        "constructor" to "foreign import new java.util.ArrayList(Int) as newArrayList",
+        "method" to """foreign import java.io.File.setExecutable(Boolean)
+            |// static method
+            |foreign import java.io.File:createTempFile(String, String) as makeTmpFile""".trimMargin(),
+        "setter" to """foreign import set some.package.MyClass.field as setField
+            |// static field
+            |foreign import set some.package.MyStaticClass:FIELD as setField
+        """.trimMargin()
+    )
+
+    fun invalidForeign(ctx: String?): String {
+        val example = if (ctx != null) foreignExamples[ctx] else foreignExamples.values.joinToString("\n")
+        return """Wrong format for foreign $ctx import.
+        |
+        |Example:
+        |$example
+    """.trimMargin()
+    }
+
+    fun classNotFound(name: String) = "Could not find class $name in classpath."
+
+    fun methodNotFound(name: String, type: String) = "Could not find method $name for type $type."
+
+    fun nonStaticMethod(name: String, type: String) = "Method $name of class $type is not static."
+
+    fun staticMethod(name: String, type: String) = "Method $name of class $type is static."
+
+    fun ctorNotFound(type: String) = "Could not find constructor of class $type."
+
+    fun fieldNotFound(name: String, type: String) = "Could not find field $name for class $type."
+
+    fun nonStaticField(name: String, type: String) = "Field $name of class $type is not static."
+
+    fun staticField(name: String, type: String) = "Field $name of class $type is static."
+
+    fun immutableField(name: String, type: String) = "Field $name of class $type is not mutable."
 
     fun undefinedVarInCtor(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
@@ -126,11 +182,23 @@ object Errors {
     fun cannotFindInModule(name: String, module: String) = "Cannot find $name in module $module."
     fun cannotImportInModule(name: String, module: String) = "Cannot import private $name in module $module."
 
-    fun topLevelDisallowed(declName: String) = "Only lambdas and primitives can be defined at the top level for declaration $declName."
+    fun topLevelDisallowed(declName: String) =
+        "Only lambdas and primitives can be defined at the top level for declaration $declName."
 
-    fun wrongConstructorName(typeName: String) = "Multi constructor type cannot have the same name as their type: $typeName."
-    
+    fun wrongConstructorName(typeName: String) =
+        "Multi constructor type cannot have the same name as their type: $typeName."
+
     fun undefinedType(type: Name) = "Undefined type $type."
+
+    fun wrongArgsToNative(name: Name, ctx: String, should: Int, got: Int) = """
+        Foreign setters, methods and constructors cannot be partially applied.
+        Foreign $ctx $name needs $should parameter(s), got $got.
+    """.trimIndent()
+
+    fun unkonwnArgsToNative(name: Name, ctx: String) = """
+        Foreign setters, methods and constructors cannot be partially applied.
+        For $ctx $name.
+    """.trimIndent()
 
     fun wrongKind(expected: String, got: String) = """
         Could not match kind
@@ -141,15 +209,15 @@ object Errors {
         
             $got
     """.trimIndent()
-    
+
     fun duplicatedType(name: Name) = "Duplicated type $name."
-    
+
     fun cannotSolvePolytype(name: Name, type: Type) = "Cannot solve type $name with polytype $type."
-    
+
     fun unknownType(name: Type) = "Unknown type $name."
-    
+
     fun infiniteType(name: Type) = "Occurs check failed: infinite type $name."
-    
+
     fun subsumptionFailed(a: Type, b: Type) = """
         Cannot subsume type
         
@@ -159,27 +227,27 @@ object Errors {
         
             $b
     """.trimIndent()
-    
+
     fun undefinedVar(name: Name) = "Undefined variable $name."
 
     fun cannotCheck(type: Type) = "Cannot check type of $type."
-    
+
     fun wrongArgumentsToCtor(name: Name, quant: String) = "Too $quant arguments given to type constructor $name."
-    
+
     fun overlappingNamesInBinder(names: List<Name>) = """
         Overlapping names in binder:
         
             ${names.joinToString()}
     """.trimIndent()
-    
+
     fun shadowedVariable(name: Name) = "Variable $name is shadowed."
-    
+
     fun redundantMatches(pats: List<String>) = """
         A case expression contains redundant cases:
         
             ${pats.joinToString()}
     """.trimIndent()
-    
+
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."
     fun rparensExpected(ctx: String) = "Expected `)` after $ctx."
 

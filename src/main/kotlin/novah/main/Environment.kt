@@ -14,6 +14,7 @@ import novah.frontend.Parser
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
+import novah.frontend.resolveForeignImports
 import novah.frontend.resolveImports
 import novah.frontend.typechecker.InferContext
 import novah.frontend.typechecker.Type
@@ -80,7 +81,9 @@ class Environment(private val verbose: Boolean) {
         val orderedMods = modGraph.topoSort()
         orderedMods.forEach { mod ->
             val ictx = InferContext()
-            val errs = resolveImports(mod.data, ictx, modules)
+            val importErrs = resolveImports(mod.data, ictx, modules)
+            val foreignErrs = resolveForeignImports(mod.data, ictx)
+            val errs = importErrs + foreignErrs
             if (errs.isNotEmpty()) throwErrors(errs)
 
             if (verbose) echo("Typechecking ${mod.data.name}")
@@ -146,7 +149,8 @@ sealed class Source(val path: Path) {
     }
 }
 
-class CompilationError(val problems: List<CompilerProblem>) : RuntimeException(problems.joinToString("\n") { it.msg })
+class CompilationError(val problems: List<CompilerProblem>) :
+    RuntimeException(problems.joinToString("\n") { it.formatToConsole() })
 
 data class FullModuleEnv(val env: ModuleEnv, val ast: TypedModule)
 

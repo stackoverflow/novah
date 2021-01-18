@@ -3,18 +3,25 @@ package novah.ast.source
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
+import java.lang.reflect.Constructor
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 
 data class Module(
     val name: String,
     val sourceName: String,
     val imports: List<Import>,
     val exports: ModuleExports,
+    val foreigns: List<ForeignImport>,
     val decls: List<Decl>,
     val span: Span
 ) {
     var comment: Comment? = null
 
     var resolvedImports = emptyMap<String, String>()
+    
+    var foreignTypes = emptyMap<String, String>()
+    var foreignVars = emptyMap<String, ForeignRef>()
 
     fun withComment(c: Comment?) = apply { comment = c }
 }
@@ -40,6 +47,15 @@ sealed class DeclarationRef(open val name: String) {
     }
 }
 
+/**
+ * A native imported reference.
+ */
+sealed class ForeignRef {
+    data class MethodRef(val method: Method) : ForeignRef()
+    data class FieldRef(val field: Field, val isSetter: Boolean) : ForeignRef()
+    data class CtorRef(val ctor: Constructor<*>) : ForeignRef()
+}
+
 sealed class ModuleExports {
     object ExportAll : ModuleExports()
     data class Hiding(val hides: List<DeclarationRef>) : ModuleExports()
@@ -53,8 +69,7 @@ sealed class Import(open val module: String) {
         val defs: List<DeclarationRef>,
         val span: Span,
         val alias: String? = null
-    ) :
-        Import(module)
+    ) : Import(module)
 
     fun alias(): String? = when (this) {
         is Raw -> alias
@@ -69,6 +84,25 @@ sealed class Import(open val module: String) {
     var comment: Comment? = null
 
     fun withComment(c: Comment?) = apply { comment = c }
+}
+
+sealed class ForeignImport(val type: String, val span: Span) {
+    class Type(type: String, val alias: String?, span: Span) : ForeignImport(type, span)
+    class Ctor(type: String, val pars: List<String>, val alias: String, span: Span) : ForeignImport(type, span)
+    class Method(
+        type: String,
+        val name: String,
+        val pars: List<String>,
+        val static: Boolean,
+        val alias: String?,
+        span: Span
+    ) : ForeignImport(type, span)
+
+    class Getter(type: String, val name: String, val static: Boolean, val alias: String?, span: Span) :
+        ForeignImport(type, span)
+
+    class Setter(type: String, val name: String, val static: Boolean, val alias: String, span: Span) :
+        ForeignImport(type, span)
 }
 
 sealed class Decl {

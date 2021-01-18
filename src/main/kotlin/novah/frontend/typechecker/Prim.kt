@@ -15,18 +15,49 @@ object Prim {
 
     const val PRIM = "prim"
 
+    const val byte = "$PRIM.Byte"
+    const val short = "$PRIM.Short"
+    const val int = "$PRIM.Int"
+    const val long = "$PRIM.Long"
+    const val float = "$PRIM.Float"
+    const val double = "$PRIM.Double"
+    const val string = "$PRIM.String"
+    const val char = "$PRIM.Char"
+    const val boolean = "$PRIM.Boolean"
+    const val unit = "$PRIM.Unit"
+    
     // primitives
-    val tByte = tvar("$PRIM.Byte")
-    val tShort = tvar("$PRIM.Short")
-    val tInt = tvar("$PRIM.Int")
-    val tLong = tvar("$PRIM.Long")
-    val tFloat = tvar("$PRIM.Float")
-    val tDouble = tvar("$PRIM.Double")
-    val tString = tvar("$PRIM.String")
-    val tChar = tvar("$PRIM.Char")
-    val tBoolean = tvar("$PRIM.Boolean")
+    val tByte = tvar(byte)
+    val tShort = tvar(short)
+    val tInt = tvar(int)
+    val tLong = tvar(long)
+    val tFloat = tvar(float)
+    val tDouble = tvar(double)
+    val tString = tvar(string)
+    val tChar = tvar(char)
+    val tBoolean = tvar(boolean)
 
-    val tUnit = tvar("$PRIM.Unit")
+    val tUnit = tvar(unit)
+    
+    fun javaToNovah(jname: String): String = when (jname) {
+        "byte" -> byte
+        "short" -> short
+        "int" -> int
+        "long" -> long
+        "float" -> float
+        "double" -> double
+        "char" -> char
+        "boolean" -> boolean
+        "java.lang.String" -> string
+        "java.lang.Byte" -> byte
+        "java.lang.Short" -> short
+        "java.lang.Integer" -> int
+        "java.lang.Long" -> long
+        "java.lang.Float" -> float
+        "java.lang.Double" -> double
+        "java.lang.Character" -> char
+        else -> jname
+    }
 
     /**
      * All primitive types and functions

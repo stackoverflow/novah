@@ -38,10 +38,12 @@ enum class ProblemContext {
     MODULE,
     PARSER,
     IMPORT,
+    FOREIGN_IMPORT,
     DESUGAR,
     TYPECHECK,
     SUBSUMPTION,
     INSTL,
     INSTR,
-    PATTERN_MATCHING;
+    PATTERN_MATCHING,
+    FOREIGN;
 }
