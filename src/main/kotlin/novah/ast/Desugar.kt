@@ -5,6 +5,7 @@ import novah.ast.source.ForeignRef
 import novah.ast.source.fullname
 import novah.data.Err
 import novah.data.Ok
+import novah.data.Reflection.isStatic
 import novah.data.Result
 import novah.frontend.ExportResult
 import novah.frontend.ParserError
@@ -13,12 +14,13 @@ import novah.frontend.consolidateExports
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
+import kotlin.math.max
 import novah.ast.source.Binder as SBinder
-import novah.ast.source.FunparPattern as SFunparPattern
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
 import novah.ast.source.Decl as SDecl
 import novah.ast.source.Expr as SExpr
+import novah.ast.source.FunparPattern as SFunparPattern
 import novah.ast.source.LetDef as SLetDef
 import novah.ast.source.LiteralPattern as SLiteralPattern
 import novah.ast.source.Module as SModule
@@ -66,7 +68,7 @@ class Desugar(private val smod: SModule) {
     private fun SDataConstructor.desugar(): DataConstructor =
         DataConstructor(name, args.map { it.desugar() }, exports.visibility(name), span)
 
-    private fun SExpr.desugar(locals: List<String> = listOf()): Expr = when (this) {
+    private fun SExpr.desugar(locals: List<String> = listOf(), appFnDepth: Int = 0): Expr = when (this) {
         is SExpr.IntE -> Expr.IntE(v, span)
         is SExpr.LongE -> Expr.LongE(v, span)
         is SExpr.FloatE -> Expr.FloatE(v, span)
@@ -78,16 +80,24 @@ class Desugar(private val smod: SModule) {
             if (name in locals) Expr.Var(name.raw(), span)
             else {
                 val foreign = smod.foreignVars[name]
-                // this var is a native call/field
                 if (foreign != null) {
-                    when (foreign) {
+                    // this var is a native call/field
+                    val exp = when (foreign) {
                         is ForeignRef.FieldRef -> {
-                            if (foreign.isSetter) Expr.NativeFieldSet(name.raw(), foreign.field, span)
-                            else Expr.NativeFieldGet(name.raw(), foreign.field, span)
+                            val isStatic = isStatic(foreign.field)
+                            if (foreign.isSetter) {
+                                Expr.NativeFieldSet(name.raw(), foreign.field, isStatic, span)
+                            } else Expr.NativeFieldGet(name.raw(), foreign.field, isStatic, span)
                         }
-                        is ForeignRef.MethodRef -> Expr.NativeMethod(name.raw(), foreign.method, span)
-                        is ForeignRef.CtorRef -> Expr.NativeConstructor(name.raw(), foreign.ctor, span)
+                        is ForeignRef.MethodRef -> {
+                            Expr.NativeMethod(name.raw(), foreign.method, isStatic(foreign.method), span)
+                        }
+                        is ForeignRef.CtorRef -> {
+                            Expr.NativeConstructor(name.raw(), foreign.ctor, span)
+                        }
                     }
+                    validateNativeCall(exp, appFnDepth)
+                    exp
                 } else Expr.Var(name.raw(), span, imports[this.toString()])
             }
         }
@@ -97,7 +107,7 @@ class Desugar(private val smod: SModule) {
             val names = patterns.filterIsInstance<SFunparPattern.Bind>().map { it.binder.name }
             nestLambdas(patterns.map { it.desugar() }, body.desugar(locals + names))
         }
-        is SExpr.App -> Expr.App(fn.desugar(locals), arg.desugar(locals), span)
+        is SExpr.App -> Expr.App(fn.desugar(locals, appFnDepth + 1), arg.desugar(locals), span)
         is SExpr.Parens -> exp.desugar(locals)
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
         is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }))
@@ -143,7 +153,7 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SBinder.desugar(): Binder = Binder(name.raw(), span)
-    
+
     private fun SFunparPattern.desugar(): FunparPattern = when (this) {
         is SFunparPattern.Ignored -> FunparPattern.Ignored(span)
         is SFunparPattern.Unit -> FunparPattern.Unit(span)
@@ -228,6 +238,35 @@ class Desugar(private val smod: SModule) {
             parserError(E.exportError(res.errors[0]), smod.span)
         }
         return res
+    }
+
+    private fun validateNativeCall(exp: Expr, depth: Int) {
+        fun throwArgs(name: Name, span: Span, ctx: String, should: Int, got: Int): Nothing {
+            parserError(
+                E.wrongArgsToNative(name, ctx, should, got),
+                span
+            )
+        }
+        when (exp) {
+            is Expr.NativeFieldGet -> {
+                if (!exp.isStatic && depth < 1) throwArgs(exp.name, exp.span, "getter", 1, depth)
+            }
+            is Expr.NativeFieldSet -> {
+                val should = if (exp.isStatic) 1 else 2
+                if (depth != should) throwArgs(exp.name, exp.span, "setter", should, depth)
+            }
+            is Expr.NativeMethod -> {
+                var count = exp.method.parameterCount
+                if (!exp.isStatic) count++
+                if (depth != count) throwArgs(exp.name, exp.span, "method", count, depth)
+            }
+            is Expr.NativeConstructor -> {
+                val count = max(exp.ctor.parameterCount, 1)
+                if (depth != count) throwArgs(exp.name, exp.span, "constructor", count, depth)
+            }
+            else -> {
+            }
+        }
     }
 
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)

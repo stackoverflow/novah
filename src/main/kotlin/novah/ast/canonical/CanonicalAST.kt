@@ -57,9 +57,15 @@ sealed class Expr(open val span: Span) {
     data class Match(val exp: Expr, val cases: List<Case>, override val span: Span) : Expr(span)
     data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
-    data class NativeFieldGet(val name: Name, val field: Field, override val span: Span) : Expr(span)
-    data class NativeFieldSet(val name: Name, val field: Field, override val span: Span) : Expr(span)
-    data class NativeMethod(val name: Name, val method: Method, override val span: Span) : Expr(span)
+    data class NativeFieldGet(val name: Name, val field: Field, val isStatic: Boolean, override val span: Span) :
+        Expr(span)
+
+    data class NativeFieldSet(val name: Name, val field: Field, val isStatic: Boolean, override val span: Span) :
+        Expr(span)
+
+    data class NativeMethod(val name: Name, val method: Method, val isStatic: Boolean, override val span: Span) :
+        Expr(span)
+
     data class NativeConstructor(val name: Name, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
     data class Unit(override val span: Span) : Expr(span)
 

@@ -112,12 +112,12 @@ class Optimizer(private val ast: CModule) {
                         // native getter will never be static here
                         is CExpr.NativeFieldGet -> Expr.NativeFieldGet(exp.field, pars[0].convert(locals), typ)
                         is CExpr.NativeFieldSet -> {
-                            if (Reflection.isStatic(exp.field))
+                            if (exp.isStatic)
                                 Expr.NativeStaticFieldSet(exp.field, pars[0].convert(locals), typ)
                             else Expr.NativeFieldSet(exp.field, pars[0].convert(locals), pars[1].convert(locals), typ)
                         }
                         is CExpr.NativeMethod -> {
-                            if (Reflection.isStatic(exp.method))
+                            if (exp.isStatic)
                                 Expr.NativeStaticMethod(exp.method, pars.map { it.convert(locals) }, typ)
                             else {
                                 val nativePars = pars.map { it.convert(locals) }
@@ -220,33 +220,10 @@ class Optimizer(private val ast: CModule) {
         }
         pars.reverse()
         return when (exp) {
-            is CExpr.NativeFieldGet -> {
-                if (Reflection.isStatic(exp.field)) null
-                else {
-                    if (depth != 1) throwArgs(exp.name, exp.span, "getter", 1, depth)
-                    exp to pars
-                }
-            }
-            is CExpr.NativeFieldSet -> {
-                val should = if (Reflection.isStatic(exp.field)) 1 else 2
-                if (depth != should) throwArgs(exp.name, exp.span, "setter", should, depth)
-                exp to pars
-            }
-            is CExpr.NativeMethod -> {
-                var count = exp.method.parameterCount
-                if (!Reflection.isStatic(exp.method)) count++
-                if (depth != count) {
-                    throwArgs(exp.name, exp.span, "method", count, depth)
-                }
-                exp to pars
-            }
-            is CExpr.NativeConstructor -> {
-                val count = max(exp.ctor.parameterCount, 1)
-                if (depth != count) {
-                    throwArgs(exp.name, exp.span, "constructor", count, depth)
-                }
-                exp to pars
-            }
+            is CExpr.NativeFieldGet -> exp to pars
+            is CExpr.NativeFieldSet -> exp to pars
+            is CExpr.NativeMethod -> exp to pars
+            is CExpr.NativeConstructor -> exp to pars
             else -> null
         }
     }
@@ -275,14 +252,6 @@ class Optimizer(private val ast: CModule) {
             "prim.String" -> "java/lang/String"
             "prim.Unit" -> "java/lang/Object"
             else -> internalize(tvar.name.toString())
-        }
-
-        private fun throwArgs(name: Name, span: Span, ctx: String, should: Int, got: Int): Nothing {
-            inferError(
-                E.wrongArgsToNative(name, ctx, should, got),
-                span,
-                ProblemContext.FOREIGN
-            )
         }
 
         private fun internalize(name: String) = name.replace('.', '/')
