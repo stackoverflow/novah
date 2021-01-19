@@ -14,6 +14,7 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
 import novah.ast.source.Binder as SBinder
+import novah.ast.source.FunparPattern as SFunparPattern
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
 import novah.ast.source.Decl as SDecl
@@ -92,7 +93,10 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.Operator -> Expr.Var(name.raw(), span, imports[this.toString()])
         is SExpr.Constructor -> Expr.Constructor(name.raw(), span, imports[this.toString()])
-        is SExpr.Lambda -> nestLambdas(binders.map { it.desugar() }, body.desugar(locals + binders.map { it.name }))
+        is SExpr.Lambda -> {
+            val names = patterns.filterIsInstance<SFunparPattern.Bind>().map { it.binder.name }
+            nestLambdas(patterns.map { it.desugar() }, body.desugar(locals + names))
+        }
         is SExpr.App -> Expr.App(fn.desugar(locals), arg.desugar(locals), span)
         is SExpr.Parens -> exp.desugar(locals)
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
@@ -128,17 +132,23 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SLetDef.desugar(): LetDef {
-        return if (binders.isEmpty()) LetDef(name.desugar(), expr.desugar(), type?.desugar())
+        return if (patterns.isEmpty()) LetDef(name.desugar(), expr.desugar(), type?.desugar())
         else {
-            fun go(binders: List<Binder>, exp: Expr): Expr {
+            fun go(binders: List<FunparPattern>, exp: Expr): Expr {
                 return if (binders.size == 1) Expr.Lambda(binders[0], exp, exp.span)
                 else go(binders.drop(1), Expr.Lambda(binders[0], exp, exp.span))
             }
-            LetDef(name.desugar(), go(binders.map { it.desugar() }, expr.desugar()), type?.desugar())
+            LetDef(name.desugar(), go(patterns.map { it.desugar() }, expr.desugar()), type?.desugar())
         }
     }
 
     private fun SBinder.desugar(): Binder = Binder(name.raw(), span)
+    
+    private fun SFunparPattern.desugar(): FunparPattern = when (this) {
+        is SFunparPattern.Ignored -> FunparPattern.Ignored(span)
+        is SFunparPattern.Unit -> FunparPattern.Unit(span)
+        is SFunparPattern.Bind -> FunparPattern.Bind(binder.desugar())
+    }
 
     private fun SType.desugar(): Type = when (this) {
         is SType.TVar -> {
@@ -166,7 +176,7 @@ class Desugar(private val smod: SModule) {
         else Type.TForall(names[0], nestForalls(names.drop(1), type))
     }
 
-    private fun nestLambdas(binders: List<Binder>, exp: Expr): Expr {
+    private fun nestLambdas(binders: List<FunparPattern>, exp: Expr): Expr {
         return if (binders.isEmpty()) exp
         else Expr.Lambda(binders[0], nestLambdas(binders.drop(1), exp), exp.span)
     }

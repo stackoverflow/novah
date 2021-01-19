@@ -9,10 +9,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import novah.ast.Desugar
-import novah.ast.source.Decl
-import novah.ast.source.Expr
-import novah.ast.source.Module
-import novah.ast.source.Type
+import novah.ast.source.*
 import novah.data.Err
 import novah.formatter.Formatter
 import novah.frontend.TestUtil._i
@@ -32,10 +29,17 @@ class ParserSpec : StringSpec({
     fun Module.findApp(name: String) =
         decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp as Expr.App
 
+    fun compareFunpattern(f1: FunparPattern, f2: FunparPattern): Boolean = when (f1) {
+        is FunparPattern.Ignored -> f2 is FunparPattern.Ignored
+        is FunparPattern.Unit -> f2 is FunparPattern.Unit
+        is FunparPattern.Bind -> f2 is FunparPattern.Bind && f1.binder.name == f2.binder.name
+    }
+
     fun compareLambdas(lam1: Expr, lam2: Expr): Boolean {
         val l1 = lam1 as Expr.Lambda
         val l2 = lam2 as Expr.Lambda
-        if (l1.binders.map { it.name } != l2.binders.map { it.name }) return false
+        if (l1.patterns.size != l2.patterns.size) return false
+        if (!l1.patterns.zip(l2.patterns).all { (f1, f2) -> compareFunpattern(f1, f2) }) return false
         return if (l1.body is Expr.Lambda && l2.body is Expr.Lambda) {
             compareLambdas(l1.body as Expr.Lambda, l2.body as Expr.Lambda)
         } else l1.body == l2.body

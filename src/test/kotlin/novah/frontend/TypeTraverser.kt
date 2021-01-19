@@ -23,7 +23,7 @@ class TypeTraverser<T>(private val ast: Module, private val action: (String, Typ
     fun visitExpr(e: Expr) {
         when (e) {
             is Expr.Lambda -> {
-                action("Lambda \\${e.binder} at ${e.span}", e.type)
+                action("Lambda \\${e.pattern} at ${e.span}", e.type)
                 visitExpr(e.body)
             }
             is Expr.App -> {

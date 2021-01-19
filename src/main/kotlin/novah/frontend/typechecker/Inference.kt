@@ -85,20 +85,35 @@ class Inference(
             }
             is Expr.Unit -> exp.withType(tUnit)
             is Expr.Lambda -> {
-                val binder = exp.binder.name
-                checkShadow(binder, exp.binder.span)
+                when (val pattern = exp.pattern) {
+                    is FunparPattern.Ignored -> {
+                        val bodyType = typesynth(exp.body)
+                        val tvar = store.fresh("t")
+                        val ty = ictx.apply(Type.TForall(tvar, Type.TFun(Type.TVar(tvar), bodyType)))
+                        exp.withType(ty)
+                    }
+                    is FunparPattern.Unit -> {
+                        val bodyType = typesynth(exp.body)
+                        val ty = ictx.apply(Type.TFun(tUnit, bodyType))
+                        exp.withType(ty)
+                    }
+                    is FunparPattern.Bind -> {
+                        val binder = pattern.binder.name
+                        checkShadow(binder, exp.pattern.span)
 
-                val x = store.fresh(binder)
-                val a = store.fresh(binder)
-                val b = store.fresh(binder)
-                val ta = Type.TMeta(a)
-                val tb = Type.TMeta(b)
-                val m = store.fresh("m")
-                ictx.context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
-                typecheck(exp.aliasLambda(x), tb)
+                        val x = store.fresh(binder)
+                        val a = store.fresh(binder)
+                        val b = store.fresh(binder)
+                        val ta = Type.TMeta(a)
+                        val tb = Type.TMeta(b)
+                        val m = store.fresh("m")
+                        ictx.context.enter(m, Elem.CTMeta(a), Elem.CTMeta(b), Elem.CVar(x, ta))
+                        typecheck(exp.aliasLambda(x), tb)
 
-                val ty = ictx.apply(Type.TFun(ta, tb))
-                exp.withType(generalizeFrom(m, ty))
+                        val ty = ictx.apply(Type.TFun(ta, tb))
+                        exp.withType(generalizeFrom(m, ty))
+                    }
+                }
             }
             is Expr.App -> {
                 val left = typesynth(exp.fn)
@@ -188,12 +203,25 @@ class Inference(
                 ictx.context.leave(m)
             }
             type is Type.TFun && expr is Expr.Lambda -> {
-                val x = store.fresh(expr.binder.name)
-                val m = store.fresh("m")
-                ictx.context.enter(m, Elem.CVar(x, type.arg))
-                typecheck(expr.aliasLambda(x), type.ret)
-                ictx.context.leave(m)
-                expr.withType(type)
+                when (expr.pattern) {
+                    is FunparPattern.Ignored -> {
+                        typecheck(expr.body, type.ret)
+                        expr.withType(type)
+                    }
+                    is FunparPattern.Unit -> {
+                        sub.subsume(ictx.apply(type.arg), tUnit, expr.span)
+                        typecheck(expr.body, type.ret)
+                        expr.withType(type)
+                    }
+                    is FunparPattern.Bind -> {
+                        val x = store.fresh(expr.pattern.binder.name)
+                        val m = store.fresh("m")
+                        ictx.context.enter(m, Elem.CVar(x, type.arg))
+                        typecheck(expr.aliasLambda(x), type.ret)
+                        ictx.context.leave(m)
+                        expr.withType(type)
+                    }
+                }
             }
             expr is Expr.If -> {
                 typecheck(expr.cond, tBoolean)

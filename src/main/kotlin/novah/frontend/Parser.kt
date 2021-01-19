@@ -262,7 +262,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             if (iter.peek().value is DoubleColon) {
                 parseTypeSignature(name)
             } else {
-                val vars = tryParseListOf { tryParseIdent() }
+                val vars = tryParseListOf { tryParseFunparPattern() }
 
                 expect<Equals>(withError(E.EQUALS))
 
@@ -414,7 +414,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val begin = iter.peek()
         expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
 
-        val vars = tryParseListOf { tryParseIdent() }
+        val vars = tryParseListOf { tryParseFunparPattern() }
         if (vars.isEmpty()) throwError(withError(E.LAMBDA_VAR)(iter.current()))
 
         expect<Arrow>(withError(E.LAMBDA_ARROW))
@@ -489,7 +489,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             else -> {
                 withOffside {
-                    val vars = tryParseListOf { tryParseIdent() }
+                    val vars = tryParseListOf { tryParseFunparPattern() }
                     expect<Equals>(withError(E.LET_EQUALS))
                     val exp = parseExpression()
                     val span = span(ident.span, exp.span)

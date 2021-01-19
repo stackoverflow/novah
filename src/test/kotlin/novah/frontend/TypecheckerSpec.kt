@@ -169,9 +169,9 @@ class TypecheckerSpec : StringSpec({
               true
         """.module()
 
-        val ty = TestUtil.compileCode(code).env.decls["f"]
+        val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
 
-        ty?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
+        ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
     }
 
     "typecheck a recursive function" {

@@ -22,6 +22,7 @@ import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.inferError
 import kotlin.math.max
 import novah.ast.canonical.Binder as CBinder
+import novah.ast.canonical.FunparPattern
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.DataDecl as CDataDecl
 import novah.ast.canonical.Decl.ValDecl as CValDecl
@@ -99,8 +100,9 @@ class Optimizer(private val ast: CModule) {
             }
             is CExpr.Lambda -> {
                 haslambda = true
-                val bind = binder.convert()
-                Expr.Lambda(bind, body.convert(locals + bind), type = typ)
+                val bind = pattern.convert()
+                val ls = if (bind != null) locals + bind else locals
+                Expr.Lambda(bind, body.convert(ls), type = typ)
             }
             is CExpr.App -> {
                 val pair = unrollForeignApp(this)
@@ -162,6 +164,12 @@ class Optimizer(private val ast: CModule) {
     }
 
     private fun CBinder.convert(): String = name.toString()
+    
+    private fun FunparPattern.convert(): String? = when (this) {
+        is FunparPattern.Ignored -> null
+        is FunparPattern.Unit -> null
+        is FunparPattern.Bind -> binder.convert()
+    }
 
     private fun TType.convert(): Type = when (this) {
         is TType.TVar -> {

@@ -548,7 +548,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         }
     }
 
-    data class LambdaContext(val lambda: Expr.Lambda, var ignores: List<String>, var locals: List<Expr.LocalVar>)
+    class LambdaContext(val lambda: Expr.Lambda, var ignores: List<String>, var locals: List<Expr.LocalVar>)
 
     private fun setupLambdas(value: Decl.ValDecl): List<Expr.Lambda> {
         var i = 0
@@ -559,10 +559,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         fun go(exp: Expr): Unit = when (exp) {
             is Expr.Lambda -> {
                 val binder = exp.binder
-                for (l in lambdas) l.ignores += binder
+                if (binder != null)
+                    for (l in lambdas) l.ignores += binder
 
                 exp.internalName = mkName()
-                lambdas += LambdaContext(exp, listOf(binder), listOf())
+                val ignores = if (binder != null) listOf(binder) else emptyList()
+                lambdas += LambdaContext(exp, ignores, emptyList())
                 go(exp.body)
             }
             is Expr.LocalVar -> {
@@ -596,6 +598,22 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 for (e in exp.operands) go(e)
             }
             is Expr.InstanceOf -> go(exp.exp)
+            is Expr.NativeFieldGet -> go(exp.thisPar)
+            is Expr.NativeStaticFieldSet -> go(exp.par)
+            is Expr.NativeFieldSet -> {
+                go(exp.thisPar)
+                go(exp.par)
+            }
+            is Expr.NativeStaticMethod -> {
+                for (e in exp.pars) go(e)
+            }
+            is Expr.NativeMethod -> {
+                go(exp.thisPar)
+                for (e in exp.pars) go(e)
+            }
+            is Expr.NativeCtor -> {
+                for (e in exp.pars) go(e)
+            }
             else -> {
             }
         }
@@ -611,8 +629,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private fun genLambdaMethod(l: Expr.Lambda, cw: ClassWriter) {
         val ftype = l.type as Type.TFun
-        val args = l.locals + Expr.LocalVar(l.binder, ftype.arg)
-        val argTypes = args.map { it.type }
+        val args = mutableListOf<Expr.LocalVar>()
+        args.addAll(l.locals)
+        if (l.binder != null) args += Expr.LocalVar(l.binder, ftype.arg)
+        
+        val argTypes = l.locals.map { it.type } + ftype.arg
         val lam = cw.visitMethod(
             ACC_PRIVATE + ACC_STATIC + ACC_SYNTHETIC,
             l.internalName,
