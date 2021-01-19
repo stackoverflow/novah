@@ -318,8 +318,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             withIgnoreOffside {
                 val tk = iter.next()
                 if (iter.peek().value is RParen) {
-                    iter.next()
-                    Expr.Unit().withSpanAndComment(tk)
+                    val end = iter.next()
+                    Expr.Unit().withSpan(span(tk.span, end.span)).withComment(tk.comment)
                 } else {
                     val exp = parseExpression()
                     expect<RParen>(withError(E.rparensExpected("expression")))
