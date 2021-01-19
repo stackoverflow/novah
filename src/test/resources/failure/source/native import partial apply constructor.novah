@@ -1,0 +1,5 @@
+module test
+
+foreign import new java.util.ArrayList(Int) as newArrayList
+
+f () = newArrayList
