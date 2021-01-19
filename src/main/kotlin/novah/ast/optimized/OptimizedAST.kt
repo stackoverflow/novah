@@ -64,6 +64,7 @@ sealed class Expr(open val type: Type) {
 
     data class NativeStaticMethod(val method: Method, val pars: List<Expr>, override val type: Type) : Expr(type)
     data class NativeCtor(val ctor: JConstructor<*>, val pars: List<Expr>, override val type: Type) : Expr(type)
+    data class Unit(override val type: Type) : Expr(type)
 }
 
 sealed class Type {

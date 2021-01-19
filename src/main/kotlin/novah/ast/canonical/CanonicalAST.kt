@@ -61,6 +61,7 @@ sealed class Expr(open val span: Span) {
     data class NativeFieldSet(val name: Name, val field: Field, override val span: Span) : Expr(span)
     data class NativeMethod(val name: Name, val method: Method, override val span: Span) : Expr(span)
     data class NativeConstructor(val name: Name, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
+    data class Unit(override val span: Span) : Expr(span)
 
     var type: Type? = null
     var alias: Name? = null

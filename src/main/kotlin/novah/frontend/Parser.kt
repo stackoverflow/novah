@@ -205,8 +205,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                         throwError(E.FOREIGN_ALIAS to span(tkSpan, iter.current().span))
                     }
                     ForeignImport.Getter(type, name, static, alias, mkspan())
-                }
-                else ForeignImport.Setter(type, name, static, forceAlias("setter"), mkspan())
+                } else ForeignImport.Setter(type, name, static, forceAlias("setter"), mkspan())
             }
             else -> {
                 val maybename = parseFullName()
@@ -317,10 +316,15 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         is Op -> parseOperator()
         is LParen -> {
             withIgnoreOffside {
-                iter.next()
-                val exp = parseExpression()
-                expect<RParen>(withError(E.rparensExpected("expression")))
-                Expr.Parens(exp)
+                val tk = iter.next()
+                if (iter.peek().value is RParen) {
+                    iter.next()
+                    Expr.Unit().withSpanAndComment(tk)
+                } else {
+                    val exp = parseExpression()
+                    expect<RParen>(withError(E.rparensExpected("expression")))
+                    Expr.Parens(exp)
+                }
             }
         }
         is UpperIdent -> {
@@ -328,7 +332,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             if (iter.peek().value is Dot) {
                 parseAliasedVar(uident)
             } else {
-                Expr.Constructor(uident.value.v)
+                Expr.Constructor(uident.value.v).withSpanAndComment(uident)
             }
         }
         is Backslash -> parseLambda()
@@ -592,6 +596,26 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val ctor = parseConstructor()
                 val fields = tryParseListOf { tryParsePattern() }
                 Pattern.Ctor(ctor, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
+            }
+            else -> null
+        }
+    }
+    
+    private fun tryParseFunparPattern(): FunparPattern? {
+        val tk = iter.peek()
+        return when (tk.value) {
+            is Underline -> {
+                iter.next()
+                FunparPattern.Ignored(tk.span)
+            }
+            is LParen -> {
+                iter.next()
+                val end = expect<RParen>(withError(E.rparensExpected("function parameter")))
+                FunparPattern.Unit(span(tk.span, end.span))
+            }
+            is Ident -> {
+                iter.next()
+                FunparPattern.Bind(Binder(tk.value.v, tk.span))
             }
             else -> null
         }

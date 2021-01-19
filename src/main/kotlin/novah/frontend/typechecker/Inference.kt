@@ -13,6 +13,7 @@ import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
+import novah.frontend.typechecker.Prim.tUnit
 import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
@@ -82,6 +83,7 @@ class Inference(
                     ?: inferError(E.undefinedVar(exp.name), exp.span)
                 exp.withType(x.type)
             }
+            is Expr.Unit -> exp.withType(tUnit)
             is Expr.Lambda -> {
                 val binder = exp.binder.name
                 checkShadow(binder, exp.binder.span)
@@ -177,6 +179,7 @@ class Inference(
             expr is Expr.StringE && type == tString -> expr.withType(tString)
             expr is Expr.CharE && type == tChar -> expr.withType(tChar)
             expr is Expr.Bool && type == tBoolean -> expr.withType(tBoolean)
+            expr is Expr.Unit -> expr.withType(tUnit)
             type is Type.TForall -> {
                 val x = store.fresh(type.name)
                 val m = store.fresh("m")

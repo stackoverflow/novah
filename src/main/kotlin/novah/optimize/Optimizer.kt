@@ -157,6 +157,7 @@ class Optimizer(private val ast: CModule) {
                 span,
                 ProblemContext.FOREIGN
             )
+            is CExpr.Unit -> Expr.Unit(typ)
         }
     }
 

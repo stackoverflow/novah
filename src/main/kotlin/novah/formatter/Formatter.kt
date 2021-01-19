@@ -106,7 +106,7 @@ class Formatter {
     }
 
     fun show(d: Decl.ValDecl): String {
-        val prefix = d.name + d.binders.joinToStr(" ", prefix = " ") + " ="
+        val prefix = d.name + d.patterns.joinToStr(" ", prefix = " ") + " ="
 
         return if (shouldNewline(d.exp)) {
             prefix + withIndent { tab + show(d.exp) }
@@ -161,6 +161,7 @@ class Formatter {
             is Expr.CharE -> "'${e.v}'"
             is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
+            is Expr.Unit -> "()"
         }
     }
 

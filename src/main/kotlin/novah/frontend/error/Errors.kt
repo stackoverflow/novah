@@ -23,8 +23,6 @@ object Errors {
 
     const val UPPER_LOWER = "Expected upper or lower case starting identifier."
 
-    const val LOWER_CASE = "Expected lower case identifier."
-
     const val EXPORT_REFER =
         "Expected exposing/hiding definitions to be a comma-separated list of upper or lower case identifiers."
 
@@ -113,7 +111,7 @@ object Errors {
     const val FOREIGN_TYPE_ALIAS = "Type has to start with a upper case letter."
 
     const val FOREIGN_ALIAS = "Identifier has to start with a lower case letter."
-
+    
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field

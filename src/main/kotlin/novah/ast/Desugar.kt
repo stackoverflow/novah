@@ -51,7 +51,7 @@ class Desugar(private val smod: SModule) {
             Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, exports.visibility(name))
         }
         is SDecl.ValDecl -> {
-            var expr = nestLambdas(binders.map { it.desugar() }, exp.desugar())
+            var expr = nestLambdas(patterns.map { it.desugar() }, exp.desugar())
             validateTopLevelExpr(name, expr)
 
             // if the declaration has a type annotation, annotate it
@@ -100,6 +100,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar(locals) }, span)
         is SExpr.Ann -> Expr.Ann(exp.desugar(locals), type.desugar(), span)
         is SExpr.Do -> Expr.Do(exps.map { it.desugar(locals) }, span)
+        is SExpr.Unit -> Expr.Unit(span)
     }
 
     private fun SCase.desugar(locals: List<String>): Case = Case(pattern.desugar(locals), exp.desugar())

@@ -173,7 +173,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitVarInsn(ALOAD, local)
             }
             is Expr.Var -> {
-                resolvePrimitiveModuleVar(mv, e)
+                mv.visitFieldInsn(GETSTATIC, e.className, e.name, toInternalType(e.type))
             }
             is Expr.Constructor -> {
                 if (e.arity == 0) mv.visitFieldInsn(GETSTATIC, e.fullName, INSTANCE, toInternalType(e.type))
@@ -384,6 +384,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 mv.visitMethodInsn(INVOKESPECIAL, internal, INIT, getConstructorDescriptor(c), false)
             }
+            is Expr.Unit -> {
+                mv.visitInsn(ACONST_NULL)
+            }
         }
     }
 
@@ -511,14 +514,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val name = primitiveType.canonicalName
         val internal = getInternalName(primitiveWrappers[name])
         mv.visitMethodInsn(INVOKEVIRTUAL, internal, "${name}Value", "()" + getDescriptor(primitiveType), false)
-    }
-
-    private fun resolvePrimitiveModuleVar(mv: MethodVisitor, e: Expr.Var) {
-        if (e.fullname() == "prim/Module.unit") {
-            mv.visitInsn(ACONST_NULL)
-        } else {
-            mv.visitFieldInsn(GETSTATIC, e.className, e.name, toInternalType(e.type))
-        }
     }
 
     private fun resolvePrimitiveModuleApp(mv: MethodVisitor, e: Expr.App, ctx: GenContext) {
