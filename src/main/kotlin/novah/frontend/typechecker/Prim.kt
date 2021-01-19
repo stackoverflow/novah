@@ -76,8 +76,7 @@ object Prim {
             "hashCode" to decl(tfall("a", tfun(tvar("a"), tInt))),
             "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
             "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-            "==" to decl(tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean)))),
-            "unit" to decl(tUnit)
+            "==" to decl(tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean))))
         ),
         mapOf(
             "Byte" to tdecl(tByte),

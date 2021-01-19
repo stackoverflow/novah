@@ -40,7 +40,7 @@ sealed class Expr(open val type: Type) {
     data class Constructor(val fullName: String, val arity: Int, override val type: Type) : Expr(type)
     data class LocalVar(val name: String, override val type: Type) : Expr(type)
     data class Lambda(
-        val binder: String,
+        val binder: String?,
         val body: Expr,
         var internalName: String = "",
         var locals: List<LocalVar> = listOf(),
@@ -64,6 +64,7 @@ sealed class Expr(open val type: Type) {
 
     data class NativeStaticMethod(val method: Method, val pars: List<Expr>, override val type: Type) : Expr(type)
     data class NativeCtor(val ctor: JConstructor<*>, val pars: List<Expr>, override val type: Type) : Expr(type)
+    data class Unit(override val type: Type) : Expr(type)
 }
 
 sealed class Type {

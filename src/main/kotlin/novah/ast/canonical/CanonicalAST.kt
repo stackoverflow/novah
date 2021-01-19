@@ -50,7 +50,7 @@ sealed class Expr(open val span: Span) {
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
     data class Var(val name: Name, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class Constructor(val name: Name, override val span: Span, val moduleName: String? = null) : Expr(span)
-    data class Lambda(val binder: Binder, val body: Expr, override val span: Span) : Expr(span)
+    data class Lambda(val pattern: FunparPattern, val body: Expr, override val span: Span) : Expr(span)
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
@@ -61,6 +61,7 @@ sealed class Expr(open val span: Span) {
     data class NativeFieldSet(val name: Name, val field: Field, override val span: Span) : Expr(span)
     data class NativeMethod(val name: Name, val method: Method, override val span: Span) : Expr(span)
     data class NativeConstructor(val name: Name, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
+    data class Unit(override val span: Span) : Expr(span)
 
     var type: Type? = null
     var alias: Name? = null
@@ -73,6 +74,12 @@ sealed class Expr(open val span: Span) {
 
 data class Binder(val name: Name, val span: Span) {
     override fun toString(): String = "$name"
+}
+
+sealed class FunparPattern(val span: Span) {
+    class Ignored(span: Span) : FunparPattern(span)
+    class Unit(span: Span) : FunparPattern(span)
+    class Bind(val binder: Binder) : FunparPattern(binder.span)
 }
 
 data class LetDef(val binder: Binder, val expr: Expr, val type: Type? = null)
@@ -117,7 +124,12 @@ fun LiteralPattern.show(): String = when (this) {
 // AST functions
 ////////////////////////////////
 
-fun Expr.Lambda.aliasLambda(newName: Name): Expr = body.aliasVar(binder.name, newName)
+/**
+ * Can only be called for lambdas
+ * with a bound variable
+ */
+fun Expr.Lambda.aliasLambda(newName: Name): Expr =
+    body.aliasVar((pattern as FunparPattern.Bind).binder.name, newName)
 
 fun Expr.aliasVar(v: Name, newName: Name): Expr {
     when (this) {
@@ -128,7 +140,10 @@ fun Expr.aliasVar(v: Name, newName: Name): Expr {
             arg.aliasVar(v, newName)
         }
         is Expr.Lambda -> {
-            if (binder.name != v) body.aliasVar(v, newName)
+            if (pattern is FunparPattern.Bind) {
+                if (pattern.binder.name != v)
+                    body.aliasVar(v, newName)
+            } else body.aliasVar(v, newName)
         }
         is Expr.Ann -> exp.aliasVar(v, newName)
         is Expr.If -> {

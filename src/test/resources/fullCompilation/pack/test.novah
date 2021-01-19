@@ -50,10 +50,13 @@ lamb x y = do
   Just "a"
   println (toString (Just "a"))
 
-main args = do
+run () =
+  let arr = newArrayList ()
+    in do
+      add arr "asd"
+      add arr "oops"
+      println (toString arr)
+
+main _ = do
   println "running novah"
-  let arr = newArrayList unit
-  in do
-    add arr "asd"
-    add arr "oops"
-    println (toString arr)
+  run ()

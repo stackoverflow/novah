@@ -2,6 +2,7 @@ package novah.frontend
 
 import novah.ast.source.Binder
 import novah.ast.source.Expr
+import novah.ast.source.FunparPattern
 import novah.ast.source.Module
 import novah.data.map
 import novah.data.unwrapOrElse
@@ -88,8 +89,8 @@ object TestUtil {
 
     fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)
-    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { Binder(it, Span.empty()) }, e)
-    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(Binder(n, Span.empty())), e)
+    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { FunparPattern.Bind(Binder(it, Span.empty())) }, e)
+    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(FunparPattern.Bind(Binder(n, Span.empty()))), e)
 
     fun String.module() = "module test\n\n${this.trimIndent()}"
 }

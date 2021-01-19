@@ -24,7 +24,7 @@ class ForeignSpec : StringSpec({
             
             main args = do
               println "running novah"
-              let arr = newArrayList unit
+              let arr = newArrayList ()
               in do
                 add arr "asd"
                 add arr "oops"

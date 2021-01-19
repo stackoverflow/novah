@@ -19,7 +19,7 @@ data class Module(
     var comment: Comment? = null
 
     var resolvedImports = emptyMap<String, String>()
-    
+
     var foreignTypes = emptyMap<String, String>()
     var foreignVars = emptyMap<String, ForeignRef>()
 
@@ -108,7 +108,7 @@ sealed class ForeignImport(val type: String, val span: Span) {
 sealed class Decl {
     data class DataDecl(val name: String, val tyVars: List<String>, val dataCtors: List<DataConstructor>) : Decl()
     data class TypeDecl(val name: String, val type: Type) : Decl()
-    data class ValDecl(val name: String, val binders: List<Binder>, val exp: Expr) : Decl()
+    data class ValDecl(val name: String, val patterns: List<FunparPattern>, val exp: Expr) : Decl()
 
     var comment: Comment? = null
     var span = Span.empty()
@@ -163,8 +163,8 @@ sealed class Expr {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
-    data class Lambda(val binders: List<Binder>, val body: Expr) : Expr() {
-        override fun toString(): String = "\\" + binders.joinToString(" ") + " -> $body"
+    data class Lambda(val patterns: List<FunparPattern>, val body: Expr) : Expr() {
+        override fun toString(): String = "\\" + patterns.joinToString(" ") + " -> $body"
     }
 
     data class App(val fn: Expr, val arg: Expr) : Expr() {
@@ -179,6 +179,8 @@ sealed class Expr {
     data class Parens(val exp: Expr) : Expr() {
         override fun toString(): String = "($exp)"
     }
+
+    class Unit : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null
@@ -198,7 +200,13 @@ data class Binder(val name: String, val span: Span) {
     override fun toString(): String = name
 }
 
-data class LetDef(val name: Binder, val binders: List<Binder>, val expr: Expr, val type: Type? = null)
+sealed class FunparPattern(open val span: Span) {
+    data class Ignored(override val span: Span) : FunparPattern(span)
+    data class Unit(override val span: Span) : FunparPattern(span)
+    data class Bind(val binder: Binder) : FunparPattern(binder.span)
+}
+
+data class LetDef(val name: Binder, val patterns: List<FunparPattern>, val expr: Expr, val type: Type? = null)
 
 data class Case(val pattern: Pattern, val exp: Expr)
 

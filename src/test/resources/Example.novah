@@ -88,6 +88,9 @@ hrt i f t = 1
 sum :: Int -> Int -> Int
 sum x y = x + y
 
+const :: forall a. a -> b -> a
+const x _ = x
+
 mklist :: Int -> Int -> List (List (Int -> Int))
 mklist = todo
 
@@ -107,7 +110,7 @@ ex = \x ->
     x * y
 
 doIt :: Unit -> String
-doIt u = do
+doIt () = do
   println
     "not pure"
       // bla

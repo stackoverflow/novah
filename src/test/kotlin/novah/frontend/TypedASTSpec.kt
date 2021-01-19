@@ -98,7 +98,7 @@ class TypedASTSpec : StringSpec({
             lamb :: Int -> String -> Unit
             lamb x y = do
               Just "a"
-              unit
+              ()
             
             main args = do
               lamb 4 "hello"

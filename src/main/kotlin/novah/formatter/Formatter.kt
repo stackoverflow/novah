@@ -106,7 +106,7 @@ class Formatter {
     }
 
     fun show(d: Decl.ValDecl): String {
-        val prefix = d.name + d.binders.joinToStr(" ", prefix = " ") + " ="
+        val prefix = d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
         return if (shouldNewline(d.exp)) {
             prefix + withIndent { tab + show(d.exp) }
@@ -148,7 +148,7 @@ class Formatter {
             }
             is Expr.Lambda -> {
                 val shown = if (shouldNewline(e.body)) withIndent { tab + show(e.body) } else show(e.body)
-                "\\" + e.binders.joinToString(" ") + " -> $shown"
+                "\\" + e.patterns.joinToString(" ") { show(it) } + " -> $shown"
             }
             is Expr.Var -> e.toString()
             is Expr.Operator -> e.toString()
@@ -161,11 +161,18 @@ class Formatter {
             is Expr.CharE -> "'${e.v}'"
             is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
+            is Expr.Unit -> "()"
         }
     }
 
     private fun show(c: Case): String {
         return show(c.pattern) + " -> " + show(c.exp)
+    }
+
+    private fun show(fp: FunparPattern): String = when (fp) {
+        is FunparPattern.Ignored -> "_"
+        is FunparPattern.Unit -> "()"
+        is FunparPattern.Bind -> fp.binder.name
     }
 
     private fun show(p: Pattern): String = when (p) {
@@ -188,7 +195,7 @@ class Formatter {
 
     private fun show(l: LetDef): String {
         val typ = if (l.type != null) "${l.name} :: ${show(l.type)}\n$tab" else ""
-        return "${typ}${l.name}" + l.binders.joinToStr(" ", prefix = " ") + " = ${show(l.expr)}"
+        return "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " = ${show(l.expr)}"
     }
 
     fun show(t: Type): String = when (t) {
