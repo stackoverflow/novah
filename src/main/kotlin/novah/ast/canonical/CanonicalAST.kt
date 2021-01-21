@@ -57,9 +57,15 @@ sealed class Expr(open val span: Span) {
     data class Match(val exp: Expr, val cases: List<Case>, override val span: Span) : Expr(span)
     data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
-    data class NativeFieldGet(val name: Name, val field: Field, override val span: Span) : Expr(span)
-    data class NativeFieldSet(val name: Name, val field: Field, override val span: Span) : Expr(span)
-    data class NativeMethod(val name: Name, val method: Method, override val span: Span) : Expr(span)
+    data class NativeFieldGet(val name: Name, val field: Field, val isStatic: Boolean, override val span: Span) :
+        Expr(span)
+
+    data class NativeFieldSet(val name: Name, val field: Field, val isStatic: Boolean, override val span: Span) :
+        Expr(span)
+
+    data class NativeMethod(val name: Name, val method: Method, val isStatic: Boolean, override val span: Span) :
+        Expr(span)
+
     data class NativeConstructor(val name: Name, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
     data class Unit(override val span: Span) : Expr(span)
 
@@ -71,6 +77,8 @@ sealed class Expr(open val span: Span) {
         return t
     }
 }
+
+fun Expr.Constructor.fullname(module: String): String = if (alias != null) "$alias.$name" else "$module.$name"
 
 data class Binder(val name: Name, val span: Span) {
     override fun toString(): String = "$name"
@@ -166,12 +174,20 @@ fun Expr.aliasVar(v: Name, newName: Name): Expr {
     return this
 }
 
+fun Pattern.resolveUnsolved(m: Map<Name, Type>) {
+    if (this is Pattern.Ctor) {
+        ctor.resolveUnsolved(m)
+        fields.forEach { it.resolveUnsolved(m) }
+    }
+}
+
 /**
  * Resolve unsolved variables left in this expression
  */
 fun Expr.resolveUnsolved(m: Map<Name, Type>) {
     when (this) {
         is Expr.Var -> if (type != null) withType(type!!.substTMetas(m))
+        is Expr.Constructor -> if (type != null) withType(type!!.substTMetas(m))
         is Expr.App -> {
             if (type != null) withType(type!!.substTMetas(m))
             fn.resolveUnsolved(m)
@@ -198,7 +214,11 @@ fun Expr.resolveUnsolved(m: Map<Name, Type>) {
         }
         is Expr.Match -> {
             if (type != null) withType(type!!.substTMetas(m))
-            cases.forEach { it.exp.resolveUnsolved(m) }
+            exp.resolveUnsolved(m)
+            cases.forEach {
+                it.pattern.resolveUnsolved(m)
+                it.exp.resolveUnsolved(m)
+            }
         }
         is Expr.Do -> {
             if (type != null) withType(type!!.substTMetas(m))

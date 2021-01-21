@@ -1,9 +1,8 @@
 # Roadmap
 
-# TODO
-
 - [ ] IDE support
 - [ ] LSP implemented in the compiler
+- [ ] Some form of abstraction (scrap-you-typeclasses style)
 - [ ] Syntatic sugar for lambdas
 - [ ] Literal syntax for basic data structures
 - [ ] Persistent data structures

@@ -1,0 +1,5 @@
+module test
+
+foreign import String.codePointCount(Int, Int)
+
+f () = codePointCount "abc" 1

@@ -1,28 +1,28 @@
 package novah.optimize
 
 import novah.Util.internalError
+import novah.ast.canonical.FunparPattern
 import novah.ast.canonical.Pattern
+import novah.ast.canonical.fullname
 import novah.ast.canonical.show
 import novah.ast.optimized.*
 import novah.data.Err
 import novah.data.Ok
 import novah.data.Reflection
 import novah.data.Result
-import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.InferenceError
-import novah.frontend.typechecker.Name
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
+import novah.frontend.typechecker.Prim.tString
+import novah.frontend.typechecker.Prim.tUnit
 import novah.frontend.typechecker.inferError
-import kotlin.math.max
 import novah.ast.canonical.Binder as CBinder
-import novah.ast.canonical.FunparPattern
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.DataDecl as CDataDecl
 import novah.ast.canonical.Decl.ValDecl as CValDecl
@@ -93,10 +93,10 @@ class Optimizer(private val ast: CModule) {
                 }
             }
             is CExpr.Constructor -> {
-                val ctorName = internalize(if (moduleName != null) "$moduleName" else ast.name) + "/$name"
-                val arity = PatternMatchingCompiler.getFromCache(name.toString())?.arity
+                val ctorName = fullname(ast.name)
+                val arity = PatternMatchingCompiler.getFromCache(ctorName)?.arity
                     ?: internalError("Could not find constructor $name")
-                Expr.Constructor(ctorName, arity, typ)
+                Expr.Constructor(internalize(ctorName), arity, typ)
             }
             is CExpr.Lambda -> {
                 haslambda = true
@@ -112,12 +112,12 @@ class Optimizer(private val ast: CModule) {
                         // native getter will never be static here
                         is CExpr.NativeFieldGet -> Expr.NativeFieldGet(exp.field, pars[0].convert(locals), typ)
                         is CExpr.NativeFieldSet -> {
-                            if (Reflection.isStatic(exp.field))
+                            if (exp.isStatic)
                                 Expr.NativeStaticFieldSet(exp.field, pars[0].convert(locals), typ)
                             else Expr.NativeFieldSet(exp.field, pars[0].convert(locals), pars[1].convert(locals), typ)
                         }
                         is CExpr.NativeMethod -> {
-                            if (Reflection.isStatic(exp.method))
+                            if (exp.isStatic)
                                 Expr.NativeStaticMethod(exp.method, pars.map { it.convert(locals) }, typ)
                             else {
                                 val nativePars = pars.map { it.convert(locals) }
@@ -141,11 +141,10 @@ class Optimizer(private val ast: CModule) {
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ)
             is CExpr.Match -> {
-                val match = cases.map { PatternMatchingCompiler.convert(it) }
+                val match = cases.map { PatternMatchingCompiler.convert(it, ast.name) }
                 val compRes = PatternMatchingCompiler<Pattern>().compile(match)
                 reportPatternMatch(compRes, this)
-                //desugarMatch(this, locals)
-                Expr.IntE(1, typ)
+                desugarMatch(this, typ, locals)
             }
             is CExpr.NativeFieldGet -> {
                 if (!Reflection.isStatic(field))
@@ -164,7 +163,7 @@ class Optimizer(private val ast: CModule) {
     }
 
     private fun CBinder.convert(): String = name.toString()
-    
+
     private fun FunparPattern.convert(): String? = when (this) {
         is FunparPattern.Ignored -> null
         is FunparPattern.Unit -> null
@@ -182,26 +181,84 @@ class Optimizer(private val ast: CModule) {
         is TType.TMeta -> internalError("got TMeta after type checking: $this")
     }
 
-    private fun desugarMatch(m: CExpr.Match, locals: List<String> = listOf()): Expr {
-        val boolType = tBoolean.convert()
+    private val rteCtor = RuntimeException::class.java.constructors.find {
+        it.parameterCount == 1 && it.parameterTypes[0].canonicalName == "java.lang.String"
+    }!!
+
+    private val stringType = tString.convert()
+    private val boolType = tBoolean.convert()
+    private val unitType = tUnit.convert()
+
+    private fun makeThrow(msg: String): Expr {
+        return Expr.Throw(
+            Expr.NativeCtor(
+                rteCtor,
+                listOf(Expr.StringE(msg, stringType)),
+                Type.TVar("java/lang/RuntimeException")
+            )
+        )
+    }
+
+    private fun desugarMatch(m: CExpr.Match, type: Type, locals: List<String>): Expr {
         val tru = Expr.Bool(true, boolType)
 
-        fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<Expr>> = when (p) {
+        fun mkCtorField(
+            name: String,
+            fieldIndex: Int,
+            ctorExpr: Expr,
+            ctorType: Type,
+            fieldType: Type,
+            expectedFieldType: Type
+        ): Expr {
+            val castedExpr = Expr.Cast(ctorExpr, ctorType)
+            val field = Expr.ConstructorAccess(name, fieldIndex, castedExpr, fieldType)
+            return if (fieldType == expectedFieldType) field
+            else Expr.Cast(field, expectedFieldType)
+        }
+
+        fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<Expr.DoLet>> = when (p) {
             is Pattern.Wildcard -> tru to emptyList()
-            is Pattern.Var -> tru to listOf(Expr.LocalVar(p.name.rawName(), exp.type))
+            is Pattern.Var -> tru to listOf(Expr.DoLet(p.name.rawName(), exp, unitType))
             is Pattern.LiteralP -> Expr.OperatorApp("==", listOf(exp, p.lit.e.convert(locals)), boolType) to emptyList()
             is Pattern.Ctor -> {
-//                val ctor = p.ctor.convert(locals) as Expr.Constructor
-//                val typeCheck = Expr.InstanceOf(ctor, exp.type)
-//                val fields = p.fields.mapIndexed { i, pat ->
-//                    val type = dataConstructors[ctor.fullName]!!.args[i]
-//                    desugarPattern(pat, Expr.ConstructorAccess(ctor.fullName, i + 1, type))
-//                }
-                TODO()
+                val conds = mutableListOf<Expr>()
+                val vars = mutableListOf<Expr.DoLet>()
+
+                val (fieldTypes, _) = peelArgs(p.ctor.type!!)
+                val expectedFieldTypes = exp.type as? Type.TConstructor
+                    ?: internalError("Got wrong type for constructor pattern: ${exp.type}")
+
+                val ctor = p.ctor.convert(locals) as Expr.Constructor
+                val name = p.ctor.fullname(ast.name)
+                val ctorType = Type.TConstructor(internalize(name), emptyList())
+                conds += Expr.InstanceOf(exp, ctorType)
+
+                p.fields.forEachIndexed { i, pat ->
+                    val field = mkCtorField(ctor.fullName, i + 1, exp, ctorType, fieldTypes[i], expectedFieldTypes.types[i])
+                    val (cond, vs) = desugarPattern(pat, field)
+                    conds += cond
+                    vars += vs
+                }
+
+                // remove redundant checks
+                val simplified = conds.filter { it != tru }
+                when {
+                    simplified.isEmpty() -> tru to vars
+                    simplified.size == 1 -> simplified[0] to vars
+                    else -> Expr.OperatorApp("&&", conds, boolType) to vars
+                }
             }
         }
-        //val let = Expr.Let("x", m.exp.convert())
-        TODO()
+
+        val exp = m.exp.convert(locals)
+        val pats = m.cases.map { case ->
+            val (cond, vars) = desugarPattern(case.pattern, exp)
+            val introducedVariables = vars.map { it.binder }
+            val caseExp = case.exp.convert(locals + introducedVariables)
+            val expr = if (vars.isEmpty()) caseExp else Expr.Do(vars + caseExp, caseExp.type)
+            cond to expr
+        }
+        return Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
     }
 
     /**
@@ -220,35 +277,26 @@ class Optimizer(private val ast: CModule) {
         }
         pars.reverse()
         return when (exp) {
-            is CExpr.NativeFieldGet -> {
-                if (Reflection.isStatic(exp.field)) null
-                else {
-                    if (depth != 1) throwArgs(exp.name, exp.span, "getter", 1, depth)
-                    exp to pars
-                }
-            }
-            is CExpr.NativeFieldSet -> {
-                val should = if (Reflection.isStatic(exp.field)) 1 else 2
-                if (depth != should) throwArgs(exp.name, exp.span, "setter", should, depth)
-                exp to pars
-            }
-            is CExpr.NativeMethod -> {
-                var count = exp.method.parameterCount
-                if (!Reflection.isStatic(exp.method)) count++
-                if (depth != count) {
-                    throwArgs(exp.name, exp.span, "method", count, depth)
-                }
-                exp to pars
-            }
-            is CExpr.NativeConstructor -> {
-                val count = max(exp.ctor.parameterCount, 1)
-                if (depth != count) {
-                    throwArgs(exp.name, exp.span, "constructor", count, depth)
-                }
-                exp to pars
-            }
+            is CExpr.NativeFieldGet, is CExpr.NativeFieldSet, is CExpr.NativeMethod, is CExpr.NativeConstructor -> exp to pars
             else -> null
         }
+    }
+
+    private fun peelArgs(type: TType): Pair<List<Type>, Type> {
+        tailrec fun innerPeelArgs(args: List<TType>, t: TType): Pair<List<TType>, TType> = when (t) {
+            is TType.TFun -> {
+                if (t.ret is TType.TFun) innerPeelArgs(args + t.arg, t.ret)
+                else args + t.arg to t.ret
+            }
+            else -> args to t
+        }
+
+        var rawType = type
+        while (rawType is TType.TForall) {
+            rawType = rawType.type
+        }
+        val (pars, ret) = innerPeelArgs(emptyList(), rawType)
+        return pars.map { it.convert() } to ret.convert()
     }
 
     companion object {
@@ -275,14 +323,6 @@ class Optimizer(private val ast: CModule) {
             "prim.String" -> "java/lang/String"
             "prim.Unit" -> "java/lang/Object"
             else -> internalize(tvar.name.toString())
-        }
-
-        private fun throwArgs(name: Name, span: Span, ctx: String, should: Int, got: Int): Nothing {
-            inferError(
-                E.wrongArgsToNative(name, ctx, should, got),
-                span,
-                ProblemContext.FOREIGN
-            )
         }
 
         private fun internalize(name: String) = name.replace('.', '/')

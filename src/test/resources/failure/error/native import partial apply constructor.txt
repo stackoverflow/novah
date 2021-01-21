@@ -1,0 +1,6 @@
+module [33mtest[0m
+at src/test/resources/failure/source/native import partial apply constructor.novah:5:8 - 5:20
+
+  Foreign setters, methods and constructors cannot be partially applied.
+  Foreign constructor newArrayList needs 1 parameter(s), got 0.
+

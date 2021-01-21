@@ -23,6 +23,7 @@ import novah.backend.TypeUtil.OBJECT_TYPE
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
 import novah.backend.TypeUtil.buildMethodSignature
+import novah.backend.TypeUtil.descriptor
 import novah.backend.TypeUtil.maybeBuildFieldSignature
 import novah.backend.TypeUtil.toInternalClass
 import novah.backend.TypeUtil.toInternalMethodType
@@ -176,7 +177,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitFieldInsn(GETSTATIC, e.className, e.name, toInternalType(e.type))
             }
             is Expr.Constructor -> {
-                if (e.arity == 0) mv.visitFieldInsn(GETSTATIC, e.fullName, INSTANCE, toInternalType(e.type))
+                if (e.arity == 0) mv.visitFieldInsn(GETSTATIC, e.fullName, INSTANCE, descriptor(e.fullName))
                 else mv.visitFieldInsn(GETSTATIC, e.fullName, LAMBDA_CTOR, FUNCTION_TYPE)
             }
             is Expr.CtorApp -> {
@@ -188,83 +189,26 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 e.args.forEach {
                     genExpr(it, mv, ctx)
                 }
-                mv.visitMethodInsn(INVOKESPECIAL, name, GenUtil.INIT, "($type)V", false)
+                mv.visitMethodInsn(INVOKESPECIAL, name, INIT, "($type)V", false)
             }
             is Expr.ConstructorAccess -> {
-                mv.visitFieldInsn(GETSTATIC, e.fullName, "v${e.field}", toInternalType(e.type))
+                genExpr(e.ctor, mv, ctx)
+                mv.visitFieldInsn(GETFIELD, e.fullName, "v${e.field}", toInternalType(e.type))
             }
             is Expr.OperatorApp -> {
-                if (e.name == "&&") {
-                    val fail = Label()
-                    val success = Label()
-                    e.operands.forEach { op ->
-                        if (op is Expr.Bool) {
-                            mv.visitInsn(if (op.v) ICONST_1 else ICONST_0)
-                        } else {
-                            genExpr(op, mv, ctx)
-                            mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
-                        }
-                        mv.visitJumpInsn(IFEQ, fail)
-                    }
-                    mv.visitInsn(ICONST_1)
-                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
-                    mv.visitJumpInsn(GOTO, success)
-                    mv.visitLabel(fail)
-                    mv.visitInsn(ICONST_0)
-                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
-                    mv.visitLabel(success)
-                    return
+                when (e.name) {
+                    "&&" -> genOperatorAnd(e, mv, ctx)
+                    "||" -> genOperatorOr(e, mv, ctx)
+                    "==" -> genOperatorEquals(e, mv, ctx)
                 }
-                if (e.name == "||") {
-                    val fail = Label()
-                    val success = Label()
-                    val end = Label()
-                    val last = e.operands.size - 1
-                    e.operands.forEachIndexed { i, op ->
-                        if (op is Expr.Bool) {
-                            mv.visitInsn(if (op.v) ICONST_1 else ICONST_0)
-                        } else {
-                            genExpr(op, mv, ctx)
-                            mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
-                        }
-                        if (i == last)
-                            mv.visitJumpInsn(IFEQ, fail)
-                        else
-                            mv.visitJumpInsn(IFNE, success)
-                    }
-                    mv.visitLabel(success)
-                    mv.visitInsn(ICONST_1)
-                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
-                    mv.visitJumpInsn(GOTO, end)
-                    mv.visitLabel(fail)
-                    mv.visitInsn(ICONST_0)
-                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
-                    mv.visitLabel(end)
-                    return
-                }
-                if (e.name == "==") {
-                    if (e.operands.size != 2) internalError("got wrong number of operators for == operator")
-                    val op1 = e.operands[0]
-                    val op2 = e.operands[1]
-                    genExpr(op1, mv, ctx)
-                    genExpr(op2, mv, ctx)
-                    mv.visitMethodInsn(
-                        INVOKEVIRTUAL,
-                        toInternalClass(op1.type),
-                        "equals",
-                        "($OBJECT_TYPE)Z",
-                        false
-                    )
-                    mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
-                }
+                mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
             }
             is Expr.If -> {
                 val endLabel = Label()
                 var elseLabel: Label? = null
                 e.conds.forEach { (cond, then) ->
                     if (elseLabel != null) mv.visitLabel(elseLabel)
-                    genExpr(cond, mv, ctx)
-                    mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+                    genExprForPrimitiveBool(cond, mv, ctx)
                     elseLabel = Label()
                     mv.visitJumpInsn(IFEQ, elseLabel)
                     genExpr(then, mv, ctx)
@@ -281,19 +225,31 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 genExpr(e.bindExpr, mv, ctx)
                 mv.visitVarInsn(ASTORE, num)
                 mv.visitLabel(varStartLabel)
+                ctx.put(e.binder, num, varStartLabel)
 
                 // TODO: check if we need to define the variable before generating the letdef
                 // to allow recursion
-                ctx.put(e.binder, num, varStartLabel)
                 genExpr(e.body, mv, ctx)
                 mv.visitLabel(varEndLabel)
                 ctx.setEndLabel(e.binder, varEndLabel)
             }
             is Expr.Do -> {
+                val lastIndex = e.exps.size - 1
                 e.exps.forEachIndexed { index, expr ->
-                    if (index != 0) mv.visitInsn(POP)
                     genExpr(expr, mv, ctx)
+                    if (index != lastIndex && expr !is Expr.DoLet) mv.visitInsn(POP)
                 }
+            }
+            is Expr.DoLet -> {
+                val num = ctx.nextLocal()
+                val varStartLabel = Label()
+                //val varEndLabel = Label()
+                genExpr(e.bindExpr, mv, ctx)
+                mv.visitVarInsn(ASTORE, num)
+                mv.visitLabel(varStartLabel)
+                ctx.put(e.binder, num, varStartLabel)
+                // TODO: the variable doesn't end here
+                //ctx.setEndLabel(e.binder, varEndLabel)
             }
             is Expr.App -> {
                 resolvePrimitiveModuleApp(mv, e, ctx)
@@ -328,8 +284,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 )
             }
             is Expr.InstanceOf -> {
-                genExpr(e.exp, mv, ctx)
-                mv.visitTypeInsn(INSTANCEOF, toInternalClass(e.type))
+                genInstanceOf(e, mv, ctx)
+                mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
             }
             is Expr.NativeStaticFieldGet -> {
                 val f = e.field
@@ -387,6 +343,29 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.Unit -> {
                 mv.visitInsn(ACONST_NULL)
             }
+            is Expr.Throw -> {
+                genExpr(e.expr, mv, ctx)
+                mv.visitInsn(ATHROW)
+            }
+            is Expr.Cast -> {
+                genExpr(e.expr, mv, ctx)
+                mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
+            }
+        }
+    }
+
+    private fun genExprForPrimitiveBool(e: Expr, mv: MethodVisitor, ctx: GenContext) = when (e) {
+        is Expr.Bool -> genBool(e, mv)
+        is Expr.InstanceOf -> genInstanceOf(e, mv, ctx)
+        is Expr.OperatorApp -> when (e.name) {
+            "&&" -> genOperatorAnd(e, mv, ctx)
+            "||" -> genOperatorOr(e, mv, ctx)
+            "==" -> genOperatorEquals(e, mv, ctx)
+            else -> internalError("unknown boolean operator ${e.name}")
+        }
+        else -> {
+            genExpr(e, mv, ctx)
+            mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
         }
     }
 
@@ -405,6 +384,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             name == "double" && e is Expr.DoubleE -> genDouble(e, mv)
             name == "char" && e is Expr.CharE -> genChar(e, mv)
             name == "boolean" && e is Expr.Bool -> genBool(e, mv)
+            name == "boolean" && e is Expr.InstanceOf -> genInstanceOf(e, mv, ctx)
             else -> {
                 genExpr(e, mv, ctx)
                 unbox(type, mv)
@@ -497,6 +477,61 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private fun genBool(e: Expr.Bool, mv: MethodVisitor): Unit = mv.visitInsn(if (e.v) ICONST_1 else ICONST_0)
 
+    private fun genInstanceOf(e: Expr.InstanceOf, mv: MethodVisitor, ctx: GenContext) {
+        genExpr(e.exp, mv, ctx)
+        mv.visitTypeInsn(INSTANCEOF, toInternalClass(e.type))
+    }
+
+    private fun genOperatorAnd(e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
+        val fail = Label()
+        val success = Label()
+        e.operands.forEach { op ->
+            genExprForPrimitiveBool(op, mv, ctx)
+            mv.visitJumpInsn(IFEQ, fail)
+        }
+        mv.visitInsn(ICONST_1)
+        mv.visitJumpInsn(GOTO, success)
+        mv.visitLabel(fail)
+        mv.visitInsn(ICONST_0)
+        mv.visitLabel(success)
+    }
+
+    private fun genOperatorOr(e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
+        val fail = Label()
+        val success = Label()
+        val end = Label()
+        val last = e.operands.size - 1
+        e.operands.forEachIndexed { i, op ->
+            genExprForPrimitiveBool(op, mv, ctx)
+
+            if (i == last)
+                mv.visitJumpInsn(IFEQ, fail)
+            else
+                mv.visitJumpInsn(IFNE, success)
+        }
+        mv.visitLabel(success)
+        mv.visitInsn(ICONST_1)
+        mv.visitJumpInsn(GOTO, end)
+        mv.visitLabel(fail)
+        mv.visitInsn(ICONST_0)
+        mv.visitLabel(end)
+    }
+
+    private fun genOperatorEquals(e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
+        if (e.operands.size != 2) internalError("got wrong number of operators for == operator")
+        val op1 = e.operands[0]
+        val op2 = e.operands[1]
+        genExprForPrimitiveBool(op1, mv, ctx)
+        genExprForPrimitiveBool(op2, mv, ctx)
+        mv.visitMethodInsn(
+            INVOKEVIRTUAL,
+            toInternalClass(op1.type),
+            "equals",
+            "($OBJECT_TYPE)Z",
+            false
+        )
+    }
+
     /**
      * Box a primitive type
      */
@@ -580,6 +615,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 go(exp.bindExpr)
                 go(exp.body)
             }
+            is Expr.DoLet -> {
+                for (l in lambdas) {
+                    l.ignores += exp.binder
+                }
+                go(exp.bindExpr)
+            }
             is Expr.App -> {
                 go(exp.fn)
                 go(exp.arg)
@@ -614,6 +655,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.NativeCtor -> {
                 for (e in exp.pars) go(e)
             }
+            is Expr.Throw -> go(exp.expr)
+            is Expr.Cast -> go(exp.expr)
             else -> {
             }
         }
@@ -632,7 +675,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val args = mutableListOf<Expr.LocalVar>()
         args.addAll(l.locals)
         if (l.binder != null) args += Expr.LocalVar(l.binder, ftype.arg)
-        
+
         val argTypes = l.locals.map { it.type } + ftype.arg
         val lam = cw.visitMethod(
             ACC_PRIVATE + ACC_STATIC + ACC_SYNTHETIC,

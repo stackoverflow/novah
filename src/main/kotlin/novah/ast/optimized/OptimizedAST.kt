@@ -1,9 +1,9 @@
 package novah.ast.optimized
 
 import novah.ast.canonical.Visibility
-import java.lang.reflect.Constructor as JConstructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.Constructor as JConstructor
 
 /**
  * The optmized AST used for code generation
@@ -52,7 +52,10 @@ sealed class Expr(open val type: Type) {
     data class If(val conds: List<Pair<Expr, Expr>>, val elseCase: Expr, override val type: Type) : Expr(type)
     data class Let(val binder: String, val bindExpr: Expr, val body: Expr, override val type: Type) : Expr(type)
     data class Do(val exps: List<Expr>, override val type: Type) : Expr(type)
-    data class ConstructorAccess(val fullName: String, val field: Int, override val type: Type) : Expr(type)
+    data class DoLet(val binder: String, val bindExpr: Expr, override val type: Type) : Expr(type)
+    data class ConstructorAccess(val fullName: String, val field: Int, val ctor: Expr, override val type: Type) :
+        Expr(type)
+
     data class OperatorApp(val name: String, val operands: List<Expr>, override val type: Type) : Expr(type)
     data class InstanceOf(val exp: Expr, override val type: Type) : Expr(type)
     data class NativeFieldGet(val field: Field, val thisPar: Expr, override val type: Type) : Expr(type)
@@ -65,6 +68,8 @@ sealed class Expr(open val type: Type) {
     data class NativeStaticMethod(val method: Method, val pars: List<Expr>, override val type: Type) : Expr(type)
     data class NativeCtor(val ctor: JConstructor<*>, val pars: List<Expr>, override val type: Type) : Expr(type)
     data class Unit(override val type: Type) : Expr(type)
+    data class Throw(val expr: Expr) : Expr(expr.type)
+    data class Cast(val expr: Expr, override val type: Type) : Expr(type)
 }
 
 sealed class Type {
