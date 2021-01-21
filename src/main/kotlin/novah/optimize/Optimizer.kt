@@ -240,10 +240,13 @@ class Optimizer(private val ast: CModule) {
                     vars += vs
                 }
 
-                if (conds.size > 1) {
-                    val cond = Expr.OperatorApp("&&", conds, boolType)
-                    cond to vars
-                } else conds[0] to vars
+                // remove redundant checks
+                val simplified = conds.filter { it != tru }
+                when {
+                    simplified.isEmpty() -> tru to vars
+                    simplified.size == 1 -> simplified[0] to vars
+                    else -> Expr.OperatorApp("&&", conds, boolType) to vars
+                }
             }
         }
 
