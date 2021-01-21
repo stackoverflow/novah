@@ -112,7 +112,7 @@ class ADTGen(
         )
 
         if (args.isEmpty()) {
-            genEmptyConstructor(cw, ACC_PRIVATE)
+            genEmptyConstructor(cw, ACC_PRIVATE, superClass)
 
             val fieldSig = if (adt.tyVars.isNotEmpty()) {
                 "L$className" + adt.tyVars.joinToString(
@@ -182,11 +182,11 @@ class ADTGen(
 
     companion object {
 
-        fun genEmptyConstructor(cw: ClassWriter, access: Int) {
+        fun genEmptyConstructor(cw: ClassWriter, access: Int, superClass: String = OBJECT_CLASS) {
             val init = cw.visitMethod(access, INIT, "()V", null, emptyArray())
             init.visitCode()
             init.visitVarInsn(ALOAD, 0)
-            init.visitMethodInsn(INVOKESPECIAL, OBJECT_CLASS, INIT, "()V", false)
+            init.visitMethodInsn(INVOKESPECIAL, superClass, INIT, "()V", false)
             init.visitInsn(RETURN)
             init.visitMaxs(0, 0)
             init.visitEnd()

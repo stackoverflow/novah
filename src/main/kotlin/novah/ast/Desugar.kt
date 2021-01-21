@@ -98,11 +98,11 @@ class Desugar(private val smod: SModule) {
                     }
                     validateNativeCall(exp, appFnDepth)
                     exp
-                } else Expr.Var(name.raw(), span, imports[this.toString()])
+                } else Expr.Var(name.raw(), span, imports[fullname()])
             }
         }
-        is SExpr.Operator -> Expr.Var(name.raw(), span, imports[this.toString()])
-        is SExpr.Constructor -> Expr.Constructor(name.raw(), span, imports[this.toString()])
+        is SExpr.Operator -> Expr.Var(name.raw(), span, imports[fullname()])
+        is SExpr.Constructor -> Expr.Constructor(name.raw(), span, imports[fullname()])
         is SExpr.Lambda -> {
             val names = patterns.filterIsInstance<SFunparPattern.Bind>().map { it.binder.name }
             nestLambdas(patterns.map { it.desugar() }, body.desugar(locals + names))
@@ -168,6 +168,7 @@ class Desugar(private val smod: SModule) {
                 // at this point we know if a type is a normal type
                 // or a no-parameter constructor
                 // TODO: this is wrong, only finds constructors defined in this module, not imported
+                //       this should be solved by removing the TConstructor type and using real kinds
                 if (name in dataCtors) Type.TConstructor(varName.raw(), listOf())
                 else Type.TVar(varName.raw())
             }

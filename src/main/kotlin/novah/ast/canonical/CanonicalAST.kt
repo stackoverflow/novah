@@ -78,6 +78,8 @@ sealed class Expr(open val span: Span) {
     }
 }
 
+fun Expr.Constructor.fullname(module: String): String = if (alias != null) "$alias.$name" else "$module.$name"
+
 data class Binder(val name: Name, val span: Span) {
     override fun toString(): String = "$name"
 }

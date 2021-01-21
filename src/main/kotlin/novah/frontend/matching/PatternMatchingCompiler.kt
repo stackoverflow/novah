@@ -189,20 +189,25 @@ class PatternMatchingCompiler<R> {
             for (dd in mod.decls.filterIsInstance<Decl.DataDecl>()) {
                 val span = dd.dataCtors.size
                 for (c in dd.dataCtors) {
-                    if (ctorCache.containsKey(c.name)) break
-                    ctorCache[c.name] = Ctor(c.name, c.args.size, span)
+                    val name = "${mod.name}.${c.name}"
+                    if (ctorCache.containsKey(name)) break
+                    ctorCache[name] = Ctor(c.name, c.args.size, span)
                 }
             }
         }
 
         fun getFromCache(name: String): Ctor? = ctorCache[name]
 
-        fun convert(c: Case): MatchRule<Pattern> = MatchRule(convertPattern(c.pattern), c.pattern)
+        fun convert(c: Case, modName: String): MatchRule<Pattern> =
+            MatchRule(convertPattern(c.pattern, modName), c.pattern)
 
-        private fun convertPattern(p: Pattern): Pat = when (p) {
+        private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {
             is Pattern.Wildcard -> Pat.PVar("_")
             is Pattern.Var -> Pat.PVar(p.name.toString())
-            is Pattern.Ctor -> Pat.PCon(ctorCache[p.ctor.name.toString()]!!, p.fields.map { convertPattern(it) })
+            is Pattern.Ctor -> {
+                val name = p.ctor.fullname(modName)
+                Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
+            }
             is Pattern.LiteralP -> {
                 val con = when (val l = p.lit) {
                     is LiteralPattern.BoolLiteral -> if (l.e.v) trueCtor else falseCtor

@@ -196,6 +196,10 @@ sealed class Expr {
     }
 }
 
+fun Expr.Var.fullname(): String = if (alias != null) "$alias.$name" else name
+fun Expr.Constructor.fullname(): String = if (alias != null) "$alias.$name" else name
+fun Expr.Operator.fullname(): String = if (alias != null) "$alias.$name" else name
+
 data class Binder(val name: String, val span: Span) {
     override fun toString(): String = name
 }

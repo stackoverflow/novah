@@ -9,7 +9,7 @@ foreign import type java.util.ArrayList
 foreign import new ArrayList() as newArrayList
 foreign import ArrayList.add(String)
 
-type Maybe a = Just a | Nothing
+type Maybe a = Some a | None
 
 type Day = Weekday | Weekend
 
@@ -42,13 +42,18 @@ l x = let l1 = toString 4
 
 w = \x -> x
 
+myFun :: Maybe String -> String
+myFun x = case x of
+  Some v -> v
+  None -> "nope"
+
 lamb :: Boolean -> String -> Unit
 lamb x y = do
   if x
   then println y
   else println (toString x)
-  Just "a"
-  println (toString (Just "a"))
+  Some "a"
+  println (toString (Some "a"))
 
 run () =
   let arr = newArrayList ()
@@ -59,4 +64,5 @@ run () =
 
 main _ = do
   println "running novah"
-  run ()
+  //run ()
+  println (myFun (Some "fun"))
