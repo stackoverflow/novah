@@ -174,12 +174,20 @@ fun Expr.aliasVar(v: Name, newName: Name): Expr {
     return this
 }
 
+fun Pattern.resolveUnsolved(m: Map<Name, Type>) {
+    if (this is Pattern.Ctor) {
+        ctor.resolveUnsolved(m)
+        fields.forEach { it.resolveUnsolved(m) }
+    }
+}
+
 /**
  * Resolve unsolved variables left in this expression
  */
 fun Expr.resolveUnsolved(m: Map<Name, Type>) {
     when (this) {
         is Expr.Var -> if (type != null) withType(type!!.substTMetas(m))
+        is Expr.Constructor -> if (type != null) withType(type!!.substTMetas(m))
         is Expr.App -> {
             if (type != null) withType(type!!.substTMetas(m))
             fn.resolveUnsolved(m)
@@ -206,7 +214,11 @@ fun Expr.resolveUnsolved(m: Map<Name, Type>) {
         }
         is Expr.Match -> {
             if (type != null) withType(type!!.substTMetas(m))
-            cases.forEach { it.exp.resolveUnsolved(m) }
+            exp.resolveUnsolved(m)
+            cases.forEach {
+                it.pattern.resolveUnsolved(m)
+                it.exp.resolveUnsolved(m)
+            }
         }
         is Expr.Do -> {
             if (type != null) withType(type!!.substTMetas(m))
