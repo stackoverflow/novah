@@ -1,0 +1,3 @@
+module test
+
+main args = 10

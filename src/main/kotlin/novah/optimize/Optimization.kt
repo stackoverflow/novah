@@ -3,6 +3,11 @@ package novah.optimize
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
 import novah.ast.optimized.Module
+import novah.frontend.Span
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.Errors
+import novah.frontend.error.ProblemContext
+import novah.main.CompilationError
 
 object Optimization {
 
@@ -15,10 +20,36 @@ object Optimization {
         for (d in ast.decls) {
             decls += when (d) {
                 is Decl.DataDecl -> d
-                is Decl.ValDecl -> Decl.ValDecl(d.name, f(d.exp), d.visibility, d.lineNumber)
+                is Decl.ValDecl -> {
+                    reportUnusedVars(d.exp, d.span, ast)
+                    Decl.ValDecl(d.name, f(d.exp), d.visibility, d.span)
+                }
             }
         }
         return Module(ast.name, ast.sourceName, ast.hasLambda, decls)
+    }
+
+    // TODO: report the span of the specific lambda/let with
+    //       unused variables instead of the whole declaration
+    private fun reportUnusedVars(expr: Expr, span: Span, ast: Module) {
+        val unused = everywhereAccumulating(expr, emptyList<String>()) { e, l ->
+            when (e) {
+                is Expr.Lambda -> if (e.binder != null) l + e.binder else l
+                is Expr.Let -> l + e.binder
+                is Expr.LocalVar -> if (e.name in l) l - e.name else l
+                else -> l
+            }
+        }
+        if (unused.isNotEmpty()) {
+            val err = CompilerProblem(
+                Errors.unusedVariables(unused),
+                ProblemContext.OPTIMIZATION,
+                span,
+                ast.sourceName,
+                ast.name
+            )
+            throw CompilationError(listOf(err))
+        }
     }
 
     /**
@@ -86,9 +117,45 @@ object Optimization {
             is Expr.If -> f(e.copy(conds = e.conds.map { (c, t) -> go(c) to go(t) }, elseCase = go(e.elseCase)))
             is Expr.Let -> f(e.copy(bindExpr = go(e.bindExpr), body = go(e.body)))
             is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
+            is Expr.OperatorApp -> f(e.copy(operands = e.operands.map(::go)))
+            is Expr.InstanceOf -> f(e.copy(exp = go(e.exp)))
+            is Expr.Throw -> f(e.copy(expr = go(e.expr)))
+            is Expr.Cast -> f(e.copy(expr = go(e.expr)))
             else -> f(e)
         }
         return go(expr)
+    }
+
+    /**
+     * Visit every expression top->bottom accumulating a value.
+     */
+    private fun <T> everywhereAccumulating(expr: Expr, init: List<T>, f: (Expr, List<T>) -> List<T>): List<T> {
+        fun go(e: Expr, acc: List<T>): List<T> = when (e) {
+            is Expr.Lambda -> go(e.body, f(e, acc))
+            is Expr.App -> {
+                go(e.arg, go(e.fn, f(e, acc)))
+            }
+            is Expr.CtorApp -> {
+                val ac = go(e.ctor, f(e, acc))
+                e.args.fold(ac) { accu, arg -> go(arg, accu) }
+            }
+            is Expr.If -> {
+                val ac = e.conds.fold(f(e, acc)) { accu, (c, t) -> go(c, go(t, accu))}
+                go(e.elseCase, ac)
+            }
+            is Expr.Let -> go(e.body, go(e.bindExpr, f(e, acc)))
+            is Expr.Do -> {
+                e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
+            }
+            is Expr.OperatorApp -> {
+                e.operands.fold(f(e, acc)) { accu, op -> go(op, accu) }
+            }
+            is Expr.InstanceOf -> go(e.exp, f(e, acc))
+            is Expr.Throw -> go(e.expr, f(e, acc))
+            is Expr.Cast -> go(e.expr, f(e, acc))
+            else -> f(e, acc)
+        }
+        return go(expr, init)
     }
 
     private fun comp(vararg fs: (Expr) -> Expr): (Expr) -> Expr = { e ->

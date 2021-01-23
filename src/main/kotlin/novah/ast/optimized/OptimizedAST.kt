@@ -1,6 +1,7 @@
 package novah.ast.optimized
 
 import novah.ast.canonical.Visibility
+import novah.frontend.Span
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Constructor as JConstructor
@@ -11,17 +12,17 @@ import java.lang.reflect.Constructor as JConstructor
 
 data class Module(val name: String, val sourceName: String, val hasLambda: Boolean, val decls: List<Decl>)
 
-sealed class Decl(open val lineNumber: Int) {
+sealed class Decl(open val span: Span) {
     data class DataDecl(
         val name: String,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
         val visibility: Visibility,
-        override val lineNumber: Int
-    ) : Decl(lineNumber)
+        override val span: Span
+    ) : Decl(span)
 
-    data class ValDecl(val name: String, val exp: Expr, val visibility: Visibility, override val lineNumber: Int) :
-        Decl(lineNumber)
+    data class ValDecl(val name: String, val exp: Expr, val visibility: Visibility, override val span: Span) :
+        Decl(span)
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility)

@@ -111,11 +111,11 @@ object Errors {
     const val FOREIGN_TYPE_ALIAS = "Type has to start with a upper case letter."
 
     const val FOREIGN_ALIAS = "Identifier has to start with a lower case letter."
-    
+
     const val LET_DO_IN = "Let expressions in a do statement cannot have an `in` clause."
-    
+
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
-    
+
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field
@@ -243,6 +243,11 @@ object Errors {
     """.trimIndent()
 
     fun shadowedVariable(name: Name) = "Variable $name is shadowed."
+
+    fun unusedVariables(vars: List<String>): String {
+        return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."
+        else "Variables ${vars.joinToString()} are unused in declaration."
+    }
 
     fun redundantMatches(pats: List<String>) = """
         A case expression contains redundant cases:

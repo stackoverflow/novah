@@ -126,7 +126,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         if (decl.exp is Expr.StringE) return
         val l = Label()
         mv.visitLabel(l)
-        mv.visitLineNumber(decl.lineNumber, l)
+        mv.visitLineNumber(decl.span.startLine, l)
         genExpr(decl.exp, mv, ctx)
         mv.visitFieldInsn(PUTSTATIC, className, decl.name, toInternalType(decl.exp.type))
     }
@@ -696,7 +696,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
         val startL = Label()
         ctx.putParameter("args", Type.TConstructor("JArray", listOf(Type.TVar(STRING_CLASS))), startL)
-        main.visitLineNumber(d.lineNumber, startL)
+        main.visitLineNumber(d.span.startLine, startL)
 
         val exp = (e as Expr.Lambda).body
         genExpr(exp, main, ctx)

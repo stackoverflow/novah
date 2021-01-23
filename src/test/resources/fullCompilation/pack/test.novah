@@ -29,14 +29,14 @@ b = true
 
 c = 'a'
 
-d x = do
+d () = do
   4
   true
   "asd"
 
 i = 99
 
-l x = let l1 = toString 4
+l _ = let l1 = toString 4
           l2 = toString l1
       in l2
 
