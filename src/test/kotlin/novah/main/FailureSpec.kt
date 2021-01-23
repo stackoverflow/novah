@@ -8,8 +8,8 @@ import novah.frontend.TestUtil
 import java.io.File
 
 class FailureSpec : StringSpec({
-    
-    "run all tests" {
+
+    "run all failure tests" {
         val basePath = "src/test/resources/failure"
         File("$basePath/source").walkTopDown().filter { it.extension == "novah" }.forEach { file ->
             val path = file.toPath()

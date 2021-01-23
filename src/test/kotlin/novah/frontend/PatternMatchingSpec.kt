@@ -95,4 +95,14 @@ class PatternMatchingSpec : StringSpec({
         println(ty)
         ty.substFreeVar("t") shouldBe forall("t", tfun(tvar("t"), tInt))
     }
+    
+    "failing test" {
+        val code = """
+            type Maybe a = Some a | None
+            
+            main _ = Some None
+        """.module()
+
+        TestUtil.compileAndOptimizeCode(code)
+    }
 })
