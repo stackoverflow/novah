@@ -214,9 +214,9 @@ object Errors {
             $got
     """.trimIndent()
 
-    fun duplicatedType(name: Name) = "Duplicated type $name."
+    fun duplicatedType(name: Name) = "Type $name is already defined or imported."
 
-    fun duplicatedVariable(name: Name) = "Duplicated variable $name."
+    fun duplicatedVariable(name: Name) = "Variable $name is already defined or imported."
 
     fun cannotSolvePolytype(name: Name, type: Type) = "Cannot solve type $name with polytype $type."
 

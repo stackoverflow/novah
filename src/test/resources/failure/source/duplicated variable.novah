@@ -1,0 +1,5 @@
+module test
+
+foreign import new java.io.File(String) as newFile
+
+newFile () = 1

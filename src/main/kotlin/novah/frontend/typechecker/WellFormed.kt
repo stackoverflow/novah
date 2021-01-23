@@ -36,38 +36,42 @@ class WellFormed(private val store: GenNameStore, private val ictx: InferContext
         }
     }
 
-    private fun wfElem(elem: Elem, span: Span) {
+    private fun wfElem(elem: Elem): Name? {
         when (elem) {
             is Elem.CTVar -> {
                 if (ictx.context.contains<Elem.CTVar>(elem.name)) {
-                    inferError(E.duplicatedType(elem.name), span)
+                    return elem.name
                 }
             }
             is Elem.CTMeta -> {
                 if (ictx.context.contains<Elem.CTMeta>(elem.name)) {
-                    inferError(E.duplicatedType(elem.name), span)
+                    return elem.name
                 }
             }
             is Elem.CVar -> {
                 if (ictx.context.contains<Elem.CVar>(elem.name)) {
-                    inferError(E.duplicatedVariable(elem.name), span)
+                    return elem.name
                 }
             }
             is Elem.CMarker -> {
                 if (ictx.context.contains<Elem.CMarker>(elem.name)) {
-                    inferError(E.duplicatedType(elem.name), span)
+                    return elem.name
                 }
             }
         }
+        return null
     }
 
-    fun wfContext(span: Span) {
+    fun wfContext(): List<Name> {
         ictx.store()
         var elem = ictx.context.pop()
+        val errors = mutableListOf<Name>()
         while (elem != null) {
-            wfElem(elem, span)
+            val err = wfElem(elem)
+            if (err != null) errors += err
             elem = ictx.context.pop()
         }
         ictx.restore()
+        return errors
     }
 }

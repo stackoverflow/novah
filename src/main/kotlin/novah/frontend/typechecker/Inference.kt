@@ -4,6 +4,8 @@ import novah.Util.hasDuplicates
 import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.frontend.Span
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tChar
@@ -14,6 +16,7 @@ import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Prim.tUnit
+import novah.main.CompilationError
 import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
@@ -313,7 +316,6 @@ class Inference(
     fun infer(expr: Expr): Type {
         store.reset()
         sub.cleanSolvedMetas()
-        wf.wfContext(expr.span)
         val m = store.fresh("m")
         ictx.context.enter(m)
         val ty = generalizeFrom(m, ictx.apply(typesynth(expr)))
@@ -354,6 +356,15 @@ class Inference(
                 ictx.context.add(Elem.CVar(name, Type.TForall(t, Type.TVar(t))))
             }
         }
+
+        val errorNames = wf.wfContext()
+        val errors = errorNames.map { err ->
+            val decl = vals.find { it.name == err.rawName() } ?: internalError("Could not find defined variable $err.")
+            val msg = if (decl.name[0].isUpperCase()) E.duplicatedType(err)
+            else E.duplicatedVariable(err)
+            CompilerProblem(msg, ProblemContext.TYPECHECK, decl.span, mod.sourceName, mod.name)
+        }
+        if (errors.isNotEmpty()) throw CompilationError(errors)
 
         vals.forEach { decl ->
             val ty = infer(decl.exp)

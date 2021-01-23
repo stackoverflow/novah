@@ -7,6 +7,7 @@ import novah.ast.canonical.Module
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.main.CompilationError
 import novah.main.ModuleEnv
 import java.util.ArrayDeque
 
@@ -25,11 +26,13 @@ class InferContext {
 
     private val ctxStack = ArrayDeque<Context>()
 
-    fun infer(mod: Module): Result<ModuleEnv, CompilerProblem> {
+    fun infer(mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
         return try {
             Ok(infer.infer(mod))
         } catch (ie: InferenceError) {
-            Err(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name))
+            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name)))
+        } catch (ce: CompilationError) {
+            Err(ce.problems)
         }
     }
 
