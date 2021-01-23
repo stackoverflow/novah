@@ -16,6 +16,7 @@ import novah.frontend.typechecker.Prim.tInt
 import novah.frontend.typechecker.Prim.tLong
 import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
+import novah.frontend.typechecker.Prim.tUnit
 import novah.frontend.typechecker.Type
 
 class TypecheckerSpec : StringSpec({
@@ -172,6 +173,22 @@ class TypecheckerSpec : StringSpec({
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
 
         ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
+    }
+
+    "typecheck do statements with let" {
+        val code = """
+            f () = do
+              let v = 10
+              let hundred = 100
+              toString v
+              println (toString hundred)
+              let ret = true
+              ret
+        """.module()
+
+        val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
+        
+        ty shouldBe tfun(tUnit, tBoolean)
     }
 
     "typecheck a recursive function" {

@@ -1,5 +1,6 @@
 package novah.ast
 
+import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.ast.source.ForeignRef
 import novah.ast.source.fullname
@@ -113,8 +114,13 @@ class Desugar(private val smod: SModule) {
         is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }))
         is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar(locals) }, span)
         is SExpr.Ann -> Expr.Ann(exp.desugar(locals), type.desugar(), span)
-        is SExpr.Do -> Expr.Do(exps.map { it.desugar(locals) }, span)
+        is SExpr.Do -> {
+            if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
+            val converted = convertDoLets(exps)
+            Expr.Do(converted.map { it.desugar(locals) }, span)
+        }
         is SExpr.Unit -> Expr.Unit(span)
+        is SExpr.DoLet -> internalError("got `do-let` outside of do statement: $this")
     }
 
     private fun SCase.desugar(locals: List<String>): Case = Case(pattern.desugar(locals), exp.desugar())
@@ -241,6 +247,37 @@ class Desugar(private val smod: SModule) {
         return res
     }
 
+    /**
+     * Converts the let statements inside a do into
+     * let expressions where the body is every expression
+     * that comes after.
+     */
+    private fun convertDoLets(exprs: List<SExpr>): List<SExpr> {
+        return if (exprs.filterIsInstance<SExpr.DoLet>().isEmpty()) exprs
+        else {
+            val lets = mutableListOf<SLetDef>()
+            var exp = exprs[0]
+            var i = 0
+            while (exp is SExpr.DoLet) {
+                lets.addAll(exp.letDefs)
+                exp = exprs[++i]
+            }
+            if (lets.isEmpty()) listOf(exprs[0]) + convertDoLets(exprs.drop(1))
+            else {
+                val rest = convertDoLets(exprs.subList(i, exprs.size))
+                if (rest.size == 1) {
+                    listOf(SExpr.Let(lets, rest[0]))
+                } else {
+                    listOf(SExpr.Let(lets, SExpr.Do(rest)))
+                }
+            }
+        }
+    }
+
+    /**
+     * Check if a native expression has the correct number
+     * of parameters as they can't be partially applied.
+     */
     private fun validateNativeCall(exp: Expr, depth: Int) {
         fun throwArgs(name: Name, span: Span, ctx: String, should: Int, got: Int): Nothing {
             parserError(

@@ -102,12 +102,11 @@ myFun x = case x of
     4
   Some (Maybe (Perhaps x y 8)) -> x
 
-ex = \x ->
+ex = \x -> do
   let x = 4
-      y = \p -> 9
-  in do
-    sideEffect (if false then "false" else "true") -1
-    x * y
+  let y = \p -> 9
+  sideEffect (if false then "false" else "true") -1
+  x * y
 
 doIt :: Unit -> String
 doIt () = do
@@ -119,14 +118,14 @@ doIt () = do
     x + 1) "a" (Some (3 + 1) 4)
   let f :: forall a. a -> a
       f x = x
-      y :: Int
+  let y :: Int
       y = f 9
-    in if y >= 2 then do
-      println "big y"
-      if x then 1 else 0
-    else do
-      println "small y"
-      0
+  if y >= 2 then do
+    println "big y"
+    if x then 1 else 0
+  else do
+    println "small y"
+    0
 
 fact :: Int -> Int
 fact x =

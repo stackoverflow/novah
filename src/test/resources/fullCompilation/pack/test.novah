@@ -42,9 +42,10 @@ l x = let l1 = toString 4
 
 w = \x -> x
 
-myFun :: Maybe String -> String
+myFun :: Maybe (Maybe String) -> String
 myFun x = case x of
-  Some v -> v
+  Some (Some v) -> v
+  Some None -> "some nope"
   None -> "nope"
 
 lamb :: Boolean -> String -> Unit
@@ -55,14 +56,13 @@ lamb x y = do
   Some "a"
   println (toString (Some "a"))
 
-run () =
+run () = do
   let arr = newArrayList ()
-    in do
-      add arr "asd"
-      add arr "oops"
-      println (toString arr)
+  add arr "asd"
+  add arr "oops"
+  println (toString arr)
 
 main _ = do
   println "running novah"
-  //run ()
-  println (myFun (Some "fun"))
+  run ()
+  //println (myFun (Some (Some "fun")))

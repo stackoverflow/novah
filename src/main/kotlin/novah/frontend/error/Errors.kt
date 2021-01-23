@@ -112,6 +112,10 @@ object Errors {
 
     const val FOREIGN_ALIAS = "Identifier has to start with a lower case letter."
     
+    const val LET_DO_IN = "Let expressions in a do statement cannot have an `in` clause."
+    
+    const val LET_DO_LAST = "Do expression cannot end with a let definition."
+    
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field

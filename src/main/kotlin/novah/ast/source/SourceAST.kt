@@ -176,6 +176,7 @@ sealed class Expr {
     data class Match(val exp: Expr, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
+    data class DoLet(val letDefs: List<LetDef>) : Expr()
     data class Parens(val exp: Expr) : Expr() {
         override fun toString(): String = "($exp)"
     }
