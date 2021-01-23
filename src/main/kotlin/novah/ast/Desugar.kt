@@ -52,6 +52,9 @@ class Desugar(private val smod: SModule) {
         is SDecl.TypeDecl -> Decl.TypeDecl(name, type.desugar(), span)
         is SDecl.DataDecl -> {
             validateDataConstructorNames(this)
+            if (smod.foreignTypes[name] != null || imports[name] != null) {
+                parserError(E.duplicatedType(name.raw()), span)
+            }
             Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, exports.visibility(name))
         }
         is SDecl.ValDecl -> {

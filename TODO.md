@@ -6,4 +6,3 @@
 - [ ] Report cycles in variable declarations
 - [ ] Add spans to individual exports with error reporting
 - [ ] Add spans to individual imports with error reporting
-- [ ] Fix clash between foreign imported types and normally imported or defined types

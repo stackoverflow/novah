@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/failure/source/duplicated variable.novah:5:1 - 5:15
+
+  Variable newFile is already defined or imported.
+

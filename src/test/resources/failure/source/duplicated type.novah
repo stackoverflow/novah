@@ -1,0 +1,8 @@
+module test
+
+foreign import type java.io.File
+
+type File = File Int
+
+fun :: File -> Int
+fun _ = 10

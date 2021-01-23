@@ -160,9 +160,13 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
         }
         ctx.add(Elem.CTVar(fqType.raw()))
         if (type.alias != null) {
+            if (mod.resolvedImports.containsKey(type.alias))
+                errors += makeError(type.span)(Errors.duplicatedImport(type.alias))
             typealiases[type.alias] = fqType
         } else {
             val alias = fqType.split('.').last()
+            if (mod.resolvedImports.containsKey(alias))
+                errors += makeError(type.span)(Errors.duplicatedImport(alias))
             typealiases[alias] = fqType
         }
     }
@@ -195,6 +199,9 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                 }
                 val ctxType = methodTofunction(method, type, imp.static, pars)
                 val name = imp.alias ?: imp.name
+                if (mod.resolvedImports.containsKey(name)) {
+                    errors += error(Errors.duplicatedImport(name))
+                }
                 foreigVars[name] = ForeignRef.MethodRef(method)
                 ctx.add(Elem.CVar(name.raw(), ctxType))
             }
@@ -206,6 +213,9 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     continue
                 }
                 val ctxType = ctorToFunction(ctor, type, pars)
+                if (mod.resolvedImports.containsKey(imp.alias)) {
+                    errors += error(Errors.duplicatedImport(imp.alias))
+                }
                 foreigVars[imp.alias] = ForeignRef.CtorRef(ctor)
                 ctx.add(Elem.CVar(imp.alias.raw(), ctxType))
             }
@@ -225,6 +235,9 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                     continue
                 }
                 val name = imp.alias ?: imp.name
+                if (mod.resolvedImports.containsKey(name)) {
+                    errors += error(Errors.duplicatedImport(name))
+                }
                 foreigVars[name] = ForeignRef.FieldRef(field, false)
                 val ctxType = if (imp.static) {
                     Type.TVar(javaToNovah(field.type.canonicalName).raw())
@@ -251,6 +264,9 @@ fun resolveForeignImports(mod: Module, ictx: InferContext): List<CompilerProblem
                 if (Reflection.isImutable(field)) {
                     errors += error(Errors.immutableField(imp.name, type))
                     continue
+                }
+                if (mod.resolvedImports.containsKey(imp.alias)) {
+                    errors += error(Errors.duplicatedImport(imp.alias))
                 }
                 foreigVars[imp.alias] = ForeignRef.FieldRef(field, true)
                 val parType = Type.TVar(javaToNovah(field.type.canonicalName).raw())
@@ -327,7 +343,7 @@ private fun getExportedCtors(exports: List<DeclarationRef>, ctors: Map<String, L
 private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars: List<String>): Type {
     val mpars = mutableListOf<String>()
     if (!static) mpars += type // `this` is always first paramenter of non-static methods
-    
+
     if (static && m.parameterTypes.isEmpty()) mpars += "prim.Unit"
     else mpars.addAll(novahPars.map { Reflection.novahToJava(it) })
 

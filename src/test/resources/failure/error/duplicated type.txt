@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/failure/source/duplicated type.novah:5:1 - 5:21
+
+  Type File is already defined or imported.
+

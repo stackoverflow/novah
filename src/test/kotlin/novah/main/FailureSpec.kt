@@ -1,7 +1,6 @@
 package novah.main
 
 import io.kotest.assertions.failure
-import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil
@@ -28,9 +27,18 @@ class FailureSpec : StringSpec({
     }
 
     "duplicate modules fail" {
-        val compiler = TestUtil.compilerFor("multimodulefail/duplication")
+        val compiler = TestUtil.compilerFor("multimodulefail/duplicatedmodules")
 
-        shouldThrowExactly<CompilationError> {
+        val error = """
+            module [33mmod1[0m
+            at src/test/resources/multimodulefail/duplicatedmodules/same.novah:1:1 - 1:12
+            
+              Found duplicate module mod1.
+            
+
+        """.trimIndent()
+        
+        withError(error) {
             compiler.compile()
         }
     }
@@ -38,7 +46,16 @@ class FailureSpec : StringSpec({
     "cycling modules fail" {
         val compiler = TestUtil.compilerFor("multimodulefail/cycle")
 
-        shouldThrowExactly<CompilationError> {
+        val error = """
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/cycle/mod2.novah:1:1 - 1:27
+            
+              Found cycle between modules mod2, mod1.
+            
+
+        """.trimIndent()
+
+        withError(error) {
             compiler.compile()
         }
     }
@@ -46,7 +63,16 @@ class FailureSpec : StringSpec({
     "non-existing import declaration fail" {
         val compiler = TestUtil.compilerFor("multimodulefail/importfail")
 
-        shouldThrowExactly<CompilationError> {
+        val error = """
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/importfail/mod2.novah:3:1 - 3:18
+            
+              Cannot find declaration bar in module mod1.
+            
+
+        """.trimIndent()
+        
+        withError(error) {
             compiler.compile()
         }
     }
@@ -54,8 +80,61 @@ class FailureSpec : StringSpec({
     "private import declaration fail" {
         val compiler = TestUtil.compilerFor("multimodulefail/privateimport")
 
-        shouldThrowExactly<CompilationError> {
+        val error = """
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/privateimport/mod2.novah:3:1 - 3:18
+            
+              Cannot import private declaration foo in module mod1.
+            
+
+        """.trimIndent()
+        
+        withError(error) {
             compiler.compile()
         }
     }
-})
+
+    "duplicate imported types fail" {
+        val compiler = TestUtil.compilerFor("multimodulefail/duplicatedimports")
+
+        val error = """
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/duplicatedimports/mod2.novah:5:1 - 5:40
+            
+              Another import with name ArrayList is already in scope.
+            
+            
+        """.trimIndent()
+        withError(error) {
+            compiler.compile()
+        }
+    }
+
+    "duplicate imported variables fail" {
+        val compiler = TestUtil.compilerFor("multimodulefail/duplicatedimportvars")
+
+        val error = """
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/duplicatedimportvars/mod2.novah:5:1 - 5:57
+            
+              Another import with name newArrayList is already in scope.
+            
+ 
+        """.trimIndent()
+        withError(error) {
+            compiler.compile()
+        }
+    }
+}) {
+    companion object {
+        private inline fun withError(error: String, block: () -> Unit) {
+            try {
+                block()
+                throw failure("Expected test to fail with a CompilationError.")
+            } catch (ce: CompilationError) {
+                val err = ce.problems[0]
+                err.formatToConsole() shouldBe error
+            }
+        }
+    }
+}
