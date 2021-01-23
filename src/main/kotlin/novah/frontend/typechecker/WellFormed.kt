@@ -50,7 +50,7 @@ class WellFormed(private val store: GenNameStore, private val ictx: InferContext
             }
             is Elem.CVar -> {
                 if (ictx.context.contains<Elem.CVar>(elem.name)) {
-                    inferError(E.duplicatedType(elem.name), span)
+                    inferError(E.duplicatedVariable(elem.name), span)
                 }
             }
             is Elem.CMarker -> {

@@ -216,6 +216,8 @@ object Errors {
 
     fun duplicatedType(name: Name) = "Duplicated type $name."
 
+    fun duplicatedVariable(name: Name) = "Duplicated variable $name."
+
     fun cannotSolvePolytype(name: Name, type: Type) = "Cannot solve type $name with polytype $type."
 
     fun unknownType(name: Type) = "Unknown type $name."
