@@ -5,4 +5,4 @@ import pack.namespace1 (sayHello)
 same :: Int -> Int -> Boolean
 same x y = x == y
 
-main args = sayHello "Mario"
+main _ = sayHello "Mario"

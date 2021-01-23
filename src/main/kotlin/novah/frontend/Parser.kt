@@ -288,9 +288,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
-    private fun parseExpression(): Expr {
+    private fun parseExpression(inDo: Boolean = false): Expr {
         val tk = iter.peek()
-        val exps = tryParseListOf(true, ::tryParseAtom)
+        val exps = tryParseListOf(true) { tryParseAtom(inDo) }
 
         val unrolled = Application.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
 
@@ -304,7 +304,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         } else unrolled
     }
 
-    private fun tryParseAtom(): Expr? = when (iter.peek().value) {
+    private fun tryParseAtom(inDo: Boolean = false): Expr? = when (iter.peek().value) {
         is IntT -> parseInt()
         is LongT -> parseLong()
         is FloatT -> parseFloat()
@@ -337,7 +337,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
         is Backslash -> parseLambda()
         is IfT -> parseIf()
-        is LetT -> parseLet()
+        is LetT -> parseLet(inDo)
         is CaseT -> parseMatch()
         is Do -> parseDo()
         else -> null
@@ -446,7 +446,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             .withComment(ifTk.comment)
     }
 
-    private fun parseLet(): Expr {
+    private fun parseLet(inDo: Boolean = false): Expr {
         val let = expect<LetT>(noErr())
 
         val types = mutableListOf<Decl.TypeDecl>()
@@ -459,11 +459,21 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val defs = mutableListOf<LetDef>()
 
         withOffside(align) {
-            while (iter.peek().value != In) {
-                defs += parseLetDef(types, defsCtx)
+            if (inDo) {
+                while (!iter.peekIsOffside() && iter.peek().value !in statementEnding) {
+                    defs += parseLetDef(types, defsCtx)
+                }
+            } else {
+                while (iter.peek().value != In) {
+                    defs += parseLetDef(types, defsCtx)
+                }
             }
         }
 
+        if (inDo) {
+            if (iter.peek().value is In) throwError(E.LET_DO_IN to iter.peek().span)
+            return Expr.DoLet(defs).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
+        }
         withIgnoreOffside { expect<In>(withError(E.LET_IN)) }
 
         val exp = parseExpression()
@@ -600,7 +610,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             else -> null
         }
     }
-    
+
     private fun tryParseFunparPattern(): FunparPattern? {
         val tk = iter.peek()
         return when (tk.value) {
@@ -659,12 +669,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return withIgnoreOffside(false) {
             withOffside(align) {
                 val exps = mutableListOf<Expr>()
-                val first = parseExpression()
+                val first = parseExpression(true)
                 exps += first
 
                 var tk = iter.peek()
                 while (!iter.peekIsOffside() && tk.value !in statementEnding) {
-                    exps += parseExpression()
+                    exps += parseExpression(true)
                     tk = iter.peek()
                 }
                 if (exps.size == 1) {

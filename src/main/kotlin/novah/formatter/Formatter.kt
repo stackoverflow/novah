@@ -134,6 +134,13 @@ class Formatter {
                     }
                 } + "\n${tab}in $str"
             }
+            is Expr.DoLet -> {
+                "let " + withIndent(false) {
+                    withIndent(false) {
+                        e.letDefs.joinToStr("\n$tab") { show(it) }
+                    }
+                }
+            }
             is Expr.If -> {
                 val simple = e.thenCase.isSimple() && e.elseCase.isSimple()
                 if (simple) "if ${show(e.cond)} then ${show(e.thenCase)} else ${show(e.elseCase)}"

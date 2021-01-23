@@ -14,7 +14,7 @@ class OptimizerSpec : StringSpec({
         val code = """
             type Multi a b = M a b Int String | Not
             
-            f x = M 'a' 2.3F 5 "d"
+            f () = M 'a' 2.3F 5 "d"
         """.module()
 
         val res = TestUtil.compileAndOptimizeCode(code)

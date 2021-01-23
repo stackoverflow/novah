@@ -25,10 +25,9 @@ class ForeignSpec : StringSpec({
             main args = do
               println "running novah"
               let arr = newArrayList ()
-              in do
-                add arr "asd"
-                add arr "oops"
-                println (toString arr)
+              add arr "asd"
+              add arr "oops"
+              println (toString arr)
             
             h x = parseInt x
         """.trimIndent()

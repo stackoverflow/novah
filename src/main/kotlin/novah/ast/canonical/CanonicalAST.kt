@@ -225,6 +225,7 @@ fun Expr.resolveUnsolved(m: Map<Name, Type>) {
             exps.forEach { it.resolveUnsolved(m) }
         }
         else -> {
+            if (type != null) withType(type!!.substTMetas(m))
         }
     }
 }
