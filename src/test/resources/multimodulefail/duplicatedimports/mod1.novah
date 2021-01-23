@@ -1,0 +1,3 @@
+module mod1 exposing ( ArrayList )
+
+type ArrayList = ArrayList Int

@@ -171,6 +171,8 @@ object Errors {
     }
 
     fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
+    
+    fun duplicatedImport(name: String) = "Another import with name $name is already in scope."
 
     fun literalExpected(name: String) = "Expected $name literal."
 
