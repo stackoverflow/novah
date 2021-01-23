@@ -187,7 +187,6 @@ class Optimizer(private val ast: CModule) {
 
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
-    private val unitType = tUnit.convert()
 
     private fun makeThrow(msg: String): Expr {
         return Expr.Throw(
@@ -198,6 +197,8 @@ class Optimizer(private val ast: CModule) {
             )
         )
     }
+    
+    private class VarDef(val name: String, val exp: Expr)
 
     private fun desugarMatch(m: CExpr.Match, type: Type, locals: List<String>): Expr {
         val tru = Expr.Bool(true, boolType)
@@ -216,13 +217,13 @@ class Optimizer(private val ast: CModule) {
             else Expr.Cast(field, expectedFieldType)
         }
 
-        fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<Expr.DoLet>> = when (p) {
+        fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<VarDef>> = when (p) {
             is Pattern.Wildcard -> tru to emptyList()
-            is Pattern.Var -> tru to listOf(Expr.DoLet(p.name.rawName(), exp, unitType))
+            is Pattern.Var -> tru to listOf(VarDef(p.name.rawName(), exp))
             is Pattern.LiteralP -> Expr.OperatorApp("==", listOf(exp, p.lit.e.convert(locals)), boolType) to emptyList()
             is Pattern.Ctor -> {
                 val conds = mutableListOf<Expr>()
-                val vars = mutableListOf<Expr.DoLet>()
+                val vars = mutableListOf<VarDef>()
 
                 val (fieldTypes, _) = peelArgs(p.ctor.type!!)
                 val expectedFieldTypes = exp.type as? Type.TConstructor
@@ -243,19 +244,27 @@ class Optimizer(private val ast: CModule) {
                 // remove redundant checks
                 val simplified = conds.filter { it != tru }
                 when {
-                    simplified.isEmpty() -> tru to vars
-                    simplified.size == 1 -> simplified[0] to vars
-                    else -> Expr.OperatorApp("&&", conds, boolType) to vars
-                }
+                    simplified.isEmpty() -> tru
+                    simplified.size == 1 -> simplified[0]
+                    else -> Expr.OperatorApp("&&", conds, boolType)
+                } to vars
+            }
+        }
+        
+        tailrec fun varToLet(vdefs: List<VarDef>, exp: Expr): Expr {
+            return if (vdefs.isEmpty()) exp
+            else {
+                val v = vdefs[0]
+                varToLet(vdefs.drop(1), Expr.Let(v.name, v.exp, exp, exp.type))
             }
         }
 
         val exp = m.exp.convert(locals)
         val pats = m.cases.map { case ->
             val (cond, vars) = desugarPattern(case.pattern, exp)
-            val introducedVariables = vars.map { it.binder }
+            val introducedVariables = vars.map { it.name }
             val caseExp = case.exp.convert(locals + introducedVariables)
-            val expr = if (vars.isEmpty()) caseExp else Expr.Do(vars + caseExp, caseExp.type)
+            val expr = if (vars.isEmpty()) caseExp else varToLet(vars, caseExp)
             cond to expr
         }
         return Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)

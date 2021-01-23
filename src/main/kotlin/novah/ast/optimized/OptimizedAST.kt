@@ -52,7 +52,6 @@ sealed class Expr(open val type: Type) {
     data class If(val conds: List<Pair<Expr, Expr>>, val elseCase: Expr, override val type: Type) : Expr(type)
     data class Let(val binder: String, val bindExpr: Expr, val body: Expr, override val type: Type) : Expr(type)
     data class Do(val exps: List<Expr>, override val type: Type) : Expr(type)
-    data class DoLet(val binder: String, val bindExpr: Expr, override val type: Type) : Expr(type)
     data class ConstructorAccess(val fullName: String, val field: Int, val ctor: Expr, override val type: Type) :
         Expr(type)
 

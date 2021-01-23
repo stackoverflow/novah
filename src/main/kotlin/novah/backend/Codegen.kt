@@ -237,19 +237,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val lastIndex = e.exps.size - 1
                 e.exps.forEachIndexed { index, expr ->
                     genExpr(expr, mv, ctx)
-                    if (index != lastIndex && expr !is Expr.DoLet) mv.visitInsn(POP)
+                    if (index != lastIndex) mv.visitInsn(POP)
                 }
-            }
-            is Expr.DoLet -> {
-                val num = ctx.nextLocal()
-                val varStartLabel = Label()
-                //val varEndLabel = Label()
-                genExpr(e.bindExpr, mv, ctx)
-                mv.visitVarInsn(ASTORE, num)
-                mv.visitLabel(varStartLabel)
-                ctx.put(e.binder, num, varStartLabel)
-                // TODO: the variable doesn't end here
-                //ctx.setEndLabel(e.binder, varEndLabel)
             }
             is Expr.App -> {
                 resolvePrimitiveModuleApp(mv, e, ctx)
@@ -614,12 +603,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 go(exp.bindExpr)
                 go(exp.body)
-            }
-            is Expr.DoLet -> {
-                for (l in lambdas) {
-                    l.ignores += exp.binder
-                }
-                go(exp.bindExpr)
             }
             is Expr.App -> {
                 go(exp.fn)
