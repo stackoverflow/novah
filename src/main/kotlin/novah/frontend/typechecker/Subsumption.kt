@@ -10,8 +10,6 @@ class Subsumption(
     private val ictx: InferContext
 ) {
 
-    private val solvedMetas = mutableMapOf<Name, Type>()
-
     fun solve(x: Type.TMeta, type: Type, span: Span) {
         if (!type.isMono()) {
             inferError(E.cannotSolvePolytype(x.name, type), span, ProblemContext.SUBSUMPTION)
@@ -19,7 +17,7 @@ class Subsumption(
 
         val newCtx = ictx.context.split<Elem.CTMeta>(x.name)
         wf.wfType(type, span)
-        setSolved(x.name, type)
+        x.solvedType = type
         ictx.context.add(Elem.CTMeta(x.name, type))
         ictx.context.addAll(newCtx)
     }
@@ -182,24 +180,6 @@ class Subsumption(
 
         if (atypes != btypes) {
             inferError(E.wrongKind(makeKindString(atypes), makeKindString(btypes)), span, ProblemContext.SUBSUMPTION)
-        }
-    }
-
-    fun getSolvedMetas(): Map<Name, Type> = solvedMetas
-
-    fun cleanSolvedMetas() = solvedMetas.clear()
-
-    fun setSolved(name: Name, type: Type) {
-        if (type is Type.TMeta) {
-            val solved = solvedMetas[type.name]
-            if (solved != null) solvedMetas[name] = solved
-            else solvedMetas[name] = type
-        } else {
-            solvedMetas[name] = type
-            solvedMetas.forEach { (n, t) ->
-                if (t is Type.TMeta && t.name == name)
-                    solvedMetas[n] = type
-            }
         }
     }
 

@@ -33,13 +33,15 @@ class Inference(
         val ns = type.unsolvedInType(unsolved)
         val m = mutableMapOf<Name, Type.TVar>()
         ns.forEach { x ->
-            val tvar = Type.TVar(store.fresh(x))
-            sub.setSolved(x, tvar)
-            m[x] = tvar
+            val name = x.name
+            val tvar = Type.TVar(store.fresh(name))
+            
+            x.solvedType = tvar
+            m[name] = tvar
         }
         var c = type.substTMetas(m)
         for (i in ns.indices.reversed()) {
-            c = Type.TForall(m[ns[i]]!!.name, c)
+            c = Type.TForall(m[ns[i].name]!!.name, c)
         }
         return c
     }
@@ -315,14 +317,11 @@ class Inference(
 
     fun infer(expr: Expr): Type {
         store.reset()
-        sub.cleanSolvedMetas()
         val m = store.fresh("m")
         ictx.context.enter(m)
         val ty = generalizeFrom(m, ictx.apply(typesynth(expr)))
 
-        val solvedMetas = sub.getSolvedMetas()
-        if (solvedMetas.isNotEmpty())
-            expr.resolveUnsolved(solvedMetas)
+        expr.resolveMetas()
 
         if (!ictx.context.isComplete()) inferError(E.INCOMPLETE_CONTEXT, expr.span)
         return ty

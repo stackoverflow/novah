@@ -3,6 +3,7 @@ package novah.ast.canonical
 import novah.frontend.Span
 import novah.frontend.typechecker.Name
 import novah.frontend.typechecker.Type
+import novah.frontend.typechecker.Type.Companion.everywhereOnTypes
 import java.lang.reflect.Constructor as JConstructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -174,58 +175,54 @@ fun Expr.aliasVar(v: Name, newName: Name): Expr {
     return this
 }
 
-fun Pattern.resolveUnsolved(m: Map<Name, Type>) {
-    if (this is Pattern.Ctor) {
-        ctor.resolveUnsolved(m)
-        fields.forEach { it.resolveUnsolved(m) }
+fun Expr.resolveMetas() {
+    everywhereInExprSideEffect(this) { exp ->
+        exp.type = everywhereOnTypes(exp.type!!) { type ->
+            var t = type
+            while (t is Type.TMeta && t.solvedType != null) {
+                t = t.solvedType!!
+            }
+            t
+        }
     }
 }
 
-/**
- * Resolve unsolved variables left in this expression
- */
-fun Expr.resolveUnsolved(m: Map<Name, Type>) {
-    when (this) {
-        is Expr.Var -> if (type != null) withType(type!!.substTMetas(m))
-        is Expr.Constructor -> if (type != null) withType(type!!.substTMetas(m))
-        is Expr.App -> {
-            if (type != null) withType(type!!.substTMetas(m))
-            fn.resolveUnsolved(m)
-            arg.resolveUnsolved(m)
-        }
+fun everywhereInExprSideEffect(expr: Expr, f: (Expr) -> Unit) {
+    fun go(e: Expr): Unit = when (e) {
         is Expr.Lambda -> {
-            if (type != null) withType(type!!.substTMetas(m))
-            body.resolveUnsolved(m)
+            go(e.body)
+            f(e)
         }
-        is Expr.Ann -> {
-            if (type != null) withType(type!!.substTMetas(m))
-            exp.resolveUnsolved(m)
+        is Expr.App -> {
+            go(e.fn)
+            go(e.arg)
+            f(e)
         }
         is Expr.If -> {
-            if (type != null) withType(type!!.substTMetas(m))
-            cond.resolveUnsolved(m)
-            thenCase.resolveUnsolved(m)
-            elseCase.resolveUnsolved(m)
+            go(e.cond)
+            go(e.thenCase)
+            go(e.elseCase)
+            f(e)
         }
         is Expr.Let -> {
-            if (type != null) withType(type!!.substTMetas(m))
-            letDef.expr.resolveUnsolved(m)
-            body.resolveUnsolved(m)
+            go(e.letDef.expr)
+            go(e.body)
+            f(e)
         }
         is Expr.Match -> {
-            if (type != null) withType(type!!.substTMetas(m))
-            exp.resolveUnsolved(m)
-            cases.forEach {
-                it.pattern.resolveUnsolved(m)
-                it.exp.resolveUnsolved(m)
-            }
+            go(e.exp)
+            for (p in e.cases) go(p.exp)
+            f(e)
+        }
+        is Expr.Ann -> {
+            go(e.exp)
+            f(e)
         }
         is Expr.Do -> {
-            if (type != null) withType(type!!.substTMetas(m))
-            exps.forEach { it.resolveUnsolved(m) }
+            for (exp in e.exps) go(exp)
+            f(e)
         }
-        else -> {
-            if (type != null) withType(type!!.substTMetas(m))
-        }
+        else -> f(e)
     }
+    go(expr)
 }

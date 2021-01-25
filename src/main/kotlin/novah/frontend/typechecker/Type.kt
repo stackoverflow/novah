@@ -9,6 +9,7 @@ sealed class Type {
     }
 
     data class TMeta(val name: Name) : Type() {
+        var solvedType: Type? = null
         override fun toString(): String = "?$name"
     }
 
@@ -89,11 +90,11 @@ sealed class Type {
         }
     }
 
-    fun unsolvedInType(unsolved: List<Name>, ns: MutableList<Name> = mutableListOf()): List<Name> = when (this) {
+    fun unsolvedInType(unsolved: List<Name>, ns: MutableList<TMeta> = mutableListOf()): List<TMeta> = when (this) {
         is TVar -> ns
         is TMeta -> {
-            if (unsolved.contains(name) && !ns.contains(name)) {
-                ns.add(name)
+            if (unsolved.contains(name) && !ns.contains(this)) {
+                ns.add(this)
             }
             ns
         }
@@ -145,5 +146,19 @@ sealed class Type {
 
         fun openTForall(forall: TForall, s: Type): Type =
             forall.type.substTVar(forall.name, s)
+
+        /**
+         * Traverse bottom->up
+         */
+        fun everywhereOnTypes(type: Type, f: (Type) -> Type): Type {
+            fun go(t: Type): Type = when (t) {
+                is TVar -> f(t)
+                is TMeta -> f(t)
+                is TFun -> f(t.copy(arg = go(t.arg), ret = go(t.ret)))
+                is TForall -> f(t.copy(type = go(t.type)))
+                is TConstructor -> f(t.copy(types = t.types.map(::go)))
+            }
+            return go(type)
+        }
     }
 }
