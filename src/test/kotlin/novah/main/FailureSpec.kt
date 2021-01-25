@@ -22,6 +22,8 @@ class FailureSpec : StringSpec({
             } catch (ce: CompilationError) {
                 val error = ce.problems.joinToString("\n") { it.formatToConsole() }
                 error shouldBe output.readText()
+            } catch (e: Exception) {
+                throw failure("Got exception in test `$testName`: ${e.message}")
             }
         }
     }
