@@ -222,8 +222,9 @@ object Errors {
 
     fun unknownType(name: Type) = "Unknown type $name."
 
-    fun infiniteType(name: Type) = "Occurs check failed: infinite type $name."
+    fun infiniteType(name: String) = "Occurs check failed: infinite type $name."
 
+    // TODO: delete
     fun subsumptionFailed(a: Type, b: Type) = """
         Cannot subsume type
         
@@ -233,6 +234,22 @@ object Errors {
         
             $b
     """.trimIndent()
+    
+    fun typeIsNotInstance(a: String, b: String) = """
+        Type $a is not an instance of type $b.
+    """.trimIndent()
+    
+    fun typesDontMatch(a: String, b: String) = """
+        Cannot match type
+        
+            $a
+        
+        with type
+        
+            $b
+    """.trimIndent()
+    
+    fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
 
     fun undefinedVar(name: Name) = "Undefined variable $name."
 

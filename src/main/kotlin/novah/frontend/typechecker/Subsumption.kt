@@ -159,14 +159,14 @@ class Subsumption(
         }
         if (a is Type.TMeta) {
             if (b.containsTMeta(a.name)) {
-                inferError(E.infiniteType(b), span, ProblemContext.SUBSUMPTION)
+                inferError(E.infiniteType(b.toString()), span, ProblemContext.SUBSUMPTION)
             }
             instL(a, b, span)
             return
         }
         if (b is Type.TMeta) {
             if (a.containsTMeta(b.name)) {
-                inferError(E.infiniteType(a), span, ProblemContext.SUBSUMPTION)
+                inferError(E.infiniteType(a.toString()), span, ProblemContext.SUBSUMPTION)
             }
             instR(a, b, span)
             return

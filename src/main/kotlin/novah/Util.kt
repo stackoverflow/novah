@@ -37,4 +37,21 @@ object Util {
     fun String.splitAt(index: Int): Pair<String, String> {
         return substring(0, index) to substring(index + 1)
     }
+
+    /**
+     * Like [joinToString] but don't append the prefix/suffix if
+     * the list is empty.
+     */
+    fun <T> List<T>.joinToStr(
+        separator: CharSequence = ", ",
+        prefix: CharSequence = "",
+        postfix: CharSequence = "",
+        limit: Int = -1,
+        truncated: CharSequence = "...",
+        transform: ((T) -> CharSequence)? = null
+    ): String {
+        val pre = if (isEmpty()) "" else prefix
+        val pos = if (isEmpty()) "" else postfix
+        return joinTo(StringBuilder(), separator, pre, pos, limit, truncated, transform).toString()
+    }
 }

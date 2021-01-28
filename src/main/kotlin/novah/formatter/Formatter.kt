@@ -2,6 +2,7 @@ package novah.formatter
 
 import novah.ast.source.*
 import novah.frontend.*
+import novah.Util.joinToStr
 
 /**
  * The canonical formatter for the language. Like gofmt
@@ -272,22 +273,5 @@ class Formatter {
     companion object {
         const val maxColumns = 120
         const val tabSize = "  " // 2 spaces
-
-        /**
-         * Like [joinToString] but don't append the prefix/suffix if
-         * the list is empty.
-         */
-        private fun <T> List<T>.joinToStr(
-            separator: CharSequence = ", ",
-            prefix: CharSequence = "",
-            postfix: CharSequence = "",
-            limit: Int = -1,
-            truncated: CharSequence = "...",
-            transform: ((T) -> CharSequence)? = null
-        ): String {
-            val pre = if (isEmpty()) "" else prefix
-            val pos = if (isEmpty()) "" else postfix
-            return joinTo(StringBuilder(), separator, pre, pos, limit, truncated, transform).toString()
-        }
     }
 }
