@@ -2,5 +2,5 @@ module mod1 exposing (foo)
 
 import mod2 (bar)
 
-foo :: Boolean -> Boolean
+foo : Boolean -> Boolean
 foo x = if x then x else bar x

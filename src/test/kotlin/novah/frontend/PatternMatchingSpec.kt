@@ -45,7 +45,7 @@ class PatternMatchingSpec : StringSpec({
         val code = """
             type Maybe a = Just a | Nothing
             
-            f :: Maybe Int -> String
+            f : Maybe Int -> String
             f x = case x of
               Just v -> toString v
               Nothing -> "nope"

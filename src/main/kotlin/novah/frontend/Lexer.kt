@@ -16,7 +16,7 @@ sealed class Token {
     object Hash : Token()
     object Dot : Token()
     object Comma : Token()
-    object DoubleColon : Token()
+    object Colon : Token()
     object Equals : Token()
     object Backslash : Token()
     object Arrow : Token()
@@ -349,7 +349,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "->" -> Arrow
             "|" -> Pipe
             "." -> Dot
-            "::" -> DoubleColon
+            ":" -> Colon
             else -> Op(op)
         }
     }

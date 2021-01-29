@@ -1,3 +1,3 @@
 module hints
 
-x = some 3 $ map odd list :: String
+x = some 3 $ map odd list : String

@@ -55,7 +55,7 @@ doub x = x * 13.87E12
 x = fn 3 4 5
 
 stuff
-  :: Int
+  : Int
   -> Int
   -> String
 stuff v v2 = case v of
@@ -68,7 +68,7 @@ stuff v v2 = case v of
  * added here
  */
 maybe
-  :: forall a
+  : forall a
   . a
   -> Int
   -> Maybe
@@ -76,28 +76,28 @@ maybe def sm = case sm of
   Some x -> B.brain x
   Nope -> def
 
-id :: forall a. a -> a
+id : forall a. a -> a
 id x = x
 
-compl :: forall a b c. (a -> b) -> (b -> c) -> a -> c
+compl : forall a b c. (a -> b) -> (b -> c) -> a -> c
 compl f1 f2 x = f2 (f1 x)
 
-hrt :: Int -> (forall a b. (a -> b) -> b) -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Int
+hrt : Int -> (forall a b. (a -> b) -> b) -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Int
 hrt i f t = 1
 
-sum :: Int -> Int -> Int
+sum : Int -> Int -> Int
 sum x y = x + y
 
-const :: forall a. a -> b -> a
+const : forall a. a -> b -> a
 const x _ = x
 
-mklist :: Int -> Int -> List (List (Int -> Int))
+mklist : Int -> Int -> List (List (Int -> Int))
 mklist = todo
 
   // some comment here
 myFun x = case x of
   None -> do
-    println "Something" :: Unit
+    println "Something" : Unit
     case 4 of x -> x
     4
   Some (Maybe (Perhaps x y 8)) -> x
@@ -108,7 +108,7 @@ ex = \x -> do
   sideEffect (if false then "false" else "true") -1
   x * y
 
-doIt :: Unit -> String
+doIt : Unit -> String
 doIt () = do
   println
     "not pure"
@@ -116,9 +116,9 @@ doIt () = do
   fun (\x y -> \z -> do
     println x
     x + 1) "a" (Some (3 + 1) 4)
-  let f :: forall a. a -> a
+  let f : forall a. a -> a
       f x = x
-  let y :: Int
+  let y : Int
       y = f 9
   if y >= 2 then do
     println "big y"
@@ -127,11 +127,11 @@ doIt () = do
     println "small y"
     0
 
-fact :: Int -> Int
+fact : Int -> Int
 fact x =
   if x <= 1
     then x
     else x * fact (x - 1)
 
-end :: Int
+end : Int
 end = 0

@@ -53,12 +53,12 @@ class TypecheckerSpec : StringSpec({
         val code = """
             i = 12
             
-            b :: Byte
+            b : Byte
             b = 12
             
-            b2 = 12 :: Byte
+            b2 = 12 : Byte
             
-            s :: Short
+            s : Short
             s = 12
             
             l = 9999999999
@@ -73,14 +73,14 @@ class TypecheckerSpec : StringSpec({
             
             bi2 = 0b1101011L
             
-            bi3 :: Byte
+            bi3 : Byte
             bi3 = 0b1101011
             
             hex = 0xFF
             
             hex2 = 0xFFL
             
-            hex3 :: Short
+            hex3 : Short
             hex3 = 0xFF
         """.module()
 
@@ -208,13 +208,13 @@ class TypecheckerSpec : StringSpec({
     "typecheck mutually recursive functions" {
         // TODO: uncomment when we have stdlib
         val codeCommented = """
-            //f1 :: Int -> Int
+            //f1 : Int -> Int
             f1 x =
               if x > 0
               then f2 x
               else x - 1
             
-            //f2 :: Int -> Int
+            //f2 : Int -> Int
             f2 x =
               if x <= 0
               then f1 x
@@ -236,7 +236,7 @@ class TypecheckerSpec : StringSpec({
         val code = """
             type Tuple a b = Tuple a b
             
-            fun :: (forall a. a -> a) -> Tuple Int String
+            fun : (forall a. a -> a) -> Tuple Int String
             fun f = Tuple (f 1) (f "a")
         """.module()
 

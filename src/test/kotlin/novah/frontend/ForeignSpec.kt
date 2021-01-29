@@ -19,7 +19,7 @@ class ForeignSpec : StringSpec({
             foreign import String.compareTo(Object)
             //foreign import set File:separator as setSeparator
             
-            f :: String -> File
+            f : String -> File
             f x = newFile x
             
             main args = do

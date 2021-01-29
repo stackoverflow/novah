@@ -156,7 +156,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         fun parseStatic(): Boolean {
             val tk = iter.peek().value
-            return if (tk is Op && tk.op == ":") {
+            return if (tk is Colon) {
                 iter.next()
                 true
             } else false
@@ -259,7 +259,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val nameTk = expect<Ident>(noErr())
         val name = nameTk.value.v
         return withOffside(nameTk.offside() + 1, false) {
-            if (iter.peek().value is DoubleColon) {
+            if (iter.peek().value is Colon) {
                 parseTypeSignature(name)
             } else {
                 val vars = tryParseListOf { tryParseFunparPattern() }
@@ -273,7 +273,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseTypeSignature(name: String): Decl.TypeDecl {
-        expect<DoubleColon>(withError(E.TYPE_DCOLON))
+        expect<Colon>(withError(E.TYPE_DCOLON))
         return Decl.TypeDecl(name, parsePolytype())
     }
 
@@ -295,7 +295,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val unrolled = Application.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
 
         // type signatures have the lowest precendece
-        return if (iter.peek().value is DoubleColon) {
+        return if (iter.peek().value is Colon) {
             val dc = iter.next()
             val pt = parsePolytype()
             Expr.Ann(unrolled, pt)
@@ -486,7 +486,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val ident = expect<Ident>(withError(E.LET_DECL))
 
         return when (iter.peek().value) {
-            is DoubleColon -> {
+            is Colon -> {
                 if (letDefs.any { it.name.name == ident.value.v }) {
                     throwError(withError(E.LET_TYPE)(ident))
                 }
@@ -714,7 +714,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     Type.TParens(typ)
                 }
             }
-            is Ident -> Type.TVar(parseTypeVar())
+            is Ident -> Type.TConst(parseTypeVar())
             is UpperIdent -> {
                 var ty = parseUpperIdent().v
                 var alias: String? = null
@@ -724,11 +724,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
                 }
                 if (inConstructor) {
-                    Type.TVar(ty, alias)
+                    Type.TConst(ty, alias)
                 } else {
                     val pars = tryParseListOf(true) { parseTypeAtom(true) }
 
-                    if (pars.isEmpty()) Type.TVar(ty, alias)
+                    if (pars.isEmpty()) Type.TConst(ty, alias)
                     else Type.TConstructor(ty, pars, alias)
                 }
             }

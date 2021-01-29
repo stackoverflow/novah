@@ -42,13 +42,13 @@ l _ = let l1 = toString 4
 
 w = \x -> x
 
-myFun :: Maybe (Maybe String) -> String
+myFun : Maybe (Maybe String) -> String
 myFun x = case x of
   Some (Some v) -> v
   Some None -> "some nope"
   None -> "nope"
 
-lamb :: Boolean -> String -> Unit
+lamb : Boolean -> String -> Unit
 lamb x y = do
   if x
   then println y

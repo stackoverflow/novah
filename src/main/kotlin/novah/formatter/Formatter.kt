@@ -100,7 +100,7 @@ class Formatter {
     }
 
     fun show(d: Decl.TypeDecl): String {
-        val td = "${d.name} :: " + show(d.type)
+        val td = "${d.name} : " + show(d.type)
         return if (td.length > maxColumns) {
             d.name + withIndent { showIndented(d.type) }
         } else td
@@ -152,7 +152,7 @@ class Formatter {
                 exps.joinToString(" ") { show(it) }
             }
             is Expr.Ann -> {
-                "${show(e.exp)} :: ${show(e.type)}"
+                "${show(e.exp)} : ${show(e.type)}"
             }
             is Expr.Lambda -> {
                 val shown = if (shouldNewline(e.body)) withIndent { tab + show(e.body) } else show(e.body)
@@ -202,7 +202,7 @@ class Formatter {
     }
 
     private fun show(l: LetDef): String {
-        val typ = if (l.type != null) "${l.name} :: ${show(l.type)}\n$tab" else ""
+        val typ = if (l.type != null) "${l.name} : ${show(l.type)}\n$tab" else ""
         return "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " = ${show(l.expr)}"
     }
 
@@ -220,10 +220,10 @@ class Formatter {
         is Type.TForall -> "forall " + t.names.joinToString(" ") + ". ${show(t.type)}"
         is Type.TConstructor -> t.fullname() + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
-        is Type.TVar -> t.fullname()
+        is Type.TConst -> t.fullname()
     }
 
-    private fun showIndented(t: Type, prefix: String = "::"): String = when (t) {
+    private fun showIndented(t: Type, prefix: String = ":"): String = when (t) {
         is Type.TFun -> {
             val tlist = mutableListOf<String>()
             var fn = t

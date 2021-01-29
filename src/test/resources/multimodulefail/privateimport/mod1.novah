@@ -1,4 +1,4 @@
 module mod1 hiding (foo)
 
-foo :: Int
+foo : Int
 foo = 1

@@ -1,11 +1,11 @@
 module pack.namespace1 exposing (sayHello)
 
-fun1 :: String -> Int
+fun1 : String -> Int
 fun1 x = do
   println x
   42
 
-sayHello :: String -> Unit
+sayHello : String -> Unit
 sayHello name = do
   println "Hello"
   println name
