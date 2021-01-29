@@ -17,8 +17,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private var nested = false
 
     private var moduleName: String? = null
-    
-    private var expectDefinition: String? = null
 
     private data class ModuleDef(val name: String, val exports: ModuleExports, val span: Span, val comment: Comment?)
 
@@ -226,16 +224,10 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseDecl(): Decl {
         val tk = iter.peek()
-        if (expectDefinition != null && (tk.value !is Ident || tk.value.v != expectDefinition)) {
-            throwError(withError(E.expectedDefinition(expectDefinition!!))(tk))
-        }
         val comment = tk.comment
         val decl = when (tk.value) {
             is TypeT -> parseDataDecl()
-            is Ident -> {
-                expectDefinition = null
-                parseVarDecl()
-            }
+            is Ident -> parseVarDecl()
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
         decl.comment = comment
@@ -264,28 +256,29 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseVarDecl(): Decl {
-        val nameTk = expect<Ident>(noErr())
+        var nameTk = expect<Ident>(noErr())
         val name = nameTk.value.v
         return withOffside(nameTk.offside() + 1, false) {
+            var type: Type? = null
             if (iter.peek().value is Colon) {
-                parseTypeSignature(name)
-            } else {
-                val vars = tryParseListOf { tryParseFunparPattern() }
-
-                expect<Equals>(withError(E.EQUALS))
-
-                val exp = parseExpression()
-                Decl.ValDecl(name, vars, exp).withSpan(nameTk.span, exp.span)
+                type = parseTypeSignature()
+                withOffside(nameTk.offside(), false) {
+                    nameTk = expect(withError(E.expectedDefinition(name)))
+                    if (nameTk.value.v != name) throwError(withError(E.expectedDefinition(name))(nameTk))
+                }
             }
+            val vars = tryParseListOf { tryParseFunparPattern() }
+
+            expect<Equals>(withError(E.EQUALS))
+
+            val exp = parseExpression()
+            Decl.ValDecl(name, vars, exp, type).withSpan(nameTk.span, exp.span)
         }
     }
 
-    private fun parseTypeSignature(name: String): Decl.TypeDecl {
+    private fun parseTypeSignature(): Type {
         expect<Colon>(withError(E.TYPE_DCOLON))
-        // in case of a type signature we expect the next
-        // declaration to be its definition
-        expectDefinition = name
-        return Decl.TypeDecl(name, parsePolytype())
+        return parsePolytype()
     }
 
     private fun tryParseIdent(): Binder? {
@@ -725,7 +718,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     Type.TParens(typ)
                 }
             }
-            is Ident -> Type.TConst(parseTypeVar())
+            is Ident -> Type.TVar(parseTypeVar())
             is UpperIdent -> {
                 var ty = parseUpperIdent().v
                 var alias: String? = null
@@ -735,11 +728,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
                 }
                 if (inConstructor) {
-                    Type.TConst(ty, alias)
+                    Type.TVar(ty, alias)
                 } else {
                     val pars = tryParseListOf(true) { parseTypeAtom(true) }
 
-                    if (pars.isEmpty()) Type.TConst(ty, alias)
+                    if (pars.isEmpty()) Type.TVar(ty, alias)
                     else Type.TConstructor(ty, pars, alias)
                 }
             }

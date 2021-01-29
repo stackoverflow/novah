@@ -116,8 +116,8 @@ class ParserSpec : StringSpec({
         val ast = parseResource("Comments.novah")
 
         val data = ast.decls[0] as Decl.DataDecl
-        val type = ast.decls[1] as Decl.TypeDecl
-        val vard = ast.decls[3] as Decl.ValDecl
+        val type = ast.decls[1] as Decl.ValDecl
+        val vard = ast.decls[2] as Decl.ValDecl
 
         data.comment?.comment should contain("comments on type definitions work")
         type.comment?.comment should contain("comments on var\n types work")
@@ -130,7 +130,7 @@ class ParserSpec : StringSpec({
         val x = ast.decls.filterIsInstance<Decl.ValDecl>().find { it.name == "x" }?.exp!!
 
         x.shouldBeInstanceOf<Expr.Ann>()
-        x.type shouldBe Type.TConst("String")
+        x.type shouldBe Type.TVar("String")
     }
 
     "Complex top level definitions are disallowed" {

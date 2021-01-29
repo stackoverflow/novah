@@ -34,7 +34,6 @@ import novah.frontend.error.Errors as E
  */
 class Desugar(private val smod: SModule) {
 
-    private val topLevelTypes = smod.decls.filterIsInstance<SDecl.TypeDecl>().map { it.name to it.type }.toMap()
     private val dataCtors = smod.decls.filterIsInstance<SDecl.DataDecl>().map { it.name }
     private val exports = validateExports()
     private val imports = smod.resolvedImports
@@ -62,9 +61,7 @@ class Desugar(private val smod: SModule) {
             validateTopLevelExpr(name, expr)
 
             // if the declaration has a type annotation, annotate it
-            expr = topLevelTypes[name]?.let { type ->
-                Expr.Ann(expr, type.desugar(), span)
-            } ?: expr
+            expr = if (type != null) Expr.Ann(expr, type.desugar(), span) else expr
             Decl.ValDecl(name, expr, span, exports.visibility(name))
         }
     }

@@ -108,7 +108,7 @@ sealed class ForeignImport(val type: String, val span: Span) {
 sealed class Decl {
     data class DataDecl(val name: String, val tyVars: List<String>, val dataCtors: List<DataConstructor>) : Decl()
     data class TypeDecl(val name: String, val type: Type) : Decl()
-    data class ValDecl(val name: String, val patterns: List<FunparPattern>, val exp: Expr) : Decl()
+    data class ValDecl(val name: String, val patterns: List<FunparPattern>, val exp: Expr, val type: Type?) : Decl()
 
     var comment: Comment? = null
     var span = Span.empty()
