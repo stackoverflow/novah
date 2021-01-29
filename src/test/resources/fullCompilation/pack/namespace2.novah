@@ -1,7 +1,8 @@
-module pack.namespace2 exposing (same)
+module pack.namespace2
 
 import pack.namespace1 (sayHello)
 
+pub
 same : Int -> Int -> Boolean
 same x y = x == y
 

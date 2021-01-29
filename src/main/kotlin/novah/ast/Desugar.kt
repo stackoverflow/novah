@@ -8,10 +8,8 @@ import novah.data.Err
 import novah.data.Ok
 import novah.data.Reflection.isStatic
 import novah.data.Result
-import novah.frontend.ExportResult
 import novah.frontend.ParserError
 import novah.frontend.Span
-import novah.frontend.consolidateExports
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
@@ -35,7 +33,6 @@ import novah.frontend.error.Errors as E
 class Desugar(private val smod: SModule) {
 
     private val dataCtors = smod.decls.filterIsInstance<SDecl.DataDecl>().map { it.name }
-    private val exports = validateExports()
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
 
@@ -53,7 +50,7 @@ class Desugar(private val smod: SModule) {
             if (smod.foreignTypes[name] != null || imports[name] != null) {
                 parserError(E.duplicatedType(name.raw()), span)
             }
-            Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, exports.visibility(name))
+            Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility)
         }
         is SDecl.ValDecl -> {
             var expr = nestLambdas(patterns.map { it.desugar() }, exp.desugar())
@@ -61,12 +58,12 @@ class Desugar(private val smod: SModule) {
 
             // if the declaration has a type annotation, annotate it
             expr = if (type != null) Expr.Ann(expr, type.desugar(), span) else expr
-            Decl.ValDecl(name, expr, span, type?.desugar(), exports.visibility(name))
+            Decl.ValDecl(name, expr, span, type?.desugar(), visibility)
         }
     }
 
     private fun SDataConstructor.desugar(): DataConstructor =
-        DataConstructor(name, args.map { it.desugar() }, exports.visibility(name), span)
+        DataConstructor(name, args.map { it.desugar() }, visibility, span)
 
     private fun SExpr.desugar(locals: List<String> = listOf(), appFnDepth: Int = 0): Expr = when (this) {
         is SExpr.IntE -> Expr.IntE(v, span)
@@ -232,18 +229,6 @@ class Desugar(private val smod: SModule) {
                     parserError(E.wrongConstructorName(typeName), dd.span)
             }
         }
-    }
-
-    /**
-     * Make sure all exports are valid and return them
-     */
-    private fun validateExports(): ExportResult {
-        val res = consolidateExports(smod.exports, smod.decls)
-        // TODO: better error reporting with context
-        if (res.errors.isNotEmpty()) {
-            parserError(E.exportError(res.errors[0]), smod.span)
-        }
-        return res
     }
 
     /**

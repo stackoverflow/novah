@@ -109,6 +109,8 @@ object Errors {
     const val LET_DO_IN = "Let expressions in a do statement cannot have an `in` clause."
 
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
+    
+    const val PUB_PLUS = "Visibility of value declaration can only be public (pub) not pub+."
 
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
@@ -160,12 +162,6 @@ object Errors {
     fun undefinedVarInCtor(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
         else "The variables ${typeVars.joinToString()} are undefined in constructor $name."
-    }
-
-    fun exportError(v: String) = if (v[0].isLowerCase()) {
-        "Cannot export unknown value $v."
-    } else {
-        "Cannot export unknown type or constructor $v."
     }
 
     fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."

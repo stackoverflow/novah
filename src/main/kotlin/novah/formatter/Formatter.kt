@@ -20,7 +20,7 @@ class Formatter {
         } else ""
         builder.append(cmt)
 
-        builder.append("module ${m.name}${show(m.exports)}")
+        builder.append("module ${m.name}")
 
         if (m.imports.isNotEmpty()) {
             builder.append("\n\n")
@@ -40,12 +40,6 @@ class Formatter {
             }
         }
         return builder.toString()
-    }
-
-    fun show(me: ModuleExports): String = when (me) {
-        is ModuleExports.Hiding -> " hiding" + showList(me.hides.map { it.toString() })
-        is ModuleExports.Exposing -> " exposing" + showList(me.exports.map { it.toString() })
-        is ModuleExports.ExportAll -> ""
     }
 
     fun show(i: Import): String {
@@ -81,9 +75,13 @@ class Formatter {
 
     fun show(d: Decl): String {
         val cmt = if (d.comment != null) show(d.comment!!, true) else ""
+        val vis = if (d.visibility == Visibility.PUBLIC) "pub\n" else ""
         return cmt + when (d) {
-            is Decl.DataDecl -> show(d)
-            is Decl.ValDecl -> show(d)
+            is Decl.DataDecl -> {
+                val visi = if (d.dataCtors[0].visibility == Visibility.PUBLIC) "pub+\n" else vis
+                visi + show(d)
+            }
+            is Decl.ValDecl -> vis + show(d)
         }
     }
 

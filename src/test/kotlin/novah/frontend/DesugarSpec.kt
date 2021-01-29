@@ -5,7 +5,7 @@ import io.kotest.matchers.shouldBe
 import novah.ast.Desugar
 import novah.ast.canonical.DataConstructor
 import novah.ast.canonical.Decl
-import novah.ast.canonical.Visibility
+import novah.ast.source.Visibility
 import novah.frontend.TestUtil.parseString
 
 class DesugarSpec : StringSpec({
@@ -16,21 +16,17 @@ class DesugarSpec : StringSpec({
 
     "visibility is correctly set" {
         val code = """
-            module test exposing
-              ( x
-              , AllVis(..)
-              , NoVis
-              , PartVis(PartVis2)
-              )
+            module test
             
+            pub+
             type AllVis = AllVis1 | AllVis2
             
+            pub
             type NoVis = NoVis1 | NoVis2
-            
-            type PartVis = PartVis1 | PartVis2
             
             type Hidden = Hidden1
             
+            pub
             x = 3
             
             y = true
@@ -50,11 +46,6 @@ class DesugarSpec : StringSpec({
         noVis.visibility shouldBe Visibility.PUBLIC
         noVis.dataCtors.byName("NoVis1").visibility shouldBe Visibility.PRIVATE
         noVis.dataCtors.byName("NoVis2").visibility shouldBe Visibility.PRIVATE
-
-        val partVis = tds.byName("PartVis")
-        partVis.visibility shouldBe Visibility.PUBLIC
-        partVis.dataCtors.byName("PartVis1").visibility shouldBe Visibility.PRIVATE
-        partVis.dataCtors.byName("PartVis2").visibility shouldBe Visibility.PUBLIC
 
         val hidden = tds.byName("Hidden")
         hidden.visibility shouldBe Visibility.PRIVATE

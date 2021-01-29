@@ -1,6 +1,6 @@
 package novah.ast.optimized
 
-import novah.ast.canonical.Visibility
+import novah.ast.source.Visibility
 import novah.frontend.Span
 import java.lang.reflect.Field
 import java.lang.reflect.Method

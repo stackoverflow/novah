@@ -1,4 +1,5 @@
-module mod1 exposing (foo)
+module mod1
 
+pub
 foo : Int
 foo = 1

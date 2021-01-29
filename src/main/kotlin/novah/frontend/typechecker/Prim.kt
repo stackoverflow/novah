@@ -1,6 +1,6 @@
 package novah.frontend.typechecker
 
-import novah.ast.canonical.Visibility
+import novah.ast.source.Visibility
 import novah.ast.source.Import
 import novah.frontend.Span
 import novah.main.DeclRef
