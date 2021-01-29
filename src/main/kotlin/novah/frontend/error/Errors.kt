@@ -140,6 +140,8 @@ object Errors {
         |$example
     """.trimMargin()
     }
+    
+    fun expectedDefinition(name: String) = "Expected definition after type declaration for $name."
 
     fun classNotFound(name: String) = "Could not find class $name in classpath."
 

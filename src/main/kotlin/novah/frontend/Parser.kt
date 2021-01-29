@@ -11,12 +11,14 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Errors as E
 
-class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "<Unknown>") {
+class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
     private val iter = PeekableIterator(tokens, ::throwMismatchedIndentation)
 
     private var nested = false
 
     private var moduleName: String? = null
+    
+    private var expectDefinition: String? = null
 
     private data class ModuleDef(val name: String, val exports: ModuleExports, val span: Span, val comment: Comment?)
 
@@ -224,10 +226,16 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseDecl(): Decl {
         val tk = iter.peek()
+        if (expectDefinition != null && (tk.value !is Ident || tk.value.v != expectDefinition)) {
+            throwError(withError(E.expectedDefinition(expectDefinition!!))(tk))
+        }
         val comment = tk.comment
         val decl = when (tk.value) {
             is TypeT -> parseDataDecl()
-            is Ident -> parseVarDecl()
+            is Ident -> {
+                expectDefinition = null
+                parseVarDecl()
+            }
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
         decl.comment = comment
@@ -274,6 +282,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseTypeSignature(name: String): Decl.TypeDecl {
         expect<Colon>(withError(E.TYPE_DCOLON))
+        // in case of a type signature we expect the next
+        // declaration to be its definition
+        expectDefinition = name
         return Decl.TypeDecl(name, parsePolytype())
     }
 
