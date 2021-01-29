@@ -299,7 +299,6 @@ fun consolidateExports(exps: ModuleExports, decls: List<Decl>): ExportResult {
                 ctorsMap[decl.name] = decl.dataCtors.map { it.name }
                 decl.name
             }
-            is Decl.TypeDecl -> decl.name
             is Decl.ValDecl -> decl.name
         }
     }.toSet()

@@ -453,9 +453,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseLet(inDo: Boolean = false): Expr {
         val let = expect<LetT>(noErr())
 
-        val types = mutableListOf<Decl.TypeDecl>()
-        val defsCtx = mutableListOf<LetDef>()
-
         val tk = iter.peek()
         val align = tk.offside()
         if (align <= iter.offside()) throwMismatchedIndentation(tk)
@@ -465,11 +462,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         withOffside(align) {
             if (inDo) {
                 while (!iter.peekIsOffside() && iter.peek().value !in statementEnding) {
-                    defs += parseLetDef(types, defsCtx)
+                    defs += parseLetDef()
                 }
             } else {
                 while (iter.peek().value != In) {
-                    defs += parseLetDef(types, defsCtx)
+                    defs += parseLetDef()
                 }
             }
         }
@@ -486,33 +483,27 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return Expr.Let(defs, exp).withSpan(span).withComment(let.comment)
     }
 
-    private tailrec fun parseLetDef(types: MutableList<Decl.TypeDecl>, letDefs: MutableList<LetDef>): LetDef {
+    private fun parseLetDef(): LetDef {
         val ident = expect<Ident>(withError(E.LET_DECL))
+        val name = ident.value.v
 
-        return when (iter.peek().value) {
-            is Colon -> {
-                if (letDefs.any { it.name.name == ident.value.v }) {
-                    throwError(withError(E.LET_TYPE)(ident))
-                }
-                val tdecl = withOffside {
-                    iter.next()
-                    Decl.TypeDecl(ident.value.v, parsePolytype())
-                }
-                types += tdecl
-                parseLetDef(types, letDefs)
+        var type: Type? = null
+        if (iter.peek().value is Colon) {
+            type = withOffside {
+                iter.next()
+                parsePolytype()
             }
-            else -> {
-                withOffside {
-                    val vars = tryParseListOf { tryParseFunparPattern() }
-                    expect<Equals>(withError(E.LET_EQUALS))
-                    val exp = parseExpression()
-                    val span = span(ident.span, exp.span)
-                    val def =
-                        LetDef(Binder(ident.value.v, span), vars, exp, types.find { it.name == ident.value.v }?.type)
-                    letDefs += def
-                    def
-                }
-            }
+            val newIdent = expect<Ident>(withError(E.expectedLetDefinition(name)))
+            if (newIdent.value.v != name) throwError(withError(E.expectedLetDefinition(name))(newIdent))
+        }
+        return withOffside {
+            val vars = tryParseListOf { tryParseFunparPattern() }
+            expect<Equals>(withError(E.LET_EQUALS))
+            val exp = parseExpression()
+            val span = span(ident.span, exp.span)
+            val def =
+                LetDef(Binder(ident.value.v, span), vars, exp, type)
+            def
         }
     }
 

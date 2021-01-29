@@ -1,5 +1,5 @@
 module [33mtest[0m
 at src/test/resources/failure/source/expected definition.novah:5:1 - 5:2
 
-  Expected definition after type declaration for x.
+  Expected definition to follow its type declaration for x.
 

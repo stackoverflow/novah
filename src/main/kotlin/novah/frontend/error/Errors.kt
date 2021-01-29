@@ -77,12 +77,6 @@ object Errors {
 
     const val LET_IN = "Expected `in` after let definition."
 
-    val LET_TYPE = """Types should be defined before their declaration, not after.
-        |
-        |ex: let x :: Int
-        |        x = 8 in x
-    """.trimMargin()
-
     const val CASE_OF = "Expected `of` after a case expression."
 
     const val CASE_ARROW = "Expected `->` after case pattern."
@@ -141,7 +135,9 @@ object Errors {
     """.trimMargin()
     }
     
-    fun expectedDefinition(name: String) = "Expected definition after type declaration for $name."
+    fun expectedDefinition(name: String) = "Expected definition to follow its type declaration for $name."
+
+    fun expectedLetDefinition(name: String) = "Expected definition to follow its type declaration for $name in let clause."
 
     fun classNotFound(name: String) = "Could not find class $name in classpath."
 

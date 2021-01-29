@@ -31,8 +31,7 @@ sealed class Decl {
         val visibility: Visibility
     ) : Decl()
 
-    data class TypeDecl(val name: String, val type: Type, val span: Span) : Decl()
-    data class ValDecl(val name: String, val exp: Expr, val span: Span, val visibility: Visibility) : Decl()
+    data class ValDecl(val name: String, val exp: Expr, val span: Span, val type: Type?, val visibility: Visibility) : Decl()
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {

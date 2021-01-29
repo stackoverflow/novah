@@ -48,7 +48,6 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SDecl.desugar(): Decl = when (this) {
-        is SDecl.TypeDecl -> Decl.TypeDecl(name, type.desugar(), span)
         is SDecl.DataDecl -> {
             validateDataConstructorNames(this)
             if (smod.foreignTypes[name] != null || imports[name] != null) {
@@ -62,7 +61,7 @@ class Desugar(private val smod: SModule) {
 
             // if the declaration has a type annotation, annotate it
             expr = if (type != null) Expr.Ann(expr, type.desugar(), span) else expr
-            Decl.ValDecl(name, expr, span, exports.visibility(name))
+            Decl.ValDecl(name, expr, span, type?.desugar(), exports.visibility(name))
         }
     }
 

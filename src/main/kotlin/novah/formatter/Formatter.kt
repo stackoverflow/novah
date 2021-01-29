@@ -31,15 +31,12 @@ class Formatter {
             builder.append(m.foreigns.joinToString("\n") { show(it) })
         }
         if (m.decls.isNotEmpty()) {
-            var last = m.decls[0]
             builder.append("\n\n")
             for (d in m.decls) {
                 if (d != m.decls[0]) {
-                    if (last is Decl.TypeDecl && d is Decl.ValDecl && last.name == d.name) builder.append("\n")
-                    else builder.append("\n\n")
+                    builder.append("\n\n")
                 }
                 builder.append(show(d))
-                last = d
             }
         }
         return builder.toString()
@@ -86,7 +83,6 @@ class Formatter {
         val cmt = if (d.comment != null) show(d.comment!!, true) else ""
         return cmt + when (d) {
             is Decl.DataDecl -> show(d)
-            is Decl.TypeDecl -> show(d)
             is Decl.ValDecl -> show(d)
         }
     }
@@ -99,15 +95,17 @@ class Formatter {
         }
     }
 
-    fun show(d: Decl.TypeDecl): String {
-        val td = "${d.name} : " + show(d.type)
+    fun show(name: String, type: Type): String {
+        val td = "${name} : " + show(type)
         return if (td.length > maxColumns) {
-            d.name + withIndent { showIndented(d.type) }
+            name + withIndent { showIndented(type) }
         } else td
     }
 
     fun show(d: Decl.ValDecl): String {
-        val prefix = d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
+        var prefix = ""
+        if (d.type != null) prefix = show(d.name, d.type) + "\n" + prefix
+        prefix += d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
         return if (shouldNewline(d.exp)) {
             prefix + withIndent { tab + show(d.exp) }
@@ -220,7 +218,7 @@ class Formatter {
         is Type.TForall -> "forall " + t.names.joinToString(" ") + ". ${show(t.type)}"
         is Type.TConstructor -> t.fullname() + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
-        is Type.TConst -> t.fullname()
+        is Type.TVar -> t.fullname()
     }
 
     private fun showIndented(t: Type, prefix: String = ":"): String = when (t) {
