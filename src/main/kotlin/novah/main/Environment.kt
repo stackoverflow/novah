@@ -2,7 +2,7 @@ package novah.main
 
 import com.github.ajalt.clikt.output.TermUi.echo
 import novah.ast.Desugar
-import novah.ast.canonical.Visibility
+import novah.ast.source.Visibility
 import novah.ast.source.Module
 import novah.backend.Codegen
 import novah.data.DAG

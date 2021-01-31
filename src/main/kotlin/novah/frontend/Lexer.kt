@@ -16,15 +16,13 @@ sealed class Token {
     object Hash : Token()
     object Dot : Token()
     object Comma : Token()
-    object DoubleColon : Token()
+    object Colon : Token()
     object Equals : Token()
     object Backslash : Token()
     object Arrow : Token()
     object Underline : Token()
     object Pipe : Token()
     object ModuleT : Token()
-    object Hiding : Token()
-    object Exposing : Token()
     object ImportT : Token()
     object Forall : Token()
     object TypeT : Token()
@@ -38,6 +36,8 @@ sealed class Token {
     object In : Token()
     object Do : Token()
     object ForeignT : Token()
+    object PublicT : Token()
+    object PublicPlus : Token()
 
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
@@ -208,7 +208,12 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             builder.append(iter.next())
         }
 
-        return when (val id = builder.toString()) {
+        val id = builder.toString()
+        if (id == "pub" && iter.peek() == '+') {
+            iter.next()
+            return PublicPlus
+        }
+        return when (id) {
             "true" -> BoolT(true)
             "false" -> BoolT(false)
             "if" -> IfT
@@ -225,9 +230,8 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "as" -> As
             "in" -> In
             "do" -> Do
-            "hiding" -> Hiding
-            "exposing" -> Exposing
             "foreign" -> ForeignT
+            "pub" -> PublicT
             else ->
                 if (id[0].isUpperCase()) {
                     UpperIdent(id)
@@ -349,7 +353,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "->" -> Arrow
             "|" -> Pipe
             "." -> Dot
-            "::" -> DoubleColon
+            ":" -> Colon
             else -> Op(op)
         }
     }

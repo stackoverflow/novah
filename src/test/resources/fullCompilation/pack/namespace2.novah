@@ -1,8 +1,9 @@
-module pack.namespace2 exposing (same)
+module pack.namespace2
 
 import pack.namespace1 (sayHello)
 
-same :: Int -> Int -> Boolean
+pub
+same : Int -> Int -> Boolean
 same x y = x == y
 
 main _ = sayHello "Mario"

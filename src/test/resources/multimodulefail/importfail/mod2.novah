@@ -2,5 +2,5 @@ module mod2
 
 import mod1 (bar)
 
-foo :: Int
+foo : Int
 foo = bar

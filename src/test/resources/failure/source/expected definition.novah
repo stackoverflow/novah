@@ -1,0 +1,7 @@
+module test
+
+x : Int
+
+y = 12
+
+x = 1

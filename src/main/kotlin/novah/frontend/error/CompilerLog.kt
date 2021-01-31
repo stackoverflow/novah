@@ -46,5 +46,6 @@ enum class ProblemContext {
     INSTR,
     PATTERN_MATCHING,
     FOREIGN,
-    OPTIMIZATION;
+    OPTIMIZATION,
+    UNIFICATION;
 }

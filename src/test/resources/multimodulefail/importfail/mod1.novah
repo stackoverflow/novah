@@ -1,4 +1,5 @@
-module mod1 exposing (foo)
+module mod1
 
-foo :: Int
+pub
+foo : Int
 foo = 1

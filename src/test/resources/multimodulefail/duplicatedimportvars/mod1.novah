@@ -1,3 +1,4 @@
-module mod1 exposing ( newArrayList )
+module mod1
 
+pub
 newArrayList () = 10

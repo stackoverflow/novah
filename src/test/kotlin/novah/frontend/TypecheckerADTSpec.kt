@@ -10,7 +10,7 @@ class TypecheckerADTSpec : StringSpec({
         val code = """
             type Day = Week | Weekend
             
-            x :: Int -> Day
+            x : Int -> Day
             x a = Week
             
             y a = Weekend
@@ -28,13 +28,13 @@ class TypecheckerADTSpec : StringSpec({
               = It a
               | Nope
             
-            x :: Int -> May String
+            x : Int -> May String
             x a = Nope
             
-            y :: forall a. a -> May a
+            y : forall a. a -> May a
             y a = Nope
             
-            w :: Int -> May Int
+            w : Int -> May Int
             w a = It 5
         """.module()
 
@@ -51,10 +51,10 @@ class TypecheckerADTSpec : StringSpec({
               = Ok k
               | Err e
             
-            x :: Int -> Result Int String
+            x : Int -> Result Int String
             x a = Ok 1
             
-            //y :: Int -> Result Int String
+            //y : Int -> Result Int String
             y a = Err "oops"
         """.module()
 
@@ -68,7 +68,7 @@ class TypecheckerADTSpec : StringSpec({
         val code = """
             type List a = Nil | Cons a (List a)
             
-            x :: Int -> List String
+            x : Int -> List String
             x a = Nil
             
             y a = Cons 1 (Cons 2 (Cons 3 Nil))
@@ -84,7 +84,7 @@ class TypecheckerADTSpec : StringSpec({
         val code = """
             type Comp a b = Cfun (a -> b) | Cfor (forall c. c -> a)
             
-            str :: forall a. a -> String
+            str : forall a. a -> String
             str x = "1"
             
             x a = Cfor str

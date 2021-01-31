@@ -2,6 +2,7 @@ package novah.formatter
 
 import novah.ast.source.*
 import novah.frontend.*
+import novah.Util.joinToStr
 
 /**
  * The canonical formatter for the language. Like gofmt
@@ -19,7 +20,7 @@ class Formatter {
         } else ""
         builder.append(cmt)
 
-        builder.append("module ${m.name}${show(m.exports)}")
+        builder.append("module ${m.name}")
 
         if (m.imports.isNotEmpty()) {
             builder.append("\n\n")
@@ -30,24 +31,15 @@ class Formatter {
             builder.append(m.foreigns.joinToString("\n") { show(it) })
         }
         if (m.decls.isNotEmpty()) {
-            var last = m.decls[0]
             builder.append("\n\n")
             for (d in m.decls) {
                 if (d != m.decls[0]) {
-                    if (last is Decl.TypeDecl && d is Decl.ValDecl && last.name == d.name) builder.append("\n")
-                    else builder.append("\n\n")
+                    builder.append("\n\n")
                 }
                 builder.append(show(d))
-                last = d
             }
         }
         return builder.toString()
-    }
-
-    fun show(me: ModuleExports): String = when (me) {
-        is ModuleExports.Hiding -> " hiding" + showList(me.hides.map { it.toString() })
-        is ModuleExports.Exposing -> " exposing" + showList(me.exports.map { it.toString() })
-        is ModuleExports.ExportAll -> ""
     }
 
     fun show(i: Import): String {
@@ -83,10 +75,13 @@ class Formatter {
 
     fun show(d: Decl): String {
         val cmt = if (d.comment != null) show(d.comment!!, true) else ""
+        val vis = if (d.visibility == Visibility.PUBLIC) "pub\n" else ""
         return cmt + when (d) {
-            is Decl.DataDecl -> show(d)
-            is Decl.TypeDecl -> show(d)
-            is Decl.ValDecl -> show(d)
+            is Decl.DataDecl -> {
+                val visi = if (d.dataCtors[0].visibility == Visibility.PUBLIC) "pub+\n" else vis
+                visi + show(d)
+            }
+            is Decl.ValDecl -> vis + show(d)
         }
     }
 
@@ -98,15 +93,17 @@ class Formatter {
         }
     }
 
-    fun show(d: Decl.TypeDecl): String {
-        val td = "${d.name} :: " + show(d.type)
+    fun show(name: String, type: Type): String {
+        val td = "${name} : " + show(type)
         return if (td.length > maxColumns) {
-            d.name + withIndent { showIndented(d.type) }
+            name + withIndent { showIndented(type) }
         } else td
     }
 
     fun show(d: Decl.ValDecl): String {
-        val prefix = d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
+        var prefix = ""
+        if (d.type != null) prefix = show(d.name, d.type) + "\n" + prefix
+        prefix += d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
         return if (shouldNewline(d.exp)) {
             prefix + withIndent { tab + show(d.exp) }
@@ -151,7 +148,7 @@ class Formatter {
                 exps.joinToString(" ") { show(it) }
             }
             is Expr.Ann -> {
-                "${show(e.exp)} :: ${show(e.type)}"
+                "${show(e.exp)} : ${show(e.type)}"
             }
             is Expr.Lambda -> {
                 val shown = if (shouldNewline(e.body)) withIndent { tab + show(e.body) } else show(e.body)
@@ -201,7 +198,7 @@ class Formatter {
     }
 
     private fun show(l: LetDef): String {
-        val typ = if (l.type != null) "${l.name} :: ${show(l.type)}\n$tab" else ""
+        val typ = if (l.type != null) "${l.name} : ${show(l.type)}\n$tab" else ""
         return "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " = ${show(l.expr)}"
     }
 
@@ -222,7 +219,7 @@ class Formatter {
         is Type.TVar -> t.fullname()
     }
 
-    private fun showIndented(t: Type, prefix: String = "::"): String = when (t) {
+    private fun showIndented(t: Type, prefix: String = ":"): String = when (t) {
         is Type.TFun -> {
             val tlist = mutableListOf<String>()
             var fn = t
@@ -272,22 +269,5 @@ class Formatter {
     companion object {
         const val maxColumns = 120
         const val tabSize = "  " // 2 spaces
-
-        /**
-         * Like [joinToString] but don't append the prefix/suffix if
-         * the list is empty.
-         */
-        private fun <T> List<T>.joinToStr(
-            separator: CharSequence = ", ",
-            prefix: CharSequence = "",
-            postfix: CharSequence = "",
-            limit: Int = -1,
-            truncated: CharSequence = "...",
-            transform: ((T) -> CharSequence)? = null
-        ): String {
-            val pre = if (isEmpty()) "" else prefix
-            val pos = if (isEmpty()) "" else postfix
-            return joinTo(StringBuilder(), separator, pre, pos, limit, truncated, transform).toString()
-        }
     }
 }

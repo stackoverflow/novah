@@ -2,5 +2,5 @@ module importfail
 
 import non.existing.mod (foo)
 
-x :: Int
+x : Int
 x = 1

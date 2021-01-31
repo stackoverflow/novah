@@ -1,3 +1,4 @@
-module mod1 exposing ( ArrayList )
+module mod1
 
+pub+
 type ArrayList = ArrayList Int

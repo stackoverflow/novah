@@ -1,5 +1,6 @@
 package novah.ast.canonical
 
+import novah.ast.source.Visibility
 import novah.frontend.Span
 import novah.frontend.typechecker.Name
 import novah.frontend.typechecker.Type
@@ -18,10 +19,6 @@ data class Module(
     val decls: List<Decl>
 )
 
-enum class Visibility {
-    PUBLIC, PRIVATE;
-}
-
 sealed class Decl {
     data class DataDecl(
         val name: String,
@@ -31,8 +28,7 @@ sealed class Decl {
         val visibility: Visibility
     ) : Decl()
 
-    data class TypeDecl(val name: String, val type: Type, val span: Span) : Decl()
-    data class ValDecl(val name: String, val exp: Expr, val span: Span, val visibility: Visibility) : Decl()
+    data class ValDecl(val name: String, val exp: Expr, val span: Span, val type: Type?, val visibility: Visibility) : Decl()
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {

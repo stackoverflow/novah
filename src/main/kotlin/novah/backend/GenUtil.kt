@@ -1,6 +1,6 @@
 package novah.backend
 
-import novah.ast.canonical.Visibility
+import novah.ast.source.Visibility
 import novah.ast.optimized.DataConstructor
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr

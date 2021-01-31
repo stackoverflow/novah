@@ -56,7 +56,7 @@ class TypedASTSpec : StringSpec({
             
             f2 a = if true then 6 else a
             
-            f3 a = id a :: Int
+            f3 a = id a : Int
         """.module()
 
         val ast = TestUtil.compileCode(code).ast
@@ -95,7 +95,7 @@ class TypedASTSpec : StringSpec({
                 x
                 true
             
-            lamb :: Int -> String -> Unit
+            lamb : Int -> String -> Unit
             lamb x y = do
               Just "a"
               ()

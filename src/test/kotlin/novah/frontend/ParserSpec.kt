@@ -54,7 +54,7 @@ class ParserSpec : StringSpec({
         val l1 = "((+ 3) ((* ((* ((^ 7) 4)) 6)) 9))"
         val l2 = "((+ ((* ((^ 3) (((* 7) 4)))) 6)) 9)"
         val r1 = "(($ (bla 3)) (($ (df 4)) pa))"
-        val r2 = "((: 3) ((: 5) ((: 7) Nil)))"
+        val r2 = "((:: 3) ((:: 5) ((:: 7) Nil)))"
         val ap = "(((fn 3) 4) 5)"
         val a2 = "(fn ((fn2 8)))"
         val co = "(((fn 'x') y) (((Some (((+ 3) 4))) 1)))"
@@ -80,7 +80,7 @@ class ParserSpec : StringSpec({
         val l1 = "3 + 7 ^ 4 * 6 * 9"
         val l2 = "3 ^ (7 * 4) * 6 + 9"
         val r1 = "bla 3 $ df 4 $ pa"
-        val r2 = "3 : 5 : 7 : Nil"
+        val r2 = "3 :: 5 :: 7 :: Nil"
         val ap = "fn 3 4 5"
         val a2 = "fn (fn2 8)"
         val co = "fn 'x' y (Some (3 + 4) 1)"
@@ -116,8 +116,8 @@ class ParserSpec : StringSpec({
         val ast = parseResource("Comments.novah")
 
         val data = ast.decls[0] as Decl.DataDecl
-        val type = ast.decls[1] as Decl.TypeDecl
-        val vard = ast.decls[3] as Decl.ValDecl
+        val type = ast.decls[1] as Decl.ValDecl
+        val vard = ast.decls[2] as Decl.ValDecl
 
         data.comment?.comment should contain("comments on type definitions work")
         type.comment?.comment should contain("comments on var\n types work")
@@ -148,7 +148,7 @@ class ParserSpec : StringSpec({
         }
 
         // Annotations should work
-        val ast = parseString("decl = 2 :: Int".module())
+        val ast = parseString("decl = 2 : Int".module())
         val des = Desugar(ast)
         des.desugar().unwrap()
     }

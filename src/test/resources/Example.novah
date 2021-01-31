@@ -2,17 +2,7 @@
  comment on
  the module
  */
-module novah.example hiding
-  ( maybe
-  , myFun
-  , end
-  , sum
-  , sum2
-
-  //Types
-  , Maybe(Just, Nope)
-  , List(..)
-  )
+module novah.example
 
 // imported prelude
 import prelude
@@ -34,14 +24,17 @@ foreign import Int:parseInt(String)
 foreign import get Int:MIN_VALUE as minValue
 //foreign import set some.package.AClass.value as setValue
 
+pub+
 type Maybe a
   = Nope
   | Just a
 
+pub+
 type List a =
   Nil
   | Cons a (List a)
 
+pub
 type Day
   = Week
   | Weekend
@@ -55,7 +48,7 @@ doub x = x * 13.87E12
 x = fn 3 4 5
 
 stuff
-  :: Int
+  : Int
   -> Int
   -> String
 stuff v v2 = case v of
@@ -67,8 +60,9 @@ stuff v v2 = case v of
  * Some multi line comment
  * added here
  */
+pub
 maybe
-  :: forall a
+  : forall a
   . a
   -> Int
   -> Maybe
@@ -76,28 +70,30 @@ maybe def sm = case sm of
   Some x -> B.brain x
   Nope -> def
 
-id :: forall a. a -> a
+id : forall a. a -> a
 id x = x
 
-compl :: forall a b c. (a -> b) -> (b -> c) -> a -> c
+compl : forall a b c. (a -> b) -> (b -> c) -> a -> c
 compl f1 f2 x = f2 (f1 x)
 
-hrt :: Int -> (forall a b. (a -> b) -> b) -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Int
+hrt : Int -> (forall a b. (a -> b) -> b) -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Int
 hrt i f t = 1
 
-sum :: Int -> Int -> Int
+pub
+sum : Int -> Int -> Int
 sum x y = x + y
 
-const :: forall a. a -> b -> a
+const : forall a. a -> b -> a
 const x _ = x
 
-mklist :: Int -> Int -> List (List (Int -> Int))
+mklist : Int -> Int -> List (List (Int -> Int))
 mklist = todo
 
   // some comment here
+pub
 myFun x = case x of
   None -> do
-    println "Something" :: Unit
+    println "Something" : Unit
     case 4 of x -> x
     4
   Some (Maybe (Perhaps x y 8)) -> x
@@ -108,7 +104,7 @@ ex = \x -> do
   sideEffect (if false then "false" else "true") -1
   x * y
 
-doIt :: Unit -> String
+doIt : Unit -> String
 doIt () = do
   println
     "not pure"
@@ -116,9 +112,9 @@ doIt () = do
   fun (\x y -> \z -> do
     println x
     x + 1) "a" (Some (3 + 1) 4)
-  let f :: forall a. a -> a
+  let f : forall a. a -> a
       f x = x
-  let y :: Int
+  let y : Int
       y = f 9
   if y >= 2 then do
     println "big y"
@@ -127,11 +123,12 @@ doIt () = do
     println "small y"
     0
 
-fact :: Int -> Int
+fact : Int -> Int
 fact x =
   if x <= 1
     then x
     else x * fact (x - 1)
 
-end :: Int
+pub
+end : Int
 end = 0

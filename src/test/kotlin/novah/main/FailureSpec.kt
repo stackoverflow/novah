@@ -50,7 +50,7 @@ class FailureSpec : StringSpec({
 
         val error = """
             module [33mmod2[0m
-            at src/test/resources/multimodulefail/cycle/mod2.novah:1:1 - 1:27
+            at src/test/resources/multimodulefail/cycle/mod2.novah:1:1 - 1:12
             
               Found cycle between modules mod2, mod1.
             

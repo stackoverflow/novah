@@ -11,7 +11,6 @@ data class Module(
     val name: String,
     val sourceName: String,
     val imports: List<Import>,
-    val exports: ModuleExports,
     val foreigns: List<ForeignImport>,
     val decls: List<Decl>,
     val span: Span
@@ -26,8 +25,12 @@ data class Module(
     fun withComment(c: Comment?) = apply { comment = c }
 }
 
+enum class Visibility {
+    PUBLIC, PRIVATE;
+}
+
 /**
- * A reference that can be imported or exported
+ * A reference that can be imported
  */
 sealed class DeclarationRef(open val name: String) {
     data class RefVar(override val name: String) : DeclarationRef(name) {
@@ -35,8 +38,8 @@ sealed class DeclarationRef(open val name: String) {
     }
 
     /**
-     * `null` ctors mean only the type is exported, but no constructors.
-     * Empty ctors mean all constructors are exported.
+     * `null` ctors mean only the type is imported, but no constructors.
+     * Empty ctors mean all constructors are imported.
      */
     data class RefType(override val name: String, val ctors: List<String>? = null) : DeclarationRef(name) {
         override fun toString(): String = when {
@@ -54,12 +57,6 @@ sealed class ForeignRef {
     data class MethodRef(val method: Method) : ForeignRef()
     data class FieldRef(val field: Field, val isSetter: Boolean) : ForeignRef()
     data class CtorRef(val ctor: Constructor<*>) : ForeignRef()
-}
-
-sealed class ModuleExports {
-    object ExportAll : ModuleExports()
-    data class Hiding(val hides: List<DeclarationRef>) : ModuleExports()
-    data class Exposing(val exports: List<DeclarationRef>) : ModuleExports()
 }
 
 sealed class Import(open val module: String) {
@@ -105,10 +102,21 @@ sealed class ForeignImport(val type: String, val span: Span) {
         ForeignImport(type, span)
 }
 
-sealed class Decl {
-    data class DataDecl(val name: String, val tyVars: List<String>, val dataCtors: List<DataConstructor>) : Decl()
-    data class TypeDecl(val name: String, val type: Type) : Decl()
-    data class ValDecl(val name: String, val patterns: List<FunparPattern>, val exp: Expr) : Decl()
+sealed class Decl(val name: String, val visibility: Visibility) {
+    class DataDecl(
+        name: String,
+        val tyVars: List<String>,
+        val dataCtors: List<DataConstructor>,
+        visibility: Visibility
+    ) : Decl(name, visibility)
+
+    class ValDecl(
+        name: String,
+        val patterns: List<FunparPattern>,
+        val exp: Expr,
+        val type: Type?,
+        visibility: Visibility
+    ) : Decl(name, visibility)
 
     var comment: Comment? = null
     var span = Span.empty()
@@ -116,7 +124,7 @@ sealed class Decl {
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.startLine, s.startColumn, e.endLine, e.endColumn) }
 }
 
-data class DataConstructor(val name: String, val args: List<Type>, val span: Span) {
+data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
     override fun toString(): String {
         return name + args.joinToString(" ", prefix = " ")
     }
