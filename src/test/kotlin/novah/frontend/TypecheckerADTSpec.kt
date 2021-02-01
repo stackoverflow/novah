@@ -3,6 +3,7 @@ package novah.frontend
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.module
+import novah.frontend.TestUtil.simpleName
 
 class TypecheckerADTSpec : StringSpec({
 
@@ -18,31 +19,69 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.type?.simpleName() shouldBe "(Int -> Day)"
-        tys["y"]?.type?.substFreeVar("a")?.simpleName() shouldBe "forall a. (a -> Day)"
+        tys["x"]?.type?.simpleName() shouldBe "Int -> Day"
+        tys["y"]?.type?.simpleName() shouldBe "forall t1. t1 -> Day"
     }
-
-    "typecheck one parameter ADTs" {
+    
+    "test rigid type variables" {
         val code = """
-            type May a
-              = It a
-              | Nope
+            type List a = Nil | Cons a (List a)
             
-            x : Int -> May String
-            x a = Nope
+            cons x l = Cons x l
             
-            y : forall a. a -> May a
-            y a = Nope
+            id x = x
             
-            w : Int -> May Int
-            w a = It 5
+            single x = cons x Nil
+            
+            //ids : List (forall a. a -> a)
+            ids () = single id
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.type?.simpleName() shouldBe "(Int -> May String)"
-        tys["y"]?.type?.simpleName() shouldBe "forall a. (a -> May a)"
-        tys["w"]?.type?.simpleName() shouldBe "(Int -> May Int)"
+        tys["ids"]?.type?.simpleName() shouldBe "forall t1. Unit -> List (t1 -> t1)"
+    }
+
+    "test rigid type variables (with annotations)" {
+        val code = """
+            type List a = Nil | Cons a (List a)
+            
+            cons x l = Cons x l
+            
+            id x = x
+            
+            single x = cons x Nil
+            
+            ids : Unit -> List (forall a. a -> a)
+            ids () = single id
+        """.module()
+
+        val tys = TestUtil.compileCode(code).env.decls
+
+        tys["ids"]?.type?.simpleName() shouldBe "Unit -> List (forall t1. t1 -> t1)"
+    }
+
+    "typecheck one parameter ADTs" {
+        val code = """
+            type Maybe a
+              = Some a
+              | None
+            
+            x : Int -> Maybe String
+            x a = None
+            
+            y : forall a. a -> Maybe a
+            y a = None
+            
+            w : Int -> Maybe Int
+            w a = Some 5
+        """.module()
+
+        val tys = TestUtil.compileCode(code).env.decls
+
+        tys["x"]?.type?.simpleName() shouldBe "Int -> Maybe String"
+        tys["y"]?.type?.simpleName() shouldBe "forall t1. t1 -> Maybe t1"
+        tys["w"]?.type?.simpleName() shouldBe "Int -> Maybe Int"
     }
 
     "typecheck 2 parameter ADTs" {
@@ -59,9 +98,9 @@ class TypecheckerADTSpec : StringSpec({
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
-        tys["x"]?.type?.simpleName() shouldBe "(Int -> Result Int String)"
-        val y = tys["y"]!!.type.substFreeVar("k")
-        y.simpleName() shouldBe "forall k. forall a. (k -> Result a String)"
+        tys["x"]?.type?.simpleName() shouldBe "Int -> Result Int String"
+        val y = tys["y"]!!.type
+        y.simpleName() shouldBe "forall t1 t2. t1 -> Result t2 String"
     }
 
     "typecheck recursive ADT" {
@@ -69,34 +108,37 @@ class TypecheckerADTSpec : StringSpec({
             type List a = Nil | Cons a (List a)
             
             x : Int -> List String
-            x a = Nil
+            x a = Nil : List String
             
             y a = Cons 1 (Cons 2 (Cons 3 Nil))
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.type?.simpleName() shouldBe "(Int -> List String)"
-        tys["y"]?.type?.substFreeVar("a")?.simpleName() shouldBe "forall a. (a -> List Int)"
+        tys["x"]?.type?.simpleName() shouldBe "Int -> List String"
+        tys["y"]?.type?.simpleName() shouldBe "forall t1. t1 -> List Int"
     }
 
     "typecheck complex type" {
         val code = """
-            type Comp a b = Cfun (a -> b) | Cfor (forall c. c -> a)
+            type Comp a b = Cfun (a -> b) | Cfor (forall c. c -> c)
             
             str : forall a. a -> String
-            str x = "1"
+            str _ = "1"
             
-            x a = Cfor str
+            id a = a
+            
+            x : forall a. Unit -> Comp a (forall b. b -> b)
+            x () = Cfor id
             
             y a = Cfun str
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        val x = tys["x"]!!.type.substFreeVar("b")
-        x.simpleName() shouldBe "forall b. forall a. (b -> Comp String a)"
-        val y = tys["y"]!!.type.substFreeVar("b")
-        y.simpleName() shouldBe "forall b. forall a. (b -> Comp a String)"
+        val x = tys["x"]!!.type
+        x.simpleName() shouldBe "forall t1. Unit -> Comp t1 (forall t2. t2 -> t2)"
+        val y = tys["y"]!!.type
+        y.simpleName() shouldBe "forall t1 t2. t1 -> Comp t2 String"
     }
 })

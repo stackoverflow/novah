@@ -1,95 +1,312 @@
 package novah.frontend.hmftypechecker
 
+import novah.Util.hasDuplicates
 import novah.Util.internalError
-import novah.ast.canonical.Expr
-import novah.ast.canonical.FunparPattern
+import novah.ast.canonical.*
 import novah.frontend.Span
 import novah.frontend.error.Errors
+import novah.main.DeclRef
+import novah.main.ModuleEnv
+import novah.main.TypeDeclRef
 
 class Inference(private val tc: Typechecker, private val uni: Unification, private val sub: Subsumption) {
 
-    fun infer(env: Env, level: Level, exp: Expr): Type {
+    private enum class Generalized {
+        GENERALIZED, INSTANTIATED;
+    }
+
+    /**
+     * Infer the whole module
+     */
+    fun infer(ast: Module): ModuleEnv {
+        val decls = mutableMapOf<String, DeclRef>()
+        val types = mutableMapOf<String, TypeDeclRef>()
+
+        val datas = ast.decls.filterIsInstance<Decl.DataDecl>()
+        datas.forEach { d ->
+            val (ty, map) = getDataType(d, ast.name)
+            tc.env.extendType("${ast.name}.${d.name}", ty)
+
+            d.dataCtors.forEach { dc ->
+                val dcty = getCtorType(dc, ty, map)
+                tc.env.extend(dc.name, dcty)
+            }
+            types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
+        }
+        datas.forEach { d ->
+            d.dataCtors.forEach { dc ->
+                tc.checkWellFormed(tc.env.lookup(dc.name)!!, dc.span)
+            }
+        }
+
+        val vals = ast.decls.filterIsInstance<Decl.ValDecl>()
+        vals.forEach { decl ->
+            val expr = decl.exp
+            val name = decl.name
+            if (expr is Expr.Ann) {
+                tc.env.extend(name, expr.annType.second)
+            } else {
+                val t = tc.newVar(0)
+                tc.env.extend(name, t)
+            }
+        }
+
+        vals.forEach { decl ->
+            // remove this
+            val newEnv = tc.env.makeExtension()
+            val ty = infer(newEnv, 0, null, Generalized.GENERALIZED, decl.exp)
+            val genTy = generalize(-1, ty)
+            val name = decl.name
+            tc.env.extend(name, genTy)
+            decls[decl.name] = DeclRef(genTy, decl.visibility)
+        }
+
+        return ModuleEnv(decls, types)
+    }
+
+    private data class Quadruple(
+        val pat: FunparPattern,
+        val ann: Pair<List<Id>, Type>?,
+        val retType: Type?,
+        val gene: Generalized
+    )
+
+    private fun infer(env: Env, level: Level, expectedType: Type?, generalized: Generalized, exp: Expr): Type {
         return when (exp) {
-            is Expr.IntE -> Type.TConst("Int")
-            is Expr.LongE -> Type.TConst("Long")
-            is Expr.FloatE -> Type.TConst("Float")
-            is Expr.DoubleE -> Type.TConst("Double")
-            is Expr.CharE -> Type.TConst("Char")
-            is Expr.Bool -> Type.TConst("Boolean")
-            is Expr.StringE -> Type.TConst("String")
-            is Expr.Unit -> Type.TConst("Unit")
+            is Expr.IntE -> exp.withType(tInt)
+            is Expr.LongE -> exp.withType(tLong)
+            is Expr.FloatE -> exp.withType(tFloat)
+            is Expr.DoubleE -> exp.withType(tDouble)
+            is Expr.CharE -> exp.withType(tChar)
+            is Expr.Bool -> exp.withType(tBoolean)
+            is Expr.StringE -> exp.withType(tString)
+            is Expr.Unit -> exp.withType(tUnit)
             is Expr.Var -> {
-                env.lookup(exp.name.rawName()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                exp.withType(maybeInstantiate(generalized, level, ty))
             }
             is Expr.Constructor -> {
-                env.lookup(exp.name.rawName()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                exp.withType(maybeInstantiate(generalized, level, ty))
             }
             is Expr.NativeFieldGet -> {
-                env.lookup(exp.name.rawName()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                exp.withType(ty)
             }
             is Expr.NativeFieldSet -> {
-                env.lookup(exp.name.rawName()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                exp.withType(ty)
             }
             is Expr.NativeMethod -> {
-                env.lookup(exp.name.rawName()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                exp.withType(ty)
             }
             is Expr.NativeConstructor -> {
-                env.lookup(exp.name.rawName()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                exp.withType(ty)
             }
             is Expr.Lambda -> {
-                // TODO: fix me
-                val name = if (exp.pattern is FunparPattern.Bind) exp.pattern.binder.name.rawName() else "x"
+                val (expectedParam, ann, expectedReturn, genBody) = if (expectedType == null) {
+                    Quadruple(exp.pattern, exp.ann, null, Generalized.INSTANTIATED)
+                } else {
+                    when (val res = tc.instantiate(level + 1, expectedType)) {
+                        is Type.TArrow -> {
+                            Quadruple(
+                                exp.pattern,
+                                exp.ann ?: emptyList<Id>() to res.args[0],
+                                res.ret,
+                                shouldGeneralize(res.ret)
+                            )
+                        }
+                        else -> Quadruple(exp.pattern, exp.ann, null, Generalized.INSTANTIATED)
+                    }
+                }
                 val newEnv = env.makeExtension()
-                val param = tc.newVar(level + 1)
-                newEnv.extend(name, param)
-                
-                val infRetType = infer(newEnv, level + 1, exp.body)
-                val retType = if (isAnnotated(exp.body)) infRetType else tc.instantiate(level + 1, infRetType)
-                
-                if (!retType.isMono()) inferError(Errors.polyParameterToLambda(retType.show()), Span.empty())
-                else generalize(level, Type.TArrow(listOf(param), retType))
+                val vars = mutableListOf<Type>()
+                val param = when (expectedParam) {
+                    is FunparPattern.Bind -> {
+                        checkShadow(newEnv, expectedParam.binder.name, expectedParam.binder.span)
+                        val paramTy = if (ann == null) {
+                            val param = tc.newVar(level + 1)
+                            vars += param
+                            param
+                        } else {
+                            val (varList, ty) = tc.instantiateTypeAnnotation(level + 1, ann.first, ann.second)
+                            vars += varList
+                            ty
+                        }
+                        newEnv.extend(expectedParam.binder.name, paramTy)
+                        paramTy
+                    }
+                    is FunparPattern.Unit -> tUnit
+                    is FunparPattern.Ignored -> tc.newVar(level + 1)
+                }
+
+                val retType = infer(newEnv, level + 1, expectedReturn, genBody, exp.body)
+
+                val ty = if (!vars.all { it.isMono() }) inferError(
+                    Errors.polyParameterToLambda(vars[0].show(false)),
+                    exp.body.span
+                )
+                else maybeGeneralize(generalized, level, Type.TArrow(listOf(param), retType))
+                exp.withType(ty)
             }
             is Expr.Let -> {
-                val varType = infer(env, level + 1, exp.letDef.expr)
-                env.extend(exp.letDef.binder.name.rawName(), varType)
-                infer (env, level, exp.body)
+                val varType = infer(env, level + 1, null, Generalized.GENERALIZED, exp.letDef.expr)
+                val name = exp.letDef.binder.name
+                checkShadow(env, name, exp.letDef.binder.span)
+                env.extend(name, varType)
+                val ty = infer(env, level, expectedType, generalized, exp.body)
+                exp.withType(ty)
             }
             is Expr.App -> {
                 val nextLevel = level + 1
-                val fnType = tc.instantiate(nextLevel, infer(env, nextLevel, exp.fn))
-                val (paramTypes, retType) = matchFunType(1, fnType)
+                val fnType = tc.instantiate(nextLevel, infer(env, nextLevel, null, Generalized.INSTANTIATED, exp.fn))
+                val (paramTypes, retType) = matchFunType(1, fnType, exp.fn.span)
+                val instReturn = tc.instantiate(nextLevel, retType)
+                when {
+                    expectedType == null || (retType is Type.TVar && retType.tvar is TypeVar.Unbound) -> {
+                    }
+                    else -> uni.unify(tc.instantiate(nextLevel, expectedType), instReturn, exp.span)
+                }
                 inferArgs(env, nextLevel, paramTypes, listOf(exp.arg))
-                generalize(level, tc.instantiate(nextLevel, retType))
+                val ty = generalizeOrInstantiate(generalized, level, instReturn)
+                exp.withType(ty)
             }
             is Expr.Ann -> {
-//                val (_, type) = tc.instantiateTypeAnnotation(level, exp.annType)
-//                val expType = infer(env, level, exp.exp)
-//                sub.subsume(level, type, expType)
-//                type
-                TODO()
+                val (_, type) = tc.instantiateTypeAnnotation(level, exp.annType.first, exp.annType.second)
+                // this is a bidirectional hack to typecheck (and coerce) primitives
+                this.check(env, level, type, shouldGeneralize(type), exp.exp, type)
+                exp.withType(type)
             }
-            else -> TODO()
-        }
-    }
-    
-    fun inferArgs(env: Env, level: Level, paramTypes: List<Type>, argList: List<Expr>) {
-        val pars = paramTypes.zip(argList)
-        fun ordering(type: Type): Int {
-            val un = type.unlink()
-            return if (un is Type.TVar && un.tvar is TypeVar.Unbound) 1 else 0
-        }
-        pars.sortedBy { ordering(it.first) }.forEach { (type, arg) ->
-            val argType = infer(env, level, arg)
-            if (isAnnotated(arg)) uni.unify(type, argType) else sub.subsume(level, type, argType)
+            is Expr.If -> {
+                val condType = infer(env, level, null, Generalized.INSTANTIATED, exp.cond)
+                uni.unify(condType, tBoolean, exp.span)
+                val thenType = infer(env, level, expectedType, generalized, exp.thenCase)
+                val elseType = infer(env, level, expectedType, generalized, exp.elseCase)
+                uni.unify(thenType, elseType, exp.elseCase.span)
+                exp.withType(thenType)
+            }
+            is Expr.Do -> {
+                var ty: Type? = null
+                exp.exps.forEach { e ->
+                    ty = infer(env, level, null, Generalized.INSTANTIATED, e)
+                }
+                exp.withType(ty!!)
+            }
+            is Expr.Match -> {
+                val expTy = infer(env, level, null, generalized, exp.exp)
+                var resType: Type? = null
+                
+                exp.cases.forEach { case ->
+                    val vars = inferpattern(env, level, case.pattern, expTy)
+                    val newEnv = if (vars.isNotEmpty()) {
+                        val theEnv = env.makeExtension()
+                        vars.forEach { theEnv.extend(it.first, it.second) }
+                        theEnv
+                    } else env
+                    
+                    val ty = infer(newEnv, level, expectedType, generalized, case.exp)
+                    if (resType != null) {
+                        sub.subsume(level, resType!!, ty, case.exp.span)
+                    } else resType = ty
+                }
+                exp.withType(resType ?: internalError(Errors.EMPTY_MATCH))
+            }
         }
     }
 
-    fun matchFunType(numParams: Int, t: Type): Pair<List<Type>, Type> = when {
+    private fun check(env: Env, level: Level, expectedType: Type?, generalized: Generalized, exp: Expr, type: Type) {
+        when {
+            exp is Expr.IntE && type == tByte && exp.v >= Byte.MIN_VALUE && exp.v <= Byte.MAX_VALUE ->
+                exp.withType(tByte)
+            exp is Expr.IntE && type == tShort && exp.v >= Short.MIN_VALUE && exp.v <= Short.MAX_VALUE ->
+                exp.withType(tShort)
+            exp is Expr.IntE && type == tInt -> exp.withType(tInt)
+            exp is Expr.LongE && type == tLong -> exp.withType(tLong)
+            exp is Expr.FloatE && type == tFloat -> exp.withType(tFloat)
+            exp is Expr.DoubleE && type == tDouble -> exp.withType(tDouble)
+            exp is Expr.StringE && type == tString -> exp.withType(tString)
+            exp is Expr.CharE && type == tChar -> exp.withType(tChar)
+            exp is Expr.Bool && type == tBoolean -> exp.withType(tBoolean)
+            exp is Expr.Unit -> exp.withType(tUnit)
+            else -> {
+                val expType = infer(env, level, expectedType, generalized, exp)
+                sub.subsume(level, type, expType, exp.span)
+                exp.withType(type)
+            }
+        }
+    }
+
+    private fun inferArgs(env: Env, level: Level, paramTypes: List<Type>, argList: List<Expr>) {
+        val pars = paramTypes.zip(argList)
+        fun ordering(type: Type, arg: Expr): Int {
+            return if (isAnnotated(arg)) 0
+            else {
+                val un = type.unlink()
+                if (un is Type.TVar && un.tvar is TypeVar.Unbound) 2 else 1
+            }
+        }
+        pars.sortedBy { ordering(it.first, it.second) }.forEach { (paramType, arg) ->
+            val argType = infer(env, level, paramType, shouldGeneralize(paramType), arg)
+            if (isAnnotated(arg)) uni.unify(paramType, argType, arg.span) else sub.subsume(
+                level,
+                paramType,
+                argType,
+                arg.span
+            )
+        }
+    }
+
+    private fun inferpattern(env: Env, level: Level, pat: Pattern, ty: Type): List<Pair<String, Type>> {
+        tailrec fun peelArgs(args: List<Type>, t: Type): Pair<List<Type>, Type> = when (t) {
+            is Type.TArrow -> {
+                if (t.ret is Type.TArrow) peelArgs(args + t.args, t.ret)
+                else args + t.args to t.ret
+            }
+            else -> args to t
+        }
+        return when (pat) {
+            is Pattern.LiteralP -> {
+                val type = infer(env, level, null, Generalized.INSTANTIATED, pat.lit.e)
+                uni.unify(ty, type, pat.lit.e.span)
+                emptyList()
+            }
+            is Pattern.Wildcard -> emptyList()
+            is Pattern.Var -> {
+                checkShadow(env, pat.name, pat.span)
+                listOf(pat.name to ty)
+            }
+            is Pattern.Ctor -> {
+                val cty = infer(env, level, null, Generalized.INSTANTIATED, pat.ctor)
+                
+                val (ctorTypes, ret) = peelArgs(listOf(), tc.instantiate(level, cty))
+                uni.unify(ret, ty, pat.ctor.span)
+
+                val diff = ctorTypes.size - pat.fields.size
+                if (diff > 0) inferError(Errors.wrongArgumentsToCtor(pat.ctor.name, "few"), pat.span)
+                if (diff < 0) inferError(Errors.wrongArgumentsToCtor(pat.ctor.name, "many"), pat.span)
+                
+                if (ctorTypes.isEmpty()) emptyList()
+                else {
+                    val vars = mutableListOf<Pair<String, Type>>()
+                    ctorTypes.zip(pat.fields).forEach { (type, pattern) ->
+                        vars.addAll(inferpattern(env, level, pattern, type))
+                    }
+                    val varNames = vars.map { it.first }
+                    if (varNames.hasDuplicates()) inferError(Errors.overlappingNamesInBinder(varNames), pat.span)
+                    vars
+                }
+            }
+        }
+    }
+
+    fun matchFunType(numParams: Int, t: Type, span: Span): Pair<List<Type>, Type> = when {
         t is Type.TArrow -> {
             if (numParams != t.args.size) internalError("unexpected number of arguments to function: $numParams")
             t.args to t.ret
         }
-        t is Type.TVar && t.tvar is TypeVar.Link -> matchFunType(numParams, (t.tvar as TypeVar.Link).type)
+        t is Type.TVar && t.tvar is TypeVar.Link -> matchFunType(numParams, (t.tvar as TypeVar.Link).type, span)
         t is Type.TVar && t.tvar is TypeVar.Unbound -> {
             val unb = t.tvar as TypeVar.Unbound
             val params = (1..numParams).map { tc.newVar(unb.level) }.reversed()
@@ -97,7 +314,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             t.tvar = TypeVar.Link(Type.TArrow(params, retur))
             params to retur
         }
-        else -> internalError("expected function type")
+        else -> inferError(Errors.NOT_A_FUNCTION, span)
     }
 
     fun generalize(level: Level, type: Type): Type {
@@ -133,10 +350,68 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         return if (ids.isEmpty()) type
         else Type.TForall(ids, type)
     }
-    
+
     tailrec fun isAnnotated(exp: Expr): Boolean = when (exp) {
         is Expr.Ann -> true
         is Expr.Let -> isAnnotated(exp.body)
         else -> false
+    }
+
+    private tailrec fun shouldGeneralize(type: Type): Generalized = when (type) {
+        is Type.TForall -> Generalized.GENERALIZED
+        is Type.TVar -> if (type.tvar is TypeVar.Link) shouldGeneralize((type.tvar as TypeVar.Link).type) else Generalized.INSTANTIATED
+        else -> Generalized.INSTANTIATED
+    }
+
+    private fun maybeGeneralize(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
+        Generalized.INSTANTIATED -> ty
+        Generalized.GENERALIZED -> generalize(level, ty)
+    }
+
+    private fun maybeInstantiate(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
+        Generalized.INSTANTIATED -> tc.instantiate(level, ty)
+        Generalized.GENERALIZED -> ty
+    }
+
+    private fun generalizeOrInstantiate(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
+        Generalized.INSTANTIATED -> tc.instantiate(level, ty)
+        Generalized.GENERALIZED -> generalize(level, ty)
+    }
+
+    /**
+     * Check if `name` is shadowing some variable
+     * and throw an error if that's the case.
+     */
+    private fun checkShadow(env: Env, name: String, span: Span) {
+        val shadow = env.lookup(name)
+        if (shadow != null) inferError(Errors.shadowedVariable(name), span)
+    }
+
+    private fun getDataType(d: Decl.DataDecl, moduleName: String): Pair<Type, Map<String, Type.TVar>> {
+        val raw = Type.TConst("$moduleName.${d.name}")
+        return if (d.tyVars.isEmpty()) raw to emptyMap()
+        else {
+            val varsMap = d.tyVars.map { it to tc.newBoundVar() }
+            val map = mutableMapOf<String, Type.TVar>()
+            varsMap.forEach { (name, idVar) -> map[name] = idVar.second }
+            val vars = varsMap.map { it.second }
+
+            Type.TForall(vars.map { it.first }, Type.TApp(raw, vars.map { it.second })) to map
+        }
+    }
+
+    private fun getCtorType(dc: DataConstructor, dataType: Type, map: Map<String, Type.TVar>): Type {
+        tailrec fun nestFun(args: List<Type>, ret: Type): Type = when {
+            args.isEmpty() -> ret
+            else -> nestFun(args.drop(1), Type.TArrow(listOf(args[0]), ret))
+        }
+        return when (dataType) {
+            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.TArrow(dc.args, dataType)
+            is Type.TForall -> {
+                val args = dc.args.map { it.substConst(map) }
+                Type.TForall(dataType.ids, nestFun(args.reversed(), dataType.type))
+            }
+            else -> internalError("Got absurd type for data constructor: $dataType")
+        }
     }
 }

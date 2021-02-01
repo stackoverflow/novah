@@ -51,10 +51,11 @@ myFun x = case x of
   None -> "nope"
 
 lamb : Boolean -> String -> Unit
-lamb x y = do
-  if x
-  then println y
-  else println (toString x)
+lamb x x2 = do
+  if x then
+    println x2
+  else
+    println (toString x)
   Some "a"
   println (toString (Some "a"))
 

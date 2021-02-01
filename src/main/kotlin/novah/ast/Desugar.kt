@@ -12,7 +12,9 @@ import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.typechecker.*
+import novah.frontend.hmftypechecker.Id
+import novah.frontend.hmftypechecker.Type
+import novah.frontend.hmftypechecker.Typechecker
 import kotlin.math.max
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
@@ -30,7 +32,7 @@ import novah.frontend.error.Errors as E
 /**
  * Converts a source AST to the canonical spanned AST
  */
-class Desugar(private val smod: SModule) {
+class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
     private val dataCtors = smod.decls.filterIsInstance<SDecl.DataDecl>().map { it.name }
     private val imports = smod.resolvedImports
@@ -48,7 +50,7 @@ class Desugar(private val smod: SModule) {
         is SDecl.DataDecl -> {
             validateDataConstructorNames(this)
             if (smod.foreignTypes[name] != null || imports[name] != null) {
-                parserError(E.duplicatedType(name.raw()), span)
+                parserError(E.duplicatedType(name), span)
             }
             Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility)
         }
@@ -57,7 +59,11 @@ class Desugar(private val smod: SModule) {
             validateTopLevelExpr(name, expr)
 
             // if the declaration has a type annotation, annotate it
-            expr = if (type != null) Expr.Ann(expr, type.desugar(), span) else expr
+            expr = if (type != null) {
+                val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
+                else emptyList<Id>() to type.desugar()
+                Expr.Ann(expr, ann, span)
+            } else expr
             Decl.ValDecl(name, expr, span, type?.desugar(), visibility)
         }
     }
@@ -74,7 +80,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.CharE -> Expr.CharE(v, span)
         is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.Var -> {
-            if (name in locals) Expr.Var(name.raw(), span)
+            if (name in locals) Expr.Var(name, span)
             else {
                 val foreign = smod.foreignVars[name]
                 if (foreign != null) {
@@ -83,23 +89,23 @@ class Desugar(private val smod: SModule) {
                         is ForeignRef.FieldRef -> {
                             val isStatic = isStatic(foreign.field)
                             if (foreign.isSetter) {
-                                Expr.NativeFieldSet(name.raw(), foreign.field, isStatic, span)
-                            } else Expr.NativeFieldGet(name.raw(), foreign.field, isStatic, span)
+                                Expr.NativeFieldSet(name, foreign.field, isStatic, span)
+                            } else Expr.NativeFieldGet(name, foreign.field, isStatic, span)
                         }
                         is ForeignRef.MethodRef -> {
-                            Expr.NativeMethod(name.raw(), foreign.method, isStatic(foreign.method), span)
+                            Expr.NativeMethod(name, foreign.method, isStatic(foreign.method), span)
                         }
                         is ForeignRef.CtorRef -> {
-                            Expr.NativeConstructor(name.raw(), foreign.ctor, span)
+                            Expr.NativeConstructor(name, foreign.ctor, span)
                         }
                     }
                     validateNativeCall(exp, appFnDepth)
                     exp
-                } else Expr.Var(name.raw(), span, imports[fullname()])
+                } else Expr.Var(name, span, imports[fullname()])
             }
         }
-        is SExpr.Operator -> Expr.Var(name.raw(), span, imports[fullname()])
-        is SExpr.Constructor -> Expr.Constructor(name.raw(), span, imports[fullname()])
+        is SExpr.Operator -> Expr.Var(name, span, imports[fullname()])
+        is SExpr.Constructor -> Expr.Constructor(name, span, imports[fullname()])
         is SExpr.Lambda -> {
             val names = patterns.filterIsInstance<SFunparPattern.Bind>().map { it.binder.name }
             nestLambdas(patterns.map { it.desugar() }, body.desugar(locals + names))
@@ -109,7 +115,11 @@ class Desugar(private val smod: SModule) {
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
         is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }))
         is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar(locals) }, span)
-        is SExpr.Ann -> Expr.Ann(exp.desugar(locals), type.desugar(), span)
+        is SExpr.Ann -> {
+            val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
+            else emptyList<Id>() to type.desugar()
+            Expr.Ann(exp.desugar(locals), ann, span)
+        }
         is SExpr.Do -> {
             if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
             val converted = convertDoLets(exps)
@@ -124,7 +134,7 @@ class Desugar(private val smod: SModule) {
     private fun SPattern.desugar(locals: List<String>): Pattern = when (this) {
         is SPattern.Wildcard -> Pattern.Wildcard(span)
         is SPattern.LiteralP -> Pattern.LiteralP(lit.desugar(locals), span)
-        is SPattern.Var -> Pattern.Var(name.raw(), span)
+        is SPattern.Var -> Pattern.Var(name, span)
         is SPattern.Ctor -> Pattern.Ctor(
             ctor.desugar(locals) as Expr.Constructor,
             fields.map { it.desugar(locals) },
@@ -147,14 +157,14 @@ class Desugar(private val smod: SModule) {
         return if (patterns.isEmpty()) LetDef(name.desugar(), expr.desugar(), type?.desugar())
         else {
             fun go(binders: List<FunparPattern>, exp: Expr): Expr {
-                return if (binders.size == 1) Expr.Lambda(binders[0], exp, exp.span)
-                else go(binders.drop(1), Expr.Lambda(binders[0], exp, exp.span))
+                return if (binders.size == 1) Expr.Lambda(binders[0], null, exp, exp.span)
+                else go(binders.drop(1), Expr.Lambda(binders[0], null, exp, exp.span))
             }
             LetDef(name.desugar(), go(patterns.map { it.desugar() }, expr.desugar()), type?.desugar())
         }
     }
 
-    private fun SBinder.desugar(): Binder = Binder(name.raw(), span)
+    private fun SBinder.desugar(): Binder = Binder(name, span)
 
     private fun SFunparPattern.desugar(): FunparPattern = when (this) {
         is SFunparPattern.Ignored -> FunparPattern.Ignored(span)
@@ -163,35 +173,65 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SType.desugar(): Type = when (this) {
-        is SType.TVar -> {
-            if (name[0].isLowerCase()) Type.TVar(name.raw())
+        is SType.TConst -> {
+            if (name[0].isLowerCase()) Type.TConst(name)
             else {
                 val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
-                // at this point we know if a type is a normal type
-                // or a no-parameter constructor
-                // TODO: this is wrong, only finds constructors defined in this module, not imported
-                //       this should be solved by removing the TConstructor type and using real kinds
-                if (name in dataCtors) Type.TConstructor(varName.raw(), listOf())
-                else Type.TVar(varName.raw())
+                Type.TConst(varName)
             }
         }
-        is SType.TFun -> Type.TFun(arg.desugar(), ret.desugar())
-        is SType.TForall -> nestForalls(names.map(Name::Raw), type.desugar())
-        is SType.TParens -> type.desugar()
-        is SType.TConstructor -> {
-            val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
-            Type.TConstructor(varName.raw(), types.map { it.desugar() })
+        is SType.TFun -> Type.TArrow(listOf(arg.desugar()), ret.desugar())
+        is SType.TForall -> {
+            val (ids, ty) = replaceConstantsWithVars(names, type.desugar())
+            Type.TForall(ids, ty)
         }
+        is SType.TParens -> type.desugar()
+        is SType.TApp -> Type.TApp(type.desugar(), types.map { it.desugar() })
     }
 
-    private fun nestForalls(names: List<Name>, type: Type): Type {
-        return if (names.isEmpty()) type
-        else Type.TForall(names[0], nestForalls(names.drop(1), type))
+    /**
+     * Normalizes a type like:
+     * forall c b a. a -> b
+     * to
+     * forall a b. a -> b
+     */
+    private fun replaceConstantsWithVars(vars: List<String>, type: Type): Pair<List<Id>, Type> {
+        val map = mutableMapOf<String, Type.TVar?>()
+        val ids = mutableListOf<Id>()
+        vars.forEach { map[it] = null }
+
+        fun go(t: Type): Type = when (t) {
+            is Type.TConst -> {
+                if (map.containsKey(t.name)) {
+                    val vvar = map[t.name]
+                    if (vvar != null) vvar
+                    else {
+                        val (id, nvar) = tc.newBoundVar()
+                        ids += id
+                        map[t.name] = nvar
+                        nvar
+                    }
+                } else t
+            }
+            is Type.TVar -> t
+            is Type.TApp -> {
+                val newType = go(t.type)
+                val pars = t.types.map(::go)
+                Type.TApp(newType, pars)
+            }
+            is Type.TArrow -> {
+                val pars = t.args.map(::go)
+                val ret = go(t.ret)
+                Type.TArrow(pars, ret)
+            }
+            is Type.TForall -> Type.TForall(t.ids, go(t.type))
+        }
+        return ids to go(type)
     }
 
     private fun nestLambdas(binders: List<FunparPattern>, exp: Expr): Expr {
         return if (binders.isEmpty()) exp
-        else Expr.Lambda(binders[0], nestLambdas(binders.drop(1), exp), exp.span)
+        else Expr.Lambda(binders[0], null, nestLambdas(binders.drop(1), exp), exp.span)
     }
 
     private fun nestLets(defs: List<SLetDef>, exp: Expr): Expr {
@@ -263,7 +303,7 @@ class Desugar(private val smod: SModule) {
      * of parameters as they can't be partially applied.
      */
     private fun validateNativeCall(exp: Expr, depth: Int) {
-        fun throwArgs(name: Name, span: Span, ctx: String, should: Int, got: Int): Nothing {
+        fun throwArgs(name: String, span: Span, ctx: String, should: Int, got: Int): Nothing {
             parserError(
                 E.wrongArgsToNative(name, ctx, should, got),
                 span

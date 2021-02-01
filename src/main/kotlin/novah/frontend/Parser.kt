@@ -708,7 +708,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     Type.TParens(typ)
                 }
             }
-            is Ident -> Type.TVar(parseTypeVar())
+            is Ident -> Type.TConst(parseTypeVar())
             is UpperIdent -> {
                 var ty = parseUpperIdent().v
                 var alias: String? = null
@@ -718,12 +718,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
                 }
                 if (inConstructor) {
-                    Type.TVar(ty, alias)
+                    Type.TConst(ty, alias)
                 } else {
                     val pars = tryParseListOf(true) { parseTypeAtom(true) }
 
-                    if (pars.isEmpty()) Type.TVar(ty, alias)
-                    else Type.TConstructor(ty, pars, alias)
+                    val const = Type.TConst(ty, alias)
+                    if (pars.isEmpty()) const
+                    else Type.TApp(const, pars)
                 }
             }
             else -> null

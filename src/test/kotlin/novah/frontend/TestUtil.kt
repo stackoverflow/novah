@@ -1,13 +1,14 @@
 package novah.frontend
 
+import novah.Util.joinToStr
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.FunparPattern
 import novah.ast.source.Module
 import novah.data.map
 import novah.data.unwrapOrElse
-import novah.frontend.typechecker.Type
-import novah.frontend.typechecker.raw
+import novah.frontend.hmftypechecker.Type
+import novah.frontend.hmftypechecker.TypeVar
 import novah.main.CompilationError
 import novah.main.Compiler
 import novah.main.FullModuleEnv
@@ -82,10 +83,11 @@ object TestUtil {
         return opt.convert().map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
     }
 
-    fun tvar(n: String) = Type.TVar(n.raw())
-    fun tfun(l: Type, r: Type) = Type.TFun(l, r)
-    fun forall(x: String, t: Type) = Type.TForall(x.raw(), t)
-    fun tcon(name: String, vararg ts: Type) = Type.TConstructor(name.raw(), ts.toList())
+    fun tconst(n: String) = Type.TConst(n)
+    fun tbound(id: Int) = Type.TVar(TypeVar.Bound(id))
+    fun tfun(l: Type, r: Type) = Type.TArrow(listOf(l), r)
+    fun forall(id: Int, t: Type) = Type.TForall(listOf(id), t)
+    fun tcon(name: String, vararg ts: Type) = Type.TApp(Type.TConst(name), ts.toList())
 
     fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)
@@ -93,4 +95,69 @@ object TestUtil {
     fun abs(n: String, e: Expr) = Expr.Lambda(listOf(FunparPattern.Bind(Binder(n, Span.empty()))), e)
 
     fun String.module() = "module test\n\n${this.trimIndent()}"
+
+    fun Type.findUnbound(): List<Type> = when (this) {
+        is Type.TArrow -> args.flatMap { it.findUnbound() } + ret.findUnbound()
+        is Type.TApp -> type.findUnbound() + types.flatMap { it.findUnbound() }
+        is Type.TForall -> type.findUnbound()
+        is Type.TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> tv.type.findUnbound()
+                is TypeVar.Unbound -> listOf(this)
+                else -> emptyList()
+            }
+        }
+        is Type.TConst -> emptyList()
+    }
+
+    fun Type.simplify(): Type = when (this) {
+        is Type.TConst -> this
+        is Type.TApp -> Type.TApp(type.simplify(), types.map { it.simplify() })
+        is Type.TArrow -> Type.TArrow(args.map { it.simplify() }, ret.simplify())
+        is Type.TForall -> Type.TForall(ids, type.simplify())
+        is Type.TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> tv.type.simplify()
+                else -> this
+            }
+        }
+    }
+
+    class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
+
+    /**
+     * Like [Type.show] but reset the numbers of vars.
+     */
+    fun Type.simpleName(nested: Boolean = false, ctx: Ctx = Ctx()): String =
+        when (this) {
+            is Type.TConst -> name.split('.').last()
+            is Type.TApp -> {
+                val sname = type.simpleName(nested, ctx)
+                if (types.isEmpty()) sname else sname + " " + types.joinToString(" ") { it.simpleName(true, ctx) }
+            }
+            is Type.TArrow -> {
+                val args =
+                    if (args.size == 1) args[0].simpleName(!nested, ctx) else args.joinToString(
+                        " ",
+                        prefix = "(",
+                        postfix = ")"
+                    )
+                if (nested) "($args -> ${ret.simpleName(false, ctx)})"
+                else
+                    "$args -> ${ret.simpleName(nested, ctx)}"
+            }
+            is Type.TForall -> {
+                ids.forEach { ctx.map[it] = ctx.counter++ }
+                val str = "forall ${ids.joinToStr(" ") { "t${ctx.map[it]}" }}. ${type.simpleName(false, ctx)}"
+                if (nested) "($str)" else str
+            }
+            is Type.TVar -> {
+                when (val tv = tvar) {
+                    is TypeVar.Link -> tv.type.simpleName(nested, ctx)
+                    is TypeVar.Unbound -> "t${tv.id}"
+                    is TypeVar.Generic -> "t${tv.id}"
+                    is TypeVar.Bound -> "t${ctx.map[tv.id]}"
+                }
+            }
+        }
 }

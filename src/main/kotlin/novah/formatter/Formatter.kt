@@ -214,9 +214,9 @@ class Formatter {
             tlist.joinToString(" -> ")
         }
         is Type.TForall -> "forall " + t.names.joinToString(" ") + ". ${show(t.type)}"
-        is Type.TConstructor -> t.fullname() + t.types.joinToStr(" ", prefix = " ") { show(it) }
+        is Type.TApp -> show(t.type) + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
-        is Type.TVar -> t.fullname()
+        is Type.TConst -> t.fullname()
     }
 
     private fun showIndented(t: Type, prefix: String = ":"): String = when (t) {

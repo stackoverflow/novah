@@ -8,10 +8,10 @@ class WellFormed(private val store: GenNameStore, private val ictx: InferContext
 
     fun wfType(type: Type, span: Span) {
         if (type is Type.TVar && !ictx.context.contains<Elem.CTVar>(type.name)) {
-            inferError(E.undefinedType(type.name), span)
+            inferError(E.undefinedType(type.name.rawName()), span)
         }
         if (type is Type.TMeta && !ictx.context.contains<Elem.CTMeta>(type.name)) {
-            inferError(E.undefinedType(type.name), span)
+            inferError(E.undefinedType(type.name.rawName()), span)
         }
         if (type is Type.TFun) {
             wfType(type.arg, span)
@@ -25,7 +25,7 @@ class WellFormed(private val store: GenNameStore, private val ictx: InferContext
             ictx.context.leave(m)
         }
         if (type is Type.TConstructor) {
-            val elem = ictx.context.lookup<Elem.CTVar>(type.name) ?: inferError(E.undefinedType(type.name), span)
+            val elem = ictx.context.lookup<Elem.CTVar>(type.name) ?: inferError(E.undefinedType(type.name.rawName()), span)
 
             if (elem.kind != type.types.size) {
                 val should = makeKindString(elem.kind)

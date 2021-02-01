@@ -12,13 +12,6 @@ sealed class TypeVar {
     data class Link(val type: Type) : TypeVar()
     data class Generic(val id: Id) : TypeVar()
     data class Bound(val id: Id) : TypeVar()
-    
-    fun show(): String = when (this) {
-        is Unbound -> "?t$id"
-        is Link -> type.show()
-        is Generic -> "t$id"
-        is Bound -> "t$id"
-    }
 }
 
 sealed class Type {
@@ -35,6 +28,8 @@ sealed class Type {
         override fun hashCode(): Int {
             return tvar.hashCode() * 31
         }
+
+        override fun toString(): String = "TVar($tvar)"
     }
 
     fun unlink(): Type = when {
@@ -56,15 +51,52 @@ sealed class Type {
         is TApp -> type.isMono() && types.all(Type::isMono)
         is TArrow -> args.all(Type::isMono) && ret.isMono()
     }
-    
-    fun show(): String = when (this) {
-        is TConst -> name
-        is TApp -> type.show() + types.joinToStr(" ", prefix = " ") { it.show() }
-        is TArrow -> {
-            if (args.size == 1) args[0].show() + " -> " + ret.show()
-            else args.joinToStr(prefix = "(", postfix = ")") + " -> " + ret.show()
+
+    fun substConst(map: Map<String, Type>): Type = when (this) {
+        is TConst -> {
+            val ty = map[name]
+            ty ?: this
         }
-        is TForall -> "forall " + ids.joinToStr(" ") { "t$it" } + ". ${type.show()}"
-        is TVar -> tvar.show()
+        is TApp -> TApp(type.substConst(map), types.map { it.substConst(map) })
+        is TArrow -> TArrow(args.map { it.substConst(map) }, ret.substConst(map))
+        is TForall -> TForall(ids, type.substConst(map))
+        is TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> TVar(TypeVar.Link(tv.type.substConst(map)))
+                else -> this
+            }
+        }
+    }
+
+    /**
+     * Pretty print version of [toString]
+     */
+    fun show(qualified: Boolean, nested: Boolean = false): String = when (this) {
+        is TConst -> if (qualified) name else name.split('.').last()
+        is TApp -> {
+            val sname = type.show(qualified, nested)
+            if (types.isEmpty()) sname else sname + " " + types.joinToString(" ") { it.show(qualified, true) }
+        }
+        is TArrow -> {
+            val args = if (args.size == 1) {
+                args[0].show(qualified, !nested)
+            } else args.joinToString(" ", prefix = "(", postfix = ")")
+            
+            if (nested) "($args -> ${ret.show(qualified)})"
+            else
+                "$args -> ${ret.show(qualified, nested)}"
+        }
+        is TForall -> {
+            val str = "forall ${ids.joinToStr(" ") { "t$it" }}. ${type.show(qualified)}"
+            if (nested) "($str)" else str
+        }
+        is TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> tv.type.show(qualified, nested)
+                is TypeVar.Unbound -> "t${tv.id}"
+                is TypeVar.Generic -> "t${tv.id}"
+                is TypeVar.Bound -> "t${tv.id}"
+            }
+        }
     }
 }

@@ -94,8 +94,6 @@ object Errors {
         |ex: import namespace (fun1, SomeType(..), fun2)
     """.trimMargin()
 
-    const val EMPTY_DO = "`do` statement cannot be empty."
-
     const val EMPTY_MATCH = "Pattern match needs at least 1 case."
 
     const val INCOMPLETE_CONTEXT = "Context is not complete."
@@ -111,6 +109,8 @@ object Errors {
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
     
     const val PUB_PLUS = "Visibility of value declaration can only be public (pub) not pub+."
+    
+    const val NOT_A_FUNCTION = "Expected expression to be a function."
 
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
@@ -186,14 +186,14 @@ object Errors {
     fun wrongConstructorName(typeName: String) =
         "Multi constructor type cannot have the same name as their type: $typeName."
 
-    fun undefinedType(type: Name) = "Undefined type $type."
+    fun undefinedType(type: String) = "Undefined type $type."
 
-    fun wrongArgsToNative(name: Name, ctx: String, should: Int, got: Int) = """
+    fun wrongArgsToNative(name: String, ctx: String, should: Int, got: Int) = """
         Foreign setters, methods and constructors cannot be partially applied.
         Foreign $ctx $name needs $should parameter(s), got $got.
     """.trimIndent()
 
-    fun unkonwnArgsToNative(name: Name, ctx: String) = """
+    fun unkonwnArgsToNative(name: String, ctx: String) = """
         Foreign setters, methods and constructors cannot be partially applied.
         For $ctx $name.
     """.trimIndent()
@@ -208,9 +208,7 @@ object Errors {
             $got
     """.trimIndent()
 
-    fun duplicatedType(name: Name) = "Type $name is already defined or imported."
-
-    fun duplicatedVariable(name: Name) = "Variable $name is already defined or imported."
+    fun duplicatedType(name: String) = "Type $name is already defined or imported."
 
     fun cannotSolvePolytype(name: Name, type: Type) = "Cannot solve type $name with polytype $type."
 
@@ -245,19 +243,19 @@ object Errors {
     
     fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
 
-    fun undefinedVar(name: Name) = "Undefined variable $name."
+    fun undefinedVar(name: String) = "Undefined variable $name."
 
     fun cannotCheck(type: Type) = "Cannot check type of $type."
 
-    fun wrongArgumentsToCtor(name: Name, quant: String) = "Too $quant arguments given to type constructor $name."
+    fun wrongArgumentsToCtor(name: String, quant: String) = "Too $quant arguments given to type constructor $name."
 
-    fun overlappingNamesInBinder(names: List<Name>) = """
+    fun overlappingNamesInBinder(names: List<String>) = """
         Overlapping names in binder:
         
             ${names.joinToString()}
     """.trimIndent()
 
-    fun shadowedVariable(name: Name) = "Variable $name is shadowed."
+    fun shadowedVariable(name: String) = "Variable $name is shadowed."
 
     fun unusedVariables(vars: List<String>): String {
         return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."

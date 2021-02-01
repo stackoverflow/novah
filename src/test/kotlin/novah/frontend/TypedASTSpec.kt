@@ -5,14 +5,17 @@ import io.kotest.matchers.shouldBe
 import novah.ast.canonical.Decl
 import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
+import novah.frontend.TestUtil.findUnbound
 import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
+import novah.frontend.TestUtil.simpleName
+import novah.frontend.TestUtil.simplify
+import novah.frontend.TestUtil.tbound
 import novah.frontend.TestUtil.tfun
-import novah.frontend.TestUtil.tvar
-import novah.frontend.typechecker.Prim.tBoolean
-import novah.frontend.typechecker.Prim.tInt
-import novah.frontend.typechecker.Prim.tString
-import novah.frontend.typechecker.Prim.tUnit
+import novah.frontend.hmftypechecker.tBoolean
+import novah.frontend.hmftypechecker.tInt
+import novah.frontend.hmftypechecker.tString
+import novah.frontend.hmftypechecker.tUnit
 
 class TypedASTSpec : StringSpec({
 
@@ -41,11 +44,11 @@ class TypedASTSpec : StringSpec({
         val map = toMap(ast)
 
         map["num"]?.type shouldBe tInt
-        map["ife"]?.type shouldBe tfun(tInt, tInt)
-        map["lam"]?.type shouldBe tfun(tBoolean, tBoolean)
-        map["lett"]?.type shouldBe tfun(tBoolean, tBoolean)
-        map["app"]?.type shouldBe tfun(tString, tUnit)
-        map["fall"]?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tvar("x")))
+        map["ife"]?.type?.simplify() shouldBe tfun(tInt, tInt)
+        map["lam"]?.type?.simplify() shouldBe tfun(tBoolean, tBoolean)
+        map["lett"]?.type?.simplify() shouldBe tfun(tBoolean, tBoolean)
+        map["app"]?.type?.simplify() shouldBe tfun(tString, tUnit)
+        map["fall"]?.type?.simpleName() shouldBe "forall t1. t1 -> t1"
     }
 
     "inner expressions have types after typecheck" {
@@ -66,10 +69,10 @@ class TypedASTSpec : StringSpec({
 
         val iff = (map["f2"] as Expr.Lambda).body as Expr.If
         iff.cond.type shouldBe tBoolean
-        iff.thenCase.type shouldBe tInt
-        iff.elseCase.type shouldBe tInt
+        iff.thenCase.type?.simplify() shouldBe tInt
+        iff.elseCase.type?.simplify() shouldBe tInt
         val elseCase = iff.elseCase as Expr.Var
-        elseCase.type shouldBe tInt
+        elseCase.type?.simplify() shouldBe tInt
 
         ((map["f3"] as Expr.Lambda).body as Expr.Ann).exp.type shouldBe tInt
     }
@@ -108,7 +111,7 @@ class TypedASTSpec : StringSpec({
         val ast = TestUtil.compileCode(code).ast
 
         val tt = TypeTraverser(ast) { _, t ->
-            t?.findTMeta() shouldBe emptyList()
+            t?.findUnbound() shouldBe emptyList()
         }
         tt.run()
     }

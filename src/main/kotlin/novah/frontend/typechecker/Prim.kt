@@ -66,7 +66,7 @@ object Prim {
      */
     val primImport = Import.Raw(PRIM, Span.empty())
 
-    private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC)
+    /*private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC)
     private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
 
     val moduleEnv = ModuleEnv(
@@ -90,7 +90,7 @@ object Prim {
             "Boolean" to tdecl(tBoolean),
             "Unit" to tdecl(tUnit)
         )
-    )
+    )*/
 
     private fun tvar(x: String) = Type.TVar(x.raw())
     private fun tfun(a: Type, b: Type) = Type.TFun(a, b)

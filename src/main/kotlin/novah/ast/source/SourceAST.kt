@@ -242,8 +242,8 @@ sealed class LiteralPattern {
 }
 
 sealed class Type {
-    data class TVar(val name: String, val alias: String? = null) : Type()
-    data class TConstructor(val name: String, val types: List<Type> = listOf(), val alias: String? = null) : Type()
+    data class TConst(val name: String, val alias: String? = null) : Type()
+    data class TApp(val type: Type, val types: List<Type> = listOf()) : Type()
     data class TFun(val arg: Type, val ret: Type) : Type()
     data class TForall(val names: List<String>, val type: Type) : Type()
     data class TParens(val type: Type) : Type()
@@ -252,13 +252,12 @@ sealed class Type {
      * Find any unbound variables in this type
      */
     fun findFreeVars(bound: List<String>): List<String> = when (this) {
-        is TVar -> if (name[0].isLowerCase() && name !in bound) listOf(name) else listOf()
+        is TConst -> if (name[0].isLowerCase() && name !in bound) listOf(name) else listOf()
         is TFun -> arg.findFreeVars(bound) + ret.findFreeVars(bound)
         is TForall -> type.findFreeVars(bound + names)
-        is TConstructor -> types.flatMap { it.findFreeVars(bound) }
+        is TApp -> type.findFreeVars(bound) + types.flatMap { it.findFreeVars(bound) }
         is TParens -> type.findFreeVars(bound)
     }
 }
 
-fun Type.TVar.fullname(): String = if (alias != null) "$alias.$name" else name
-fun Type.TConstructor.fullname(): String = if (alias != null) "$alias.$name" else name
+fun Type.TConst.fullname(): String = if (alias != null) "$alias.$name" else name

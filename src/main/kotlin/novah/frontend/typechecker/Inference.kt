@@ -50,7 +50,7 @@ class Inference(
         generalize(ictx.context.leaveWithUnsolved(marker), type)
 
     fun typesynth(exp: Expr): Type {
-        return when (exp) {
+        /*return when (exp) {
             is Expr.IntE -> exp.withType(tInt)
             is Expr.LongE -> exp.withType(tLong)
             is Expr.FloatE -> exp.withType(tFloat)
@@ -184,9 +184,13 @@ class Inference(
                 exp.withType(resType ?: internalError(E.EMPTY_MATCH))
             }
         }
+        
+         */
+        TODO()
     }
 
     fun typecheck(expr: Expr, type: Type) {
+        /*
         when {
             expr is Expr.IntE && type == tByte && expr.v >= Byte.MIN_VALUE && expr.v <= Byte.MAX_VALUE ->
                 expr.withType(tByte)
@@ -239,6 +243,8 @@ class Inference(
                 sub.subsume(ictx.apply(ty), ictx.apply(type), expr.span)
             }
         }
+        
+         */
     }
 
     fun typeappsynth(type: Type, expr: Expr): Type {
@@ -280,7 +286,7 @@ class Inference(
             }
             else -> args to t
         }
-
+        /*
         return when (pat) {
             is Pattern.LiteralP -> {
                 typecheck(pat.lit.e, type)
@@ -313,6 +319,8 @@ class Inference(
                 }
             }
         }
+         */
+        TODO()
     }
 
     fun infer(expr: Expr): Type {
@@ -321,7 +329,7 @@ class Inference(
         ictx.context.enter(m)
         val ty = generalizeFrom(m, ictx.apply(typesynth(expr)))
 
-        expr.resolveMetas()
+        //expr.resolveMetas()
 
         if (!ictx.context.isComplete()) inferError(E.INCOMPLETE_CONTEXT, expr.span)
         return ty
@@ -330,7 +338,7 @@ class Inference(
     fun infer(mod: Module): ModuleEnv {
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
-
+        /*
         mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
             val (ddtype, ddelem) = dataDeclToType(ddecl, mod.name)
             types[ddecl.name] = TypeDeclRef(ddtype, ddecl.visibility, ddecl.dataCtors.map { it.name })
@@ -370,7 +378,7 @@ class Inference(
             val name = decl.name.raw()
             ictx.context.replaceCVar(name, Elem.CVar(name, ty))
             decls[decl.name] = DeclRef(ty, decl.visibility)
-        }
+        }*/
         return ModuleEnv(decls, types)
     }
 
@@ -404,8 +412,8 @@ class Inference(
 
         val elems = mutableListOf<Pair<DataConstructor, Type>>()
         dd.dataCtors.forEach { ctor ->
-            val type = nestForalls(dd.tyVars.map(Name::Raw), nestFuns(ctor.args + dataType))
-            elems.add(ctor to type)
+            //val type = nestForalls(dd.tyVars.map(Name::Raw), nestFuns(ctor.args + dataType))
+            //elems.add(ctor to type)
         }
 
         return elems
@@ -428,7 +436,7 @@ class Inference(
      */
     private fun checkShadow(name: Name, span: Span) {
         val shadow = ictx.context.lookupShadow<Elem.CVar>(name)
-        if (shadow != null) inferError(E.shadowedVariable(name), span)
+        if (shadow != null) inferError(E.shadowedVariable(name.rawName()), span)
     }
 
     private inline fun <T> withEnteringContext(vars: List<Elem.CVar>, f: () -> T): T {
