@@ -1,8 +1,5 @@
 package novah.frontend.error
 
-import novah.frontend.typechecker.Name
-import novah.frontend.typechecker.Type
-
 object Errors {
     val MODULE_DEFINITION = """Expected file to begin with a module declaration.
         |Example:
@@ -95,8 +92,6 @@ object Errors {
     """.trimMargin()
 
     const val EMPTY_MATCH = "Pattern match needs at least 1 case."
-
-    const val INCOMPLETE_CONTEXT = "Context is not complete."
 
     const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
 
@@ -210,22 +205,7 @@ object Errors {
 
     fun duplicatedType(name: String) = "Type $name is already defined or imported."
 
-    fun cannotSolvePolytype(name: Name, type: Type) = "Cannot solve type $name with polytype $type."
-
-    fun unknownType(name: Type) = "Unknown type $name."
-
     fun infiniteType(name: String) = "Occurs check failed: infinite type $name."
-
-    // TODO: delete
-    fun subsumptionFailed(a: Type, b: Type) = """
-        Cannot subsume type
-        
-            $a
-        
-        with type
-        
-            $b
-    """.trimIndent()
     
     fun typeIsNotInstance(a: String, b: String) = """
         Type $a is not an instance of type $b.
@@ -244,8 +224,6 @@ object Errors {
     fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
 
     fun undefinedVar(name: String) = "Undefined variable $name."
-
-    fun cannotCheck(type: Type) = "Cannot check type of $type."
 
     fun wrongArgumentsToCtor(name: String, quant: String) = "Too $quant arguments given to type constructor $name."
 

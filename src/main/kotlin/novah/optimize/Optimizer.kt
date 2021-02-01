@@ -15,8 +15,6 @@ import novah.frontend.error.ProblemContext
 import novah.frontend.hmftypechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
-import novah.frontend.typechecker.InferenceError
-import novah.frontend.typechecker.inferError
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.DataDecl as CDataDecl
