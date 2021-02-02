@@ -67,8 +67,11 @@ class Typechecker {
     fun checkWellFormed(ty: Type, span: Span) {
         when (ty) {
             is Type.TConst -> {
-                if (env.lookupType(ty.name) == null)
-                    inferError(Errors.undefinedType(ty.show(false)), span)
+                val envType = env.lookupType(ty.name) ?: inferError(Errors.undefinedType(ty.show(false)), span)
+
+                if (ty.kind != envType.kind()) {
+                    inferError(Errors.wrongKind(ty.kind.toString(), envType.kind().toString()), span)
+                }
             }
             is Type.TApp -> {
                 checkWellFormed(ty.type, span)
@@ -79,12 +82,13 @@ class Typechecker {
                 checkWellFormed(ty.ret, span)
             }
             is Type.TForall -> {
-                val type = instantiate(0, ty)
-                checkWellFormed(type, span)
+                checkWellFormed(ty.type, span)
             }
             is Type.TVar -> {
                 when (val tv = ty.tvar) {
                     is TypeVar.Link -> checkWellFormed(tv.type, span)
+                    is TypeVar.Generic -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
+                    is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
                 }
             }
         }

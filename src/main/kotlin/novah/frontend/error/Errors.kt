@@ -202,9 +202,7 @@ object Errors {
         
             $got
     """.trimIndent()
-
-    fun duplicatedType(name: String) = "Type $name is already defined or imported."
-
+    
     fun infiniteType(name: String) = "Occurs check failed: infinite type $name."
     
     fun typeIsNotInstance(a: String, b: String) = """
@@ -225,15 +223,15 @@ object Errors {
 
     fun undefinedVar(name: String) = "Undefined variable $name."
 
-    fun wrongArgumentsToCtor(name: String, quant: String) = "Too $quant arguments given to type constructor $name."
-
     fun overlappingNamesInBinder(names: List<String>) = """
         Overlapping names in binder:
         
             ${names.joinToString()}
     """.trimIndent()
 
-    fun shadowedVariable(name: String) = "Variable $name is shadowed."
+    fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
+
+    fun duplicatedType(name: String) = "Type $name is already defined or imported."
 
     fun unusedVariables(vars: List<String>): String {
         return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."

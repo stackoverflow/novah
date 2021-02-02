@@ -5,9 +5,9 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
+import novah.frontend.TestUtil.simpleName
 import novah.frontend.TestUtil.simplify
 import novah.frontend.TestUtil.tbound
-import novah.frontend.TestUtil.tcon
 import novah.frontend.TestUtil.tfun
 import novah.frontend.hmftypechecker.tInt
 import novah.frontend.hmftypechecker.tString
@@ -53,7 +53,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty.simplify() shouldBe tfun(tcon("test.Maybe", tInt), tString)
+        ty.simpleName() shouldBe "Maybe Int -> String"
     }
 
     "pattern matching literals succeed" {

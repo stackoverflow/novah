@@ -21,21 +21,24 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     fun infer(ast: Module): ModuleEnv {
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
+        val env = tc.env
 
         val datas = ast.decls.filterIsInstance<Decl.DataDecl>()
         datas.forEach { d ->
             val (ty, map) = getDataType(d, ast.name)
-            tc.env.extendType("${ast.name}.${d.name}", ty)
+            checkShadowType(env, d.name, d.span)
+            env.extendType("${ast.name}.${d.name}", ty)
 
             d.dataCtors.forEach { dc ->
                 val dcty = getCtorType(dc, ty, map)
-                tc.env.extend(dc.name, dcty)
+                checkShadow(env, dc.name, dc.span)
+                env.extend(dc.name, dcty)
             }
             types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
-                tc.checkWellFormed(tc.env.lookup(dc.name)!!, dc.span)
+                tc.checkWellFormed(env.lookup(dc.name)!!, dc.span)
             }
         }
 
@@ -43,21 +46,21 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         vals.forEach { decl ->
             val expr = decl.exp
             val name = decl.name
+            checkShadow(tc.env, name, decl.span)
             if (expr is Expr.Ann) {
-                tc.env.extend(name, expr.annType.second)
+                env.extend(name, expr.annType.second)
             } else {
                 val t = tc.newVar(0)
-                tc.env.extend(name, t)
+                env.extend(name, t)
             }
         }
 
         vals.forEach { decl ->
-            // remove this
-            val newEnv = tc.env.makeExtension()
+            val newEnv = env.makeExtension()
             val ty = infer(newEnv, 0, null, Generalized.GENERALIZED, decl.exp)
             val genTy = generalize(-1, ty)
             val name = decl.name
-            tc.env.extend(name, genTy)
+            env.extend(name, genTy)
             decls[decl.name] = DeclRef(genTy, decl.visibility)
         }
 
@@ -283,9 +286,8 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val (ctorTypes, ret) = peelArgs(listOf(), tc.instantiate(level, cty))
                 uni.unify(ret, ty, pat.ctor.span)
 
-                val diff = ctorTypes.size - pat.fields.size
-                if (diff > 0) inferError(Errors.wrongArgumentsToCtor(pat.ctor.name, "few"), pat.span)
-                if (diff < 0) inferError(Errors.wrongArgumentsToCtor(pat.ctor.name, "many"), pat.span)
+                if (ctorTypes.size - pat.fields.size != 0)
+                    internalError("unified two constructors with wrong kinds: $pat")
                 
                 if (ctorTypes.isEmpty()) emptyList()
                 else {
@@ -387,8 +389,19 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         if (shadow != null) inferError(Errors.shadowedVariable(name), span)
     }
 
+    /**
+     * Check if `type` is shadowing some other type
+     * and throw an error if that's the case.
+     */
+    private fun checkShadowType(env: Env, type: String, span: Span) {
+        val shadow = env.lookupType(type)
+        if (shadow != null) inferError(Errors.duplicatedType(type), span)
+    }
+
     private fun getDataType(d: Decl.DataDecl, moduleName: String): Pair<Type, Map<String, Type.TVar>> {
-        val raw = Type.TConst("$moduleName.${d.name}")
+        val kind = if (d.tyVars.isEmpty()) Kind.Star else Kind.Constructor(d.tyVars.size)
+        val raw = Type.TConst("$moduleName.${d.name}", kind)
+        
         return if (d.tyVars.isEmpty()) raw to emptyMap()
         else {
             val varsMap = d.tyVars.map { it to tc.newBoundVar() }

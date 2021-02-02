@@ -7,6 +7,17 @@ typealias Level = Int
 
 typealias Name = String
 
+sealed class Kind(open val arity: Int) {
+    object Star : Kind(0) {
+        override fun toString(): String = "Type"
+    }
+    data class Constructor(override val arity: Int) : Kind(arity) {
+        override fun toString(): String = kindArityToString(arity)
+    }
+}
+
+fun kindArityToString(arity: Int): String = (0..arity).joinToString(" -> ") { "Type" }
+
 sealed class TypeVar {
     data class Unbound(val id: Id, val level: Level) : TypeVar()
     data class Link(val type: Type) : TypeVar()
@@ -15,7 +26,7 @@ sealed class TypeVar {
 }
 
 sealed class Type {
-    data class TConst(val name: Name) : Type()
+    data class TConst(val name: Name, val kind: Kind = Kind.Star) : Type()
     data class TApp(val type: Type, val types: List<Type>) : Type()
     data class TArrow(val args: List<Type>, val ret: Type) : Type()
     data class TForall(val ids: List<Id>, val type: Type) : Type()
@@ -64,6 +75,19 @@ sealed class Type {
             when (val tv = tvar) {
                 is TypeVar.Link -> TVar(TypeVar.Link(tv.type.substConst(map)))
                 else -> this
+            }
+        }
+    }
+    
+    fun kind(): Kind = when (this) {
+        is TConst -> kind
+        is TForall -> type.kind()
+        is TArrow -> Kind.Constructor(1)
+        is TApp -> type.kind()
+        is TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> tv.type.kind()
+                else -> Kind.Star
             }
         }
     }

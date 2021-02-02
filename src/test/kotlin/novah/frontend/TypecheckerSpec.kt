@@ -179,7 +179,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        
+
         ty shouldBe tfun(tUnit, tBoolean)
     }
 
@@ -232,9 +232,7 @@ class TypecheckerSpec : StringSpec({
             fun f = Tuple (f 1) (f "a")
         """.module()
 
-        shouldNotThrowAny {
-            val res = TestUtil.compileCode(code).env.decls["fun"]
-            println(res)
-        }
+        val res = TestUtil.compileCode(code).env.decls["fun"]
+        res?.type?.simpleName() shouldBe "(forall t1. t1 -> t1) -> Tuple Int String"
     }
 })

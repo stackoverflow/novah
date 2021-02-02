@@ -13,6 +13,7 @@ import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.hmftypechecker.Id
+import novah.frontend.hmftypechecker.Kind
 import novah.frontend.hmftypechecker.Type
 import novah.frontend.hmftypechecker.Typechecker
 import kotlin.math.max
@@ -172,21 +173,22 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SFunparPattern.Bind -> FunparPattern.Bind(binder.desugar())
     }
 
-    private fun SType.desugar(): Type = when (this) {
+    private fun SType.desugar(kindArity: Int = 0): Type = when (this) {
         is SType.TConst -> {
-            if (name[0].isLowerCase()) Type.TConst(name)
+            val kind = if (kindArity == 0) Kind.Star else Kind.Constructor(kindArity)
+            if (name[0].isLowerCase()) Type.TConst(name, kind)
             else {
                 val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
-                Type.TConst(varName)
+                Type.TConst(varName, kind)
             }
         }
         is SType.TFun -> Type.TArrow(listOf(arg.desugar()), ret.desugar())
         is SType.TForall -> {
-            val (ids, ty) = replaceConstantsWithVars(names, type.desugar())
+            val (ids, ty) = replaceConstantsWithVars(names, type.desugar(kindArity))
             Type.TForall(ids, ty)
         }
-        is SType.TParens -> type.desugar()
-        is SType.TApp -> Type.TApp(type.desugar(), types.map { it.desugar() })
+        is SType.TParens -> type.desugar(kindArity)
+        is SType.TApp -> Type.TApp(type.desugar(types.size), types.map { it.desugar() })
     }
 
     /**
