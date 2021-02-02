@@ -3,12 +3,8 @@ package novah.frontend
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
-import novah.frontend.TestUtil.simplify
-import novah.frontend.TestUtil.tbound
-import novah.frontend.TestUtil.tfun
 import novah.frontend.hmftypechecker.*
 
 class TypecheckerSpec : StringSpec({
@@ -97,7 +93,7 @@ class TypecheckerSpec : StringSpec({
     "typecheck if" {
         val ty = inferFX("if false then 0 else 1")
 
-        ty shouldBe forall(2, tfun(tbound(2), tInt))
+        ty.simpleName() shouldBe "forall t1. t1 -> Int"
     }
 
     "typecheck subsumed if" {
@@ -111,7 +107,7 @@ class TypecheckerSpec : StringSpec({
         val tys = TestUtil.compileCode(code).env.decls
 
         tys["f"]?.type?.simpleName() shouldBe "forall t1. t1 -> Int"
-        tys["f2"]?.type?.simplify() shouldBe tfun(tInt, tInt)
+        tys["f2"]?.type?.simpleName() shouldBe "Int -> Int"
     }
 
     "typecheck generics" {
@@ -180,7 +176,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
 
-        ty shouldBe tfun(tUnit, tBoolean)
+        ty.simpleName() shouldBe "Unit -> Boolean"
     }
 
     "typecheck a recursive function" {
@@ -194,7 +190,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["pseudofact"]
 
-        ty?.type?.simplify() shouldBe tfun(tInt, tInt)
+        ty?.type?.simpleName() shouldBe "Int -> Int"
     }
 
     "typecheck mutually recursive functions" {

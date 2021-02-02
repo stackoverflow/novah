@@ -83,12 +83,6 @@ object TestUtil {
         return opt.convert().map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
     }
 
-    fun tconst(n: String) = Type.TConst(n)
-    fun tbound(id: Int) = Type.TVar(TypeVar.Bound(id))
-    fun tfun(l: Type, r: Type) = Type.TArrow(listOf(l), r)
-    fun forall(id: Int, t: Type) = Type.TForall(listOf(id), t)
-    fun tcon(name: String, vararg ts: Type) = Type.TApp(Type.TConst(name), ts.toList())
-
     fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)
     fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { FunparPattern.Bind(Binder(it, Span.empty())) }, e)
@@ -108,19 +102,6 @@ object TestUtil {
             }
         }
         is Type.TConst -> emptyList()
-    }
-
-    fun Type.simplify(): Type = when (this) {
-        is Type.TConst -> this
-        is Type.TApp -> Type.TApp(type.simplify(), types.map { it.simplify() })
-        is Type.TArrow -> Type.TArrow(args.map { it.simplify() }, ret.simplify())
-        is Type.TForall -> Type.TForall(ids, type.simplify())
-        is Type.TVar -> {
-            when (val tv = tvar) {
-                is TypeVar.Link -> tv.type.simplify()
-                else -> this
-            }
-        }
     }
 
     class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)

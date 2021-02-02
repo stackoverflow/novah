@@ -3,15 +3,8 @@ package novah.frontend
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
-import novah.frontend.TestUtil.simplify
-import novah.frontend.TestUtil.tbound
-import novah.frontend.TestUtil.tfun
-import novah.frontend.hmftypechecker.tInt
-import novah.frontend.hmftypechecker.tString
-import novah.frontend.hmftypechecker.tUnit
 
 class PatternMatchingSpec : StringSpec({
 
@@ -25,7 +18,7 @@ class PatternMatchingSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
 
-        ty.simplify() shouldBe tfun(tInt, tString)
+        ty.simpleName() shouldBe "Int -> String"
     }
 
     "pattern matching with polymorphic types typechecks" {
@@ -39,7 +32,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty.simplify() shouldBe tfun(tInt, tString)
+        ty.simpleName() shouldBe "Int -> String"
     }
 
     "pattern matching constructor typechecks" {
@@ -74,7 +67,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty shouldBe tfun(tUnit, tInt)
+        ty.simpleName() shouldBe "Unit -> Int"
     }
 
     "pattern match let lambdas - unit pattern" {
@@ -84,7 +77,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty shouldBe tfun(tUnit, tInt)
+        ty.simpleName() shouldBe "Unit -> Int"
     }
 
     "pattern match lambdas - ignore pattern" {
@@ -93,7 +86,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["const"]!!.type
-        ty shouldBe forall(2, tfun(tbound(2), tInt))
+        ty.simpleName() shouldBe "forall t1. t1 -> Int"
     }
     
     "failing test" {

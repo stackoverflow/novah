@@ -6,16 +6,8 @@ import novah.ast.canonical.Decl
 import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
 import novah.frontend.TestUtil.findUnbound
-import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
-import novah.frontend.TestUtil.simplify
-import novah.frontend.TestUtil.tbound
-import novah.frontend.TestUtil.tfun
-import novah.frontend.hmftypechecker.tBoolean
-import novah.frontend.hmftypechecker.tInt
-import novah.frontend.hmftypechecker.tString
-import novah.frontend.hmftypechecker.tUnit
 
 class TypedASTSpec : StringSpec({
 
@@ -43,11 +35,11 @@ class TypedASTSpec : StringSpec({
         val ast = TestUtil.compileCode(code).ast
         val map = toMap(ast)
 
-        map["num"]?.type shouldBe tInt
-        map["ife"]?.type?.simplify() shouldBe tfun(tInt, tInt)
-        map["lam"]?.type?.simplify() shouldBe tfun(tBoolean, tBoolean)
-        map["lett"]?.type?.simplify() shouldBe tfun(tBoolean, tBoolean)
-        map["app"]?.type?.simplify() shouldBe tfun(tString, tUnit)
+        map["num"]?.type?.simpleName() shouldBe "Int"
+        map["ife"]?.type?.simpleName() shouldBe "Int -> Int"
+        map["lam"]?.type?.simpleName() shouldBe "Boolean -> Boolean"
+        map["lett"]?.type?.simpleName() shouldBe "Boolean -> Boolean"
+        map["app"]?.type?.simpleName() shouldBe "String -> Unit"
         map["fall"]?.type?.simpleName() shouldBe "forall t1. t1 -> t1"
     }
 
@@ -65,16 +57,16 @@ class TypedASTSpec : StringSpec({
         val ast = TestUtil.compileCode(code).ast
         val map = toMap(ast)
 
-        (map["f1"] as Expr.Lambda).body.type shouldBe tString
+        (map["f1"] as Expr.Lambda).body.type?.simpleName() shouldBe "String"
 
         val iff = (map["f2"] as Expr.Lambda).body as Expr.If
-        iff.cond.type shouldBe tBoolean
-        iff.thenCase.type?.simplify() shouldBe tInt
-        iff.elseCase.type?.simplify() shouldBe tInt
+        iff.cond.type?.simpleName() shouldBe "Boolean"
+        iff.thenCase.type?.simpleName() shouldBe "Int"
+        iff.elseCase.type?.simpleName() shouldBe "Int"
         val elseCase = iff.elseCase as Expr.Var
-        elseCase.type?.simplify() shouldBe tInt
+        elseCase.type?.simpleName() shouldBe "Int"
 
-        ((map["f3"] as Expr.Lambda).body as Expr.Ann).exp.type shouldBe tInt
+        ((map["f3"] as Expr.Lambda).body as Expr.Ann).exp.type?.simpleName() shouldBe "Int"
     }
 
     "metas are resolved after typecheck" {
