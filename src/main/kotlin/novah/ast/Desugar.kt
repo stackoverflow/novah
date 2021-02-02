@@ -35,7 +35,6 @@ import novah.frontend.error.Errors as E
  */
 class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
-    private val dataCtors = smod.decls.filterIsInstance<SDecl.DataDecl>().map { it.name }
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
 
