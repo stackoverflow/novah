@@ -27,7 +27,14 @@ sealed class Decl {
         val visibility: Visibility
     ) : Decl()
 
-    data class ValDecl(val name: String, val exp: Expr, val span: Span, val type: Type?, val visibility: Visibility) :
+    data class ValDecl(
+        val name: String,
+        val exp: Expr,
+        val recursive: Boolean,
+        val span: Span,
+        val type: Type?,
+        val visibility: Visibility
+    ) :
         Decl()
 }
 
@@ -92,7 +99,7 @@ sealed class FunparPattern(val span: Span) {
     class Bind(val binder: Binder) : FunparPattern(binder.span)
 }
 
-data class LetDef(val binder: Binder, val expr: Expr, val type: Type? = null)
+data class LetDef(val binder: Binder, val expr: Expr, val recursive: Boolean, val type: Type? = null)
 
 data class Case(val pattern: Pattern, val exp: Expr)
 
@@ -128,4 +135,17 @@ fun LiteralPattern.show(): String = when (this) {
     is LiteralPattern.LongLiteral -> e.v.toString()
     is LiteralPattern.FloatLiteral -> e.v.toString()
     is LiteralPattern.DoubleLiteral -> e.v.toString()
+}
+
+fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> = when (this) {
+    is Expr.Var -> f(this)
+    is Expr.Constructor -> f(this)
+    is Expr.Lambda -> f(body)
+    is Expr.App -> f(fn) + f(arg)
+    is Expr.If -> f(cond) + f(thenCase) + f(elseCase)
+    is Expr.Let -> f(letDef.expr) + f(body)
+    is Expr.Match -> f(exp) + cases.flatMap { f(it.exp) }
+    is Expr.Ann -> f(exp)
+    is Expr.Do -> exps.flatMap { f(it) }
+    else -> emptyList()
 }

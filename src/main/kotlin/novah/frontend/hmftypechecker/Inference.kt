@@ -22,6 +22,10 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
         val env = tc.env
+        
+        // add the fixpoint operator to the context for recursive functions
+        val (id, vvar) = tc.newBoundVar()
+        env.extend("\$fix", Type.TForall(listOf(id), Type.TArrow(listOf(Type.TArrow(listOf(vvar), vvar)), vvar)))
 
         val datas = ast.decls.filterIsInstance<Decl.DataDecl>()
         datas.forEach { d ->
@@ -378,6 +382,17 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     private fun generalizeOrInstantiate(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
         Generalized.INSTANTIATED -> tc.instantiate(level, ty)
         Generalized.GENERALIZED -> generalize(level, ty)
+    }
+
+    /**
+     * Change this recursive expression in a way that
+     * it can be infered.
+     * 
+     * Ex.: fun x = fun x
+     *      $fun fun$rec = 
+     */
+    private fun funToFixpoint(name: String, expr: Expr): Expr {
+        TODO()
     }
 
     /**
