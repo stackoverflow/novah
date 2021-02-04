@@ -45,6 +45,8 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             Err(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name))
         }
     }
+    
+    val declVars = mutableSetOf<String>()
 
     private fun SDecl.desugar(): Decl = when (this) {
         is SDecl.DataDecl -> {
@@ -55,6 +57,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility)
         }
         is SDecl.ValDecl -> {
+            declVars.clear()
             var expr = nestLambdas(patterns.map { it.desugar() }, exp.desugar())
             validateTopLevelExpr(name, expr)
 
@@ -64,7 +67,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                 else emptyList<Id>() to type.desugar()
                 Expr.Ann(expr, ann, span)
             } else expr
-            Decl.ValDecl(name, expr, span, type?.desugar(), visibility)
+            Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility)
         }
     }
 
@@ -80,6 +83,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SExpr.CharE -> Expr.CharE(v, span)
         is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.Var -> {
+            declVars += name
             if (name in locals) Expr.Var(name, span)
             else {
                 val foreign = smod.foreignVars[name]
@@ -113,7 +117,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SExpr.App -> Expr.App(fn.desugar(locals, appFnDepth + 1), arg.desugar(locals), span)
         is SExpr.Parens -> exp.desugar(locals)
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
-        is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }))
+        is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }), locals)
         is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar(locals) }, span)
         is SExpr.Ann -> {
             val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
@@ -153,14 +157,19 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SLiteralPattern.DoubleLiteral -> LiteralPattern.DoubleLiteral(e.desugar(locals) as Expr.DoubleE)
     }
 
-    private fun SLetDef.desugar(): LetDef {
-        return if (patterns.isEmpty()) LetDef(name.desugar(), expr.desugar(), type?.desugar())
-        else {
-            fun go(binders: List<FunparPattern>, exp: Expr): Expr {
-                return if (binders.size == 1) Expr.Lambda(binders[0], null, exp, exp.span)
-                else go(binders.drop(1), Expr.Lambda(binders[0], null, exp, exp.span))
-            }
-            LetDef(name.desugar(), go(patterns.map { it.desugar() }, expr.desugar()), type?.desugar())
+    private fun SLetDef.desugar(locals: List<String>): LetDef {
+        fun go(binders: List<FunparPattern>, exp: Expr): Expr {
+            return if (binders.size == 1) Expr.Lambda(binders[0], null, exp, exp.span)
+            else go(binders.drop(1), Expr.Lambda(binders[0], null, exp, exp.span))
+        }
+        
+        return if (patterns.isEmpty()) {
+            LetDef(name.desugar(), expr.desugar(locals), false, type?.desugar())
+        } else {
+            val exp = expr.desugar(locals)
+            val vars = collectVars(exp)
+            val recursive = name.name in vars
+            LetDef(name.desugar(), go(patterns.map { it.desugar() }, exp), recursive, type?.desugar())
         }
     }
 
@@ -191,7 +200,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     }
 
     /**
-     * Normalizes a type like:
+     * Normalizes a forall type:
      * forall c b a. a -> b
      * to
      * forall a b. a -> b
@@ -235,10 +244,13 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         else Expr.Lambda(binders[0], null, nestLambdas(binders.drop(1), exp), exp.span)
     }
 
-    private fun nestLets(defs: List<SLetDef>, exp: Expr): Expr {
+    private fun nestLets(defs: List<SLetDef>, exp: Expr, locals: List<String>): Expr {
         return if (defs.isEmpty()) exp
-        else Expr.Let(defs[0].desugar(), nestLets(defs.drop(1), exp), exp.span)
+        else Expr.Let(defs[0].desugar(locals), nestLets(defs.drop(1), exp, locals), exp.span)
     }
+
+    private fun collectVars(exp: Expr): List<String> =
+        exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }
 
     /**
      * Only lambdas and primitives vars can be defined at the top level,

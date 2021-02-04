@@ -7,5 +7,5 @@ at src/test/resources/failure/source/kind check - too few parameters.novah:6:7 -
   
   with type
   
-      Maybe t2
+      Maybe t3
 

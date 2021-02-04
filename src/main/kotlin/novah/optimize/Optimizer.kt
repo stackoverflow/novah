@@ -81,7 +81,7 @@ class Optimizer(private val ast: CModule) {
                 val vname = name
                 if (vname in locals) Expr.LocalVar(vname, typ)
                 else {
-                    val cname = internalize(if (moduleName != null) "$moduleName" else ast.name) + "/Module"
+                    val cname = internalize(moduleName ?: ast.name) + "/Module"
                     Expr.Var(vname, cname, typ)
                 }
             }
