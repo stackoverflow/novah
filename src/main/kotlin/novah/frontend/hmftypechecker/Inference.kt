@@ -22,8 +22,9 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
         val env = tc.env
-        
+
         // add the fixpoint operator to the context for recursive functions
+        // TODO: add this to the env as primitive
         val (id, vvar) = tc.newBoundVar()
         env.extend("\$fix", Type.TForall(listOf(id), Type.TArrow(listOf(Type.TArrow(listOf(vvar), vvar)), vvar)))
 
@@ -60,12 +61,16 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         }
 
         vals.forEach { decl ->
-            val newEnv = env.makeExtension()
-            val ty = infer(newEnv, 0, null, Generalized.GENERALIZED, decl.exp)
-            val genTy = generalize(-1, ty)
             val name = decl.name
+            val newEnv = env.makeExtension()
+            val ty = if (decl.recursive) inferRecursive(decl, newEnv)
+            else {
+                infer(newEnv, 0, null, Generalized.GENERALIZED, decl.exp)
+            }
+
+            val genTy = generalize(-1, ty)
             env.extend(name, genTy)
-            decls[decl.name] = DeclRef(genTy, decl.visibility)
+            decls[name] = DeclRef(genTy, decl.visibility)
         }
 
         return ModuleEnv(decls, types)
@@ -204,7 +209,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             is Expr.Match -> {
                 val expTy = infer(env, level, null, generalized, exp.exp)
                 var resType: Type? = null
-                
+
                 exp.cases.forEach { case ->
                     val vars = inferpattern(env, level, case.pattern, expTy)
                     val newEnv = if (vars.isNotEmpty()) {
@@ -212,7 +217,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                         vars.forEach { theEnv.extend(it.first, it.second) }
                         theEnv
                     } else env
-                    
+
                     val ty = infer(newEnv, level, expectedType, generalized, case.exp)
                     if (resType != null) {
                         sub.subsume(level, resType!!, ty, case.exp.span)
@@ -286,13 +291,13 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Pattern.Ctor -> {
                 val cty = infer(env, level, null, Generalized.INSTANTIATED, pat.ctor)
-                
+
                 val (ctorTypes, ret) = peelArgs(listOf(), tc.instantiate(level, cty))
                 uni.unify(ret, ty, pat.ctor.span)
 
                 if (ctorTypes.size - pat.fields.size != 0)
                     internalError("unified two constructors with wrong kinds: $pat")
-                
+
                 if (ctorTypes.isEmpty()) emptyList()
                 else {
                     val vars = mutableListOf<Pair<String, Type>>()
@@ -321,6 +326,18 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             params to retur
         }
         else -> inferError(Errors.NOT_A_FUNCTION, span)
+    }
+
+    /**
+     * Use a fixpoint operator to infer a recursive function
+     */
+    private fun inferRecursive(decl: Decl.ValDecl, env: Env): Type {
+        val exp = decl.exp
+        val (newName, newExp) = funToFixpoint(decl.name, exp)
+        val recTy = infer(env, 0, null, Generalized.GENERALIZED, newExp)
+        env.extend(newName, recTy)
+        val fix = Expr.App(Expr.Var("\$fix", exp.span), Expr.Var(newName, exp.span), exp.span)
+        return infer(env, 0, null, Generalized.GENERALIZED, fix)
     }
 
     fun generalize(level: Level, type: Type): Type {
@@ -387,12 +404,18 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     /**
      * Change this recursive expression in a way that
      * it can be infered.
-     * 
+     *
      * Ex.: fun x = fun x
-     *      $fun fun$rec = 
+     *      $fun fun$rec x = fun$rec x
      */
-    private fun funToFixpoint(name: String, expr: Expr): Expr {
-        TODO()
+    private fun funToFixpoint(name: String, expr: Expr): Pair<String, Expr> {
+        val binder = "${name}\$rec"
+        return binder to Expr.Lambda(
+            lambdaBinder("\$$name", expr.span),
+            null,
+            expr.substVar(name, "\$$name"),
+            expr.span
+        )
     }
 
     /**
@@ -416,7 +439,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     private fun getDataType(d: Decl.DataDecl, moduleName: String): Pair<Type, Map<String, Type.TVar>> {
         val kind = if (d.tyVars.isEmpty()) Kind.Star else Kind.Constructor(d.tyVars.size)
         val raw = Type.TConst("$moduleName.${d.name}", kind)
-        
+
         return if (d.tyVars.isEmpty()) raw to emptyMap()
         else {
             val varsMap = d.tyVars.map { it to tc.newBoundVar() }

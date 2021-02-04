@@ -48,7 +48,7 @@ class Environment(private val verbose: Boolean) {
 
             source.withIterator { iter ->
                 val lexer = Lexer(iter)
-                val parser = Parser(lexer, path.toString())
+                val parser = Parser(lexer, path.toFile().invariantSeparatorsPath)
                 parser.parseFullModule().mapBoth(
                     { mod ->
                         val node = DagNode(mod.name, mod)
@@ -129,7 +129,7 @@ class Environment(private val verbose: Boolean) {
             Errors.duplicateModule(mod.name),
             ProblemContext.MODULE,
             mod.span,
-            path.toString(),
+            path.toFile().invariantSeparatorsPath,
             mod.name
         )
     }
