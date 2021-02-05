@@ -107,6 +107,10 @@ object Errors {
     
     const val NOT_A_FUNCTION = "Expected expression to be a function."
 
+    const val TYPEALIAS_NAME = "Expected name for typealias."
+
+    const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
+
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field
@@ -220,6 +224,8 @@ object Errors {
     """.trimIndent()
     
     fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
+
+    fun recursiveAlias(name: String) = "Typealias $name is recursive."
 
     fun undefinedVar(name: String) = "Undefined variable $name."
 

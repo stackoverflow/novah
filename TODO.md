@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] Desugar types to classes before codegen
 - [ ] Report unused variables
 - [ ] Revamp the error reporting, so it can return json as well as print to the console
 - [ ] Add javadoc like capabilities to comments (using markdown probably)

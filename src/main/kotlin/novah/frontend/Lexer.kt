@@ -26,6 +26,7 @@ sealed class Token {
     object ImportT : Token()
     object Forall : Token()
     object TypeT : Token()
+    object TypealiasT : Token()
     object As : Token()
     object IfT : Token()
     object Then : Token()
@@ -227,6 +228,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "case" -> CaseT
             "of" -> Of
             "type" -> TypeT
+            "typealias" -> TypealiasT
             "as" -> As
             "in" -> In
             "do" -> Do

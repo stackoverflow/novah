@@ -13,6 +13,7 @@ data class Module(
     val imports: List<Import>,
     val foreigns: List<ForeignImport>,
     val decls: List<Decl>,
+    val typealiases: List<Typealias>,
     val span: Span
 ) {
     var comment: Comment? = null
@@ -49,6 +50,8 @@ sealed class DeclarationRef(open val name: String) {
         }
     }
 }
+
+data class Typealias(val name: String, val tyVars: List<String>, val type: Type, val span: Span)
 
 /**
  * A native imported reference.
@@ -257,6 +260,14 @@ sealed class Type {
         is TForall -> type.findFreeVars(bound + names)
         is TApp -> type.findFreeVars(bound) + types.flatMap { it.findFreeVars(bound) }
         is TParens -> type.findFreeVars(bound)
+    }
+
+    fun substVar(from: String, new: Type): Type = when (this) {
+        is TConst -> if (name == from) new else this
+        is TFun -> copy(arg.substVar(from, new), ret.substVar(from, new))
+        is TForall -> copy(type = type.substVar(from, new))
+        is TApp -> copy(type = type.substVar(from, new), types = types.map { it.substVar(from, new) })
+        is TParens -> copy(type = type.substVar(from, new))
     }
 }
 

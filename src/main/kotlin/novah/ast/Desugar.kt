@@ -3,6 +3,7 @@ package novah.ast
 import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.ast.source.ForeignRef
+import novah.ast.source.Typealias
 import novah.ast.source.fullname
 import novah.data.Err
 import novah.data.Ok
@@ -37,16 +38,18 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
+    private var synonyms = emptyMap<String, Typealias>()
 
     fun desugar(): Result<Module, CompilerProblem> {
         return try {
+            synonyms = validateTypealiases()
             Ok(Module(moduleName, smod.sourceName, smod.decls.map { it.desugar() }))
         } catch (pe: ParserError) {
             Err(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name))
         }
     }
     
-    val declVars = mutableSetOf<String>()
+    private val declVars = mutableSetOf<String>()
 
     private fun SDecl.desugar(): Decl = when (this) {
         is SDecl.DataDecl -> {
@@ -181,7 +184,12 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SFunparPattern.Bind -> FunparPattern.Bind(binder.desugar())
     }
 
-    private fun SType.desugar(kindArity: Int = 0): Type = when (this) {
+    private fun SType.desugar(): Type {
+        val ty = resolveAliases(this)
+        return ty.goDesugar()
+    }
+
+    private fun SType.goDesugar(kindArity: Int = 0): Type = when (this) {
         is SType.TConst -> {
             val kind = if (kindArity == 0) Kind.Star else Kind.Constructor(kindArity)
             if (name[0].isLowerCase()) Type.TConst(name, kind)
@@ -190,13 +198,13 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                 Type.TConst(varName, kind)
             }
         }
-        is SType.TFun -> Type.TArrow(listOf(arg.desugar()), ret.desugar())
+        is SType.TFun -> Type.TArrow(listOf(arg.goDesugar()), ret.goDesugar())
         is SType.TForall -> {
-            val (ids, ty) = replaceConstantsWithVars(names, type.desugar(kindArity))
+            val (ids, ty) = replaceConstantsWithVars(names, type.goDesugar(kindArity))
             Type.TForall(ids, ty)
         }
-        is SType.TParens -> type.desugar(kindArity)
-        is SType.TApp -> Type.TApp(type.desugar(types.size), types.map { it.desugar() })
+        is SType.TParens -> type.goDesugar(kindArity)
+        is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() })
     }
 
     /**
@@ -251,6 +259,57 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
     private fun collectVars(exp: Expr): List<String> =
         exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }
+
+    /**
+     * Make sure type aliases are not recursive
+     */
+    private fun validateTypealiases(): Map<String, Typealias> {
+        val map = smod.typealiases.map { it.name to it }.toMap()
+
+        fun checkType(name: String, ty: SType, span: Span) {
+            when (ty) {
+                is SType.TConst -> {
+                    if (ty.name == name) parserError(E.recursiveAlias(name), span)
+                    val pointer = map[ty.name]
+                    if (pointer != null) checkType(name, pointer.type, span)
+                }
+                is SType.TFun -> {
+                    checkType(name, ty.arg, span)
+                    checkType(name, ty.ret, span)
+                }
+                is SType.TForall -> checkType(name, ty.type, span)
+                is SType.TApp -> {
+                    checkType(name, ty.type, span)
+                    ty.types.forEach { checkType(name, it, span) }
+                }
+                is SType.TParens -> checkType(name, ty.type, span)
+            }
+        }
+        smod.typealiases.forEach { ta -> checkType(ta.name, ta.type, ta.span) }
+        return map
+    }
+
+    /**
+     * Resolve all type aliases in this type
+     */
+    private fun resolveAliases(ty: SType): SType {
+        return when (ty) {
+            is SType.TConst -> synonyms[ty.name]?.type ?: ty
+            is SType.TParens -> ty.copy(type = resolveAliases(ty.type))
+            is SType.TForall -> ty.copy(type = resolveAliases(ty.type))
+            is SType.TFun -> SType.TFun(resolveAliases(ty.arg), resolveAliases(ty.ret))
+            is SType.TApp -> {
+                val typ = ty.type as SType.TConst
+                val syn = synonyms[typ.name]
+                if (syn != null) {
+                    val synTy = resolveAliases(syn.type)
+                    syn.tyVars.zip(ty.types).fold(synTy) { oty, (tvar, type) ->
+                        oty.substVar(tvar, resolveAliases(type))
+                    }
+                } else ty.copy(types = ty.types.map { resolveAliases(it) })
+            }
+        }
+    }
 
     /**
      * Only lambdas and primitives vars can be defined at the top level,

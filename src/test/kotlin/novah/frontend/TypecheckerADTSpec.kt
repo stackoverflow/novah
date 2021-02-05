@@ -141,4 +141,21 @@ class TypecheckerADTSpec : StringSpec({
         val y = tys["y"]!!.type
         y.simpleName() shouldBe "forall t1 t2. t1 -> Comp t2 String"
     }
+
+    "test type aliases" {
+        val code = """
+            type Tuple a b = Tuple a b
+            
+            typealias Ta = Int
+            
+            typealias Ty a = Tuple Ta a
+            
+            f : Unit -> Ty Ta
+            f () = Tuple 1 2
+        """.module()
+
+        val f = TestUtil.compileCode(code).env.decls["f"]?.type
+
+        f?.simpleName() shouldBe "Unit -> Tuple Int Int"
+    }
 })
