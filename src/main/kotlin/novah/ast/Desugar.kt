@@ -299,7 +299,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             is SType.TConst -> synonyms[ty.name]?.type ?: ty
             is SType.TParens -> ty.copy(type = resolveAliases(ty.type))
             is SType.TForall -> ty.copy(type = resolveAliases(ty.type))
-            is SType.TFun -> SType.TFun(resolveAliases(ty.arg), resolveAliases(ty.ret))
+            is SType.TFun -> ty.copy(arg = resolveAliases(ty.arg), ret = resolveAliases(ty.ret))
             is SType.TApp -> {
                 val typ = ty.type as SType.TConst
                 val syn = synonyms[typ.name]

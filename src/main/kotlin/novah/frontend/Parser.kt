@@ -689,11 +689,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parsePolytype(inConstructor: Boolean = false): Type {
         return if (iter.peek().value is Forall) {
-            iter.next()
+            val tk = iter.next()
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
             if (tyVars.isEmpty()) throwError(withError(E.FORALL_TVARS)(iter.peek()))
             expect<Dot>(withError(E.FORALL_DOT))
-            Type.TForall(tyVars, parseType(inConstructor))
+            val ty = parseType(inConstructor)
+            Type.TForall(tyVars, ty, span(tk.span, ty.span))
         } else parseType(inConstructor)
     }
 
@@ -711,11 +712,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 iter.next()
                 withIgnoreOffside {
                     val typ = parseType()
-                    expect<RParen>(withError(E.rparensExpected("type definition")))
-                    Type.TParens(typ)
+                    val end = expect<RParen>(withError(E.rparensExpected("type definition")))
+                    Type.TParens(typ, span(tk.span, end.span))
                 }
             }
-            is Ident -> Type.TConst(parseTypeVar())
+            is Ident -> Type.TConst(parseTypeVar(), span = span(tk.span, iter.current().span))
             is UpperIdent -> {
                 var ty = parseUpperIdent().v
                 var alias: String? = null
@@ -725,13 +726,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
                 }
                 if (inConstructor) {
-                    Type.TConst(ty, alias)
+                    Type.TConst(ty, alias, span(tk.span, iter.current().span))
                 } else {
+                    val const = Type.TConst(ty, alias, span(tk.span, iter.current().span))
                     val pars = tryParseListOf(true) { parseTypeAtom(true) }
 
-                    val const = Type.TConst(ty, alias)
                     if (pars.isEmpty()) const
-                    else Type.TApp(const, pars)
+                    else Type.TApp(const, pars, span(tk.span, iter.current().span))
                 }
             }
             else -> null
@@ -741,7 +742,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return when (iter.peek().value) {
             is Arrow -> {
                 iter.next()
-                Type.TFun(ty, parseType())
+                val ret = parseType()
+                Type.TFun(ty, ret, span(ty.span, ret.span))
             }
             else -> ty
         }

@@ -1,5 +1,6 @@
 package novah.ast.source
 
+import novah.Util.joinToStr
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -245,12 +246,12 @@ sealed class LiteralPattern {
     data class DoubleLiteral(val e: Expr.DoubleE) : LiteralPattern()
 }
 
-sealed class Type {
-    data class TConst(val name: String, val alias: String? = null) : Type()
-    data class TApp(val type: Type, val types: List<Type> = listOf()) : Type()
-    data class TFun(val arg: Type, val ret: Type) : Type()
-    data class TForall(val names: List<String>, val type: Type) : Type()
-    data class TParens(val type: Type) : Type()
+sealed class Type(open val span: Span) {
+    data class TConst(val name: String, val alias: String? = null, override val span: Span) : Type(span)
+    data class TApp(val type: Type, val types: List<Type> = listOf(), override val span: Span) : Type(span)
+    data class TFun(val arg: Type, val ret: Type, override val span: Span) : Type(span)
+    data class TForall(val names: List<String>, val type: Type, override val span: Span) : Type(span)
+    data class TParens(val type: Type, override val span: Span) : Type(span)
 
     /**
      * Find any unbound variables in this type
@@ -269,6 +270,14 @@ sealed class Type {
         is TForall -> copy(type = type.substVar(from, new))
         is TApp -> copy(type = type.substVar(from, new), types = types.map { it.substVar(from, new) })
         is TParens -> copy(type = type.substVar(from, new))
+    }
+
+    fun show(): String = when (this) {
+        is TConst -> fullname()
+        is TApp -> type.show() + types.joinToStr(" ", prefix = " ") { it.show() }
+        is TFun -> arg.show() + " -> " + ret.show()
+        is TForall -> "forall " + names.joinToString(" ") + ". " + type.show()
+        is TParens -> "(${type.show()})"
     }
 }
 

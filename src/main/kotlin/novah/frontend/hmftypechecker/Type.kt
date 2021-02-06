@@ -68,9 +68,9 @@ sealed class Type {
             val ty = map[name]
             ty ?: this
         }
-        is TApp -> TApp(type.substConst(map), types.map { it.substConst(map) })
-        is TArrow -> TArrow(args.map { it.substConst(map) }, ret.substConst(map))
-        is TForall -> TForall(ids, type.substConst(map))
+        is TApp -> copy(type.substConst(map), types.map { it.substConst(map) })
+        is TArrow -> copy(args.map { it.substConst(map) }, ret.substConst(map))
+        is TForall -> copy(ids, type.substConst(map))
         is TVar -> {
             when (val tv = tvar) {
                 is TypeVar.Link -> TVar(TypeVar.Link(tv.type.substConst(map)))

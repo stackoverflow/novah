@@ -131,7 +131,7 @@ class ParserSpec : StringSpec({
         val x = ast.decls.filterIsInstance<Decl.ValDecl>().find { it.name == "x" }?.exp!!
 
         x.shouldBeInstanceOf<Expr.Ann>()
-        x.type shouldBe Type.TConst("String")
+        x.type.show() shouldBe "String"
     }
 
     "Complex top level definitions are disallowed" {
