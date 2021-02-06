@@ -111,6 +111,8 @@ object Errors {
 
     const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
 
+    const val TYPEALIAS_PUB = "A public type alias cannot reference private types."
+
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field

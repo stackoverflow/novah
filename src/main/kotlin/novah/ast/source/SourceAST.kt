@@ -121,7 +121,9 @@ sealed class Decl(val name: String, val visibility: Visibility) {
     ) : Decl(name, visibility)
 
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
-        Decl(name, visibility)
+        Decl(name, visibility) {
+            var expanded: Type? = null
+        }
 
     var comment: Comment? = null
     var span = Span.empty()
@@ -252,6 +254,28 @@ sealed class Type(open val span: Span) {
     data class TFun(val arg: Type, val ret: Type, override val span: Span) : Type(span)
     data class TForall(val names: List<String>, val type: Type, override val span: Span) : Type(span)
     data class TParens(val type: Type, override val span: Span) : Type(span)
+
+    fun everywhere(f: (Type) -> Unit): Unit = when (this) {
+        is TConst -> f(this)
+        is TApp -> {
+            f(this)
+            f(type)
+            types.forEach(f)
+        }
+        is TFun -> {
+            f(this)
+            f(arg)
+            f(ret)
+        }
+        is TForall -> {
+            f(this)
+            f(type)
+        }
+        is TParens -> {
+            f(this)
+            f(type)
+        }
+    }
 
     /**
      * Find any unbound variables in this type

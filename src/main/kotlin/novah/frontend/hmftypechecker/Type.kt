@@ -79,20 +79,30 @@ sealed class Type {
         }
     }
 
-    fun everywhere(f: (Type) -> Unit): Unit = when (this) {
-        is TConst -> f(this)
-        is TApp -> {
-            f(type)
-            types.forEach(f)
-        }
-        is TArrow -> {
-            args.forEach(f)
-            f(ret)
-        }
-        is TForall -> f(type)
-        is TVar -> {
-            if (tvar is TypeVar.Link) f((tvar as TypeVar.Link).type)
-            else f(this)
+    /**
+     * Recursively walks this type top->down
+     */
+    fun everywhere(f: (Type) -> Unit) {
+        when (this) {
+            is TConst -> f(this)
+            is TApp -> {
+                f(this)
+                f(type)
+                types.forEach(f)
+            }
+            is TArrow -> {
+                f(this)
+                args.forEach(f)
+                f(ret)
+            }
+            is TForall -> {
+                f(this)
+                f(type)
+            }
+            is TVar -> {
+                f(this)
+                if (tvar is TypeVar.Link) f((tvar as TypeVar.Link).type)
+            }
         }
     }
     

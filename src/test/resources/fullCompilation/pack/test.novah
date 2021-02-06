@@ -1,5 +1,7 @@
 module pack.test
 
+import pack.namespace1 ( Foo )
+
 foreign import type java.io.File
 foreign import new File(String) as newFile
 foreign import File.getAbsolutePath()
@@ -16,6 +18,9 @@ type Day = Weekday | Weekend
 type Result k e = Ok k | Err e
 
 type Triple a b c = Triple a b c Int String
+
+bar : Unit -> Maybe Foo
+bar () = Some 0
 
 pub
 num = 2

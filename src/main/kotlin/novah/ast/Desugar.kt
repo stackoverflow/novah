@@ -17,6 +17,8 @@ import novah.frontend.hmftypechecker.Id
 import novah.frontend.hmftypechecker.Kind
 import novah.frontend.hmftypechecker.Type
 import novah.frontend.hmftypechecker.Typechecker
+import novah.frontend.validatePublicAliases
+import novah.main.CompilationError
 import kotlin.math.max
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
@@ -40,15 +42,17 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     private val moduleName = smod.name
     private var synonyms = emptyMap<String, TypealiasDecl>()
 
-    fun desugar(): Result<Module, CompilerProblem> {
+    fun desugar(): Result<Module, List<CompilerProblem>> {
         return try {
             synonyms = validateTypealiases()
             Ok(Module(moduleName, smod.sourceName, smod.decls.mapNotNull { it.desugar() }))
         } catch (pe: ParserError) {
-            Err(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name))
+            Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name)))
+        } catch (ce: CompilationError) {
+            Err(ce.problems)
         }
     }
-    
+
     private val declVars = mutableSetOf<String>()
 
     private fun SDecl.desugar(): Decl? = when (this) {
@@ -166,7 +170,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             return if (binders.size == 1) Expr.Lambda(binders[0], null, exp, exp.span)
             else go(binders.drop(1), Expr.Lambda(binders[0], null, exp, exp.span))
         }
-        
+
         return if (patterns.isEmpty()) {
             LetDef(name.desugar(), expr.desugar(locals), false, type?.desugar())
         } else {
@@ -262,32 +266,34 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }
 
     /**
-     * Make sure type aliases are not recursive
+     * Expand a type alias and make sure they are not recursive
      */
     private fun validateTypealiases(): Map<String, TypealiasDecl> {
         val typealiases = smod.decls.filterIsInstance<TypealiasDecl>()
-        val map = typealiases.map { it.name to it }.toMap()
-
-        fun checkType(name: String, ty: SType, span: Span) {
-            when (ty) {
-                is SType.TConst -> {
-                    if (ty.name == name) parserError(E.recursiveAlias(name), span)
-                    val pointer = map[ty.name]
-                    if (pointer != null) checkType(name, pointer.type, span)
-                }
-                is SType.TFun -> {
-                    checkType(name, ty.arg, span)
-                    checkType(name, ty.ret, span)
-                }
-                is SType.TForall -> checkType(name, ty.type, span)
-                is SType.TApp -> {
-                    checkType(name, ty.type, span)
-                    ty.types.forEach { checkType(name, it, span) }
-                }
-                is SType.TParens -> checkType(name, ty.type, span)
-            }
+        smod.resolvedTypealiases.forEach { ta ->
+            if (ta.expanded == null) internalError("Got unexpanded imported typealias: $ta")
         }
-        typealiases.forEach { ta -> checkType(ta.name, ta.type, ta.span) }
+        val map = (typealiases + smod.resolvedTypealiases).map { it.name to it }.toMap()
+
+        fun expandAndcheck(name: String, ty: SType, span: Span): SType = when (ty) {
+            is SType.TConst -> {
+                if (ty.name == name) parserError(E.recursiveAlias(name), span)
+                val pointer = map[ty.name]
+                if (pointer != null) expandAndcheck(name, pointer.type, span)
+                else ty
+            }
+            is SType.TFun -> ty.copy(expandAndcheck(name, ty.arg, span), expandAndcheck(name, ty.ret, span))
+            is SType.TForall -> ty.copy(type = expandAndcheck(name, ty.type, span))
+            is SType.TApp -> ty.copy(
+                expandAndcheck(name, ty.type, span),
+                ty.types.map { expandAndcheck(name, it, span) })
+            is SType.TParens -> ty.copy(expandAndcheck(name, ty.type, span))
+        }
+        typealiases.forEach { ta ->
+            ta.expanded = expandAndcheck(ta.name, ta.type, ta.span)
+        }
+        val errs = validatePublicAliases(smod)
+        if (errs.isNotEmpty()) desugarErrors(errs)
         return map
     }
 
@@ -296,7 +302,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
      */
     private fun resolveAliases(ty: SType): SType {
         return when (ty) {
-            is SType.TConst -> synonyms[ty.name]?.type ?: ty
+            is SType.TConst -> synonyms[ty.name]?.expanded ?: ty
             is SType.TParens -> ty.copy(type = resolveAliases(ty.type))
             is SType.TForall -> ty.copy(type = resolveAliases(ty.type))
             is SType.TFun -> ty.copy(arg = resolveAliases(ty.arg), ret = resolveAliases(ty.ret))
@@ -304,7 +310,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                 val typ = ty.type as SType.TConst
                 val syn = synonyms[typ.name]
                 if (syn != null) {
-                    val synTy = resolveAliases(syn.type)
+                    val synTy = syn.expanded ?: internalError("Got unexpanded typealias: $syn")
                     syn.tyVars.zip(ty.types).fold(synTy) { oty, (tvar, type) ->
                         oty.substVar(tvar, resolveAliases(type))
                     }
@@ -403,6 +409,10 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             else -> {
             }
         }
+    }
+
+    private fun desugarErrors(errs: List<CompilerProblem>): Nothing {
+        throw CompilationError(errs)
     }
 
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)

@@ -2,6 +2,7 @@ package novah.frontend
 
 import novah.Util.internalError
 import novah.ast.source.*
+import novah.ast.source.Type as SType
 import novah.data.NovahClassLoader
 import novah.data.Reflection
 import novah.frontend.error.CompilerProblem
@@ -39,10 +40,10 @@ fun resolveImports(mod: Module, tc: Typechecker, modules: Map<String, FullModule
             errors += mkError(Errors.moduleNotFound(imp.module))
             continue
         }
-        val typealiases = modules[imp.module]?.aliases ?: emptyList()
+        val typealiases = modules[imp.module]?.aliases?.map { it.name to it }?.toMap() ?: emptyMap()
         val mname = imp.module
         when (imp) {
-            // Import all declarations and types from this module
+            // Import all declarations, types and type aliases from this module
             is Import.Raw -> {
                 val alias = if (imp.alias != null) "${imp.alias}." else ""
                 m.types.filter(visibleType).forEach { name, (type, _) ->
@@ -52,6 +53,9 @@ fun resolveImports(mod: Module, tc: Typechecker, modules: Map<String, FullModule
                 m.decls.filter(visible).forEach { name, (type, _) ->
                     resolved["$alias$name"] = mname
                     env.extend("$alias$name", type)
+                }
+                typealiases.filter { (_, ta) -> ta.visibility == Visibility.PUBLIC }.forEach { (_, ta) ->
+                    resolvedTypealiases += ta
                 }
             }
             // Import only defined declarations and types
@@ -73,6 +77,15 @@ fun resolveImports(mod: Module, tc: Typechecker, modules: Map<String, FullModule
                             env.extend("$alias${ref.name}", declRef.type)
                         }
                         is DeclarationRef.RefType -> {
+                            val talias = typealiases[ref.name]
+                            if (talias != null) {
+                                if (talias.visibility == Visibility.PRIVATE) {
+                                    errors += mkError(Errors.cannotImportInModule("type ${ref.name}", mname))
+                                    continue
+                                }
+                                resolvedTypealiases += talias
+                                continue
+                            }
                             val declRef = m.types[ref.name]
                             if (declRef == null) {
                                 errors += mkError(Errors.cannotFindInModule("type ${ref.name}", mname))
@@ -286,7 +299,7 @@ private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars
     mpars += if (m.returnType.canonicalName == "void") primUnit else m.returnType.canonicalName
     val pars = mpars.map { javaToNovah(it) }
     val tpars = pars.map { Type.TConst(it) } as List<Type>
-    
+
     return tpars.reduceRight { tVar, acc -> Type.TArrow(listOf(tVar), acc) }
 }
 
@@ -296,4 +309,35 @@ private fun ctorToFunction(c: Constructor<*>, type: String, novahPars: List<Stri
     val tpars = pars.map { Type.TConst(it) } as List<Type>
 
     return tpars.reduceRight { tVar, acc -> Type.TArrow(listOf(tVar), acc) }
+}
+
+/**
+ * Makes sure all types used by a public
+ * type alias are also public
+ */
+fun validatePublicAliases(ast: Module): List<CompilerProblem> {
+    val errors = mutableListOf<CompilerProblem>()
+    ast.decls.filterIsInstance<Decl.TypealiasDecl>().filter { it.visibility == Visibility.PUBLIC }.forEach { ta ->
+        val consts = mutableListOf<String>()
+        ta.expanded?.everywhere { t ->
+            if (t is SType.TConst) {
+                consts += t.name
+            }
+        }
+
+        val types = ast.decls.filterIsInstance<Decl.DataDecl>().map { it.name to it }.toMap()
+        consts.forEach { name ->
+            val ty = types[name]
+            if (ty != null && ty.visibility == Visibility.PRIVATE) {
+                errors += CompilerProblem(
+                    Errors.TYPEALIAS_PUB,
+                    ProblemContext.FOREIGN_IMPORT,
+                    ta.span,
+                    ast.sourceName,
+                    ast.name
+                )
+            }
+        }
+    }
+    return errors
 }

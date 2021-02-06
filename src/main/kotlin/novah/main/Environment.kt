@@ -90,7 +90,7 @@ class Environment(private val verbose: Boolean) {
 
             if (verbose) echo("Typechecking ${mod.data.name}")
 
-            val canonical = Desugar(mod.data, tc).desugar().unwrapOrElse { throwError(it) }
+            val canonical = Desugar(mod.data, tc).desugar().unwrapOrElse { throwErrors(it) }
             val menv = tc.infer(canonical).unwrapOrElse { throwErrors(it) }
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
