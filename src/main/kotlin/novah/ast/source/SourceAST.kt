@@ -13,12 +13,12 @@ data class Module(
     val imports: List<Import>,
     val foreigns: List<ForeignImport>,
     val decls: List<Decl>,
-    val typealiases: List<Typealias>,
     val span: Span
 ) {
     var comment: Comment? = null
 
     var resolvedImports = emptyMap<String, String>()
+    var resolvedTypealiases = emptyList<Decl.TypealiasDecl>()
 
     var foreignTypes = emptyMap<String, String>()
     var foreignVars = emptyMap<String, ForeignRef>()
@@ -50,8 +50,6 @@ sealed class DeclarationRef(open val name: String) {
         }
     }
 }
-
-data class Typealias(val name: String, val tyVars: List<String>, val type: Type, val span: Span)
 
 /**
  * A native imported reference.
@@ -120,6 +118,9 @@ sealed class Decl(val name: String, val visibility: Visibility) {
         val type: Type?,
         visibility: Visibility
     ) : Decl(name, visibility)
+
+    class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
+        Decl(name, visibility)
 
     var comment: Comment? = null
     var span = Span.empty()

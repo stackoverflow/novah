@@ -45,13 +45,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
         }
 
-        val typealiases = mutableListOf<Typealias>()
         val decls = mutableListOf<Decl>()
-        var tk = iter.peek().value
-        while (tk !is EOF) {
-            if (tk is TypealiasT) typealiases += parseTypealias()
-            else decls += parseDecl()
-            tk = iter.peek().value
+        while (iter.peek().value !is EOF) {
+            decls += parseDecl()
         }
 
         return Module(
@@ -60,7 +56,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             imports,
             foreigns,
             decls,
-            typealiases,
             mspan
         ).withComment(comment)
     }
@@ -224,6 +219,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val decl = when (tk.value) {
             is TypeT -> parseDataDecl(visibility)
             is Ident -> parseVarDecl(visibility)
+            is TypealiasT -> parseTypealias(visibility)
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
         decl.comment = comment
@@ -278,7 +274,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
-    private fun parseTypealias(): Typealias {
+    private fun parseTypealias(visibility: Token?): Decl {
+        var vis = Visibility.PRIVATE
+        if (visibility != null) {
+            if (visibility is PublicPlus) throwError(E.PUB_PLUS to iter.current().span)
+            vis = Visibility.PUBLIC
+        }
         expect<TypealiasT>(noErr())
         val name = expect<UpperIdent>(withError(E.TYPEALIAS_NAME))
         return withOffside(name.offside() + 1, false) {
@@ -286,7 +287,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             val end = iter.current().span
             expect<Equals>(withError(E.TYPEALIAS_EQUALS))
             val type = parsePolytype()
-            Typealias(name.value.v, tyVars, type, span(name.span, end))
+            Decl.TypealiasDecl(name.value.v, tyVars, type, vis).withSpan(name.span, end)
         }
     }
 

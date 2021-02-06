@@ -2,8 +2,8 @@ package novah.ast
 
 import novah.Util.internalError
 import novah.ast.canonical.*
+import novah.ast.source.Decl.TypealiasDecl
 import novah.ast.source.ForeignRef
-import novah.ast.source.Typealias
 import novah.ast.source.fullname
 import novah.data.Err
 import novah.data.Ok
@@ -38,12 +38,12 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
-    private var synonyms = emptyMap<String, Typealias>()
+    private var synonyms = emptyMap<String, TypealiasDecl>()
 
     fun desugar(): Result<Module, CompilerProblem> {
         return try {
             synonyms = validateTypealiases()
-            Ok(Module(moduleName, smod.sourceName, smod.decls.map { it.desugar() }))
+            Ok(Module(moduleName, smod.sourceName, smod.decls.mapNotNull { it.desugar() }))
         } catch (pe: ParserError) {
             Err(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name))
         }
@@ -51,7 +51,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     
     private val declVars = mutableSetOf<String>()
 
-    private fun SDecl.desugar(): Decl = when (this) {
+    private fun SDecl.desugar(): Decl? = when (this) {
         is SDecl.DataDecl -> {
             validateDataConstructorNames(this)
             if (smod.foreignTypes[name] != null || imports[name] != null) {
@@ -72,6 +72,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             } else expr
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility)
         }
+        else -> null
     }
 
     private fun SDataConstructor.desugar(): DataConstructor =
@@ -263,8 +264,9 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     /**
      * Make sure type aliases are not recursive
      */
-    private fun validateTypealiases(): Map<String, Typealias> {
-        val map = smod.typealiases.map { it.name to it }.toMap()
+    private fun validateTypealiases(): Map<String, TypealiasDecl> {
+        val typealiases = smod.decls.filterIsInstance<TypealiasDecl>()
+        val map = typealiases.map { it.name to it }.toMap()
 
         fun checkType(name: String, ty: SType, span: Span) {
             when (ty) {
@@ -285,7 +287,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                 is SType.TParens -> checkType(name, ty.type, span)
             }
         }
-        smod.typealiases.forEach { ta -> checkType(ta.name, ta.type, ta.span) }
+        typealiases.forEach { ta -> checkType(ta.name, ta.type, ta.span) }
         return map
     }
 

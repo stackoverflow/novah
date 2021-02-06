@@ -103,7 +103,7 @@ object Errors {
 
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
     
-    const val PUB_PLUS = "Visibility of value declaration can only be public (pub) not pub+."
+    const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
     
     const val NOT_A_FUNCTION = "Expected expression to be a function."
 

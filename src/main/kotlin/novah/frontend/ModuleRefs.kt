@@ -28,16 +28,18 @@ fun resolveImports(mod: Module, tc: Typechecker, modules: Map<String, FullModule
 
     val env = tc.env
     val resolved = mutableMapOf<VarRef, ModuleName>()
+    val resolvedTypealiases = mutableListOf<Decl.TypealiasDecl>()
     val errors = mutableListOf<CompilerProblem>()
     // add the primitive module as import to every module
     val imports = mod.imports + primImport
     for (imp in imports) {
         val mkError = makeError(imp.span())
-        val m = if (imp.module == "prim") moduleEnv else modules[imp.module]?.env
+        val m = if (imp.module == "prim") primModuleEnv else modules[imp.module]?.env
         if (m == null) {
             errors += mkError(Errors.moduleNotFound(imp.module))
             continue
         }
+        val typealiases = modules[imp.module]?.aliases ?: emptyList()
         val mname = imp.module
         when (imp) {
             // Import all declarations and types from this module
@@ -119,6 +121,7 @@ fun resolveImports(mod: Module, tc: Typechecker, modules: Map<String, FullModule
         }
     }
     mod.resolvedImports = resolved
+    mod.resolvedTypealiases = resolvedTypealiases
     return errors
 }
 

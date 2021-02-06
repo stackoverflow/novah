@@ -243,8 +243,9 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             exp is Expr.Bool && type == tBoolean -> exp.withType(tBoolean)
             exp is Expr.Unit -> exp.withType(tUnit)
             else -> {
-                val expType = infer(env, level, expectedType, generalized, exp)
-                sub.subsume(level, type, expType, exp.span)
+                validateType(type, env, exp.span)
+                val inferedType = infer(env, level, expectedType, generalized, exp)
+                sub.subsume(level, type, inferedType, exp.span)
                 exp.withType(type)
             }
         }
@@ -261,12 +262,8 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         }
         pars.sortedBy { ordering(it.first, it.second) }.forEach { (paramType, arg) ->
             val argType = infer(env, level, paramType, shouldGeneralize(paramType), arg)
-            if (isAnnotated(arg)) uni.unify(paramType, argType, arg.span) else sub.subsume(
-                level,
-                paramType,
-                argType,
-                arg.span
-            )
+            if (isAnnotated(arg)) uni.unify(paramType, argType, arg.span)
+            else sub.subsume(level, paramType, argType, arg.span)
         }
     }
 
@@ -399,6 +396,14 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     private fun generalizeOrInstantiate(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
         Generalized.INSTANTIATED -> tc.instantiate(level, ty)
         Generalized.GENERALIZED -> generalize(level, ty)
+    }
+
+    private fun validateType(type: Type, env: Env, span: Span) {
+        type.everywhere { ty ->
+            if (ty is Type.TConst && env.lookupType(ty.name) == null) {
+                inferError(Errors.undefinedType(ty.show(false)), span)
+            }
+        }
     }
 
     /**

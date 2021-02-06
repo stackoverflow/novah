@@ -92,7 +92,7 @@ private fun tfun(a: Type, b: Type) = Type.TArrow(listOf(a), b)
 private fun tfall(v: Id, t: Type) = Type.TForall(listOf(v), t)
 private fun tbound(x: Id) = Type.TVar(TypeVar.Bound(x))
 
-val moduleEnv = ModuleEnv(
+val primModuleEnv = ModuleEnv(
     mapOf(
         "println" to decl(tfun(tString, tUnit)),
         // TODO: fix these negative numbers (probably by moving them to the stblib)
