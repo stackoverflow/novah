@@ -1,6 +1,5 @@
 # TODO
 
-- [ ] Report on unknown types
 - [ ] Report that an imported type is private instead of not found
 - [ ] Allows complex top level declarations but verify cycles
 - [ ] use fixpoint to infer recursive lets

@@ -117,12 +117,12 @@ fun substituteBoundVars(varIds: List<Id>, types: List<Type>, type: Type): Type {
                 else -> t
             }
         }
-        is Type.TApp -> Type.TApp(go(idMap, t.type), t.types.map { go(idMap, it) })
-        is Type.TArrow -> Type.TArrow(t.args.map { go(idMap, it) }, go(idMap, t.ret))
+        is Type.TApp -> Type.TApp(go(idMap, t.type), t.types.map { go(idMap, it) }).span(t.span)
+        is Type.TArrow -> Type.TArrow(t.args.map { go(idMap, it) }, go(idMap, t.ret)).span(t.span)
         is Type.TForall -> {
             val map = mutableMapOf<Id, Type>()
             idMap.forEach { (k, v) -> if (k !in t.ids) map[k] = v }
-            Type.TForall(t.ids, go(map, t.type))
+            Type.TForall(t.ids, go(map, t.type)).span(t.span)
         }
     }
     return go(varIds.zip(types).toMap(), type)

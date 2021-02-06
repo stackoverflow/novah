@@ -197,19 +197,19 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     private fun SType.goDesugar(kindArity: Int = 0): Type = when (this) {
         is SType.TConst -> {
             val kind = if (kindArity == 0) Kind.Star else Kind.Constructor(kindArity)
-            if (name[0].isLowerCase()) Type.TConst(name, kind)
+            if (name[0].isLowerCase()) Type.TConst(name, kind).span(span)
             else {
                 val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
-                Type.TConst(varName, kind)
+                Type.TConst(varName, kind).span(span)
             }
         }
-        is SType.TFun -> Type.TArrow(listOf(arg.goDesugar()), ret.goDesugar())
+        is SType.TFun -> Type.TArrow(listOf(arg.goDesugar()), ret.goDesugar()).span(span)
         is SType.TForall -> {
             val (ids, ty) = replaceConstantsWithVars(names, type.goDesugar(kindArity))
-            Type.TForall(ids, ty)
+            Type.TForall(ids, ty).span(span)
         }
         is SType.TParens -> type.goDesugar(kindArity)
-        is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() })
+        is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
     }
 
     /**
@@ -240,14 +240,14 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             is Type.TApp -> {
                 val newType = go(t.type)
                 val pars = t.types.map(::go)
-                Type.TApp(newType, pars)
+                Type.TApp(newType, pars).span(t.span)
             }
             is Type.TArrow -> {
                 val pars = t.args.map(::go)
                 val ret = go(t.ret)
-                Type.TArrow(pars, ret)
+                Type.TArrow(pars, ret).span(t.span)
             }
-            is Type.TForall -> Type.TForall(t.ids, go(t.type))
+            is Type.TForall -> Type.TForall(t.ids, go(t.type)).span(t.span)
         }
         return ids to go(type)
     }

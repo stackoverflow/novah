@@ -1,0 +1,4 @@
+module test
+
+f : Unit -> Undef
+f () = 1

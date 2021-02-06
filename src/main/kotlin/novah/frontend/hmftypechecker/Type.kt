@@ -1,6 +1,7 @@
 package novah.frontend.hmftypechecker
 
 import novah.Util.joinToStr
+import novah.frontend.Span
 
 typealias Id = Int
 typealias Level = Int
@@ -43,6 +44,9 @@ sealed class Type {
         override fun toString(): String = "TVar($tvar)"
     }
 
+    var span: Span? = null
+    fun span(s: Span?): Type = apply { span = s }
+
     fun unlink(): Type = when {
         this is TVar && tvar is TypeVar.Link -> {
             val ty = (tvar as TypeVar.Link).type.unlink()
@@ -73,7 +77,7 @@ sealed class Type {
         is TForall -> copy(ids, type.substConst(map))
         is TVar -> {
             when (val tv = tvar) {
-                is TypeVar.Link -> TVar(TypeVar.Link(tv.type.substConst(map)))
+                is TypeVar.Link -> TVar(TypeVar.Link(tv.type.substConst(map))).span(span)
                 else -> this
             }
         }
