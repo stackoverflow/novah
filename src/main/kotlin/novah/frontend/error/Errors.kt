@@ -103,9 +103,15 @@ object Errors {
 
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
     
-    const val PUB_PLUS = "Visibility of value declaration can only be public (pub) not pub+."
+    const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
     
     const val NOT_A_FUNCTION = "Expected expression to be a function."
+
+    const val TYPEALIAS_NAME = "Expected name for typealias."
+
+    const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
+
+    const val TYPEALIAS_PUB = "A public type alias cannot reference private types."
 
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
@@ -220,6 +226,8 @@ object Errors {
     """.trimIndent()
     
     fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
+
+    fun recursiveAlias(name: String) = "Typealias $name is recursive."
 
     fun undefinedVar(name: String) = "Undefined variable $name."
 

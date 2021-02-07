@@ -2,6 +2,7 @@ package novah.ast
 
 import novah.Util.internalError
 import novah.ast.canonical.*
+import novah.ast.source.Decl.TypealiasDecl
 import novah.ast.source.ForeignRef
 import novah.ast.source.fullname
 import novah.data.Err
@@ -16,6 +17,8 @@ import novah.frontend.hmftypechecker.Id
 import novah.frontend.hmftypechecker.Kind
 import novah.frontend.hmftypechecker.Type
 import novah.frontend.hmftypechecker.Typechecker
+import novah.frontend.validatePublicAliases
+import novah.main.CompilationError
 import kotlin.math.max
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
@@ -37,18 +40,22 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
+    private var synonyms = emptyMap<String, TypealiasDecl>()
 
-    fun desugar(): Result<Module, CompilerProblem> {
+    fun desugar(): Result<Module, List<CompilerProblem>> {
         return try {
-            Ok(Module(moduleName, smod.sourceName, smod.decls.map { it.desugar() }))
+            synonyms = validateTypealiases()
+            Ok(Module(moduleName, smod.sourceName, smod.decls.mapNotNull { it.desugar() }))
         } catch (pe: ParserError) {
-            Err(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name))
+            Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name)))
+        } catch (ce: CompilationError) {
+            Err(ce.problems)
         }
     }
-    
-    val declVars = mutableSetOf<String>()
 
-    private fun SDecl.desugar(): Decl = when (this) {
+    private val declVars = mutableSetOf<String>()
+
+    private fun SDecl.desugar(): Decl? = when (this) {
         is SDecl.DataDecl -> {
             validateDataConstructorNames(this)
             if (smod.foreignTypes[name] != null || imports[name] != null) {
@@ -69,6 +76,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             } else expr
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility)
         }
+        else -> null
     }
 
     private fun SDataConstructor.desugar(): DataConstructor =
@@ -162,7 +170,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             return if (binders.size == 1) Expr.Lambda(binders[0], null, exp, exp.span)
             else go(binders.drop(1), Expr.Lambda(binders[0], null, exp, exp.span))
         }
-        
+
         return if (patterns.isEmpty()) {
             LetDef(name.desugar(), expr.desugar(locals), false, type?.desugar())
         } else {
@@ -181,22 +189,27 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SFunparPattern.Bind -> FunparPattern.Bind(binder.desugar())
     }
 
-    private fun SType.desugar(kindArity: Int = 0): Type = when (this) {
+    private fun SType.desugar(): Type {
+        val ty = resolveAliases(this)
+        return ty.goDesugar()
+    }
+
+    private fun SType.goDesugar(kindArity: Int = 0): Type = when (this) {
         is SType.TConst -> {
             val kind = if (kindArity == 0) Kind.Star else Kind.Constructor(kindArity)
-            if (name[0].isLowerCase()) Type.TConst(name, kind)
+            if (name[0].isLowerCase()) Type.TConst(name, kind).span(span)
             else {
                 val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
-                Type.TConst(varName, kind)
+                Type.TConst(varName, kind).span(span)
             }
         }
-        is SType.TFun -> Type.TArrow(listOf(arg.desugar()), ret.desugar())
+        is SType.TFun -> Type.TArrow(listOf(arg.goDesugar()), ret.goDesugar()).span(span)
         is SType.TForall -> {
-            val (ids, ty) = replaceConstantsWithVars(names, type.desugar(kindArity))
-            Type.TForall(ids, ty)
+            val (ids, ty) = replaceConstantsWithVars(names, type.goDesugar(kindArity))
+            Type.TForall(ids, ty).span(span)
         }
-        is SType.TParens -> type.desugar(kindArity)
-        is SType.TApp -> Type.TApp(type.desugar(types.size), types.map { it.desugar() })
+        is SType.TParens -> type.goDesugar(kindArity)
+        is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
     }
 
     /**
@@ -227,14 +240,14 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             is Type.TApp -> {
                 val newType = go(t.type)
                 val pars = t.types.map(::go)
-                Type.TApp(newType, pars)
+                Type.TApp(newType, pars).span(t.span)
             }
             is Type.TArrow -> {
                 val pars = t.args.map(::go)
                 val ret = go(t.ret)
-                Type.TArrow(pars, ret)
+                Type.TArrow(pars, ret).span(t.span)
             }
-            is Type.TForall -> Type.TForall(t.ids, go(t.type))
+            is Type.TForall -> Type.TForall(t.ids, go(t.type)).span(t.span)
         }
         return ids to go(type)
     }
@@ -251,6 +264,62 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
     private fun collectVars(exp: Expr): List<String> =
         exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }
+
+    /**
+     * Expand a type alias and make sure they are not recursive
+     */
+    private fun validateTypealiases(): Map<String, TypealiasDecl> {
+        val typealiases = smod.decls.filterIsInstance<TypealiasDecl>()
+        smod.resolvedTypealiases.forEach { ta ->
+            if (ta.expanded == null) internalError("Got unexpanded imported typealias: $ta")
+        }
+        val map = (typealiases + smod.resolvedTypealiases).map { it.name to it }.toMap()
+
+        fun expandAndcheck(name: String, ty: SType, span: Span): SType = when (ty) {
+            is SType.TConst -> {
+                if (ty.name == name) parserError(E.recursiveAlias(name), span)
+                val pointer = map[ty.name]
+                if (pointer != null) expandAndcheck(name, pointer.type, span)
+                else ty
+            }
+            is SType.TFun -> ty.copy(expandAndcheck(name, ty.arg, span), expandAndcheck(name, ty.ret, span))
+            is SType.TForall -> ty.copy(type = expandAndcheck(name, ty.type, span))
+            is SType.TApp -> {
+                val typ = expandAndcheck(name, ty.type, span)
+                val tcons = if (typ is SType.TApp) typ.type else typ
+                ty.copy(tcons, ty.types.map { expandAndcheck(name, it, span) })
+            }
+            is SType.TParens -> ty.copy(expandAndcheck(name, ty.type, span))
+        }
+        typealiases.forEach { ta ->
+            ta.expanded = expandAndcheck(ta.name, ta.type, ta.span)
+        }
+        val errs = validatePublicAliases(smod)
+        if (errs.isNotEmpty()) desugarErrors(errs)
+        return map
+    }
+
+    /**
+     * Resolve all type aliases in this type
+     */
+    private fun resolveAliases(ty: SType): SType {
+        return when (ty) {
+            is SType.TConst -> synonyms[ty.name]?.expanded ?: ty
+            is SType.TParens -> ty.copy(type = resolveAliases(ty.type))
+            is SType.TForall -> ty.copy(type = resolveAliases(ty.type))
+            is SType.TFun -> ty.copy(arg = resolveAliases(ty.arg), ret = resolveAliases(ty.ret))
+            is SType.TApp -> {
+                val typ = ty.type as SType.TConst
+                val syn = synonyms[typ.name]
+                if (syn != null) {
+                    val synTy = syn.expanded ?: internalError("Got unexpanded typealias: $syn")
+                    syn.tyVars.zip(ty.types).fold(synTy) { oty, (tvar, type) ->
+                        oty.substVar(tvar, resolveAliases(type))
+                    }
+                } else ty.copy(types = ty.types.map { resolveAliases(it) })
+            }
+        }
+    }
 
     /**
      * Only lambdas and primitives vars can be defined at the top level,
@@ -342,6 +411,10 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             else -> {
             }
         }
+    }
+
+    private fun desugarErrors(errs: List<CompilerProblem>): Nothing {
+        throw CompilationError(errs)
     }
 
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)

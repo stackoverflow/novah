@@ -1,6 +1,7 @@
 package novah.frontend.hmftypechecker
 
 import novah.Util.joinToStr
+import novah.frontend.Span
 
 typealias Id = Int
 typealias Level = Int
@@ -43,6 +44,9 @@ sealed class Type {
         override fun toString(): String = "TVar($tvar)"
     }
 
+    var span: Span? = null
+    fun span(s: Span?): Type = apply { span = s }
+
     fun unlink(): Type = when {
         this is TVar && tvar is TypeVar.Link -> {
             val ty = (tvar as TypeVar.Link).type.unlink()
@@ -68,15 +72,45 @@ sealed class Type {
             val ty = map[name]
             ty ?: this
         }
-        is TApp -> TApp(type.substConst(map), types.map { it.substConst(map) })
-        is TArrow -> TArrow(args.map { it.substConst(map) }, ret.substConst(map))
-        is TForall -> TForall(ids, type.substConst(map))
+        is TApp -> copy(type.substConst(map), types.map { it.substConst(map) })
+        is TArrow -> copy(args.map { it.substConst(map) }, ret.substConst(map))
+        is TForall -> copy(ids, type.substConst(map))
         is TVar -> {
             when (val tv = tvar) {
-                is TypeVar.Link -> TVar(TypeVar.Link(tv.type.substConst(map)))
+                is TypeVar.Link -> TVar(TypeVar.Link(tv.type.substConst(map))).span(span)
                 else -> this
             }
         }
+    }
+
+    /**
+     * Recursively walks this type up->bottom
+     */
+    fun everywhere(f: (Type) -> Unit) {
+        fun go(t: Type) {
+            when (t) {
+                is TConst -> f(t)
+                is TApp -> {
+                    f(t)
+                    go(t.type)
+                    t.types.forEach(::go)
+                }
+                is TArrow -> {
+                    f(t)
+                    t.args.forEach(::go)
+                    go(t.ret)
+                }
+                is TForall -> {
+                    f(t)
+                    go(t.type)
+                }
+                is TVar -> {
+                    f(t)
+                    if (t.tvar is TypeVar.Link) go((t.tvar as TypeVar.Link).type)
+                }
+            }
+        }
+        go(this)
     }
     
     fun kind(): Kind = when (this) {
@@ -95,32 +129,37 @@ sealed class Type {
     /**
      * Pretty print version of [toString]
      */
-    fun show(qualified: Boolean, nested: Boolean = false): String = when (this) {
-        is TConst -> if (qualified) name else name.split('.').last()
-        is TApp -> {
-            val sname = type.show(qualified, nested)
-            if (types.isEmpty()) sname else sname + " " + types.joinToString(" ") { it.show(qualified, true) }
-        }
-        is TArrow -> {
-            val args = if (args.size == 1) {
-                args[0].show(qualified, !nested)
-            } else args.joinToString(" ", prefix = "(", postfix = ")")
-            
-            if (nested) "($args -> ${ret.show(qualified)})"
-            else
-                "$args -> ${ret.show(qualified, nested)}"
-        }
-        is TForall -> {
-            val str = "forall ${ids.joinToStr(" ") { "t$it" }}. ${type.show(qualified)}"
-            if (nested) "($str)" else str
-        }
-        is TVar -> {
-            when (val tv = tvar) {
-                is TypeVar.Link -> tv.type.show(qualified, nested)
-                is TypeVar.Unbound -> "t${tv.id}"
-                is TypeVar.Generic -> "t${tv.id}"
-                is TypeVar.Bound -> "t${tv.id}"
+    fun show(qualified: Boolean): String {
+        fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
+            is TConst -> if (qualified) t.name else t.name.split('.').last()
+            is TApp -> {
+                val sname = go(t.type, nested)
+                val str = if (t.types.isEmpty()) sname
+                else sname + " " + t.types.joinToString(" ") { go(it, true) }
+                if (nested) "($str)" else str
+            }
+            is TArrow -> {
+                val args = if (t.args.size == 1) {
+                    go(t.args[0], false)
+                } else {
+                    t.args.joinToString(" ", prefix = "(", postfix = ")") { go(it, false) }
+                }
+                if (nested) "($args -> ${go(t.ret, false)})"
+                else "$args -> ${go(t.ret, nested)}"
+            }
+            is TForall -> {
+                val str = "forall ${t.ids.joinToStr(" ") { "t$it" }}. ${go(t.type, false)}"
+                if (nested || !topLevel) "($str)" else str
+            }
+            is TVar -> {
+                when (val tv = t.tvar) {
+                    is TypeVar.Link -> go(tv.type, nested)
+                    is TypeVar.Unbound -> "t${tv.id}"
+                    is TypeVar.Generic -> "t${tv.id}"
+                    is TypeVar.Bound -> "t${tv.id}"
+                }
             }
         }
+        return go(this, false, topLevel = true)
     }
 }

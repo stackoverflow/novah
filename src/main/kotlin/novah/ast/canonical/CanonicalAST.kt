@@ -9,7 +9,7 @@ import java.lang.reflect.Method
 import java.lang.reflect.Constructor as JConstructor
 
 /**
- * The canonical AST used after desugaring and after type checking.
+ * The canonical AST used after desugaring for type checking.
  */
 
 data class Module(

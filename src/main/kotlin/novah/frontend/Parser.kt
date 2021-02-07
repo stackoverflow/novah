@@ -65,15 +65,15 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return ModuleDef(parseModuleName().joinToString("."), span(m.span, iter.current().span), m.comment)
     }
 
-    private fun parseDeclarationRefs(ctx: String): List<DeclarationRef> {
-        expect<LParen>(withError(E.lparensExpected(ctx)))
+    private fun parseDeclarationRefs(): List<DeclarationRef> {
+        expect<LParen>(withError(E.lparensExpected("import")))
         if (iter.peek().value is RParen) {
-            throwError(withError(E.emptyImportExport(ctx))(iter.peek()))
+            throwError(withError(E.emptyImportExport("import"))(iter.peek()))
         }
 
         val exps = between<Comma, DeclarationRef> { parseDeclarationRef() }
 
-        expect<RParen>(withError(E.rparensExpected(ctx)))
+        expect<RParen>(withError(E.rparensExpected("import")))
         return exps
     }
 
@@ -109,7 +109,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         val import = when (iter.peek().value) {
             is LParen -> {
-                val imp = parseDeclarationRefs("import")
+                val imp = parseDeclarationRefs()
                 if (iter.peek().value is As) {
                     iter.next()
                     val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
@@ -219,6 +219,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val decl = when (tk.value) {
             is TypeT -> parseDataDecl(visibility)
             is Ident -> parseVarDecl(visibility)
+            is TypealiasT -> parseTypealias(visibility)
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
         decl.comment = comment
@@ -273,20 +274,26 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
+    private fun parseTypealias(visibility: Token?): Decl {
+        var vis = Visibility.PRIVATE
+        if (visibility != null) {
+            if (visibility is PublicPlus) throwError(E.PUB_PLUS to iter.current().span)
+            vis = Visibility.PUBLIC
+        }
+        expect<TypealiasT>(noErr())
+        val name = expect<UpperIdent>(withError(E.TYPEALIAS_NAME))
+        return withOffside(name.offside() + 1, false) {
+            val tyVars = tryParseListOf { tryParseTypeVar() }
+            val end = iter.current().span
+            expect<Equals>(withError(E.TYPEALIAS_EQUALS))
+            val type = parsePolytype()
+            Decl.TypealiasDecl(name.value.v, tyVars, type, vis).withSpan(name.span, end)
+        }
+    }
+
     private fun parseTypeSignature(): Type {
         expect<Colon>(withError(E.TYPE_DCOLON))
         return parsePolytype()
-    }
-
-    private fun tryParseIdent(): Binder? {
-        val tk = iter.peek()
-        return when (tk.value) {
-            is Ident -> {
-                iter.next()
-                Binder(tk.value.v, tk.span)
-            }
-            else -> null
-        }
     }
 
     private fun parseExpression(inDo: Boolean = false): Expr {
@@ -639,7 +646,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseDataConstructor(typeVars: List<String>, visibility: Token?): DataConstructor {
         val ctor = expect<UpperIdent>(withError(E.CTOR_NAME))
-        
+
         val vis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
 
         val pars = tryParseListOf { parseTypeAtom(true) }
@@ -682,11 +689,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parsePolytype(inConstructor: Boolean = false): Type {
         return if (iter.peek().value is Forall) {
-            iter.next()
+            val tk = iter.next()
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
             if (tyVars.isEmpty()) throwError(withError(E.FORALL_TVARS)(iter.peek()))
             expect<Dot>(withError(E.FORALL_DOT))
-            Type.TForall(tyVars, parseType(inConstructor))
+            val ty = parseType(inConstructor)
+            Type.TForall(tyVars, ty, span(tk.span, ty.span))
         } else parseType(inConstructor)
     }
 
@@ -703,12 +711,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is LParen -> {
                 iter.next()
                 withIgnoreOffside {
-                    val typ = parseType(false)
-                    expect<RParen>(withError(E.rparensExpected("type definition")))
-                    Type.TParens(typ)
+                    val typ = parseType()
+                    val end = expect<RParen>(withError(E.rparensExpected("type definition")))
+                    Type.TParens(typ, span(tk.span, end.span))
                 }
             }
-            is Ident -> Type.TConst(parseTypeVar())
+            is Ident -> Type.TConst(parseTypeVar(), span = span(tk.span, iter.current().span))
             is UpperIdent -> {
                 var ty = parseUpperIdent().v
                 var alias: String? = null
@@ -718,13 +726,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
                 }
                 if (inConstructor) {
-                    Type.TConst(ty, alias)
+                    Type.TConst(ty, alias, span(tk.span, iter.current().span))
                 } else {
+                    val const = Type.TConst(ty, alias, span(tk.span, iter.current().span))
                     val pars = tryParseListOf(true) { parseTypeAtom(true) }
 
-                    val const = Type.TConst(ty, alias)
                     if (pars.isEmpty()) const
-                    else Type.TApp(const, pars)
+                    else Type.TApp(const, pars, span(tk.span, iter.current().span))
                 }
             }
             else -> null
@@ -734,7 +742,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return when (iter.peek().value) {
             is Arrow -> {
                 iter.next()
-                Type.TFun(ty, parseType())
+                val ret = parseType()
+                Type.TFun(ty, ret, span(ty.span, ret.span))
             }
             else -> ty
         }
@@ -747,6 +756,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is Ident -> tk.value.v
             else -> throwError(withError(E.UPPER_LOWER)(tk))
         }
+    }
+
+    private fun tryParseTypeVar(): String? {
+        return if (iter.peek().value is Ident) {
+            expect<Ident>(noErr()).value.v
+        } else null
     }
 
     private fun parseTypeVar(): String {

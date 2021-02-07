@@ -38,6 +38,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
+                decls[dc.name] = DeclRef(dcty, dc.visibility)
             }
             types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
         }
@@ -243,8 +244,9 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             exp is Expr.Bool && type == tBoolean -> exp.withType(tBoolean)
             exp is Expr.Unit -> exp.withType(tUnit)
             else -> {
-                val expType = infer(env, level, expectedType, generalized, exp)
-                sub.subsume(level, type, expType, exp.span)
+                validateType(type, env, exp.span)
+                val inferedType = infer(env, level, expectedType, generalized, exp)
+                sub.subsume(level, type, inferedType, exp.span)
                 exp.withType(type)
             }
         }
@@ -261,12 +263,8 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         }
         pars.sortedBy { ordering(it.first, it.second) }.forEach { (paramType, arg) ->
             val argType = infer(env, level, paramType, shouldGeneralize(paramType), arg)
-            if (isAnnotated(arg)) uni.unify(paramType, argType, arg.span) else sub.subsume(
-                level,
-                paramType,
-                argType,
-                arg.span
-            )
+            if (isAnnotated(arg)) uni.unify(paramType, argType, arg.span)
+            else sub.subsume(level, paramType, argType, arg.span)
         }
     }
 
@@ -312,7 +310,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         }
     }
 
-    fun matchFunType(numParams: Int, t: Type, span: Span): Pair<List<Type>, Type> = when {
+    private fun matchFunType(numParams: Int, t: Type, span: Span): Pair<List<Type>, Type> = when {
         t is Type.TArrow -> {
             if (numParams != t.args.size) internalError("unexpected number of arguments to function: $numParams")
             t.args to t.ret
@@ -322,7 +320,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             val unb = t.tvar as TypeVar.Unbound
             val params = (1..numParams).map { tc.newVar(unb.level) }.reversed()
             val retur = tc.newVar(unb.level)
-            t.tvar = TypeVar.Link(Type.TArrow(params, retur))
+            t.tvar = TypeVar.Link(Type.TArrow(params, retur).span(t.span))
             params to retur
         }
         else -> inferError(Errors.NOT_A_FUNCTION, span)
@@ -340,7 +338,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         return infer(env, 0, null, Generalized.GENERALIZED, fix)
     }
 
-    fun generalize(level: Level, type: Type): Type {
+    private fun generalize(level: Level, type: Type): Type {
         val ids = mutableListOf<Id>()
         fun go(t: Type) {
             when {
@@ -371,10 +369,10 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
 
         go(type)
         return if (ids.isEmpty()) type
-        else Type.TForall(ids, type)
+        else Type.TForall(ids, type).span(type.span)
     }
 
-    tailrec fun isAnnotated(exp: Expr): Boolean = when (exp) {
+    private tailrec fun isAnnotated(exp: Expr): Boolean = when (exp) {
         is Expr.Ann -> true
         is Expr.Let -> isAnnotated(exp.body)
         else -> false
@@ -399,6 +397,14 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     private fun generalizeOrInstantiate(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
         Generalized.INSTANTIATED -> tc.instantiate(level, ty)
         Generalized.GENERALIZED -> generalize(level, ty)
+    }
+
+    private fun validateType(type: Type, env: Env, span: Span) {
+        type.everywhere { ty ->
+            if (ty is Type.TConst && env.lookupType(ty.name) == null) {
+                inferError(Errors.undefinedType(ty.show(false)), ty.span ?: span)
+            }
+        }
     }
 
     /**
@@ -438,7 +444,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
 
     private fun getDataType(d: Decl.DataDecl, moduleName: String): Pair<Type, Map<String, Type.TVar>> {
         val kind = if (d.tyVars.isEmpty()) Kind.Star else Kind.Constructor(d.tyVars.size)
-        val raw = Type.TConst("$moduleName.${d.name}", kind)
+        val raw = Type.TConst("$moduleName.${d.name}", kind).span(d.span)
 
         return if (d.tyVars.isEmpty()) raw to emptyMap()
         else {
@@ -447,7 +453,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             varsMap.forEach { (name, idVar) -> map[name] = idVar.second }
             val vars = varsMap.map { it.second }
 
-            Type.TForall(vars.map { it.first }, Type.TApp(raw, vars.map { it.second })) to map
+            Type.TForall(vars.map { it.first }, Type.TApp(raw, vars.map { it.second })).span(d.span) to map
         }
     }
 
@@ -457,10 +463,10 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             else -> nestFun(args.drop(1), Type.TArrow(listOf(args[0]), ret))
         }
         return when (dataType) {
-            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.TArrow(dc.args, dataType)
+            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.TArrow(dc.args, dataType).span(dc.span)
             is Type.TForall -> {
                 val args = dc.args.map { it.substConst(map) }
-                Type.TForall(dataType.ids, nestFun(args.reversed(), dataType.type))
+                Type.TForall(dataType.ids, nestFun(args.reversed(), dataType.type)).span(dc.span)
             }
             else -> internalError("Got absurd type for data constructor: $dataType")
         }
