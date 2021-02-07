@@ -28,18 +28,18 @@ num = 2
 pub
 y = 45.8E12
 
-//b2 = b
-
-z = "something"
+b2 = b
 
 b = true
 
-c = 'a'
+c = if true then "" else d
 
-d () = do
+d = do
   4
-  true
+  z
   "asd"
+
+z = "something"
 
 i = 99
 

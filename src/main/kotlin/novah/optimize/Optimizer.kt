@@ -86,7 +86,7 @@ class Optimizer(private val ast: CModule) {
                 }
             }
             is CExpr.Constructor -> {
-                val ctorName = fullname(ast.name)
+                val ctorName = fullname(moduleName ?: ast.name)
                 val arity = PatternMatchingCompiler.getFromCache(ctorName)?.arity
                     ?: internalError("Could not find constructor $name")
                 Expr.Constructor(internalize(ctorName), arity, typ)

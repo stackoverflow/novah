@@ -134,27 +134,6 @@ class ParserSpec : StringSpec({
         x.type.show() shouldBe "String"
     }
 
-    "Complex top level definitions are disallowed" {
-        val tc = Typechecker()
-        
-        forAll(
-            row("decl = if true then 1 else 2"),
-            row("decl = let a = 3 in a"),
-            row("decl = case 1 of _ -> 0"),
-            row("decl = do println 2"),
-            row("decl = do println 2 :: Int")
-        ) { code ->
-            val ast = parseString(code.module())
-            val des = Desugar(ast, tc)
-            des.desugar().shouldBeInstanceOf<Err<*>>()
-        }
-
-        // Annotations should work
-        val ast = parseString("decl = 2 : Int".module())
-        val des = Desugar(ast, tc)
-        des.desugar().unwrap()
-    }
-
     "Constructors with the same name as the type are not allowed unless there's only one" {
         val code = "type Wrong = Wrong | NotWrong".module()
 

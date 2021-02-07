@@ -176,13 +176,13 @@ object Errors {
     fun cycleFound(nodes: List<String>) =
         nodes.joinToString(", ", prefix = "Found cycle between modules ", postfix = ".")
 
+    fun cycleInValues(nodes: List<String>) =
+        nodes.joinToString(", ", prefix = "Found cycle between values ", postfix = ".")
+
     fun moduleNotFound(name: String) = "Could not find module $name."
 
     fun cannotFindInModule(name: String, module: String) = "Cannot find $name in module $module."
     fun cannotImportInModule(name: String, module: String) = "Cannot import private $name in module $module."
-
-    fun topLevelDisallowed(declName: String) =
-        "Only lambdas and primitives can be defined at the top level for declaration $declName."
 
     fun wrongConstructorName(typeName: String) =
         "Multi constructor type cannot have the same name as their type: $typeName."
