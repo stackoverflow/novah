@@ -2,7 +2,6 @@
 
 - [ ] Report that an imported type is private instead of not found
 - [ ] Allows complex top level declarations but verify cycles
-- [ ] use fixpoint to infer recursive lets
 - [ ] Desugar types to classes before codegen
 - [ ] Report unused variables
 - [ ] Revamp the error reporting, so it can return json as well as print to the console

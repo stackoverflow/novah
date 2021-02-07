@@ -139,27 +139,32 @@ fun LiteralPattern.show(): String = when (this) {
 
 fun lambdaBinder(name: String, span: Span) = FunparPattern.Bind(Binder(name, span))
 
-fun Expr.substVar(from: String, to: String): Expr = when (this) {
-    is Expr.Var -> if (from == name) Expr.Var(to, span, moduleName) else this
-    is Expr.Lambda -> copy(body = body.substVar(from, to))
-    is Expr.App -> Expr.App(fn.substVar(from, to), arg.substVar(from, to), span)
-    is Expr.If -> Expr.If(cond.substVar(from, to), thenCase.substVar(from, to), elseCase.substVar(from, to), span)
-    is Expr.Let -> copy(letDef = letDef.copy(expr = letDef.expr.substVar(from, to)), body = body.substVar(from, to))
-    is Expr.Match -> copy(exp = exp.substVar(from, to), cases = cases.map { it.copy(exp = exp.substVar(from, to)) })
-    is Expr.Ann -> copy(exp = exp.substVar(from, to))
-    is Expr.Do -> copy(exps = exps.map { it.substVar(from, to) })
-    else -> this
+/**
+ * Walks this expression bottom->up
+ */
+fun Expr.everywhere(f: (Expr) -> Expr): Expr {
+    fun go(e: Expr): Expr = when (e) {
+        is Expr.Lambda -> f(e.copy(body = go(e.body)))
+        is Expr.App -> f(e.copy(fn = go(e.fn), arg = go(e.arg)))
+        is Expr.If -> f(e.copy(cond = go(e.cond), thenCase = go(e.thenCase), elseCase = go(e.elseCase)))
+        is Expr.Let -> f(e.copy(letDef = e.letDef.copy(expr = go(e.letDef.expr)), body = go(e.body)))
+        is Expr.Match -> f(e.copy(exp = go(e.exp), cases = e.cases.map { it.copy(exp = go(it.exp)) }))
+        is Expr.Ann -> f(e.copy(exp = go(e.exp)))
+        is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
+        else -> f(e)
+    }
+    return go(this)
 }
 
-fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> = when (this) {
-    is Expr.Var -> f(this)
-    is Expr.Constructor -> f(this)
-    is Expr.Lambda -> f(body)
-    is Expr.App -> f(fn) + f(arg)
-    is Expr.If -> f(cond) + f(thenCase) + f(elseCase)
-    is Expr.Let -> f(letDef.expr) + f(body)
-    is Expr.Match -> f(exp) + cases.flatMap { f(it.exp) }
-    is Expr.Ann -> f(exp)
-    is Expr.Do -> exps.flatMap { f(it) }
-    else -> emptyList()
+fun Expr.substVar(from: String, to: String): Expr = everywhere { e ->
+    if (e is Expr.Var && e.name == from) e.copy(name = to) else e
+}
+
+fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
+    val acc = mutableListOf<T>()
+    everywhere { exp ->
+        acc.addAll(f(exp))
+        exp
+    }
+    return acc
 }
