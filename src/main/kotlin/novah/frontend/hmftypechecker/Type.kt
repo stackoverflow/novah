@@ -84,30 +84,33 @@ sealed class Type {
     }
 
     /**
-     * Recursively walks this type top->down
+     * Recursively walks this type up->bottom
      */
     fun everywhere(f: (Type) -> Unit) {
-        when (this) {
-            is TConst -> f(this)
-            is TApp -> {
-                f(this)
-                f(type)
-                types.forEach(f)
-            }
-            is TArrow -> {
-                f(this)
-                args.forEach(f)
-                f(ret)
-            }
-            is TForall -> {
-                f(this)
-                f(type)
-            }
-            is TVar -> {
-                f(this)
-                if (tvar is TypeVar.Link) f((tvar as TypeVar.Link).type)
+        fun go(t: Type) {
+            when (t) {
+                is TConst -> f(t)
+                is TApp -> {
+                    f(t)
+                    go(t.type)
+                    t.types.forEach(::go)
+                }
+                is TArrow -> {
+                    f(t)
+                    t.args.forEach(::go)
+                    go(t.ret)
+                }
+                is TForall -> {
+                    f(t)
+                    go(t.type)
+                }
+                is TVar -> {
+                    f(t)
+                    if (t.tvar is TypeVar.Link) go((t.tvar as TypeVar.Link).type)
+                }
             }
         }
+        go(this)
     }
     
     fun kind(): Kind = when (this) {
