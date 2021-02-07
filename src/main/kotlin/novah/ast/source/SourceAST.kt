@@ -122,8 +122,8 @@ sealed class Decl(val name: String, val visibility: Visibility) {
 
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
         Decl(name, visibility) {
-            var expanded: Type? = null
-        }
+        var expanded: Type? = null
+    }
 
     var comment: Comment? = null
     var span = Span.empty()
@@ -255,25 +255,24 @@ sealed class Type(open val span: Span) {
     data class TForall(val names: List<String>, val type: Type, override val span: Span) : Type(span)
     data class TParens(val type: Type, override val span: Span) : Type(span)
 
-    fun everywhere(f: (Type) -> Unit): Unit = when (this) {
-        is TConst -> f(this)
-        is TApp -> {
-            f(this)
-            f(type)
-            types.forEach(f)
+    /**
+     * Walks this type bottom->up
+     */
+    fun everywhere(f: (Type) -> Type): Type {
+        fun go(t: Type): Type = when (t) {
+            is TConst -> f(t)
+            is TApp -> f(t.copy(type = go(t.type), types = t.types.map(::go)))
+            is TFun -> f(t.copy(go(t.arg), go(t.ret)))
+            is TForall -> f(t.copy(type = go(t.type)))
+            is TParens -> f(t.copy(go(t.type)))
         }
-        is TFun -> {
-            f(this)
-            f(arg)
-            f(ret)
-        }
-        is TForall -> {
-            f(this)
-            f(type)
-        }
-        is TParens -> {
-            f(this)
-            f(type)
+        return go(this)
+    }
+
+    fun everywhereUnit(f: (Type) -> Unit) {
+        everywhere { ty ->
+            f(ty)
+            ty
         }
     }
 
@@ -288,12 +287,8 @@ sealed class Type(open val span: Span) {
         is TParens -> type.findFreeVars(bound)
     }
 
-    fun substVar(from: String, new: Type): Type = when (this) {
-        is TConst -> if (name == from) new else this
-        is TFun -> copy(arg.substVar(from, new), ret.substVar(from, new))
-        is TForall -> copy(type = type.substVar(from, new))
-        is TApp -> copy(type = type.substVar(from, new), types = types.map { it.substVar(from, new) })
-        is TParens -> copy(type = type.substVar(from, new))
+    fun substVar(from: String, new: Type): Type = everywhere { ty ->
+        if (ty is TConst && ty.name == from) new else ty
     }
 
     fun show(): String = when (this) {

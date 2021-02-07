@@ -284,9 +284,11 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             }
             is SType.TFun -> ty.copy(expandAndcheck(name, ty.arg, span), expandAndcheck(name, ty.ret, span))
             is SType.TForall -> ty.copy(type = expandAndcheck(name, ty.type, span))
-            is SType.TApp -> ty.copy(
-                expandAndcheck(name, ty.type, span),
-                ty.types.map { expandAndcheck(name, it, span) })
+            is SType.TApp -> {
+                val typ = expandAndcheck(name, ty.type, span)
+                val tcons = if (typ is SType.TApp) typ.type else typ
+                ty.copy(tcons, ty.types.map { expandAndcheck(name, it, span) })
+            }
             is SType.TParens -> ty.copy(expandAndcheck(name, ty.type, span))
         }
         typealiases.forEach { ta ->

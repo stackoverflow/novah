@@ -38,6 +38,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
+                decls[dc.name] = DeclRef(dcty, dc.visibility)
             }
             types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
         }

@@ -107,38 +107,40 @@ object TestUtil {
     class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
 
     /**
-     * Like [Type.show] but reset the numbers of vars.
+     * Like [Type.show] but reset the ids of vars.
      */
-    fun Type.simpleName(nested: Boolean = false, ctx: Ctx = Ctx()): String =
-        when (this) {
-            is Type.TConst -> name.split('.').last()
+    fun Type.simpleName(): String {
+        fun go(t: Type, ctx: Ctx = Ctx(), nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
+            is Type.TConst -> t.name.split('.').last()
             is Type.TApp -> {
-                val sname = type.simpleName(nested, ctx)
-                if (types.isEmpty()) sname else sname + " " + types.joinToString(" ") { it.simpleName(true, ctx) }
-            }
-            is Type.TArrow -> {
-                val args =
-                    if (args.size == 1) args[0].simpleName(!nested, ctx) else args.joinToString(
-                        " ",
-                        prefix = "(",
-                        postfix = ")"
-                    )
-                if (nested) "($args -> ${ret.simpleName(false, ctx)})"
-                else
-                    "$args -> ${ret.simpleName(nested, ctx)}"
-            }
-            is Type.TForall -> {
-                ids.forEach { ctx.map[it] = ctx.counter++ }
-                val str = "forall ${ids.joinToStr(" ") { "t${ctx.map[it]}" }}. ${type.simpleName(false, ctx)}"
+                val sname = go(t.type, ctx, nested)
+                val str = if (t.types.isEmpty()) sname
+                else sname + " " + t.types.joinToString(" ") { go(it, ctx, true) }
                 if (nested) "($str)" else str
             }
+            is Type.TArrow -> {
+                val args = if (t.args.size == 1) {
+                    go(t.args[0], ctx, false)
+                } else {
+                    t.args.joinToString(" ", prefix = "(", postfix = ")") { go(it, ctx, false) }
+                }
+                if (nested) "($args -> ${go(t.ret, ctx, false)})"
+                else "$args -> ${go(t.ret, ctx, nested)}"
+            }
+            is Type.TForall -> {
+                t.ids.forEach { ctx.map[it] = ctx.counter++ }
+                val str = "forall ${t.ids.joinToStr(" ") { "t${ctx.map[it]}" }}. ${go(t.type, ctx, false)}"
+                if (nested || !topLevel) "($str)" else str
+            }
             is Type.TVar -> {
-                when (val tv = tvar) {
-                    is TypeVar.Link -> tv.type.simpleName(nested, ctx)
+                when (val tv = t.tvar) {
+                    is TypeVar.Link -> go(tv.type, ctx, nested)
                     is TypeVar.Unbound -> "t${tv.id}"
                     is TypeVar.Generic -> "t${tv.id}"
                     is TypeVar.Bound -> "t${ctx.map[tv.id]}"
                 }
             }
         }
+        return go(this, Ctx(), false, topLevel = true)
+    }
 }

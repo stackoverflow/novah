@@ -319,7 +319,7 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
     val errors = mutableListOf<CompilerProblem>()
     ast.decls.filterIsInstance<Decl.TypealiasDecl>().filter { it.visibility == Visibility.PUBLIC }.forEach { ta ->
         val consts = mutableListOf<String>()
-        ta.expanded?.everywhere { t ->
+        ta.expanded?.everywhereUnit { t ->
             if (t is SType.TConst) {
                 consts += t.name
             }
