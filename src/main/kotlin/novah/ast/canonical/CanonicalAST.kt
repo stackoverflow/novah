@@ -87,6 +87,8 @@ sealed class Expr(open val span: Span) {
     }
 }
 
+fun Expr.Var.fullname() = if (moduleName != null) "$moduleName.$name" else name
+fun Expr.Constructor.fullname() = if (moduleName != null) "$moduleName.$name" else name
 fun Expr.Constructor.fullname(module: String): String = "$module.$name"
 
 data class Binder(val name: String, val span: Span) {

@@ -5,10 +5,8 @@ import novah.ast.canonical.*
 import novah.ast.source.Decl.TypealiasDecl
 import novah.ast.source.ForeignRef
 import novah.ast.source.fullname
-import novah.data.Err
-import novah.data.Ok
+import novah.data.*
 import novah.data.Reflection.isStatic
-import novah.data.Result
 import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
@@ -45,7 +43,8 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     fun desugar(): Result<Module, List<CompilerProblem>> {
         return try {
             synonyms = validateTypealiases()
-            Ok(Module(moduleName, smod.sourceName, smod.decls.mapNotNull { it.desugar() }))
+            val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
+            Ok(Module(moduleName, smod.sourceName, decls))
         } catch (pe: ParserError) {
             Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name)))
         } catch (ce: CompilationError) {
@@ -66,7 +65,6 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SDecl.ValDecl -> {
             declVars.clear()
             var expr = nestLambdas(patterns.map { it.desugar() }, exp.desugar())
-            validateTopLevelExpr(name, expr)
 
             // if the declaration has a type annotation, annotate it
             expr = if (type != null) {
@@ -322,21 +320,54 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     }
 
     /**
-     * Only lambdas and primitives vars can be defined at the top level,
-     * otherwise we throw an error.
+     * Make sure variables are not co-dependent (form cycles)
+     * and order them by dependency
      */
-    private fun validateTopLevelExpr(declName: String, e: Expr) {
-        fun report() {
-            parserError(E.topLevelDisallowed(declName), e.span)
+    private fun validateTopLevelValues(desugared: List<Decl>): List<Decl> {
+        fun collectDependencies(exp: Expr): Set<String> {
+            val deps = mutableSetOf<String>()
+            exp.everywhere { e ->
+                when (e) {
+                    is Expr.Var -> deps += e.fullname()
+                    is Expr.Constructor -> deps += e.fullname()
+                    else -> {
+                    }
+                }
+                e
+            }
+            return deps
         }
 
-        when (e) {
-            is Expr.IntE, is Expr.LongE, is Expr.FloatE, is Expr.DoubleE,
-            is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Lambda -> {
-            }
-            is Expr.Ann -> validateTopLevelExpr(declName, e.exp)
-            else -> report()
+        tailrec fun isVariable(e: Expr): Boolean = when (e) {
+            is Expr.Lambda -> false
+            is Expr.Ann -> isVariable(e.exp)
+            else -> true
         }
+
+        val (decls, lambdas) = desugared.filterIsInstance<Decl.ValDecl>().partition { isVariable(it.exp) }
+        val deps = decls.map { it.name to collectDependencies(it.exp) }.toMap()
+
+        val dag = DAG<String, Decl.ValDecl>()
+        val nodes = decls.map { it.name to DagNode(it.name, it) }.toMap()
+        dag.addNodes(nodes.values)
+
+        nodes.values.forEach { node ->
+            val depset = deps[node.value]
+            depset?.forEach { name -> nodes[name]?.link(node) }
+        }
+        val cycle = dag.findCycle()
+        if (cycle != null) {
+            val first = cycle.iterator().next()
+            val vars = cycle.map { it.value }
+            if (cycle.size == 1)
+                parserError(E.cycleInValues(vars), first.data.span)
+            else
+                desugarErrors(cycle.map { makeError(E.cycleInValues(vars), it.data.span) })
+        }
+
+        val orderedDecl = dag.topoSort().map { it.data }
+
+        return desugared.filterIsInstance<Decl.DataDecl>() + orderedDecl + lambdas
     }
 
     /**
@@ -418,4 +449,8 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     }
 
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
+
+    private fun makeError(msg: String, span: Span): CompilerProblem {
+        return CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
+    }
 }

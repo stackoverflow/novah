@@ -1,0 +1,10 @@
+module test
+
+x = if true then 0 else y
+
+y = do
+  0
+  z
+  true
+
+z = x
