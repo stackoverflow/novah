@@ -231,4 +231,16 @@ class TypecheckerSpec : StringSpec({
         val res = TestUtil.compileCode(code).env.decls["fun"]
         res?.type?.simpleName() shouldBe "(forall t1. t1 -> t1) -> Tuple Int String"
     }
+
+    "typecheck recursive lets" {
+        val code = """
+            fun n s =
+              let rec x y = if x == 1 then y else rec 1 y
+              in rec n s
+        """.module()
+
+        val res = TestUtil.compileCode(code).env.decls
+
+        res["fun"]?.type?.simpleName() shouldBe "forall t1. Int -> t1 -> t1"
+    }
 })

@@ -168,7 +168,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     private fun SLetDef.desugar(locals: List<String>): LetDef {
         fun go(binders: List<FunparPattern>, exp: Expr): Expr {
             return if (binders.size == 1) Expr.Lambda(binders[0], null, exp, exp.span)
-            else go(binders.drop(1), Expr.Lambda(binders[0], null, exp, exp.span))
+            else Expr.Lambda(binders[0], null, go(binders.drop(1), exp), exp.span)
         }
 
         return if (patterns.isEmpty()) {

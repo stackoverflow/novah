@@ -64,10 +64,8 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         vals.forEach { decl ->
             val name = decl.name
             val newEnv = env.makeExtension()
-            val ty = if (decl.recursive) inferRecursive(decl, newEnv)
-            else {
-                infer(newEnv, 0, null, Generalized.GENERALIZED, decl.exp)
-            }
+            val ty = if (decl.recursive) inferRecursive(name, decl.exp, newEnv, 0)
+            else infer(newEnv, 0, null, Generalized.GENERALIZED, decl.exp)
 
             val genTy = generalize(-1, ty)
             env.extend(name, genTy)
@@ -165,8 +163,10 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 exp.withType(ty)
             }
             is Expr.Let -> {
-                val varType = infer(env, level + 1, null, Generalized.GENERALIZED, exp.letDef.expr)
                 val name = exp.letDef.binder.name
+                val varType = if (exp.letDef.recursive) {
+                    inferRecursive(name, exp.letDef.expr, env, level + 1)
+                } else infer(env, level + 1, null, Generalized.GENERALIZED, exp.letDef.expr)
                 checkShadow(env, name, exp.letDef.binder.span)
                 env.extend(name, varType)
                 val ty = infer(env, level, expectedType, generalized, exp.body)
@@ -329,13 +329,12 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     /**
      * Use a fixpoint operator to infer a recursive function
      */
-    private fun inferRecursive(decl: Decl.ValDecl, env: Env): Type {
-        val exp = decl.exp
-        val (newName, newExp) = funToFixpoint(decl.name, exp)
-        val recTy = infer(env, 0, null, Generalized.GENERALIZED, newExp)
+    private fun inferRecursive(name: String, exp: Expr, env: Env, level: Level): Type {
+        val (newName, newExp) = funToFixpoint(name, exp)
+        val recTy = infer(env, level, null, Generalized.GENERALIZED, newExp)
         env.extend(newName, recTy)
         val fix = Expr.App(Expr.Var("\$fix", exp.span), Expr.Var(newName, exp.span), exp.span)
-        return infer(env, 0, null, Generalized.GENERALIZED, fix)
+        return infer(env, level, null, Generalized.GENERALIZED, fix)
     }
 
     private fun generalize(level: Level, type: Type): Type {
