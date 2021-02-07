@@ -1,0 +1,7 @@
+module test
+
+type A a = B a | C
+
+typealias T1 = T2
+
+typealias T2 = B T1

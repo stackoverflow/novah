@@ -1,13 +1,14 @@
 package novah.frontend
 
+import novah.Util.joinToStr
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.FunparPattern
 import novah.ast.source.Module
 import novah.data.map
 import novah.data.unwrapOrElse
-import novah.frontend.typechecker.Type
-import novah.frontend.typechecker.raw
+import novah.frontend.hmftypechecker.Type
+import novah.frontend.hmftypechecker.TypeVar
 import novah.main.CompilationError
 import novah.main.Compiler
 import novah.main.FullModuleEnv
@@ -82,15 +83,64 @@ object TestUtil {
         return opt.convert().map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
     }
 
-    fun tvar(n: String) = Type.TVar(n.raw())
-    fun tfun(l: Type, r: Type) = Type.TFun(l, r)
-    fun forall(x: String, t: Type) = Type.TForall(x.raw(), t)
-    fun tcon(name: String, vararg ts: Type) = Type.TConstructor(name.raw(), ts.toList())
-
     fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)
     fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { FunparPattern.Bind(Binder(it, Span.empty())) }, e)
     fun abs(n: String, e: Expr) = Expr.Lambda(listOf(FunparPattern.Bind(Binder(n, Span.empty()))), e)
 
     fun String.module() = "module test\n\n${this.trimIndent()}"
+
+    fun Type.findUnbound(): List<Type> = when (this) {
+        is Type.TArrow -> args.flatMap { it.findUnbound() } + ret.findUnbound()
+        is Type.TApp -> type.findUnbound() + types.flatMap { it.findUnbound() }
+        is Type.TForall -> type.findUnbound()
+        is Type.TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> tv.type.findUnbound()
+                is TypeVar.Unbound -> listOf(this)
+                else -> emptyList()
+            }
+        }
+        is Type.TConst -> emptyList()
+    }
+
+    class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
+
+    /**
+     * Like [Type.show] but reset the ids of vars.
+     */
+    fun Type.simpleName(): String {
+        fun go(t: Type, ctx: Ctx = Ctx(), nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
+            is Type.TConst -> t.name.split('.').last()
+            is Type.TApp -> {
+                val sname = go(t.type, ctx, nested)
+                val str = if (t.types.isEmpty()) sname
+                else sname + " " + t.types.joinToString(" ") { go(it, ctx, true) }
+                if (nested) "($str)" else str
+            }
+            is Type.TArrow -> {
+                val args = if (t.args.size == 1) {
+                    go(t.args[0], ctx, false)
+                } else {
+                    t.args.joinToString(" ", prefix = "(", postfix = ")") { go(it, ctx, false) }
+                }
+                if (nested) "($args -> ${go(t.ret, ctx, false)})"
+                else "$args -> ${go(t.ret, ctx, nested)}"
+            }
+            is Type.TForall -> {
+                t.ids.forEach { ctx.map[it] = ctx.counter++ }
+                val str = "forall ${t.ids.joinToStr(" ") { "t${ctx.map[it]}" }}. ${go(t.type, ctx, false)}"
+                if (nested || !topLevel) "($str)" else str
+            }
+            is Type.TVar -> {
+                when (val tv = t.tvar) {
+                    is TypeVar.Link -> go(tv.type, ctx, nested)
+                    is TypeVar.Unbound -> "t${tv.id}"
+                    is TypeVar.Generic -> "t${tv.id}"
+                    is TypeVar.Bound -> "t${ctx.map[tv.id]}"
+                }
+            }
+        }
+        return go(this, Ctx(), false, topLevel = true)
+    }
 }

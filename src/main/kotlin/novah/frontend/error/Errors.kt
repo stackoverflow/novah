@@ -1,8 +1,5 @@
 package novah.frontend.error
 
-import novah.frontend.typechecker.Name
-import novah.frontend.typechecker.Type
-
 object Errors {
     val MODULE_DEFINITION = """Expected file to begin with a module declaration.
         |Example:
@@ -94,11 +91,7 @@ object Errors {
         |ex: import namespace (fun1, SomeType(..), fun2)
     """.trimMargin()
 
-    const val EMPTY_DO = "`do` statement cannot be empty."
-
     const val EMPTY_MATCH = "Pattern match needs at least 1 case."
-
-    const val INCOMPLETE_CONTEXT = "Context is not complete."
 
     const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
 
@@ -110,7 +103,15 @@ object Errors {
 
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
     
-    const val PUB_PLUS = "Visibility of value declaration can only be public (pub) not pub+."
+    const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
+    
+    const val NOT_A_FUNCTION = "Expected expression to be a function."
+
+    const val TYPEALIAS_NAME = "Expected name for typealias."
+
+    const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
+
+    const val TYPEALIAS_PUB = "A public type alias cannot reference private types."
 
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
@@ -175,25 +176,25 @@ object Errors {
     fun cycleFound(nodes: List<String>) =
         nodes.joinToString(", ", prefix = "Found cycle between modules ", postfix = ".")
 
+    fun cycleInValues(nodes: List<String>) =
+        nodes.joinToString(", ", prefix = "Found cycle between values ", postfix = ".")
+
     fun moduleNotFound(name: String) = "Could not find module $name."
 
     fun cannotFindInModule(name: String, module: String) = "Cannot find $name in module $module."
     fun cannotImportInModule(name: String, module: String) = "Cannot import private $name in module $module."
 
-    fun topLevelDisallowed(declName: String) =
-        "Only lambdas and primitives can be defined at the top level for declaration $declName."
-
     fun wrongConstructorName(typeName: String) =
         "Multi constructor type cannot have the same name as their type: $typeName."
 
-    fun undefinedType(type: Name) = "Undefined type $type."
+    fun undefinedType(type: String) = "Undefined type $type."
 
-    fun wrongArgsToNative(name: Name, ctx: String, should: Int, got: Int) = """
+    fun wrongArgsToNative(name: String, ctx: String, should: Int, got: Int) = """
         Foreign setters, methods and constructors cannot be partially applied.
         Foreign $ctx $name needs $should parameter(s), got $got.
     """.trimIndent()
 
-    fun unkonwnArgsToNative(name: Name, ctx: String) = """
+    fun unkonwnArgsToNative(name: String, ctx: String) = """
         Foreign setters, methods and constructors cannot be partially applied.
         For $ctx $name.
     """.trimIndent()
@@ -207,27 +208,8 @@ object Errors {
         
             $got
     """.trimIndent()
-
-    fun duplicatedType(name: Name) = "Type $name is already defined or imported."
-
-    fun duplicatedVariable(name: Name) = "Variable $name is already defined or imported."
-
-    fun cannotSolvePolytype(name: Name, type: Type) = "Cannot solve type $name with polytype $type."
-
-    fun unknownType(name: Type) = "Unknown type $name."
-
+    
     fun infiniteType(name: String) = "Occurs check failed: infinite type $name."
-
-    // TODO: delete
-    fun subsumptionFailed(a: Type, b: Type) = """
-        Cannot subsume type
-        
-            $a
-        
-        with type
-        
-            $b
-    """.trimIndent()
     
     fun typeIsNotInstance(a: String, b: String) = """
         Type $a is not an instance of type $b.
@@ -245,19 +227,19 @@ object Errors {
     
     fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
 
-    fun undefinedVar(name: Name) = "Undefined variable $name."
+    fun recursiveAlias(name: String) = "Typealias $name is recursive."
 
-    fun cannotCheck(type: Type) = "Cannot check type of $type."
+    fun undefinedVar(name: String) = "Undefined variable $name."
 
-    fun wrongArgumentsToCtor(name: Name, quant: String) = "Too $quant arguments given to type constructor $name."
-
-    fun overlappingNamesInBinder(names: List<Name>) = """
+    fun overlappingNamesInBinder(names: List<String>) = """
         Overlapping names in binder:
         
             ${names.joinToString()}
     """.trimIndent()
 
-    fun shadowedVariable(name: Name) = "Variable $name is shadowed."
+    fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
+
+    fun duplicatedType(name: String) = "Type $name is already defined or imported."
 
     fun unusedVariables(vars: List<String>): String {
         return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."

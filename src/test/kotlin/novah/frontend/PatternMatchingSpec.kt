@@ -3,14 +3,8 @@ package novah.frontend
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
-import novah.frontend.TestUtil.tcon
-import novah.frontend.TestUtil.tfun
-import novah.frontend.TestUtil.tvar
-import novah.frontend.typechecker.Prim.tInt
-import novah.frontend.typechecker.Prim.tString
-import novah.frontend.typechecker.Prim.tUnit
+import novah.frontend.TestUtil.simpleName
 
 class PatternMatchingSpec : StringSpec({
 
@@ -24,7 +18,7 @@ class PatternMatchingSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
 
-        ty shouldBe tfun(tInt, tString)
+        ty.simpleName() shouldBe "Int -> String"
     }
 
     "pattern matching with polymorphic types typechecks" {
@@ -38,7 +32,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty shouldBe tfun(tInt, tString)
+        ty.simpleName() shouldBe "Int -> String"
     }
 
     "pattern matching constructor typechecks" {
@@ -52,7 +46,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty shouldBe tfun(tcon("test.Maybe", tInt), tString)
+        ty.simpleName() shouldBe "Maybe Int -> String"
     }
 
     "pattern matching literals succeed" {
@@ -73,7 +67,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty shouldBe tfun(tUnit, tInt)
+        ty.simpleName() shouldBe "Unit -> Int"
     }
 
     "pattern match let lambdas - unit pattern" {
@@ -83,7 +77,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty shouldBe tfun(tUnit, tInt)
+        ty.simpleName() shouldBe "Unit -> Int"
     }
 
     "pattern match lambdas - ignore pattern" {
@@ -92,8 +86,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["const"]!!.type
-        println(ty)
-        ty.substFreeVar("t") shouldBe forall("t", tfun(tvar("t"), tInt))
+        ty.simpleName() shouldBe "forall t1. t1 -> Int"
     }
     
     "failing test" {

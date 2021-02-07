@@ -1,5 +1,7 @@
 module pack.test
 
+import pack.namespace1 ( Foo )
+
 foreign import type java.io.File
 foreign import new File(String) as newFile
 foreign import File.getAbsolutePath()
@@ -17,24 +19,27 @@ type Result k e = Ok k | Err e
 
 type Triple a b c = Triple a b c Int String
 
+bar : Unit -> Maybe Foo
+bar () = Some 0
+
 pub
 num = 2
 
 pub
 y = 45.8E12
 
-//b2 = b
-
-z = "something"
+b2 = b
 
 b = true
 
-c = 'a'
+c = if true then "" else d
 
-d () = do
+d = do
   4
-  true
+  z
   "asd"
+
+z = "something"
 
 i = 99
 
@@ -51,10 +56,11 @@ myFun x = case x of
   None -> "nope"
 
 lamb : Boolean -> String -> Unit
-lamb x y = do
-  if x
-  then println y
-  else println (toString x)
+lamb x x2 = do
+  if x then
+    println x2
+  else
+    println (toString x)
   Some "a"
   println (toString (Some "a"))
 

@@ -2,15 +2,14 @@ package novah.ast.canonical
 
 import novah.ast.source.Visibility
 import novah.frontend.Span
-import novah.frontend.typechecker.Name
-import novah.frontend.typechecker.Type
-import novah.frontend.typechecker.Type.Companion.everywhereOnTypes
-import java.lang.reflect.Constructor as JConstructor
+import novah.frontend.hmftypechecker.Id
+import novah.frontend.hmftypechecker.Type
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.Constructor as JConstructor
 
 /**
- * The canonical AST used after desugaring and after type checking.
+ * The canonical AST used after desugaring for type checking.
  */
 
 data class Module(
@@ -28,7 +27,15 @@ sealed class Decl {
         val visibility: Visibility
     ) : Decl()
 
-    data class ValDecl(val name: String, val exp: Expr, val span: Span, val type: Type?, val visibility: Visibility) : Decl()
+    data class ValDecl(
+        val name: String,
+        val exp: Expr,
+        val recursive: Boolean,
+        val span: Span,
+        val type: Type?,
+        val visibility: Visibility
+    ) :
+        Decl()
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
@@ -45,29 +52,34 @@ sealed class Expr(open val span: Span) {
     data class StringE(val v: String, override val span: Span) : Expr(span)
     data class CharE(val v: Char, override val span: Span) : Expr(span)
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
-    data class Var(val name: Name, override val span: Span, val moduleName: String? = null) : Expr(span)
-    data class Constructor(val name: Name, override val span: Span, val moduleName: String? = null) : Expr(span)
-    data class Lambda(val pattern: FunparPattern, val body: Expr, override val span: Span) : Expr(span)
+    data class Var(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
+    data class Constructor(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
+    data class Lambda(
+        val pattern: FunparPattern,
+        val ann: Pair<List<Id>, Type>?,
+        val body: Expr,
+        override val span: Span
+    ) : Expr(span)
+
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
     data class Match(val exp: Expr, val cases: List<Case>, override val span: Span) : Expr(span)
-    data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
+    data class Ann(val exp: Expr, val annType: Pair<List<Id>, Type>, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
-    data class NativeFieldGet(val name: Name, val field: Field, val isStatic: Boolean, override val span: Span) :
+    data class NativeFieldGet(val name: String, val field: Field, val isStatic: Boolean, override val span: Span) :
         Expr(span)
 
-    data class NativeFieldSet(val name: Name, val field: Field, val isStatic: Boolean, override val span: Span) :
+    data class NativeFieldSet(val name: String, val field: Field, val isStatic: Boolean, override val span: Span) :
         Expr(span)
 
-    data class NativeMethod(val name: Name, val method: Method, val isStatic: Boolean, override val span: Span) :
+    data class NativeMethod(val name: String, val method: Method, val isStatic: Boolean, override val span: Span) :
         Expr(span)
 
-    data class NativeConstructor(val name: Name, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
+    data class NativeConstructor(val name: String, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
     data class Unit(override val span: Span) : Expr(span)
 
     var type: Type? = null
-    var alias: Name? = null
 
     fun withType(t: Type): Type {
         type = t
@@ -75,10 +87,12 @@ sealed class Expr(open val span: Span) {
     }
 }
 
-fun Expr.Constructor.fullname(module: String): String = if (alias != null) "$alias.$name" else "$module.$name"
+fun Expr.Var.fullname() = if (moduleName != null) "$moduleName.$name" else name
+fun Expr.Constructor.fullname() = if (moduleName != null) "$moduleName.$name" else name
+fun Expr.Constructor.fullname(module: String): String = "$module.$name"
 
-data class Binder(val name: Name, val span: Span) {
-    override fun toString(): String = "$name"
+data class Binder(val name: String, val span: Span) {
+    override fun toString(): String = name
 }
 
 sealed class FunparPattern(val span: Span) {
@@ -87,14 +101,14 @@ sealed class FunparPattern(val span: Span) {
     class Bind(val binder: Binder) : FunparPattern(binder.span)
 }
 
-data class LetDef(val binder: Binder, val expr: Expr, val type: Type? = null)
+data class LetDef(val binder: Binder, val expr: Expr, val recursive: Boolean, val type: Type? = null)
 
 data class Case(val pattern: Pattern, val exp: Expr)
 
 sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
     data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
-    data class Var(val name: Name, override val span: Span) : Pattern(span)
+    data class Var(val name: String, override val span: Span) : Pattern(span)
     data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
 }
 
@@ -110,8 +124,8 @@ sealed class LiteralPattern(open val e: Expr) {
 
 fun Pattern.show(): String = when (this) {
     is Pattern.Wildcard -> "_"
-    is Pattern.Var -> name.toString()
-    is Pattern.Ctor -> if (fields.isEmpty()) "${ctor.name}" else "${ctor.name} " + fields.joinToString(" ") { it.show() }
+    is Pattern.Var -> name
+    is Pattern.Ctor -> if (fields.isEmpty()) ctor.name else "${ctor.name} " + fields.joinToString(" ") { it.show() }
     is Pattern.LiteralP -> lit.show()
 }
 
@@ -125,100 +139,34 @@ fun LiteralPattern.show(): String = when (this) {
     is LiteralPattern.DoubleLiteral -> e.v.toString()
 }
 
-////////////////////////////////
-// AST functions
-////////////////////////////////
+fun lambdaBinder(name: String, span: Span) = FunparPattern.Bind(Binder(name, span))
 
 /**
- * Can only be called for lambdas
- * with a bound variable
+ * Walks this expression bottom->up
  */
-fun Expr.Lambda.aliasLambda(newName: Name): Expr =
-    body.aliasVar((pattern as FunparPattern.Bind).binder.name, newName)
-
-fun Expr.aliasVar(v: Name, newName: Name): Expr {
-    when (this) {
-        is Expr.Var -> if (v == name) this.alias = newName
-        is Expr.Constructor -> if (v == name) this.alias = newName
-        is Expr.App -> {
-            fn.aliasVar(v, newName)
-            arg.aliasVar(v, newName)
-        }
-        is Expr.Lambda -> {
-            if (pattern is FunparPattern.Bind) {
-                if (pattern.binder.name != v)
-                    body.aliasVar(v, newName)
-            } else body.aliasVar(v, newName)
-        }
-        is Expr.Ann -> exp.aliasVar(v, newName)
-        is Expr.If -> {
-            cond.aliasVar(v, newName)
-            thenCase.aliasVar(v, newName)
-            elseCase.aliasVar(v, newName)
-        }
-        is Expr.Let -> {
-            body.aliasVar(v, newName)
-            letDef.expr.aliasVar(v, newName)
-        }
-        is Expr.Match -> {
-            exp.aliasVar(v, newName)
-            cases.map { it.exp.aliasVar(v, newName) }
-        }
-        is Expr.Do -> exps.forEach { it.aliasVar(v, newName) }
-        else -> {
-        }
-    }
-    return this
-}
-
-fun Expr.resolveMetas() {
-    everywhereInExprSideEffect(this) { exp ->
-        exp.type = everywhereOnTypes(exp.type!!) { type ->
-            var t = type
-            while (t is Type.TMeta && t.solvedType != null) {
-                t = t.solvedType!!
-            }
-            t
-        }
-    }
-}
-
-fun everywhereInExprSideEffect(expr: Expr, f: (Expr) -> Unit) {
-    fun go(e: Expr): Unit = when (e) {
-        is Expr.Lambda -> {
-            go(e.body)
-            f(e)
-        }
-        is Expr.App -> {
-            go(e.fn)
-            go(e.arg)
-            f(e)
-        }
-        is Expr.If -> {
-            go(e.cond)
-            go(e.thenCase)
-            go(e.elseCase)
-            f(e)
-        }
-        is Expr.Let -> {
-            go(e.letDef.expr)
-            go(e.body)
-            f(e)
-        }
-        is Expr.Match -> {
-            go(e.exp)
-            for (p in e.cases) go(p.exp)
-            f(e)
-        }
-        is Expr.Ann -> {
-            go(e.exp)
-            f(e)
-        }
-        is Expr.Do -> {
-            for (exp in e.exps) go(exp)
-            f(e)
-        }
+fun Expr.everywhere(f: (Expr) -> Expr): Expr {
+    fun go(e: Expr): Expr = when (e) {
+        is Expr.Lambda -> f(e.copy(body = go(e.body)))
+        is Expr.App -> f(e.copy(fn = go(e.fn), arg = go(e.arg)))
+        is Expr.If -> f(e.copy(cond = go(e.cond), thenCase = go(e.thenCase), elseCase = go(e.elseCase)))
+        is Expr.Let -> f(e.copy(letDef = e.letDef.copy(expr = go(e.letDef.expr)), body = go(e.body)))
+        is Expr.Match -> f(e.copy(exp = go(e.exp), cases = e.cases.map { it.copy(exp = go(it.exp)) }))
+        is Expr.Ann -> f(e.copy(exp = go(e.exp)))
+        is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
         else -> f(e)
     }
-    go(expr)
+    return go(this)
+}
+
+fun Expr.substVar(from: String, to: String): Expr = everywhere { e ->
+    if (e is Expr.Var && e.name == from) e.copy(name = to) else e
+}
+
+fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
+    val acc = mutableListOf<T>()
+    everywhere { exp ->
+        acc.addAll(f(exp))
+        exp
+    }
+    return acc
 }

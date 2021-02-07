@@ -1,5 +1,6 @@
 package novah.ast.source
 
+import novah.Util.joinToStr
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -18,6 +19,7 @@ data class Module(
     var comment: Comment? = null
 
     var resolvedImports = emptyMap<String, String>()
+    var resolvedTypealiases = emptyList<Decl.TypealiasDecl>()
 
     var foreignTypes = emptyMap<String, String>()
     var foreignVars = emptyMap<String, ForeignRef>()
@@ -117,6 +119,11 @@ sealed class Decl(val name: String, val visibility: Visibility) {
         val type: Type?,
         visibility: Visibility
     ) : Decl(name, visibility)
+
+    class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
+        Decl(name, visibility) {
+        var expanded: Type? = null
+    }
 
     var comment: Comment? = null
     var span = Span.empty()
@@ -241,24 +248,56 @@ sealed class LiteralPattern {
     data class DoubleLiteral(val e: Expr.DoubleE) : LiteralPattern()
 }
 
-sealed class Type {
-    data class TVar(val name: String, val alias: String? = null) : Type()
-    data class TConstructor(val name: String, val types: List<Type> = listOf(), val alias: String? = null) : Type()
-    data class TFun(val arg: Type, val ret: Type) : Type()
-    data class TForall(val names: List<String>, val type: Type) : Type()
-    data class TParens(val type: Type) : Type()
+sealed class Type(open val span: Span) {
+    data class TConst(val name: String, val alias: String? = null, override val span: Span) : Type(span)
+    data class TApp(val type: Type, val types: List<Type> = listOf(), override val span: Span) : Type(span)
+    data class TFun(val arg: Type, val ret: Type, override val span: Span) : Type(span)
+    data class TForall(val names: List<String>, val type: Type, override val span: Span) : Type(span)
+    data class TParens(val type: Type, override val span: Span) : Type(span)
+
+    /**
+     * Walks this type bottom->up
+     */
+    fun everywhere(f: (Type) -> Type): Type {
+        fun go(t: Type): Type = when (t) {
+            is TConst -> f(t)
+            is TApp -> f(t.copy(type = go(t.type), types = t.types.map(::go)))
+            is TFun -> f(t.copy(go(t.arg), go(t.ret)))
+            is TForall -> f(t.copy(type = go(t.type)))
+            is TParens -> f(t.copy(go(t.type)))
+        }
+        return go(this)
+    }
+
+    fun everywhereUnit(f: (Type) -> Unit) {
+        everywhere { ty ->
+            f(ty)
+            ty
+        }
+    }
 
     /**
      * Find any unbound variables in this type
      */
     fun findFreeVars(bound: List<String>): List<String> = when (this) {
-        is TVar -> if (name[0].isLowerCase() && name !in bound) listOf(name) else listOf()
+        is TConst -> if (name[0].isLowerCase() && name !in bound) listOf(name) else listOf()
         is TFun -> arg.findFreeVars(bound) + ret.findFreeVars(bound)
         is TForall -> type.findFreeVars(bound + names)
-        is TConstructor -> types.flatMap { it.findFreeVars(bound) }
+        is TApp -> type.findFreeVars(bound) + types.flatMap { it.findFreeVars(bound) }
         is TParens -> type.findFreeVars(bound)
+    }
+
+    fun substVar(from: String, new: Type): Type = everywhere { ty ->
+        if (ty is TConst && ty.name == from) new else ty
+    }
+
+    fun show(): String = when (this) {
+        is TConst -> fullname()
+        is TApp -> type.show() + types.joinToStr(" ", prefix = " ") { it.show() }
+        is TFun -> arg.show() + " -> " + ret.show()
+        is TForall -> "forall " + names.joinToString(" ") + ". " + type.show()
+        is TParens -> "(${type.show()})"
     }
 }
 
-fun Type.TVar.fullname(): String = if (alias != null) "$alias.$name" else name
-fun Type.TConstructor.fullname(): String = if (alias != null) "$alias.$name" else name
+fun Type.TConst.fullname(): String = if (alias != null) "$alias.$name" else name

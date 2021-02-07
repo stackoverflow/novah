@@ -7,6 +7,7 @@ import novah.ast.canonical.DataConstructor
 import novah.ast.canonical.Decl
 import novah.ast.source.Visibility
 import novah.frontend.TestUtil.parseString
+import novah.frontend.hmftypechecker.Typechecker
 
 class DesugarSpec : StringSpec({
 
@@ -33,7 +34,7 @@ class DesugarSpec : StringSpec({
         """.trimIndent()
 
         val ast = parseString(code)
-        val dast = Desugar(ast).desugar().unwrap()
+        val dast = Desugar(ast, Typechecker()).desugar().unwrap()
 
         val tds = dast.decls.filterIsInstance<Decl.DataDecl>()
 

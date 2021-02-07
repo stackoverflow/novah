@@ -1,5 +1,10 @@
 module pack.namespace1
 
+typealias Pri = Int
+
+pub
+typealias Foo = Pri
+
 fun1 : String -> Int
 fun1 x = do
   println x

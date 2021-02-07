@@ -2,8 +2,9 @@ package novah.main
 
 import com.github.ajalt.clikt.output.TermUi.echo
 import novah.ast.Desugar
-import novah.ast.source.Visibility
+import novah.ast.source.Decl
 import novah.ast.source.Module
+import novah.ast.source.Visibility
 import novah.backend.Codegen
 import novah.data.DAG
 import novah.data.DagNode
@@ -14,10 +15,10 @@ import novah.frontend.Parser
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
+import novah.frontend.hmftypechecker.Type
+import novah.frontend.hmftypechecker.Typechecker
 import novah.frontend.resolveForeignImports
 import novah.frontend.resolveImports
-import novah.frontend.typechecker.InferContext
-import novah.frontend.typechecker.Type
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import novah.util.BufferedCharIterator
@@ -48,7 +49,7 @@ class Environment(private val verbose: Boolean) {
 
             source.withIterator { iter ->
                 val lexer = Lexer(iter)
-                val parser = Parser(lexer, path.toString())
+                val parser = Parser(lexer, path.toFile().invariantSeparatorsPath)
                 parser.parseFullModule().mapBoth(
                     { mod ->
                         val node = DagNode(mod.name, mod)
@@ -78,19 +79,22 @@ class Environment(private val verbose: Boolean) {
         }
         modGraph.findCycle()?.let { reportCycle(it) }
 
+        val tc = Typechecker()
         val orderedMods = modGraph.topoSort()
         orderedMods.forEach { mod ->
-            val ictx = InferContext()
-            val importErrs = resolveImports(mod.data, ictx, modules)
-            val foreignErrs = resolveForeignImports(mod.data, ictx)
+            tc.resetEnv()
+            val importErrs = resolveImports(mod.data, tc, modules)
+            val foreignErrs = resolveForeignImports(mod.data, tc)
             val errs = importErrs + foreignErrs
             if (errs.isNotEmpty()) throwErrors(errs)
 
             if (verbose) echo("Typechecking ${mod.data.name}")
 
-            val canonical = Desugar(mod.data).desugar().unwrapOrElse { throwError(it) }
-            val menv = ictx.infer(canonical).unwrapOrElse { throwErrors(it) }
-            modules[mod.data.name] = FullModuleEnv(menv, canonical)
+            val canonical = Desugar(mod.data, tc).desugar().unwrapOrElse { throwErrors(it) }
+            val menv = tc.infer(canonical).unwrapOrElse { throwErrors(it) }
+
+            val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
+            modules[mod.data.name] = FullModuleEnv(menv, canonical, taliases)
         }
         return modules
     }
@@ -128,7 +132,7 @@ class Environment(private val verbose: Boolean) {
             Errors.duplicateModule(mod.name),
             ProblemContext.MODULE,
             mod.span,
-            path.toString(),
+            path.toFile().invariantSeparatorsPath,
             mod.name
         )
     }
@@ -152,7 +156,7 @@ sealed class Source(val path: Path) {
 class CompilationError(val problems: List<CompilerProblem>) :
     RuntimeException(problems.joinToString("\n") { it.formatToConsole() })
 
-data class FullModuleEnv(val env: ModuleEnv, val ast: TypedModule)
+data class FullModuleEnv(val env: ModuleEnv, val ast: TypedModule, val aliases: List<Decl.TypealiasDecl>)
 
 data class DeclRef(val type: Type, val visibility: Visibility)
 

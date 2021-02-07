@@ -82,7 +82,12 @@ class Formatter {
                 visi + show(d)
             }
             is Decl.ValDecl -> vis + show(d)
+            is Decl.TypealiasDecl -> vis + show(d)
         }
+    }
+
+    fun show(ta: Decl.TypealiasDecl): String {
+        return "typealias ${ta.name} " + ta.tyVars.joinToStr(" ", postfix = " ") + "= ${show(ta.type)}"
     }
 
     fun show(d: Decl.DataDecl): String {
@@ -94,7 +99,7 @@ class Formatter {
     }
 
     fun show(name: String, type: Type): String {
-        val td = "${name} : " + show(type)
+        val td = "$name : " + show(type)
         return if (td.length > maxColumns) {
             name + withIndent { showIndented(type) }
         } else td
@@ -214,9 +219,9 @@ class Formatter {
             tlist.joinToString(" -> ")
         }
         is Type.TForall -> "forall " + t.names.joinToString(" ") + ". ${show(t.type)}"
-        is Type.TConstructor -> t.fullname() + t.types.joinToStr(" ", prefix = " ") { show(it) }
+        is Type.TApp -> show(t.type) + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
-        is Type.TVar -> t.fullname()
+        is Type.TConst -> t.fullname()
     }
 
     private fun showIndented(t: Type, prefix: String = ":"): String = when (t) {

@@ -1,11 +1,11 @@
 module [33mtest[0m
 at src/test/resources/failure/source/high ranked types without annotation.novah:6:24 - 6:27
 
-  Cannot subsume type
+  Cannot match type
   
-      prim.String
+      Int
   
   with type
   
-      prim.Int
+      String
 

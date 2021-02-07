@@ -12,16 +12,9 @@ import novah.data.Reflection
 import novah.data.Result
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.frontend.hmftypechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
-import novah.frontend.typechecker.InferenceError
-import novah.frontend.typechecker.Prim.tBoolean
-import novah.frontend.typechecker.Prim.tByte
-import novah.frontend.typechecker.Prim.tLong
-import novah.frontend.typechecker.Prim.tShort
-import novah.frontend.typechecker.Prim.tString
-import novah.frontend.typechecker.Prim.tUnit
-import novah.frontend.typechecker.inferError
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.DataDecl as CDataDecl
@@ -29,7 +22,7 @@ import novah.ast.canonical.Decl.ValDecl as CValDecl
 import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
 import novah.frontend.error.Errors as E
-import novah.frontend.typechecker.Type as TType
+import novah.frontend.hmftypechecker.Type as TType
 
 /**
  * Converts the canonical AST to the
@@ -85,15 +78,15 @@ class Optimizer(private val ast: CModule) {
             is CExpr.CharE -> Expr.CharE(v, typ)
             is CExpr.Bool -> Expr.Bool(v, typ)
             is CExpr.Var -> {
-                val vname = name.toString()
+                val vname = name
                 if (vname in locals) Expr.LocalVar(vname, typ)
                 else {
-                    val cname = internalize(if (moduleName != null) "$moduleName" else ast.name) + "/Module"
+                    val cname = internalize(moduleName ?: ast.name) + "/Module"
                     Expr.Var(vname, cname, typ)
                 }
             }
             is CExpr.Constructor -> {
-                val ctorName = fullname(ast.name)
+                val ctorName = fullname(moduleName ?: ast.name)
                 val arity = PatternMatchingCompiler.getFromCache(ctorName)?.arity
                     ?: internalError("Could not find constructor $name")
                 Expr.Constructor(internalize(ctorName), arity, typ)
@@ -162,7 +155,7 @@ class Optimizer(private val ast: CModule) {
         }
     }
 
-    private fun CBinder.convert(): String = name.toString()
+    private fun CBinder.convert(): String = name
 
     private fun FunparPattern.convert(): String? = when (this) {
         is FunparPattern.Ignored -> null
@@ -171,14 +164,27 @@ class Optimizer(private val ast: CModule) {
     }
 
     private fun TType.convert(): Type = when (this) {
-        is TType.TVar -> {
-            if (simpleName()[0].isLowerCase()) Type.TVar("$name".toUpperCase(), true)
-            else Type.TVar(getPrimitiveTypeName(this))
+        is TType.TConst -> {
+            if (show(false)[0].isLowerCase()) Type.TVar(name.toUpperCase(), true)
+            else
+                Type.TVar(getPrimitiveTypeName(this))
         }
-        is TType.TConstructor -> Type.TConstructor(internalize("$name"), types.map { it.convert() })
-        is TType.TFun -> Type.TFun(arg.convert(), ret.convert())
+        is TType.TApp -> {
+            val ty = type.convert() as Type.TVar
+            Type.TConstructor(ty.name, types.map { it.convert() })
+        }
+        // the only functions that can have more than 1 argument are native ones
+        // but those don't need a type as we get the type from the reflected method/field/constructor
+        is TType.TArrow -> Type.TFun(args[0].convert(), ret.convert())
         is TType.TForall -> type.convert()
-        is TType.TMeta -> internalError("got TMeta after type checking: $this")
+        is TType.TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> tv.type.convert()
+                is TypeVar.Bound -> Type.TVar("T${tv.id}", true)
+                is TypeVar.Generic -> internalError("got unbound generic variable after typechecking: ${this.show(true)}")
+                is TypeVar.Unbound -> internalError("got unbound variable after typechecking: ${this.show(true)}")
+            }
+        }
     }
 
     private val rteCtor = RuntimeException::class.java.constructors.find {
@@ -197,7 +203,7 @@ class Optimizer(private val ast: CModule) {
             )
         )
     }
-    
+
     private class VarDef(val name: String, val exp: Expr)
 
     private fun desugarMatch(m: CExpr.Match, type: Type, locals: List<String>): Expr {
@@ -219,7 +225,7 @@ class Optimizer(private val ast: CModule) {
 
         fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<VarDef>> = when (p) {
             is Pattern.Wildcard -> tru to emptyList()
-            is Pattern.Var -> tru to listOf(VarDef(p.name.rawName(), exp))
+            is Pattern.Var -> tru to listOf(VarDef(p.name, exp))
             is Pattern.LiteralP -> Expr.OperatorApp("==", listOf(exp, p.lit.e.convert(locals)), boolType) to emptyList()
             is Pattern.Ctor -> {
                 val conds = mutableListOf<Expr>()
@@ -235,7 +241,8 @@ class Optimizer(private val ast: CModule) {
                 conds += Expr.InstanceOf(exp, ctorType)
 
                 p.fields.forEachIndexed { i, pat ->
-                    val field = mkCtorField(ctor.fullName, i + 1, exp, ctorType, fieldTypes[i], expectedFieldTypes.types[i])
+                    val field =
+                        mkCtorField(ctor.fullName, i + 1, exp, ctorType, fieldTypes[i], expectedFieldTypes.types[i])
                     val (cond, vs) = desugarPattern(pat, field)
                     conds += cond
                     vars += vs
@@ -250,7 +257,7 @@ class Optimizer(private val ast: CModule) {
                 } to vars
             }
         }
-        
+
         tailrec fun varToLet(vdefs: List<VarDef>, exp: Expr): Expr {
             return if (vdefs.isEmpty()) exp
             else {
@@ -293,9 +300,9 @@ class Optimizer(private val ast: CModule) {
 
     private fun peelArgs(type: TType): Pair<List<Type>, Type> {
         tailrec fun innerPeelArgs(args: List<TType>, t: TType): Pair<List<TType>, TType> = when (t) {
-            is TType.TFun -> {
-                if (t.ret is TType.TFun) innerPeelArgs(args + t.arg, t.ret)
-                else args + t.arg to t.ret
+            is TType.TArrow -> {
+                if (t.ret is TType.TArrow) innerPeelArgs(args + t.args, t.ret)
+                else args + t.args to t.ret
             }
             else -> args to t
         }
@@ -320,7 +327,7 @@ class Optimizer(private val ast: CModule) {
         }
 
         // TODO: use primitive types and implement autoboxing
-        private fun getPrimitiveTypeName(tvar: TType.TVar): String = when (tvar.name.toString()) {
+        private fun getPrimitiveTypeName(tvar: TType.TConst): String = when (tvar.name) {
             "prim.Byte" -> "java/lang/Byte"
             "prim.Short" -> "java/lang/Short"
             "prim.Int" -> "java/lang/Integer"
@@ -331,7 +338,7 @@ class Optimizer(private val ast: CModule) {
             "prim.Char" -> "java/lang/Character"
             "prim.String" -> "java/lang/String"
             "prim.Unit" -> "java/lang/Object"
-            else -> internalize(tvar.name.toString())
+            else -> internalize(tvar.name)
         }
 
         private fun internalize(name: String) = name.replace('.', '/')

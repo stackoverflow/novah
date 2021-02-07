@@ -4,6 +4,6 @@ import pack.namespace1 (sayHello)
 
 pub
 same : Int -> Int -> Boolean
-same x y = x == y
+same x x2 = x == x2
 
 main _ = sayHello "Mario"

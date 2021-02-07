@@ -3,9 +3,9 @@ at src/test/resources/failure/source/kind check - type constructor.novah:7:24 - 
 
   Could not match kind
   
-      Type -> Type
+      Type
     
   with kind
   
-      Type
+      Type -> Type
 

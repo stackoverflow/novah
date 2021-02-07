@@ -3,21 +3,9 @@ package novah.frontend
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.frontend.TestUtil.forall
 import novah.frontend.TestUtil.module
-import novah.frontend.TestUtil.tfun
-import novah.frontend.TestUtil.tvar
-import novah.frontend.typechecker.Prim.tBoolean
-import novah.frontend.typechecker.Prim.tByte
-import novah.frontend.typechecker.Prim.tChar
-import novah.frontend.typechecker.Prim.tDouble
-import novah.frontend.typechecker.Prim.tFloat
-import novah.frontend.typechecker.Prim.tInt
-import novah.frontend.typechecker.Prim.tLong
-import novah.frontend.typechecker.Prim.tShort
-import novah.frontend.typechecker.Prim.tString
-import novah.frontend.typechecker.Prim.tUnit
-import novah.frontend.typechecker.Type
+import novah.frontend.TestUtil.simpleName
+import novah.frontend.hmftypechecker.*
 
 class TypecheckerSpec : StringSpec({
 
@@ -105,7 +93,7 @@ class TypecheckerSpec : StringSpec({
     "typecheck if" {
         val ty = inferFX("if false then 0 else 1")
 
-        ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
+        ty.simpleName() shouldBe "forall t1. t1 -> Int"
     }
 
     "typecheck subsumed if" {
@@ -118,24 +106,24 @@ class TypecheckerSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["f"]?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
-        tys["f2"]?.type shouldBe tfun(tInt, tInt)
+        tys["f"]?.type?.simpleName() shouldBe "forall t1. t1 -> Int"
+        tys["f2"]?.type?.simpleName() shouldBe "Int -> Int"
     }
 
     "typecheck generics" {
         val ty = inferX("\\y -> y")
 
-        ty.substFreeVar("y") shouldBe forall("y", tfun(tvar("y"), tvar("y")))
+        ty.simpleName() shouldBe "forall t1. t1 -> t1"
 
         val ty2 = inferFX("(\\y -> y) false")
 
-        ty2.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
+        ty2.simpleName() shouldBe "forall t1. t1 -> Boolean"
     }
 
     "typecheck pre-added context vars" {
         val ty = inferFX("toString 10")
 
-        ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tString))
+        ty.simpleName() shouldBe "forall t1. t1 -> String"
     }
 
     "typecheck let" {
@@ -147,7 +135,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]
 
-        ty?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tString))
+        ty?.type?.simpleName() shouldBe "forall t1. t1 -> String"
     }
 
     "typecheck polymorphic let bindings" {
@@ -158,7 +146,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]
 
-        ty?.type?.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tInt))
+        ty?.type?.simpleName() shouldBe "forall t1. t1 -> Int"
     }
 
     "typecheck do statements" {
@@ -172,7 +160,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
 
-        ty.substFreeVar("x") shouldBe forall("x", tfun(tvar("x"), tBoolean))
+        ty.simpleName() shouldBe "forall t1. t1 -> Boolean"
     }
 
     "typecheck do statements with let" {
@@ -187,8 +175,8 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        
-        ty shouldBe tfun(tUnit, tBoolean)
+
+        ty.simpleName() shouldBe "Unit -> Boolean"
     }
 
     "typecheck a recursive function" {
@@ -202,7 +190,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["pseudofact"]
 
-        ty?.type shouldBe tfun(tInt, tInt)
+        ty?.type?.simpleName() shouldBe "Int -> Int"
     }
 
     "typecheck mutually recursive functions" {
@@ -240,8 +228,19 @@ class TypecheckerSpec : StringSpec({
             fun f = Tuple (f 1) (f "a")
         """.module()
 
-        shouldNotThrowAny {
-            TestUtil.compileCode(code)
-        }
+        val res = TestUtil.compileCode(code).env.decls["fun"]
+        res?.type?.simpleName() shouldBe "(forall t1. t1 -> t1) -> Tuple Int String"
+    }
+
+    "typecheck recursive lets" {
+        val code = """
+            fun n s =
+              let rec x y = if x == 1 then y else rec 1 y
+              in rec n s
+        """.module()
+
+        val res = TestUtil.compileCode(code).env.decls
+
+        res["fun"]?.type?.simpleName() shouldBe "forall t1. Int -> t1 -> t1"
     }
 })
