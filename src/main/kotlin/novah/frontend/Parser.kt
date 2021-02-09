@@ -1,6 +1,7 @@
 package novah.frontend
 
 import novah.Util.splitAt
+import novah.ast.labelMapWith
 import novah.ast.source.*
 import novah.data.Err
 import novah.data.Ok
@@ -292,7 +293,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseTypeSignature(): Type {
-        expect<Colon>(withError(E.TYPE_DCOLON))
+        expect<Colon>(withError(E.TYPE_COLON))
         return parsePolytype()
     }
 
@@ -312,43 +313,53 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         } else unrolled
     }
 
-    private fun tryParseAtom(inDo: Boolean = false): Expr? = when (iter.peek().value) {
-        is IntT -> parseInt()
-        is LongT -> parseLong()
-        is FloatT -> parseFloat()
-        is DoubleT -> parseDouble()
-        is StringT -> parseString()
-        is CharT -> parseChar()
-        is BoolT -> parseBool()
-        is Ident -> parseVar()
-        is Op -> parseOperator()
-        is LParen -> {
-            withIgnoreOffside {
-                val tk = iter.next()
-                if (iter.peek().value is RParen) {
-                    val end = iter.next()
-                    Expr.Unit().withSpan(span(tk.span, end.span)).withComment(tk.comment)
-                } else {
-                    val exp = parseExpression()
-                    expect<RParen>(withError(E.rparensExpected("expression")))
-                    Expr.Parens(exp)
+    private fun tryParseAtom(inDo: Boolean = false): Expr? {
+        val exp = when (iter.peek().value) {
+            is IntT -> parseInt()
+            is LongT -> parseLong()
+            is FloatT -> parseFloat()
+            is DoubleT -> parseDouble()
+            is StringT -> parseString()
+            is CharT -> parseChar()
+            is BoolT -> parseBool()
+            is Ident -> parseVar()
+            is Op -> parseOperator()
+            is LParen -> {
+                withIgnoreOffside {
+                    val tk = iter.next()
+                    if (iter.peek().value is RParen) {
+                        val end = iter.next()
+                        Expr.Unit().withSpan(span(tk.span, end.span)).withComment(tk.comment)
+                    } else {
+                        val exp = parseExpression()
+                        expect<RParen>(withError(E.rparensExpected("expression")))
+                        Expr.Parens(exp)
+                    }
                 }
             }
-        }
-        is UpperIdent -> {
-            val uident = expect<UpperIdent>(noErr())
-            if (iter.peek().value is Dot) {
-                parseAliasedVar(uident)
-            } else {
-                Expr.Constructor(uident.value.v).withSpanAndComment(uident)
+            is UpperIdent -> {
+                val uident = expect<UpperIdent>(noErr())
+                if (iter.peek().value is Dot) {
+                    parseAliasedVar(uident)
+                } else {
+                    Expr.Constructor(uident.value.v).withSpanAndComment(uident)
+                }
             }
+            is Backslash -> parseLambda()
+            is IfT -> parseIf()
+            is LetT -> parseLet(inDo)
+            is CaseT -> parseMatch()
+            is Do -> parseDo()
+            is LBracket -> parseRecord()
+            else -> null
         }
-        is Backslash -> parseLambda()
-        is IfT -> parseIf()
-        is LetT -> parseLet(inDo)
-        is CaseT -> parseMatch()
-        is Do -> parseDo()
-        else -> null
+
+        // record selection has the highest precedence
+        return if (exp != null && iter.peek().value is Dot) {
+            iter.next()
+            val label = parseLabel()
+            Expr.RecordSelect(exp, label.first).withSpan(exp.span, label.second.span).withComment(exp.comment)
+        } else exp
     }
 
     private fun parseInt(): Expr {
@@ -610,6 +621,56 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
+    private fun parseLabel(): Pair<String, Spanned<Token>> {
+        return if (iter.peek().value is Ident) {
+            val tk = expect<Ident>(noErr())
+            tk.value.v to tk
+        } else {
+            val tk = expect<StringT>(withError(E.RECORD_LABEL))
+            tk.value.s to tk
+        }
+    }
+
+    private fun parseRecord(): Expr {
+        return withIgnoreOffside {
+            val begin = expect<LBracket>(noErr())
+            val nex = iter.peek().value
+
+            if (nex is RBracket) {
+                val end = iter.next()
+                Expr.RecordEmpty().withSpan(begin.span, end.span).withComment(begin.comment)
+            } else if (nex is Op && nex.op == "-") {
+                iter.next()
+                parseRecordRestriction(begin)
+            } else {
+                val rows = between<Comma, Pair<String, Expr>>(::parseRecordRow)
+                val exp = if (iter.peek().value is Pipe) {
+                    iter.next()
+                    parseExpression()
+                } else Expr.RecordEmpty()
+                val end = expect<RBracket>(withError(E.rbracketExpected("record")))
+
+                val labels = labelMapWith(rows)
+                Expr.RecordExtend(exp, labels).withSpan(begin.span, end.span).withComment(begin.comment)
+            }
+        }
+    }
+
+    private fun parseRecordRow(): Pair<String, Expr> {
+        val label = parseLabel()
+        expect<Colon>(withError(E.RECORD_COLON))
+        val exp = parseExpression()
+        return label.first to exp
+    }
+
+    private fun parseRecordRestriction(begin: Spanned<Token>): Expr {
+        val label = parseLabel().first
+        expect<Pipe>(withError(E.pipeExpected("record restriction")))
+        val record = parseExpression()
+        val end = expect<RBracket>(withError(E.rbracketExpected("record restriction")))
+        return Expr.RecordRestrict(record, label).withSpan(begin.span, end.span).withComment(begin.comment)
+    }
+
     private fun tryParseFunparPattern(): FunparPattern? {
         val tk = iter.peek()
         return when (tk.value) {
@@ -735,6 +796,25 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     else Type.TApp(const, pars, span(tk.span, iter.current().span))
                 }
             }
+            is LBracket -> {
+                withIgnoreOffside {
+                    iter.next()
+                    if (iter.peek().value is RBracket) {
+                        val span = span(tk.span, iter.next().span)
+                        Type.TRecord(Type.TRowEmpty(span), span)
+                    } else {
+                        val labels = between<Comma, Pair<String, Type>>(::parseRecordTypeRow)
+                        val rowInner = if (iter.peek().value is Pipe) {
+                            iter.next()
+                            parseType()
+                        } else Type.TRowEmpty(span(tk.span, iter.current().span))
+                        val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
+                        val span = span(tk.span, end.span)
+                        val row = Type.TRowExtend(rowInner, labelMapWith(labels), span)
+                        Type.TRecord(row, span)
+                    }
+                }
+            }
             else -> null
         } ?: return null
 
@@ -747,6 +827,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             else -> ty
         }
+    }
+
+    private fun parseRecordTypeRow(): Pair<String, Type> {
+        val label = parseLabel()
+        expect<Colon>(withError(E.RECORD_COLON))
+        val ty = parsePolytype()
+        return label.first to ty
     }
 
     private fun parseUpperOrLowerIdent(): String {

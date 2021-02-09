@@ -137,6 +137,10 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
         is SExpr.Unit -> Expr.Unit(span)
         is SExpr.DoLet -> internalError("got `do-let` outside of do statement: $this")
+        is SExpr.RecordEmpty -> TODO("not implemented")
+        is SExpr.RecordSelect -> TODO("not implemented")
+        is SExpr.RecordExtend -> TODO("not implemented")
+        is SExpr.RecordRestrict -> TODO("not implemented")
     }
 
     private fun SCase.desugar(locals: List<String>): Case = Case(pattern.desugar(locals), exp.desugar())
@@ -208,6 +212,9 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
         is SType.TParens -> type.goDesugar(kindArity)
         is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
+        is SType.TRecord -> TODO("not implemented")
+        is SType.TRowEmpty -> TODO("not implemented")
+        is SType.TRowExtend -> TODO("not implemented")
     }
 
     /**
@@ -288,6 +295,13 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                 ty.copy(tcons, ty.types.map { expandAndcheck(name, it, span) })
             }
             is SType.TParens -> ty.copy(expandAndcheck(name, ty.type, span))
+            is SType.TRecord -> ty.copy(row = expandAndcheck(name, ty.row, span))
+            is SType.TRowEmpty -> ty
+            is SType.TRowExtend -> {
+                ty.copy(
+                    row = expandAndcheck(name, ty.row, span),
+                    labels = ty.labels.mapList { expandAndcheck(name, it, span) })
+            }
         }
         typealiases.forEach { ta ->
             ta.expanded = expandAndcheck(ta.name, ta.type, ta.span)
@@ -316,6 +330,11 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                     }
                 } else ty.copy(types = ty.types.map { resolveAliases(it) })
             }
+            is SType.TRecord -> ty.copy(row = resolveAliases(ty.row))
+            is SType.TRowEmpty -> ty
+            is SType.TRowExtend -> ty.copy(
+                row = resolveAliases(ty.row),
+                labels = ty.labels.mapList { resolveAliases(it) })
         }
     }
 

@@ -27,7 +27,9 @@ object Errors {
 
     const val DATA_EQUALS = "Expected equals `=` after data name declaration."
 
-    const val TYPE_DCOLON = "Expected `::` before type definition."
+    const val TYPE_COLON = "Expected `:` before type definition."
+
+    const val RECORD_COLON = "Expected `:` after record label."
 
     const val TYPE_VAR = "Expected type variable (lower case identifier)."
 
@@ -112,6 +114,8 @@ object Errors {
     const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
 
     const val TYPEALIAS_PUB = "A public type alias cannot reference private types."
+
+    const val RECORD_LABEL = "A label of a record can only be a lower case identifier or a String."
 
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field

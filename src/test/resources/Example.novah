@@ -125,9 +125,10 @@ doIt () = do
 
 fact : Int -> Int
 fact x =
-  if x <= 1
-    then x
-    else x * fact (x - 1)
+  if x <= 1 then
+    x
+  else
+    x * fact (x - 1)
 
 pub
 end : Int

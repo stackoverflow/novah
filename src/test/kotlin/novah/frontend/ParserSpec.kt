@@ -131,7 +131,7 @@ class ParserSpec : StringSpec({
         val x = ast.decls.filterIsInstance<Decl.ValDecl>().find { it.name == "x" }?.exp!!
 
         x.shouldBeInstanceOf<Expr.Ann>()
-        x.type.show() shouldBe "String"
+        fmt.show(x.type) shouldBe "String"
     }
 
     "Constructors with the same name as the type are not allowed unless there's only one" {

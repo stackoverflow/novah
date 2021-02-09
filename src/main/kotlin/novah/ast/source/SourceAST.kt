@@ -1,6 +1,7 @@
 package novah.ast.source
 
-import novah.Util.joinToStr
+import novah.ast.LabelMap
+import novah.ast.mapList
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -197,6 +198,10 @@ sealed class Expr {
     }
 
     class Unit : Expr()
+    class RecordEmpty : Expr()
+    data class RecordSelect(val exp: Expr, val label: String) : Expr()
+    data class RecordExtend(val exp: Expr, val labels: LabelMap<List<Expr>>) : Expr()
+    data class RecordRestrict(val exp: Expr, val label: String) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null
@@ -248,12 +253,17 @@ sealed class LiteralPattern {
     data class DoubleLiteral(val e: Expr.DoubleE) : LiteralPattern()
 }
 
+typealias Row = Type
+
 sealed class Type(open val span: Span) {
     data class TConst(val name: String, val alias: String? = null, override val span: Span) : Type(span)
     data class TApp(val type: Type, val types: List<Type> = listOf(), override val span: Span) : Type(span)
     data class TFun(val arg: Type, val ret: Type, override val span: Span) : Type(span)
     data class TForall(val names: List<String>, val type: Type, override val span: Span) : Type(span)
     data class TParens(val type: Type, override val span: Span) : Type(span)
+    data class TRecord(val row: Row, override val span: Span) : Type(span)
+    data class TRowEmpty(override val span: Span) : Type(span)
+    data class TRowExtend(val row: Row, val labels: LabelMap<List<Type>>, override val span: Span) : Type(span)
 
     /**
      * Walks this type bottom->up
@@ -265,6 +275,11 @@ sealed class Type(open val span: Span) {
             is TFun -> f(t.copy(go(t.arg), go(t.ret)))
             is TForall -> f(t.copy(type = go(t.type)))
             is TParens -> f(t.copy(go(t.type)))
+            is TRecord -> f(t.copy(go(t.row)))
+            is TRowEmpty -> f(t)
+            is TRowExtend -> {
+                f(t.copy(row = go(t.row), labels = t.labels.mapList { go(it) }))
+            }
         }
         return go(this)
     }
@@ -285,18 +300,13 @@ sealed class Type(open val span: Span) {
         is TForall -> type.findFreeVars(bound + names)
         is TApp -> type.findFreeVars(bound) + types.flatMap { it.findFreeVars(bound) }
         is TParens -> type.findFreeVars(bound)
+        is TRecord -> row.findFreeVars(bound)
+        is TRowEmpty -> emptyList()
+        is TRowExtend -> row.findFreeVars(bound) + labels.values.flatMap { tys -> tys.flatMap { it.findFreeVars(bound) } }
     }
 
     fun substVar(from: String, new: Type): Type = everywhere { ty ->
         if (ty is TConst && ty.name == from) new else ty
-    }
-
-    fun show(): String = when (this) {
-        is TConst -> fullname()
-        is TApp -> type.show() + types.joinToStr(" ", prefix = " ") { it.show() }
-        is TFun -> arg.show() + " -> " + ret.show()
-        is TForall -> "forall " + names.joinToString(" ") + ". " + type.show()
-        is TParens -> "(${type.show()})"
     }
 }
 

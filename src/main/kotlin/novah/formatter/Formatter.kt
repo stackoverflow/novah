@@ -1,8 +1,10 @@
 package novah.formatter
 
-import novah.ast.source.*
-import novah.frontend.*
 import novah.Util.joinToStr
+import novah.ast.show
+import novah.ast.source.*
+import novah.frontend.Application
+import novah.frontend.Comment
 
 /**
  * The canonical formatter for the language. Like gofmt
@@ -171,8 +173,14 @@ class Formatter {
             is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
             is Expr.Unit -> "()"
+            is Expr.RecordEmpty -> "{}"
+            is Expr.RecordSelect -> "${show(e.exp)}.${e.label}"
+            is Expr.RecordRestrict -> "{ - ${show(e.exp)} | ${e.label} }"
+            is Expr.RecordExtend -> "{ ${e.labels.show(::showLabel)} | ${show(e.exp)} }"
         }
     }
+
+    private fun showLabel(l: String, e: Expr): String = "$l: ${show(e)}"
 
     private fun show(c: Case): String {
         return show(c.pattern) + " -> " + show(c.exp)
@@ -222,7 +230,12 @@ class Formatter {
         is Type.TApp -> show(t.type) + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
         is Type.TConst -> t.fullname()
+        is Type.TRecord -> "{ ${show(t.row)} }"
+        is Type.TRowEmpty -> "{}"
+        is Type.TRowExtend -> "{ ${t.labels.show(::showLabelType)} | ${show(t.row)} }"
     }
+
+    private fun showLabelType(l: String, ty: Type): String = "$l : ${show(ty)}"
 
     private fun showIndented(t: Type, prefix: String = ":"): String = when (t) {
         is Type.TFun -> {

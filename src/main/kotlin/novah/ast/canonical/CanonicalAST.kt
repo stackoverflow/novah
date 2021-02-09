@@ -34,8 +34,7 @@ sealed class Decl {
         val span: Span,
         val type: Type?,
         val visibility: Visibility
-    ) :
-        Decl()
+    ) : Decl()
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
