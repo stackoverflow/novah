@@ -137,10 +137,10 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
         is SExpr.Unit -> Expr.Unit(span)
         is SExpr.DoLet -> internalError("got `do-let` outside of do statement: $this")
-        is SExpr.RecordEmpty -> TODO("not implemented")
-        is SExpr.RecordSelect -> TODO("not implemented")
-        is SExpr.RecordExtend -> TODO("not implemented")
-        is SExpr.RecordRestrict -> TODO("not implemented")
+        is SExpr.RecordEmpty -> Expr.RecordEmpty(span)
+        is SExpr.RecordSelect -> Expr.RecordSelect(exp.desugar(locals), label, span)
+        is SExpr.RecordExtend -> Expr.RecordExtend(exp.desugar(locals), labels.mapList { it.desugar(locals) }, span)
+        is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
     }
 
     private fun SCase.desugar(locals: List<String>): Case = Case(pattern.desugar(locals), exp.desugar())
@@ -212,9 +212,9 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
         is SType.TParens -> type.goDesugar(kindArity)
         is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
-        is SType.TRecord -> TODO("not implemented")
-        is SType.TRowEmpty -> TODO("not implemented")
-        is SType.TRowExtend -> TODO("not implemented")
+        is SType.TRecord -> Type.TRecord(row.goDesugar()).span(span)
+        is SType.TRowEmpty -> Type.TRowEmpty().span(span)
+        is SType.TRowExtend -> Type.TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
     }
 
     /**
@@ -245,14 +245,17 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             is Type.TApp -> {
                 val newType = go(t.type)
                 val pars = t.types.map(::go)
-                Type.TApp(newType, pars).span(t.span)
+                t.copy(newType, pars)
             }
             is Type.TArrow -> {
                 val pars = t.args.map(::go)
                 val ret = go(t.ret)
-                Type.TArrow(pars, ret).span(t.span)
+                t.copy(pars, ret)
             }
-            is Type.TForall -> Type.TForall(t.ids, go(t.type)).span(t.span)
+            is Type.TForall -> t.copy(t.ids, go(t.type))
+            is Type.TRowEmpty -> t
+            is Type.TRecord -> t.copy(go(t.row))
+            is Type.TRowExtend -> t.copy(t.labels.mapList { go(it) }, go(t.row))
         }
         return ids to go(type)
     }
@@ -366,6 +369,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         val (decls, lambdas) = desugared.filterIsInstance<Decl.ValDecl>().partition { isVariable(it.exp) }
         val deps = decls.map { it.name to collectDependencies(it.exp) }.toMap()
 
+        // TODO: order functions also, not only variables
         val dag = DAG<String, Decl.ValDecl>()
         val nodes = decls.map { it.name to DagNode(it.name, it) }.toMap()
         dag.addNodes(nodes.values)

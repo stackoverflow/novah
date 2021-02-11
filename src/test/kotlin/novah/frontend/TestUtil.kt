@@ -1,6 +1,8 @@
 package novah.frontend
 
 import novah.Util.joinToStr
+import novah.ast.flatMapList
+import novah.ast.show
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.FunparPattern
@@ -102,6 +104,9 @@ object TestUtil {
             }
         }
         is Type.TConst -> emptyList()
+        is Type.TRowEmpty -> emptyList()
+        is Type.TRecord -> row.findUnbound()
+        is Type.TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
     }
 
     class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
@@ -139,6 +144,14 @@ object TestUtil {
                     is TypeVar.Generic -> "t${tv.id}"
                     is TypeVar.Bound -> "t${ctx.map[tv.id]}"
                 }
+            }
+            is Type.TRowEmpty -> "{}"
+            is Type.TRecord -> "{ ${go(t.row, ctx)} }"
+            is Type.TRowExtend -> {
+                val labels = t.labels.show { k, v -> "$k : ${go(v, ctx)}" }
+                val rowStr = go(t.row, ctx)
+                if (rowStr == "{}") labels
+                else "$labels | $rowStr"
             }
         }
         return go(this, Ctx(), false, topLevel = true)

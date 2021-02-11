@@ -117,6 +117,8 @@ object Errors {
 
     const val RECORD_LABEL = "A label of a record can only be a lower case identifier or a String."
 
+    const val RECURSIVE_ROWS = "Recursive row types"
+
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field
@@ -248,6 +250,11 @@ object Errors {
     fun unusedVariables(vars: List<String>): String {
         return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."
         else "Variables ${vars.joinToString()} are unused in declaration."
+    }
+
+    fun recordMissingLabels(labels: List<String>): String {
+        return if (labels.size == 1) "Record is missing label ${labels.joinToString()}."
+        else "Record is missing labels: ${labels.joinToString()}."
     }
 
     fun redundantMatches(pats: List<String>) = """

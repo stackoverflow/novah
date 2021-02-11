@@ -200,7 +200,7 @@ sealed class Expr {
     class Unit : Expr()
     class RecordEmpty : Expr()
     data class RecordSelect(val exp: Expr, val label: String) : Expr()
-    data class RecordExtend(val exp: Expr, val labels: LabelMap<List<Expr>>) : Expr()
+    data class RecordExtend(val exp: Expr, val labels: LabelMap<Expr>) : Expr()
     data class RecordRestrict(val exp: Expr, val label: String) : Expr()
 
     var span = Span.empty()
@@ -263,7 +263,7 @@ sealed class Type(open val span: Span) {
     data class TParens(val type: Type, override val span: Span) : Type(span)
     data class TRecord(val row: Row, override val span: Span) : Type(span)
     data class TRowEmpty(override val span: Span) : Type(span)
-    data class TRowExtend(val row: Row, val labels: LabelMap<List<Type>>, override val span: Span) : Type(span)
+    data class TRowExtend(val row: Row, val labels: LabelMap<Type>, override val span: Span) : Type(span)
 
     /**
      * Walks this type bottom->up

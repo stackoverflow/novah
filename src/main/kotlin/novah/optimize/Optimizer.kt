@@ -152,6 +152,10 @@ class Optimizer(private val ast: CModule) {
                 ProblemContext.FOREIGN
             )
             is CExpr.Unit -> Expr.Unit(typ)
+            is CExpr.RecordEmpty -> TODO()
+            is CExpr.RecordExtend -> TODO()
+            is CExpr.RecordSelect -> TODO()
+            is CExpr.RecordRestrict -> TODO()
         }
     }
 
@@ -185,6 +189,9 @@ class Optimizer(private val ast: CModule) {
                 is TypeVar.Unbound -> internalError("got unbound variable after typechecking: ${this.show(true)}")
             }
         }
+        is TType.TRowEmpty -> TODO()
+        is TType.TRecord -> TODO()
+        is TType.TRowExtend -> TODO()
     }
 
     private val rteCtor = RuntimeException::class.java.constructors.find {

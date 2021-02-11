@@ -1,9 +1,12 @@
 package novah.frontend.hmftypechecker
 
 import novah.Util.internalError
+import novah.ast.*
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
+import java.util.*
+import kotlin.collections.HashSet
 
 class Unification(private val tc: Typechecker) {
 
@@ -70,7 +73,101 @@ class Unification(private val tc: Typechecker) {
                 unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
             return
         }
+        if (t1 is Type.TRowEmpty && t2 is Type.TRowEmpty) return
+        if (t1 is Type.TRecord && t2 is Type.TRecord) {
+            unify(t1.row, t2.row, span)
+            return
+        }
+        if (t1 is Type.TRowExtend && t2 is Type.TRowExtend) {
+            unifyRows(t1, t2, span)
+            return
+        }
+        if (t1 is Type.TRowEmpty && t2 is Type.TRowExtend) {
+            unificationError(Errors.recordMissingLabels(t2.labels.keys.toList()), span)
+        }
+        if (t1 is Type.TRowExtend && t2 is Type.TRowEmpty) {
+            unificationError(Errors.recordMissingLabels(t1.labels.keys.toList()), span)
+        }
         unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
+    }
+
+    // Unify two row types
+    private fun unifyRows(row1: Type, row2: Type, span: Span) {
+        val (labels1, restTy1) = matchRowType(row1)
+        val (labels2, restTy2) = matchRowType(row2)
+
+        tailrec fun unifyTypes(t1s: List<Type>, t2s: List<Type>): Pair<List<Type>, List<Type>> {
+            return if (t1s.isEmpty() || t2s.isEmpty()) t1s to t2s
+            else {
+                unify(t1s[0], t2s[0], span)
+                unifyTypes(t1s.drop(1), t2s.drop(1))
+            }
+        }
+
+        tailrec fun unifyLabels(
+            missing1: LabelMap<Type>,
+            missing2: LabelMap<Type>,
+            labels1: List<Pair<String, LinkedList<Type>>>,
+            labels2: List<Pair<String, LinkedList<Type>>>
+        ): Pair<LabelMap<Type>, LabelMap<Type>> = when {
+            labels1.isEmpty() && labels2.isEmpty() -> missing1 to missing2
+            labels1.isEmpty() -> addDistinctLabels(missing1, labels2) to missing2
+            labels2.isEmpty() -> missing1 to addDistinctLabels(missing2, labels1)
+            else -> {
+                val (label1, tys1) = labels1[0]
+                val (label2, tys2) = labels2[0]
+                val rest1 = labels1.drop(1)
+                val rest2 = labels2.drop(1)
+                when {
+                    label1 == label2 -> {
+                        val (m1s, m2s) = unifyTypes(tys1, tys2)
+                        val (missing11, missing22) = when {
+                            m1s.isEmpty() && m2s.isEmpty() -> missing1 to missing2
+                            m2s.isEmpty() -> {
+                                missing2[label1] = tys1
+                                missing1 to missing2
+                            }
+                            m1s.isEmpty() -> {
+                                missing1[label2] = tys2
+                                missing1 to missing2
+                            }
+                            else -> internalError("impossible")
+                        }
+                        unifyLabels(missing11, missing22, rest1, rest2)
+                    }
+                    label1 < label2 -> {
+                        missing2[label1] = tys1
+                        unifyLabels(missing1, missing2, rest1, labels2)
+                    }
+                    else -> {
+                        missing1[label2] = tys2
+                        unifyLabels(missing1, missing2, labels1, rest2)
+                    }
+                }
+            }
+        }
+
+        val (missing1, missing2) = unifyLabels(LabelMap(), LabelMap(), labels1.toLList(), labels2.toLList())
+
+        val (empty1, empty2) = missing1.isEmpty() to missing2.isEmpty()
+        when {
+            empty1 && empty2 -> unify(restTy1, restTy2, span)
+            empty1 && !empty2 -> unify(restTy2, Type.TRowExtend(missing2, restTy1), span)
+            !empty1 && empty2 -> unify(restTy1, Type.TRowExtend(missing1, restTy2), span)
+            !empty1 && !empty2 -> {
+                when {
+                    restTy1 is Type.TRowEmpty -> unify(restTy1, Type.TRowExtend(missing1, tc.newVar(0)), span)
+                    restTy1 is Type.TVar && restTy1.tvar is TypeVar.Unbound -> {
+                        val tv = restTy1.tvar as TypeVar.Unbound
+                        val restRow = tc.newVar(tv.level)
+                        unify(restTy2, Type.TRowExtend(missing2, restRow), span)
+                        if (restTy1.tvar is TypeVar.Link) unificationError(Errors.RECURSIVE_ROWS, span)
+                        unify(restTy1, Type.TRowExtend(missing1, restRow), span)
+                    }
+                    else -> internalError("impossible")
+                }
+            }
+        }
     }
 }
 
@@ -100,7 +197,12 @@ fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type, span: Span) {
                 go(t.ret)
             }
             is Type.TForall -> go(t.type)
-            is Type.TConst -> {
+            is Type.TRecord -> go(t.row)
+            is Type.TRowExtend -> {
+                t.labels.forEachList { go(it) }
+                go(t.row)
+            }
+            is Type.TConst, is Type.TRowEmpty -> {
             }
         }
     }
@@ -109,7 +211,7 @@ fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type, span: Span) {
 
 fun substituteBoundVars(varIds: List<Id>, types: List<Type>, type: Type): Type {
     fun go(idMap: Map<Id, Type>, t: Type): Type = when (t) {
-        is Type.TConst -> t
+        is Type.TConst, is Type.TRowEmpty -> t
         is Type.TVar -> {
             when (val tv = t.tvar) {
                 is TypeVar.Link -> go(idMap, tv.type)
@@ -117,13 +219,15 @@ fun substituteBoundVars(varIds: List<Id>, types: List<Type>, type: Type): Type {
                 else -> t
             }
         }
-        is Type.TApp -> Type.TApp(go(idMap, t.type), t.types.map { go(idMap, it) }).span(t.span)
-        is Type.TArrow -> Type.TArrow(t.args.map { go(idMap, it) }, go(idMap, t.ret)).span(t.span)
+        is Type.TApp -> t.copy(go(idMap, t.type), t.types.map { go(idMap, it) })
+        is Type.TArrow -> t.copy(t.args.map { go(idMap, it) }, go(idMap, t.ret))
         is Type.TForall -> {
             val map = mutableMapOf<Id, Type>()
             idMap.forEach { (k, v) -> if (k !in t.ids) map[k] = v }
-            Type.TForall(t.ids, go(map, t.type)).span(t.span)
+            t.copy(t.ids, go(map, t.type))
         }
+        is Type.TRecord -> t.copy(go(idMap, t.row))
+        is Type.TRowExtend -> t.copy(row = go(idMap, t.row), labels = t.labels.mapList { go(idMap, it) })
     }
     return go(varIds.zip(types).toMap(), type)
 }
@@ -132,7 +236,7 @@ fun freeGenericVars(type: Type): HashSet<Type> {
     val freeSet = HashSet<Type>()
     fun go(t: Type) {
         when (t) {
-            is Type.TConst -> {
+            is Type.TConst, is Type.TRowEmpty -> {
             }
             is Type.TVar -> {
                 when (val tv = t.tvar) {
@@ -151,6 +255,11 @@ fun freeGenericVars(type: Type): HashSet<Type> {
                 go(t.ret)
             }
             is Type.TForall -> go(t.type)
+            is Type.TRecord -> go(t.row)
+            is Type.TRowExtend -> {
+                t.labels.forEachList { go(it) }
+                go(t.row)
+            }
         }
     }
     go(type)
@@ -161,6 +270,31 @@ fun escapeCheck(genericVars: List<Type>, t1: Type, t2: Type): Boolean {
     val freeVars1 = freeGenericVars(t1)
     val freeVars2 = freeGenericVars(t2)
     return genericVars.any { it in freeVars1 || it in freeVars2 }
+}
+
+fun matchRowType(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
+    is Type.TRowEmpty -> LabelMap<Type>() to Type.TRowEmpty().span(ty.span)
+    is Type.TVar -> {
+        when (val tv = ty.tvar) {
+            is TypeVar.Link -> matchRowType(tv.type)
+            else -> LabelMap<Type>() to ty
+        }
+    }
+    is Type.TRowExtend -> {
+        val (restLabels, restTy) = matchRowType(ty.row)
+        if (restLabels.isEmpty()) ty.labels to restTy
+        else ty.labels.merge(restLabels) to restTy
+    }
+    else -> unificationError("not a row", ty.span ?: Span.empty())
+}
+
+fun addDistinctLabels(labelMap: LabelMap<Type>, labels: List<Pair<String, List<Type>>>): LabelMap<Type> {
+    val newMap = LabelMap(labelMap)
+    labels.forEach { (l, el) ->
+        if (newMap.containsKey(l)) internalError("Label map already contains label $l")
+        newMap[l] = LinkedList(el)
+    }
+    return newMap
 }
 
 private fun unificationError(msg: String, span: Span): Nothing = inferError(msg, span, ProblemContext.UNIFICATION)
