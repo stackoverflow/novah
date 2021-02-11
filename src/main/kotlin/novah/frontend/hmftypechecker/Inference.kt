@@ -252,15 +252,19 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 exp.withType(ty)
             }
             is Expr.RecordExtend -> {
-                val nextlevel = level + 1
-                val labelTys = exp.labels.mapList { infer(env, nextlevel, null, Generalized.INSTANTIATED, it) }
-                val restRow = tc.newVar(nextlevel)
+                val nextLevel = level + 1
+                val labelTys = exp.labels.mapList { infer(env, nextLevel, null, Generalized.GENERALIZED, it) }
+                val restRow = tc.newVar(nextLevel)
                 uni.unify(
                     Type.TRecord(restRow),
-                    infer(env, nextlevel, null, Generalized.INSTANTIATED, exp.exp),
+                    infer(env, nextLevel, null, Generalized.GENERALIZED, exp.exp),
                     exp.span
                 )
-                exp.withType(Type.TRecord(Type.TRowExtend(labelTys, restRow)))
+                val ty = Type.TRecord(Type.TRowExtend(labelTys, restRow))
+                if (expectedType != null) {
+                    uni.unify(tc.instantiate(nextLevel, expectedType), ty, exp.span)
+                }
+                exp.withType(ty)
             }
         }
     }

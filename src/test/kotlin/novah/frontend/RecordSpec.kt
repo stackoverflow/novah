@@ -11,8 +11,8 @@ class RecordSpec : StringSpec({
             
             id x = x
             
-            hkrec : { foo : forall a. a }
-            hkrec = { foo: id }
+            hkrec : Unit -> { foo : forall a. a -> a }
+            hkrec () = { foo: id }
             
             rec : { a : Int, b : Int, a: Boolean }
             rec = { a: 1, a: true, b: 2 }

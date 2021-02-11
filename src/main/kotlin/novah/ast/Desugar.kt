@@ -346,6 +346,15 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
      * and order them by dependency
      */
     private fun validateTopLevelValues(desugared: List<Decl>): List<Decl> {
+        fun reportCycle(cycle: Set<DagNode<String, Decl.ValDecl>>) {
+            val first = cycle.iterator().next()
+            val vars = cycle.map { it.value }
+            if (cycle.size == 1)
+                parserError(E.cycleInValues(vars), first.data.span)
+            else
+                desugarErrors(cycle.map { makeError(E.cycleInValues(vars), it.data.span) })
+        }
+
         fun collectDependencies(exp: Expr): Set<String> {
             val deps = mutableSetOf<String>()
             exp.everywhere { e ->
@@ -367,6 +376,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
 
         val (decls, lambdas) = desugared.filterIsInstance<Decl.ValDecl>().partition { isVariable(it.exp) }
+        //val decls = desugared.filterIsInstance<Decl.ValDecl>()
         val deps = decls.map { it.name to collectDependencies(it.exp) }.toMap()
 
         // TODO: order functions also, not only variables
@@ -378,15 +388,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             val depset = deps[node.value]
             depset?.forEach { name -> nodes[name]?.link(node) }
         }
-        val cycle = dag.findCycle()
-        if (cycle != null) {
-            val first = cycle.iterator().next()
-            val vars = cycle.map { it.value }
-            if (cycle.size == 1)
-                parserError(E.cycleInValues(vars), first.data.span)
-            else
-                desugarErrors(cycle.map { makeError(E.cycleInValues(vars), it.data.span) })
-        }
+        dag.findCycle()?.let { reportCycle(it) }
 
         val orderedDecl = dag.topoSort().map { it.data }
 

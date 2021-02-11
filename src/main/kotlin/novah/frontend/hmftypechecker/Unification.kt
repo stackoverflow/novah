@@ -285,7 +285,7 @@ fun matchRowType(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
         if (restLabels.isEmpty()) ty.labels to restTy
         else ty.labels.merge(restLabels) to restTy
     }
-    else -> unificationError("not a row", ty.span ?: Span.empty())
+    else -> unificationError(Errors.notARow(ty.show(false)), ty.span ?: Span.empty())
 }
 
 fun addDistinctLabels(labelMap: LabelMap<Type>, labels: List<Pair<String, List<Type>>>): LabelMap<Type> {

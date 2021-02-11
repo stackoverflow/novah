@@ -139,7 +139,7 @@ object TestUtil {
             }
             is Type.TVar -> {
                 when (val tv = t.tvar) {
-                    is TypeVar.Link -> go(tv.type, ctx, nested)
+                    is TypeVar.Link -> go(tv.type, ctx, nested, topLevel)
                     is TypeVar.Unbound -> "t${tv.id}"
                     is TypeVar.Generic -> "t${tv.id}"
                     is TypeVar.Bound -> "t${ctx.map[tv.id]}"
@@ -147,13 +147,13 @@ object TestUtil {
             }
             is Type.TRowEmpty -> "{}"
             is Type.TRecord -> {
-                val rowStr = go(t.row)
+                val rowStr = go(t.row, ctx)
                 if (rowStr == "{}") "{}"
                 else "{ $rowStr }"
             }
             is Type.TRowExtend -> {
-                val labels = t.labels.show { k, v -> "$k : ${go(v, ctx)}" }
-                val rowStr = go(t.row, ctx)
+                val labels = t.labels.show { k, v -> "$k : ${go(v, ctx, topLevel = true)}" }
+                val rowStr = go(t.row, ctx, topLevel = true)
                 if (rowStr == "{}") labels
                 else "$labels, $rowStr"
             }

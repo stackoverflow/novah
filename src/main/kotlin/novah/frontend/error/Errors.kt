@@ -257,6 +257,14 @@ object Errors {
         else "Record is missing labels: ${labels.joinToString()}."
     }
 
+    fun notARow(type: String) = """
+        Type
+        
+            $type
+        
+        is a not a row type.
+    """.trimIndent()
+
     fun redundantMatches(pats: List<String>) = """
         A case expression contains redundant cases:
         

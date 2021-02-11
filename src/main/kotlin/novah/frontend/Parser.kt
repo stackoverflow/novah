@@ -281,9 +281,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             if (visibility is PublicPlus) throwError(E.PUB_PLUS to iter.current().span)
             vis = Visibility.PUBLIC
         }
-        expect<TypealiasT>(noErr())
+        val ta = expect<TypealiasT>(noErr())
         val name = expect<UpperIdent>(withError(E.TYPEALIAS_NAME))
-        return withOffside(name.offside() + 1, false) {
+        return withOffside(ta.offside() + 1, false) {
             val tyVars = tryParseListOf { tryParseTypeVar() }
             val end = iter.current().span
             expect<Equals>(withError(E.TYPEALIAS_EQUALS))

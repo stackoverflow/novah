@@ -91,6 +91,7 @@ class Typechecker {
                     is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
                 }
             }
+            // TODO: check row types
         }
     }
 }

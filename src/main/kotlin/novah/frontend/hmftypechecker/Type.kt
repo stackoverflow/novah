@@ -185,7 +185,7 @@ sealed class Type {
             }
             is TVar -> {
                 when (val tv = t.tvar) {
-                    is TypeVar.Link -> go(tv.type, nested)
+                    is TypeVar.Link -> go(tv.type, nested, topLevel)
                     is TypeVar.Unbound -> "t${tv.id}"
                     is TypeVar.Generic -> "t${tv.id}"
                     is TypeVar.Bound -> "t${tv.id}"
@@ -198,8 +198,8 @@ sealed class Type {
                 else "{ $rowStr }"
             }
             is TRowExtend -> {
-                val labels = t.labels.show { k, v -> "$k : ${go(v)}" }
-                val rowStr = go(t.row)
+                val labels = t.labels.show { k, v -> "$k : ${go(v, topLevel = true)}" }
+                val rowStr = go(t.row, topLevel = true)
                 if (rowStr == "{}") labels
                 else "$labels, $rowStr"
             }
