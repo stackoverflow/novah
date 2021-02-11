@@ -192,12 +192,16 @@ sealed class Type {
                 }
             }
             is TRowEmpty -> "{}"
-            is TRecord -> "{ ${go(t.row)} }"
+            is TRecord -> {
+                val rowStr = go(t.row)
+                if (rowStr == "{}") "{}"
+                else "{ $rowStr }"
+            }
             is TRowExtend -> {
                 val labels = t.labels.show { k, v -> "$k : ${go(v)}" }
                 val rowStr = go(t.row)
                 if (rowStr == "{}") labels
-                else "$labels | $rowStr"
+                else "$labels, $rowStr"
             }
         }
         return go(this, false, topLevel = true)

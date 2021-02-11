@@ -96,8 +96,8 @@ class Unification(private val tc: Typechecker) {
         val (labels1, restTy1) = matchRowType(row1)
         val (labels2, restTy2) = matchRowType(row2)
 
-        tailrec fun unifyTypes(t1s: List<Type>, t2s: List<Type>): Pair<List<Type>, List<Type>> {
-            return if (t1s.isEmpty() || t2s.isEmpty()) t1s to t2s
+        tailrec fun unifyTypes(t1s: List<Type>, t2s: List<Type>): Pair<LinkedList<Type>, LinkedList<Type>> {
+            return if (t1s.isEmpty() || t2s.isEmpty()) LinkedList(t1s) to LinkedList(t2s)
             else {
                 unify(t1s[0], t2s[0], span)
                 unifyTypes(t1s.drop(1), t2s.drop(1))
@@ -124,11 +124,11 @@ class Unification(private val tc: Typechecker) {
                         val (missing11, missing22) = when {
                             m1s.isEmpty() && m2s.isEmpty() -> missing1 to missing2
                             m2s.isEmpty() -> {
-                                missing2[label1] = tys1
+                                missing2[label1] = m1s
                                 missing1 to missing2
                             }
                             m1s.isEmpty() -> {
-                                missing1[label2] = tys2
+                                missing1[label2] = m2s
                                 missing1 to missing2
                             }
                             else -> internalError("impossible")

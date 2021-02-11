@@ -14,12 +14,14 @@ class RecordSpec : StringSpec({
             hkrec : { foo : forall a. a }
             hkrec = { foo: id }
             
-            rec : { a : Int, b : Int, a : String }
-            rec = { a: 1, b: 2, a: "foo" }
+            rec : { a : Int, b : Int, a: Boolean }
+            rec = { a: 1, a: true, b: 2 }
             
             a = rec.a
             
             minus = { - a | rec }
+            
+            plus = { b: 5 | rec }
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls

@@ -146,12 +146,16 @@ object TestUtil {
                 }
             }
             is Type.TRowEmpty -> "{}"
-            is Type.TRecord -> "{ ${go(t.row, ctx)} }"
+            is Type.TRecord -> {
+                val rowStr = go(t.row)
+                if (rowStr == "{}") "{}"
+                else "{ $rowStr }"
+            }
             is Type.TRowExtend -> {
                 val labels = t.labels.show { k, v -> "$k : ${go(v, ctx)}" }
                 val rowStr = go(t.row, ctx)
                 if (rowStr == "{}") labels
-                else "$labels | $rowStr"
+                else "$labels, $rowStr"
             }
         }
         return go(this, Ctx(), false, topLevel = true)

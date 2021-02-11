@@ -65,10 +65,10 @@ fun <V> LabelMap<V>.allList(fn: (V) -> Boolean): Boolean {
 fun <V> LabelMap<V>.putMulti(key: String, value: V) {
     val list = this[key]
 
-    if (list != null) list.add(value)
+    if (list != null) list.addFirst(value)
     else {
         val ll = LinkedList<V>()
-        ll.add(value)
+        ll.addFirst(value)
         this[key] = ll
     }
 }
