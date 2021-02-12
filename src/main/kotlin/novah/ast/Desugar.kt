@@ -68,8 +68,9 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
             // if the declaration has a type annotation, annotate it
             expr = if (type != null) {
-                val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
-                else emptyList<Id>() to type.desugar()
+                // We want type annotations to be `forall` not `some`, so
+                // we won't replace constants with vars here
+                val ann = emptyList<Id>() to type.desugar()
                 Expr.Ann(expr, ann, span)
             } else expr
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility)

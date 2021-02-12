@@ -164,7 +164,7 @@ class Unification(private val tc: Typechecker) {
                         if (restTy1.tvar is TypeVar.Link) unificationError(Errors.RECURSIVE_ROWS, span)
                         unify(restTy1, Type.TRowExtend(missing1, restRow), span)
                     }
-                    else -> internalError("impossible")
+                    else -> unificationError(Errors.typesDontMatch(row1.show(false), row2.show(false)), span)
                 }
             }
         }

@@ -1,6 +1,7 @@
 package novah.frontend
 
 import novah.Util.splitAt
+import novah.ast.LabelMap
 import novah.ast.labelMapWith
 import novah.ast.source.*
 import novah.data.Err
@@ -799,19 +800,29 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is LBracket -> {
                 withIgnoreOffside {
                     iter.next()
-                    if (iter.peek().value is RBracket) {
-                        val span = span(tk.span, iter.next().span)
-                        Type.TRecord(Type.TRowEmpty(span), span)
-                    } else {
-                        val labels = between<Comma, Pair<String, Type>>(::parseRecordTypeRow)
-                        val rowInner = if (iter.peek().value is Pipe) {
+                    when (iter.peek().value) {
+                        is RBracket -> {
+                            val span = span(tk.span, iter.next().span)
+                            Type.TRecord(Type.TRowEmpty(span), span)
+                        }
+                        is Pipe -> {
                             iter.next()
-                            parseType()
-                        } else Type.TRowEmpty(span(tk.span, iter.current().span))
-                        val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
-                        val span = span(tk.span, end.span)
-                        val row = Type.TRowExtend(rowInner, labelMapWith(labels), span)
-                        Type.TRecord(row, span)
+                            val ty = parseType()
+                            val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
+                            val span = span(tk.span, end.span)
+                            Type.TRecord(Type.TRowExtend(ty, LabelMap(), span), span)
+                        }
+                        else -> {
+                            val labels = between<Comma, Pair<String, Type>>(::parseRecordTypeRow)
+                            val rowInner = if (iter.peek().value is Pipe) {
+                                iter.next()
+                                parseType()
+                            } else Type.TRowEmpty(span(tk.span, iter.current().span))
+                            val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
+                            val span = span(tk.span, end.span)
+                            val row = Type.TRowExtend(rowInner, labelMapWith(labels), span)
+                            Type.TRecord(row, span)
+                        }
                     }
                 }
             }
@@ -830,10 +841,10 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseRecordTypeRow(): Pair<String, Type> {
-        val label = parseLabel()
+        val (label, _) = parseLabel()
         expect<Colon>(withError(E.RECORD_COLON))
         val ty = parsePolytype()
-        return label.first to ty
+        return label to ty
     }
 
     private fun parseUpperOrLowerIdent(): String {

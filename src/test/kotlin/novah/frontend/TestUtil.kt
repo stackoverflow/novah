@@ -69,7 +69,7 @@ object TestUtil {
         return Compiler.new(sources, verbose)
     }
 
-    fun compilerForCode(code: String, verbose: Boolean = false): Compiler {
+    private fun compilerForCode(code: String, verbose: Boolean = false): Compiler {
         val sources = listOf(Source.SString(Path.of("namespace"), code)).asSequence()
         return Compiler(sources, verbose)
     }
@@ -147,15 +147,19 @@ object TestUtil {
             }
             is Type.TRowEmpty -> "{}"
             is Type.TRecord -> {
-                val rowStr = go(t.row, ctx)
-                if (rowStr == "{}") "{}"
-                else "{ $rowStr }"
+                when (val ty = t.row.unlink()) {
+                    is Type.TRowEmpty -> "{}"
+                    !is Type.TRowExtend -> "{ | ${go(ty, ctx, topLevel = true)} }"
+                    else -> "{ ${go(ty, ctx, topLevel = true)} }"
+                }
             }
             is Type.TRowExtend -> {
                 val labels = t.labels.show { k, v -> "$k : ${go(v, ctx, topLevel = true)}" }
-                val rowStr = go(t.row, ctx, topLevel = true)
-                if (rowStr == "{}") labels
-                else "$labels, $rowStr"
+                when (val ty = t.row.unlink()) {
+                    is Type.TRowEmpty -> labels
+                    !is Type.TRowExtend -> "$labels | ${go(ty, ctx, topLevel = true)}"
+                    else -> "$labels, ${go(ty, ctx, topLevel = true)}"
+                }
             }
         }
         return go(this, Ctx(), false, topLevel = true)

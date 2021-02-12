@@ -193,15 +193,19 @@ sealed class Type {
             }
             is TRowEmpty -> "{}"
             is TRecord -> {
-                val rowStr = go(t.row)
-                if (rowStr == "{}") "{}"
-                else "{ $rowStr }"
+                when (val ty = t.row.unlink()) {
+                    is TRowEmpty -> "{}"
+                    !is TRowExtend -> "{ | ${go(ty, topLevel = true)} }"
+                    else -> "{ ${go(ty, topLevel = true)} }"
+                }
             }
             is TRowExtend -> {
                 val labels = t.labels.show { k, v -> "$k : ${go(v, topLevel = true)}" }
-                val rowStr = go(t.row, topLevel = true)
-                if (rowStr == "{}") labels
-                else "$labels, $rowStr"
+                when (val ty = t.row.unlink()) {
+                    is TRowEmpty -> labels
+                    !is TRowExtend -> "$labels | ${go(ty, topLevel = true)}"
+                    else -> "$labels, ${go(ty, topLevel = true)}"
+                }
             }
         }
         return go(this, false, topLevel = true)
