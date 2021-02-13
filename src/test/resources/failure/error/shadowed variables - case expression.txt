@@ -1,5 +1,0 @@
-module [33mtest[0m
-at src/test/resources/failure/source/shadowed variables - case expression.novah:6:3 - 6:4
-
-  Value x is shadowing another value with the same name.
-

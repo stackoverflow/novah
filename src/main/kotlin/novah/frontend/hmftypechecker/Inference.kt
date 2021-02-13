@@ -473,8 +473,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
      * and throw an error if that's the case.
      */
     private fun checkShadow(env: Env, name: String, span: Span) {
-        val shadow = env.lookup(name)
-        if (shadow != null) inferError(Errors.shadowedVariable(name), span)
+        if (env.lookup(name) != null) inferError(Errors.shadowedVariable(name), span)
     }
 
     /**
@@ -482,8 +481,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
      * and throw an error if that's the case.
      */
     private fun checkShadowType(env: Env, type: String, span: Span) {
-        val shadow = env.lookupType(type)
-        if (shadow != null) inferError(Errors.duplicatedType(type), span)
+        if (env.lookupType(type) != null) inferError(Errors.duplicatedType(type), span)
     }
 
     private fun getDataType(d: Decl.DataDecl, moduleName: String): Pair<Type, Map<String, Type.TVar>> {
@@ -502,15 +500,11 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     }
 
     private fun getCtorType(dc: DataConstructor, dataType: Type, map: Map<String, Type.TVar>): Type {
-        tailrec fun nestFun(args: List<Type>, ret: Type): Type = when {
-            args.isEmpty() -> ret
-            else -> nestFun(args.drop(1), Type.TArrow(listOf(args[0]), ret))
-        }
         return when (dataType) {
-            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.TArrow(dc.args, dataType).span(dc.span)
+            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.nestArrows(dc.args, dataType).span(dc.span)
             is Type.TForall -> {
                 val args = dc.args.map { it.substConst(map) }
-                Type.TForall(dataType.ids, nestFun(args.reversed(), dataType.type)).span(dc.span)
+                Type.TForall(dataType.ids, Type.nestArrows(args, dataType.type)).span(dc.span)
             }
             else -> internalError("Got absurd type for data constructor: $dataType")
         }

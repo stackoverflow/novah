@@ -1,6 +1,7 @@
 package novah.frontend.hmftypechecker
 
 import novah.ast.canonical.Module
+import novah.ast.forEachList
 import novah.data.Err
 import novah.data.Ok
 import novah.data.Result
@@ -13,21 +14,21 @@ import novah.main.ModuleEnv
 
 class Typechecker {
     private var currentId = 0
-    
+
     var env = Env()
     private val uni = Unification(this)
     private val sub = Subsumption(this, uni)
     private val infer = Inference(this, uni, sub)
-    
+
     private fun nextId(): Int = ++currentId
     fun resetId() {
         currentId = 0
     }
-    
+
     fun resetEnv() {
         env = Env()
     }
-    
+
     fun newVar(level: Level) = Type.TVar(TypeVar.Unbound(nextId(), level))
     fun newGenVar() = Type.TVar(TypeVar.Generic(nextId()))
     fun newBoundVar(): Pair<Id, Type.TVar> {
@@ -49,7 +50,7 @@ class Typechecker {
         val vars = ids.reversed().map { newVar(level) }
         return vars to substituteBoundVars(ids, vars, type)
     }
-    
+
     tailrec fun instantiate(level: Level, type: Type): Type = when {
         type is Type.TForall -> {
             val (_, instType) = substituteWithNewVars(level, type.ids, type.type)
@@ -58,12 +59,12 @@ class Typechecker {
         type is Type.TVar && type.tvar is TypeVar.Link -> instantiate(level, (type.tvar as TypeVar.Link).type)
         else -> type
     }
-    
+
     fun instantiateTypeAnnotation(level: Level, ids: List<Id>, type: Type): Pair<List<Type>, Type> {
         return if (ids.isEmpty()) emptyList<Type>() to type
         else substituteWithNewVars(level, ids, type)
     }
-    
+
     fun checkWellFormed(ty: Type, span: Span) {
         when (ty) {
             is Type.TConst -> {
@@ -81,9 +82,7 @@ class Typechecker {
                 ty.args.forEach { checkWellFormed(it, span) }
                 checkWellFormed(ty.ret, span)
             }
-            is Type.TForall -> {
-                checkWellFormed(ty.type, span)
-            }
+            is Type.TForall -> checkWellFormed(ty.type, span)
             is Type.TVar -> {
                 when (val tv = ty.tvar) {
                     is TypeVar.Link -> checkWellFormed(tv.type, span)
@@ -91,7 +90,13 @@ class Typechecker {
                     is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
                 }
             }
-            // TODO: check row types
+            is Type.TRecord -> checkWellFormed(ty.row, span)
+            is Type.TRowExtend -> {
+                checkWellFormed(ty.row, span)
+                ty.labels.forEachList { checkWellFormed(it, span) }
+            }
+            is Type.TRowEmpty -> {
+            }
         }
     }
 }

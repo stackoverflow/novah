@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] Validate type definitions/aliases for wrong kind (checkWellFormed does it only for applications)
+- [ ] Use persistent map and list for env and label map
 - [X] Add warnings to the compiler (still not working properly)
 - [ ] Have a context in the typechecker for better error reporting
 - [ ] Order declarations by topology taking recursive functions in consideration and allowing mutually recursive

@@ -1,5 +1,0 @@
-module [33mtest[0m
-at src/test/resources/failure/source/native import static.novah:3:1 - 3:43
-
-  Field MAX_VALUE of class java.lang.Integer is static.
-

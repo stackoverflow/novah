@@ -1,5 +1,0 @@
-module [33mtest[0m
-at src/test/resources/failure/source/undefined type.novah:3:13 - 3:18
-
-  Undefined type Undef.
-

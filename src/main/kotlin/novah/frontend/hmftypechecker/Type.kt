@@ -15,11 +15,9 @@ sealed class Kind(open val arity: Int) {
     }
 
     data class Constructor(override val arity: Int) : Kind(arity) {
-        override fun toString(): String = kindArityToString(arity)
+        override fun toString(): String = (0..arity).joinToString(" -> ") { "Type" }
     }
 }
-
-fun kindArityToString(arity: Int): String = (0..arity).joinToString(" -> ") { "Type" }
 
 sealed class TypeVar {
     data class Unbound(val id: Id, val level: Level) : TypeVar()
@@ -83,10 +81,7 @@ sealed class Type {
     }
 
     fun substConst(map: Map<String, Type>): Type = when (this) {
-        is TConst -> {
-            val ty = map[name]
-            ty ?: this
-        }
+        is TConst -> map[name] ?: this
         is TApp -> copy(type.substConst(map), types.map { it.substConst(map) })
         is TArrow -> copy(args.map { it.substConst(map) }, ret.substConst(map))
         is TForall -> copy(ids, type.substConst(map))
@@ -152,7 +147,7 @@ sealed class Type {
                 else -> Kind.Star
             }
         }
-        // TODO: fix me
+        // this is not right, but I'll postpone adding real row kinds for now
         is TRowEmpty -> Kind.Star
         is TRecord -> row.kind()
         is TRowExtend -> row.kind()
@@ -209,5 +204,12 @@ sealed class Type {
             }
         }
         return go(this, false, topLevel = true)
+    }
+
+    companion object {
+        fun nestArrows(args: List<Type>, ret: Type): Type = when {
+            args.isEmpty() -> ret
+            else -> TArrow(listOf(args[0]), nestArrows(args.drop(1), ret))
+        }
     }
 }

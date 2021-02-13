@@ -1,5 +1,0 @@
-module [33mtest[0m
-at src/test/resources/failure/source/native import alias.novah:3:46 - 3:55
-
-  Identifier has to start with a lower case letter.
-

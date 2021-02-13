@@ -1,5 +1,0 @@
-module [33mtest[0m
-at src/test/resources/failure/source/unbounded variables.novah:3:22 - 3:29
-
-  The variable a is undefined in constructor Jus.
-

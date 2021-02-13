@@ -1,5 +1,0 @@
-module [33mtest[0m
-at src/test/resources/failure/source/do let as last.novah:5:3 - 5:12
-
-  Do expression cannot end with a let definition.
-
