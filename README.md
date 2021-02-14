@@ -1,6 +1,6 @@
 # Novah Compiler
 
-The compiler for novah: a statically typed functional programming language for the JVM.
+The compiler for novah: a statically typed, functional programming language for the JVM.
 
 ## Roadmap
 
