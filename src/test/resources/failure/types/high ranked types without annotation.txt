@@ -1,0 +1,11 @@
+module [33mtest[0m
+at src/test/resources/failure/types/high ranked types without annotation.novah:6:24 - 6:27
+
+  Cannot match type
+  
+      Int
+  
+  with type
+  
+      String
+

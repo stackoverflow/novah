@@ -2,5 +2,5 @@ build
 .gradle
 gradle
 .kotlintest
-.idea/uiDesigner.xml
+.idea
 output

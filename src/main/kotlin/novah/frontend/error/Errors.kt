@@ -27,7 +27,9 @@ object Errors {
 
     const val DATA_EQUALS = "Expected equals `=` after data name declaration."
 
-    const val TYPE_DCOLON = "Expected `::` before type definition."
+    const val TYPE_COLON = "Expected `:` before type definition."
+
+    const val RECORD_COLON = "Expected `:` after record label."
 
     const val TYPE_VAR = "Expected type variable (lower case identifier)."
 
@@ -112,6 +114,10 @@ object Errors {
     const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
 
     const val TYPEALIAS_PUB = "A public type alias cannot reference private types."
+
+    const val RECORD_LABEL = "A label of a record can only be a lower case identifier or a String."
+
+    const val RECURSIVE_ROWS = "Recursive row types"
 
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
@@ -224,6 +230,11 @@ object Errors {
         
             $b
     """.trimIndent()
+
+    fun partiallyAppliedAlias(name: String, expected: Int, got: Int): String = """
+        Partially applied type alias $name.
+        $name expects $expected parameter(s) but got $got.
+    """.trimIndent()
     
     fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
 
@@ -245,6 +256,19 @@ object Errors {
         return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."
         else "Variables ${vars.joinToString()} are unused in declaration."
     }
+
+    fun recordMissingLabels(labels: List<String>): String {
+        return if (labels.size == 1) "Record is missing label ${labels.joinToString()}."
+        else "Record is missing labels: ${labels.joinToString()}."
+    }
+
+    fun notARow(type: String) = """
+        Type
+        
+            $type
+        
+        is a not a row type.
+    """.trimIndent()
 
     fun redundantMatches(pats: List<String>) = """
         A case expression contains redundant cases:

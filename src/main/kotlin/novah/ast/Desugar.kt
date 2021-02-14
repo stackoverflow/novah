@@ -68,8 +68,9 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
             // if the declaration has a type annotation, annotate it
             expr = if (type != null) {
-                val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
-                else emptyList<Id>() to type.desugar()
+                // We want type annotations to be `forall` not `some`, so
+                // we won't replace constants with vars here
+                val ann = emptyList<Id>() to type.desugar()
                 Expr.Ann(expr, ann, span)
             } else expr
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility)
@@ -137,6 +138,10 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
         is SExpr.Unit -> Expr.Unit(span)
         is SExpr.DoLet -> internalError("got `do-let` outside of do statement: $this")
+        is SExpr.RecordEmpty -> Expr.RecordEmpty(span)
+        is SExpr.RecordSelect -> Expr.RecordSelect(exp.desugar(locals), label, span)
+        is SExpr.RecordExtend -> Expr.RecordExtend(exp.desugar(locals), labels.mapList { it.desugar(locals) }, span)
+        is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
     }
 
     private fun SCase.desugar(locals: List<String>): Case = Case(pattern.desugar(locals), exp.desugar())
@@ -208,6 +213,9 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
         is SType.TParens -> type.goDesugar(kindArity)
         is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
+        is SType.TRecord -> Type.TRecord(row.goDesugar()).span(span)
+        is SType.TRowEmpty -> Type.TRowEmpty().span(span)
+        is SType.TRowExtend -> Type.TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
     }
 
     /**
@@ -238,14 +246,17 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             is Type.TApp -> {
                 val newType = go(t.type)
                 val pars = t.types.map(::go)
-                Type.TApp(newType, pars).span(t.span)
+                t.copy(newType, pars)
             }
             is Type.TArrow -> {
                 val pars = t.args.map(::go)
                 val ret = go(t.ret)
-                Type.TArrow(pars, ret).span(t.span)
+                t.copy(pars, ret)
             }
-            is Type.TForall -> Type.TForall(t.ids, go(t.type)).span(t.span)
+            is Type.TForall -> t.copy(t.ids, go(t.type))
+            is Type.TRowEmpty -> t
+            is Type.TRecord -> t.copy(go(t.row))
+            is Type.TRowExtend -> t.copy(t.labels.mapList { go(it) }, go(t.row))
         }
         return ids to go(type)
     }
@@ -273,21 +284,36 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
         val map = (typealiases + smod.resolvedTypealiases).map { it.name to it }.toMap()
 
-        fun expandAndcheck(name: String, ty: SType, span: Span): SType = when (ty) {
+        fun expandAndcheck(name: String, ty: SType, span: Span, vars: List<SType> = listOf()): SType = when (ty) {
             is SType.TConst -> {
                 if (ty.name == name) parserError(E.recursiveAlias(name), span)
-                val pointer = map[ty.name]
-                if (pointer != null) expandAndcheck(name, pointer.type, span)
-                else ty
+                val pointer = map[ty.fullname()]
+                if (pointer != null) {
+                    if (vars.size != pointer.tyVars.size)
+                        parserError(E.partiallyAppliedAlias(pointer.name, pointer.tyVars.size, vars.size), span)
+
+                    if (vars.isEmpty() && pointer.tyVars.isEmpty()) expandAndcheck(name, pointer.type, span)
+                    else {
+                        val substMap = pointer.tyVars.zip(vars).toMap()
+                        expandAndcheck(name, pointer.type.substVars(substMap), span)
+                    }
+                } else ty
             }
             is SType.TFun -> ty.copy(expandAndcheck(name, ty.arg, span), expandAndcheck(name, ty.ret, span))
             is SType.TForall -> ty.copy(type = expandAndcheck(name, ty.type, span))
             is SType.TApp -> {
-                val typ = expandAndcheck(name, ty.type, span)
-                val tcons = if (typ is SType.TApp) typ.type else typ
-                ty.copy(tcons, ty.types.map { expandAndcheck(name, it, span) })
+                val resolvedTypes = ty.types.map { expandAndcheck(name, it, span) }
+                val typ = expandAndcheck(name, ty.type, span, resolvedTypes)
+                if (typ is SType.TConst) ty.copy(type = typ, types = resolvedTypes)
+                else typ
             }
             is SType.TParens -> ty.copy(expandAndcheck(name, ty.type, span))
+            is SType.TRecord -> ty.copy(row = expandAndcheck(name, ty.row, span))
+            is SType.TRowEmpty -> ty
+            is SType.TRowExtend -> ty.copy(
+                row = expandAndcheck(name, ty.row, span),
+                labels = ty.labels.mapList { expandAndcheck(name, it, span) }
+            )
         }
         typealiases.forEach { ta ->
             ta.expanded = expandAndcheck(ta.name, ta.type, ta.span)
@@ -316,6 +342,11 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                     }
                 } else ty.copy(types = ty.types.map { resolveAliases(it) })
             }
+            is SType.TRecord -> ty.copy(row = resolveAliases(ty.row))
+            is SType.TRowEmpty -> ty
+            is SType.TRowExtend -> ty.copy(
+                row = resolveAliases(ty.row),
+                labels = ty.labels.mapList { resolveAliases(it) })
         }
     }
 
@@ -324,6 +355,15 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
      * and order them by dependency
      */
     private fun validateTopLevelValues(desugared: List<Decl>): List<Decl> {
+        fun reportCycle(cycle: Set<DagNode<String, Decl.ValDecl>>) {
+            val first = cycle.iterator().next()
+            val vars = cycle.map { it.value }
+            if (cycle.size == 1)
+                parserError(E.cycleInValues(vars), first.data.span)
+            else
+                desugarErrors(cycle.map { makeError(E.cycleInValues(vars), it.data.span) })
+        }
+
         fun collectDependencies(exp: Expr): Set<String> {
             val deps = mutableSetOf<String>()
             exp.everywhere { e ->
@@ -345,8 +385,10 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
 
         val (decls, lambdas) = desugared.filterIsInstance<Decl.ValDecl>().partition { isVariable(it.exp) }
+        //val decls = desugared.filterIsInstance<Decl.ValDecl>()
         val deps = decls.map { it.name to collectDependencies(it.exp) }.toMap()
 
+        // TODO: order functions also, not only variables
         val dag = DAG<String, Decl.ValDecl>()
         val nodes = decls.map { it.name to DagNode(it.name, it) }.toMap()
         dag.addNodes(nodes.values)
@@ -355,15 +397,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             val depset = deps[node.value]
             depset?.forEach { name -> nodes[name]?.link(node) }
         }
-        val cycle = dag.findCycle()
-        if (cycle != null) {
-            val first = cycle.iterator().next()
-            val vars = cycle.map { it.value }
-            if (cycle.size == 1)
-                parserError(E.cycleInValues(vars), first.data.span)
-            else
-                desugarErrors(cycle.map { makeError(E.cycleInValues(vars), it.data.span) })
-        }
+        dag.findCycle()?.let { reportCycle(it) }
 
         val orderedDecl = dag.topoSort().map { it.data }
 

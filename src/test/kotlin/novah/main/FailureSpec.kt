@@ -9,11 +9,10 @@ import java.io.File
 class FailureSpec : StringSpec({
 
     "run all failure tests" {
-        val basePath = "src/test/resources/failure"
-        File("$basePath/source").walkTopDown().filter { it.extension == "novah" }.forEach { file ->
+        File("src/test/resources/failure").walkTopDown().filter { it.extension == "novah" }.forEach { file ->
             val path = file.toPath()
             val testName = file.nameWithoutExtension
-            val output = File("$basePath/error/$testName.txt")
+            val output = File("${file.parent}/$testName.txt")
 
             val compiler = Compiler.new(sequenceOf(path), false)
             try {

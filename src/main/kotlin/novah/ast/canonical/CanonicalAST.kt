@@ -1,5 +1,7 @@
 package novah.ast.canonical
 
+import novah.ast.LabelMap
+import novah.ast.mapList
 import novah.ast.source.Visibility
 import novah.frontend.Span
 import novah.frontend.hmftypechecker.Id
@@ -34,8 +36,7 @@ sealed class Decl {
         val span: Span,
         val type: Type?,
         val visibility: Visibility
-    ) :
-        Decl()
+    ) : Decl()
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
@@ -78,6 +79,10 @@ sealed class Expr(open val span: Span) {
 
     data class NativeConstructor(val name: String, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
     data class Unit(override val span: Span) : Expr(span)
+    class RecordEmpty(span: Span) : Expr(span)
+    data class RecordSelect(val exp: Expr, val label: String, override val span: Span) : Expr(span)
+    data class RecordExtend(val exp: Expr, val labels: LabelMap<Expr>, override val span: Span) : Expr(span)
+    data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
 
     var type: Type? = null
 
@@ -153,6 +158,9 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.Match -> f(e.copy(exp = go(e.exp), cases = e.cases.map { it.copy(exp = go(it.exp)) }))
         is Expr.Ann -> f(e.copy(exp = go(e.exp)))
         is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.RecordSelect -> f(e.copy(exp = go(e.exp)))
+        is Expr.RecordRestrict -> f(e.copy(exp = go(e.exp)))
+        is Expr.RecordExtend -> f(e.copy(exp = go(e.exp), labels = e.labels.mapList(::go)))
         else -> f(e)
     }
     return go(this)

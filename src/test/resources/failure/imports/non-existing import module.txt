@@ -1,0 +1,5 @@
+module [33mimportfail[0m
+at src/test/resources/failure/imports/non-existing import module.novah:3:1 - 3:30
+
+  Could not find module non.existing.mod.
+

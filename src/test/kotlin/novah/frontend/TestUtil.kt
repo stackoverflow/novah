@@ -1,6 +1,8 @@
 package novah.frontend
 
 import novah.Util.joinToStr
+import novah.ast.flatMapList
+import novah.ast.show
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.FunparPattern
@@ -67,7 +69,7 @@ object TestUtil {
         return Compiler.new(sources, verbose)
     }
 
-    fun compilerForCode(code: String, verbose: Boolean = false): Compiler {
+    private fun compilerForCode(code: String, verbose: Boolean = false): Compiler {
         val sources = listOf(Source.SString(Path.of("namespace"), code)).asSequence()
         return Compiler(sources, verbose)
     }
@@ -102,9 +104,12 @@ object TestUtil {
             }
         }
         is Type.TConst -> emptyList()
+        is Type.TRowEmpty -> emptyList()
+        is Type.TRecord -> row.findUnbound()
+        is Type.TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
     }
 
-    class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
+    private class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
 
     /**
      * Like [Type.show] but reset the ids of vars.
@@ -134,11 +139,34 @@ object TestUtil {
             }
             is Type.TVar -> {
                 when (val tv = t.tvar) {
-                    is TypeVar.Link -> go(tv.type, ctx, nested)
+                    is TypeVar.Link -> go(tv.type, ctx, nested, topLevel)
                     is TypeVar.Unbound -> "t${tv.id}"
                     is TypeVar.Generic -> "t${tv.id}"
                     is TypeVar.Bound -> "t${ctx.map[tv.id]}"
                 }
+            }
+            is Type.TRowEmpty -> "{}"
+            is Type.TRecord -> {
+                when (val ty = t.row.unlink()) {
+                    is Type.TRowEmpty -> "{}"
+                    !is Type.TRowExtend -> "{ | ${go(ty, ctx, topLevel = true)} }"
+                    else -> {
+                        val rows = go(ty, ctx, topLevel = true)
+                        "{" + rows.substring(1, rows.lastIndex) + "}"
+                    }
+                }
+            }
+            is Type.TRowExtend -> {
+                val labels = t.labels.show { k, v -> "$k : ${go(v, ctx, topLevel = true)}" }
+                val str = when (val ty = t.row.unlink()) {
+                    is Type.TRowEmpty -> labels
+                    !is Type.TRowExtend -> "$labels | ${go(ty, ctx, topLevel = true)}"
+                    else -> {
+                        val rows = go(ty, ctx, topLevel = true)
+                        "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                    }
+                }
+                "[ $str ]"
             }
         }
         return go(this, Ctx(), false, topLevel = true)

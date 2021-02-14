@@ -2,7 +2,11 @@ package novah.frontend.hmftypechecker
 
 import novah.Util.hasDuplicates
 import novah.Util.internalError
+import novah.Util.linkedListOf
+import novah.ast.LabelMapBuilder
 import novah.ast.canonical.*
+import novah.ast.forEachList
+import novah.ast.mapList
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.main.DeclRef
@@ -11,7 +15,7 @@ import novah.main.TypeDeclRef
 
 class Inference(private val tc: Typechecker, private val uni: Unification, private val sub: Subsumption) {
 
-    private enum class Generalized {
+    private enum class Gen {
         GENERALIZED, INSTANTIATED;
     }
 
@@ -65,7 +69,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             val name = decl.name
             val newEnv = env.makeExtension()
             val ty = if (decl.recursive) inferRecursive(name, decl.exp, newEnv, 0)
-            else infer(newEnv, 0, null, Generalized.GENERALIZED, decl.exp)
+            else infer(newEnv, 0, null, Gen.GENERALIZED, decl.exp)
 
             val genTy = generalize(-1, ty)
             env.extend(name, genTy)
@@ -79,10 +83,10 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         val pat: FunparPattern,
         val ann: Pair<List<Id>, Type>?,
         val retType: Type?,
-        val gene: Generalized
+        val gene: Gen
     )
 
-    private fun infer(env: Env, level: Level, expectedType: Type?, generalized: Generalized, exp: Expr): Type {
+    private fun infer(env: Env, level: Level, expectedType: Type?, generalized: Gen, exp: Expr): Type {
         return when (exp) {
             is Expr.IntE -> exp.withType(tInt)
             is Expr.LongE -> exp.withType(tLong)
@@ -118,7 +122,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Expr.Lambda -> {
                 val (expectedParam, ann, expectedReturn, genBody) = if (expectedType == null) {
-                    Quadruple(exp.pattern, exp.ann, null, Generalized.INSTANTIATED)
+                    Quadruple(exp.pattern, exp.ann, null, Gen.INSTANTIATED)
                 } else {
                     when (val res = tc.instantiate(level + 1, expectedType)) {
                         is Type.TArrow -> {
@@ -129,7 +133,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                                 shouldGeneralize(res.ret)
                             )
                         }
-                        else -> Quadruple(exp.pattern, exp.ann, null, Generalized.INSTANTIATED)
+                        else -> Quadruple(exp.pattern, exp.ann, null, Gen.INSTANTIATED)
                     }
                 }
                 val newEnv = env.makeExtension()
@@ -166,7 +170,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val name = exp.letDef.binder.name
                 val varType = if (exp.letDef.recursive) {
                     inferRecursive(name, exp.letDef.expr, env, level + 1)
-                } else infer(env, level + 1, null, Generalized.GENERALIZED, exp.letDef.expr)
+                } else infer(env, level + 1, null, Gen.GENERALIZED, exp.letDef.expr)
                 checkShadow(env, name, exp.letDef.binder.span)
                 env.extend(name, varType)
                 val ty = infer(env, level, expectedType, generalized, exp.body)
@@ -174,13 +178,11 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Expr.App -> {
                 val nextLevel = level + 1
-                val fnType = tc.instantiate(nextLevel, infer(env, nextLevel, null, Generalized.INSTANTIATED, exp.fn))
+                val fnType = tc.instantiate(nextLevel, infer(env, nextLevel, null, Gen.INSTANTIATED, exp.fn))
                 val (paramTypes, retType) = matchFunType(1, fnType, exp.fn.span)
                 val instReturn = tc.instantiate(nextLevel, retType)
-                when {
-                    expectedType == null || (retType is Type.TVar && retType.tvar is TypeVar.Unbound) -> {
-                    }
-                    else -> uni.unify(tc.instantiate(nextLevel, expectedType), instReturn, exp.span)
+                if (expectedType != null && !(retType is Type.TVar && retType.tvar is TypeVar.Unbound)) {
+                    uni.unify(tc.instantiate(nextLevel, expectedType), instReturn, exp.span)
                 }
                 inferArgs(env, nextLevel, paramTypes, listOf(exp.arg))
                 val ty = generalizeOrInstantiate(generalized, level, instReturn)
@@ -189,21 +191,23 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             is Expr.Ann -> {
                 val (_, type) = tc.instantiateTypeAnnotation(level, exp.annType.first, exp.annType.second)
                 // this is a bidirectional hack to typecheck (and coerce) primitives
-                this.check(env, level, type, shouldGeneralize(type), exp.exp, type)
+                this.check(env, level, type, shouldGeneralize(type), exp.exp)
                 exp.withType(type)
             }
             is Expr.If -> {
-                val condType = infer(env, level, null, Generalized.INSTANTIATED, exp.cond)
+                val condType = infer(env, level, null, Gen.INSTANTIATED, exp.cond)
                 uni.unify(condType, tBoolean, exp.span)
                 val thenType = infer(env, level, expectedType, generalized, exp.thenCase)
                 val elseType = infer(env, level, expectedType, generalized, exp.elseCase)
-                uni.unify(thenType, elseType, exp.elseCase.span)
+                uni.unify(thenType, elseType, exp.span)
                 exp.withType(thenType)
             }
             is Expr.Do -> {
                 var ty: Type? = null
+                val last = exp.exps.last()
                 exp.exps.forEach { e ->
-                    ty = infer(env, level, null, Generalized.INSTANTIATED, e)
+                    ty = if (e == last) infer(env, level, expectedType, generalized, e)
+                    else infer(env, level, null, Gen.INSTANTIATED, e)
                 }
                 exp.withType(ty!!)
             }
@@ -226,10 +230,46 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 }
                 exp.withType(resType ?: internalError(Errors.EMPTY_MATCH))
             }
+            is Expr.RecordEmpty -> exp.withType(Type.TRecord(Type.TRowEmpty()))
+            is Expr.RecordSelect -> {
+                val restRow = tc.newVar(level + 1)
+                val fieldTy = tc.newVar(level + 1)
+                val paramType =
+                    Type.TRecord(Type.TRowExtend(LabelMapBuilder.singleton(exp.label, linkedListOf(fieldTy)), restRow))
+                val infered = infer(env, level + 1, null, Gen.INSTANTIATED, exp.exp)
+                uni.unify(paramType, infered, exp.span)
+                val ty = generalizeOrInstantiate(generalized, level, fieldTy)
+                exp.withType(ty)
+            }
+            is Expr.RecordRestrict -> {
+                val restRow = tc.newVar(level + 1)
+                val fieldTy = tc.newVar(level + 1)
+                val paramType =
+                    Type.TRecord(Type.TRowExtend(LabelMapBuilder.singleton(exp.label, linkedListOf(fieldTy)), restRow))
+                val retType = Type.TRecord(restRow)
+                uni.unify(paramType, infer(env, level + 1, null, Gen.INSTANTIATED, exp.exp), exp.span)
+                val ty = generalizeOrInstantiate(generalized, level, retType)
+                exp.withType(ty)
+            }
+            is Expr.RecordExtend -> {
+                val nextLevel = level + 1
+                val labelTys = exp.labels.mapList { infer(env, nextLevel, null, Gen.GENERALIZED, it) }
+                val restRow = tc.newVar(nextLevel)
+                uni.unify(
+                    Type.TRecord(restRow),
+                    infer(env, nextLevel, null, Gen.GENERALIZED, exp.exp),
+                    exp.span
+                )
+                val ty = Type.TRecord(Type.TRowExtend(labelTys, restRow))
+                if (expectedType != null) {
+                    uni.unify(tc.instantiate(nextLevel, expectedType), ty, exp.span)
+                }
+                exp.withType(ty)
+            }
         }
     }
 
-    private fun check(env: Env, level: Level, expectedType: Type?, generalized: Generalized, exp: Expr, type: Type) {
+    private fun check(env: Env, level: Level, type: Type, generalized: Gen, exp: Expr) {
         when {
             exp is Expr.IntE && type == tByte && exp.v >= Byte.MIN_VALUE && exp.v <= Byte.MAX_VALUE ->
                 exp.withType(tByte)
@@ -245,7 +285,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             exp is Expr.Unit -> exp.withType(tUnit)
             else -> {
                 validateType(type, env, exp.span)
-                val inferedType = infer(env, level, expectedType, generalized, exp)
+                val inferedType = infer(env, level, type, generalized, exp)
                 sub.subsume(level, type, inferedType, exp.span)
                 exp.withType(type)
             }
@@ -278,7 +318,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         }
         return when (pat) {
             is Pattern.LiteralP -> {
-                val type = infer(env, level, null, Generalized.INSTANTIATED, pat.lit.e)
+                val type = infer(env, level, null, Gen.INSTANTIATED, pat.lit.e)
                 uni.unify(ty, type, pat.lit.e.span)
                 emptyList()
             }
@@ -288,7 +328,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 listOf(pat.name to ty)
             }
             is Pattern.Ctor -> {
-                val cty = infer(env, level, null, Generalized.INSTANTIATED, pat.ctor)
+                val cty = infer(env, level, null, Gen.INSTANTIATED, pat.ctor)
 
                 val (ctorTypes, ret) = peelArgs(listOf(), tc.instantiate(level, cty))
                 uni.unify(ret, ty, pat.ctor.span)
@@ -331,10 +371,10 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
      */
     private fun inferRecursive(name: String, exp: Expr, env: Env, level: Level): Type {
         val (newName, newExp) = funToFixpoint(name, exp)
-        val recTy = infer(env, level, null, Generalized.GENERALIZED, newExp)
+        val recTy = infer(env, level, null, Gen.GENERALIZED, newExp)
         env.extend(newName, recTy)
         val fix = Expr.App(Expr.Var("\$fix", exp.span), Expr.Var(newName, exp.span), exp.span)
-        return infer(env, level, null, Generalized.GENERALIZED, fix)
+        return infer(env, level, null, Gen.GENERALIZED, fix)
     }
 
     private fun generalize(level: Level, type: Type): Type {
@@ -361,7 +401,12 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     go(t.ret)
                 }
                 t is Type.TForall -> go(t.type)
-                t is Type.TConst -> {
+                t is Type.TRecord -> go(t.row)
+                t is Type.TRowExtend -> {
+                    t.labels.forEachList { go(it) }
+                    go(t.row)
+                }
+                t is Type.TConst || t is Type.TRowEmpty -> {
                 }
             }
         }
@@ -377,25 +422,25 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         else -> false
     }
 
-    private tailrec fun shouldGeneralize(type: Type): Generalized = when (type) {
-        is Type.TForall -> Generalized.GENERALIZED
-        is Type.TVar -> if (type.tvar is TypeVar.Link) shouldGeneralize((type.tvar as TypeVar.Link).type) else Generalized.INSTANTIATED
-        else -> Generalized.INSTANTIATED
+    private tailrec fun shouldGeneralize(type: Type): Gen = when (type) {
+        is Type.TForall -> Gen.GENERALIZED
+        is Type.TVar -> if (type.tvar is TypeVar.Link) shouldGeneralize((type.tvar as TypeVar.Link).type) else Gen.INSTANTIATED
+        else -> Gen.INSTANTIATED
     }
 
-    private fun maybeGeneralize(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
-        Generalized.INSTANTIATED -> ty
-        Generalized.GENERALIZED -> generalize(level, ty)
+    private fun maybeGeneralize(gene: Gen, level: Level, ty: Type): Type = when (gene) {
+        Gen.INSTANTIATED -> ty
+        Gen.GENERALIZED -> generalize(level, ty)
     }
 
-    private fun maybeInstantiate(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
-        Generalized.INSTANTIATED -> tc.instantiate(level, ty)
-        Generalized.GENERALIZED -> ty
+    private fun maybeInstantiate(gene: Gen, level: Level, ty: Type): Type = when (gene) {
+        Gen.INSTANTIATED -> tc.instantiate(level, ty)
+        Gen.GENERALIZED -> ty
     }
 
-    private fun generalizeOrInstantiate(gene: Generalized, level: Level, ty: Type): Type = when (gene) {
-        Generalized.INSTANTIATED -> tc.instantiate(level, ty)
-        Generalized.GENERALIZED -> generalize(level, ty)
+    private fun generalizeOrInstantiate(gene: Gen, level: Level, ty: Type): Type = when (gene) {
+        Gen.INSTANTIATED -> tc.instantiate(level, ty)
+        Gen.GENERALIZED -> generalize(level, ty)
     }
 
     private fun validateType(type: Type, env: Env, span: Span) {
@@ -428,8 +473,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
      * and throw an error if that's the case.
      */
     private fun checkShadow(env: Env, name: String, span: Span) {
-        val shadow = env.lookup(name)
-        if (shadow != null) inferError(Errors.shadowedVariable(name), span)
+        if (env.lookup(name) != null) inferError(Errors.shadowedVariable(name), span)
     }
 
     /**
@@ -437,8 +481,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
      * and throw an error if that's the case.
      */
     private fun checkShadowType(env: Env, type: String, span: Span) {
-        val shadow = env.lookupType(type)
-        if (shadow != null) inferError(Errors.duplicatedType(type), span)
+        if (env.lookupType(type) != null) inferError(Errors.duplicatedType(type), span)
     }
 
     private fun getDataType(d: Decl.DataDecl, moduleName: String): Pair<Type, Map<String, Type.TVar>> {
@@ -457,15 +500,11 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     }
 
     private fun getCtorType(dc: DataConstructor, dataType: Type, map: Map<String, Type.TVar>): Type {
-        tailrec fun nestFun(args: List<Type>, ret: Type): Type = when {
-            args.isEmpty() -> ret
-            else -> nestFun(args.drop(1), Type.TArrow(listOf(args[0]), ret))
-        }
         return when (dataType) {
-            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.TArrow(dc.args, dataType).span(dc.span)
+            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.nestArrows(dc.args, dataType).span(dc.span)
             is Type.TForall -> {
                 val args = dc.args.map { it.substConst(map) }
-                Type.TForall(dataType.ids, nestFun(args.reversed(), dataType.type)).span(dc.span)
+                Type.TForall(dataType.ids, Type.nestArrows(args, dataType.type)).span(dc.span)
             }
             else -> internalError("Got absurd type for data constructor: $dataType")
         }

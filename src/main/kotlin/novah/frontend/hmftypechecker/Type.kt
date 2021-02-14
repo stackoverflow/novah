@@ -1,6 +1,7 @@
 package novah.frontend.hmftypechecker
 
 import novah.Util.joinToStr
+import novah.ast.*
 import novah.frontend.Span
 
 typealias Id = Int
@@ -12,12 +13,11 @@ sealed class Kind(open val arity: Int) {
     object Star : Kind(0) {
         override fun toString(): String = "Type"
     }
+
     data class Constructor(override val arity: Int) : Kind(arity) {
-        override fun toString(): String = kindArityToString(arity)
+        override fun toString(): String = (0..arity).joinToString(" -> ") { "Type" }
     }
 }
-
-fun kindArityToString(arity: Int): String = (0..arity).joinToString(" -> ") { "Type" }
 
 sealed class TypeVar {
     data class Unbound(val id: Id, val level: Level) : TypeVar()
@@ -26,11 +26,21 @@ sealed class TypeVar {
     data class Bound(val id: Id) : TypeVar()
 }
 
+typealias Row = Type
+
 sealed class Type {
     data class TConst(val name: Name, val kind: Kind = Kind.Star) : Type()
     data class TApp(val type: Type, val types: List<Type>) : Type()
     data class TArrow(val args: List<Type>, val ret: Type) : Type()
     data class TForall(val ids: List<Id>, val type: Type) : Type()
+    data class TRecord(val row: Row) : Type()
+    data class TRowExtend(val labels: LabelMap<Type>, val row: Row) : Type()
+    class TRowEmpty : Type() {
+        override fun equals(other: Any?): Boolean = other != null && other is TRowEmpty
+        override fun hashCode(): Int = 31
+        override fun toString(): String = "TRowEmpty"
+    }
+
     class TVar(var tvar: TypeVar) : Type() {
         override fun equals(other: Any?): Boolean {
             if (other == null || other !is TVar) return false
@@ -59,19 +69,19 @@ sealed class Type {
     fun isMono(): Boolean = when (this) {
         is TForall -> false
         is TConst -> true
+        is TRowEmpty -> true
         is TVar -> {
             if (tvar is TypeVar.Link) (tvar as TypeVar.Link).type.isMono()
             else true
         }
         is TApp -> type.isMono() && types.all(Type::isMono)
         is TArrow -> args.all(Type::isMono) && ret.isMono()
+        is TRecord -> row.isMono()
+        is TRowExtend -> row.isMono() && labels.allList(Type::isMono)
     }
 
     fun substConst(map: Map<String, Type>): Type = when (this) {
-        is TConst -> {
-            val ty = map[name]
-            ty ?: this
-        }
+        is TConst -> map[name] ?: this
         is TApp -> copy(type.substConst(map), types.map { it.substConst(map) })
         is TArrow -> copy(args.map { it.substConst(map) }, ret.substConst(map))
         is TForall -> copy(ids, type.substConst(map))
@@ -81,6 +91,9 @@ sealed class Type {
                 else -> this
             }
         }
+        is TRowEmpty -> this
+        is TRecord -> copy(row.substConst(map))
+        is TRowExtend -> copy(row = row.substConst(map), labels = labels.mapList { it.substConst(map) })
     }
 
     /**
@@ -108,11 +121,21 @@ sealed class Type {
                     f(t)
                     if (t.tvar is TypeVar.Link) go((t.tvar as TypeVar.Link).type)
                 }
+                is TRowEmpty -> f(t)
+                is TRecord -> {
+                    f(t)
+                    go(t.row)
+                }
+                is TRowExtend -> {
+                    f(t)
+                    go(t.row)
+                    t.labels.forEachList(::go)
+                }
             }
         }
         go(this)
     }
-    
+
     fun kind(): Kind = when (this) {
         is TConst -> kind
         is TForall -> type.kind()
@@ -124,6 +147,10 @@ sealed class Type {
                 else -> Kind.Star
             }
         }
+        // this is not right, but I'll postpone adding real row kinds for now
+        is TRowEmpty -> Kind.Star
+        is TRecord -> row.kind()
+        is TRowExtend -> row.kind()
     }
 
     /**
@@ -153,13 +180,43 @@ sealed class Type {
             }
             is TVar -> {
                 when (val tv = t.tvar) {
-                    is TypeVar.Link -> go(tv.type, nested)
+                    is TypeVar.Link -> go(tv.type, nested, topLevel)
                     is TypeVar.Unbound -> "t${tv.id}"
                     is TypeVar.Generic -> "t${tv.id}"
                     is TypeVar.Bound -> "t${tv.id}"
                 }
             }
+            is TRowEmpty -> "{}"
+            is TRecord -> {
+                when (val ty = t.row.unlink()) {
+                    is TRowEmpty -> "{}"
+                    !is TRowExtend -> "{ | ${go(ty, topLevel = true)} }"
+                    else -> {
+                        val rows = go(ty, topLevel = true)
+                        "{" + rows.substring(1, rows.lastIndex) + "}"
+                    }
+                }
+            }
+            is TRowExtend -> {
+                val labels = t.labels.show { k, v -> "$k : ${go(v, topLevel = true)}" }
+                val str = when (val ty = t.row.unlink()) {
+                    is TRowEmpty -> labels
+                    !is TRowExtend -> "$labels | ${go(ty, topLevel = true)}"
+                    else -> {
+                        val rows = go(ty, topLevel = true)
+                        "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                    }
+                }
+                "[ $str ]"
+            }
         }
         return go(this, false, topLevel = true)
+    }
+
+    companion object {
+        fun nestArrows(args: List<Type>, ret: Type): Type = when {
+            args.isEmpty() -> ret
+            else -> TArrow(listOf(args[0]), nestArrows(args.drop(1), ret))
+        }
     }
 }

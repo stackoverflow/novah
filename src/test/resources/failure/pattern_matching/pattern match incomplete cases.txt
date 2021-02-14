@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/failure/pattern_matching/pattern match incomplete cases.novah:3:7 - 6:14
+
+  A case expression could not be determined to cover all inputs.
+

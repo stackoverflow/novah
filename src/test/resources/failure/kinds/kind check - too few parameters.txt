@@ -1,0 +1,11 @@
+module [33mtest[0m
+at src/test/resources/failure/kinds/kind check - too few parameters.novah:6:7 - 6:11
+
+  Cannot match type
+  
+      Maybe
+  
+  with type
+  
+      Maybe t3
+

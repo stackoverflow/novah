@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/failure/typealias/private typealias.novah:6:11 - 6:14
+
+  A public type alias cannot reference private types.
+

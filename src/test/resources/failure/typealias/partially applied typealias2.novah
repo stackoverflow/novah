@@ -1,0 +1,5 @@
+module test
+
+typealias Aged a r = [ "age" : a | r ]
+
+typealias User = { ssn : String | Aged Int }

@@ -1,6 +1,7 @@
 package novah
 
 import java.lang.RuntimeException
+import java.util.*
 
 private class InternalError(msg: String) : RuntimeException(msg)
 
@@ -36,6 +37,18 @@ object Util {
     
     fun String.splitAt(index: Int): Pair<String, String> {
         return substring(0, index) to substring(index + 1)
+    }
+
+    fun <V, R> LinkedList<V>.map(fn: (V) -> R): LinkedList<R> {
+        val new = LinkedList<R>()
+        forEach { new.add(fn(it)) }
+        return new
+    }
+
+    fun <V> linkedListOf(vararg vs: V): LinkedList<V> {
+        val ll = LinkedList<V>()
+        vs.forEach { ll.add(it) }
+        return ll
     }
 
     /**
