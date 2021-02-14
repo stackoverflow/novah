@@ -2,6 +2,7 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.30'
     id 'application'
     id 'com.github.johnrengelman.shadow' version '6.1.0'
+    id 'com.github.hierynomus.license' version '0.15.0'
 }
 
 group 'org.novah'
@@ -41,4 +42,11 @@ shadowJar {
 
 test {
     useJUnitPlatform()
+}
+
+license {
+    header = file('HEADER')
+
+    exclude "**/*.txt"
+    exclude "src/test/**/*.novah"
 }
