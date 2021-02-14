@@ -766,8 +766,18 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseTypeAtom(inConstructor: Boolean = false): Type? {
         if (iter.peekIsOffside()) return null
-        val tk = iter.peek()
 
+        fun parseRowExtend(): Type.TRowExtend {
+            val tk = iter.current().span
+            val labels = between<Comma, Pair<String, Type>>(::parseRecordTypeRow)
+            val rowInner = if (iter.peek().value is Pipe) {
+                iter.next()
+                parseType()
+            } else Type.TRowEmpty(span(tk, iter.current().span))
+            return Type.TRowExtend(labelMapWith(labels), rowInner, span(tk, iter.current().span))
+        }
+
+        val tk = iter.peek()
         val ty = when (tk.value) {
             is Forall -> parsePolytype(inConstructor)
             is LParen -> {
@@ -797,6 +807,19 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     else Type.TApp(const, pars, span(tk.span, iter.current().span))
                 }
             }
+            is LSBracket -> {
+                iter.next()
+                withIgnoreOffside {
+                    if (iter.peek().value is RSBracket) {
+                        val end = iter.next()
+                        Type.TRowEmpty(span(tk.span, end.span))
+                    } else {
+                        val rextend = parseRowExtend()
+                        expect<RSBracket>(withError(E.rsbracketExpected("row type")))
+                        rextend
+                    }
+                }
+            }
             is LBracket -> {
                 withIgnoreOffside {
                     iter.next()
@@ -810,18 +833,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                             val ty = parseType()
                             val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
                             val span = span(tk.span, end.span)
-                            Type.TRecord(Type.TRowExtend(ty, LabelMap(), span), span)
+                            Type.TRecord(Type.TRowExtend(LabelMap(), ty, span), span)
                         }
                         else -> {
-                            val labels = between<Comma, Pair<String, Type>>(::parseRecordTypeRow)
-                            val rowInner = if (iter.peek().value is Pipe) {
-                                iter.next()
-                                parseType()
-                            } else Type.TRowEmpty(span(tk.span, iter.current().span))
+                            val rextend = parseRowExtend()
                             val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
-                            val span = span(tk.span, end.span)
-                            val row = Type.TRowExtend(rowInner, labelMapWith(labels), span)
-                            Type.TRecord(row, span)
+                            Type.TRecord(rextend, span(tk.span, end.span))
                         }
                     }
                 }

@@ -263,7 +263,7 @@ sealed class Type(open val span: Span) {
     data class TParens(val type: Type, override val span: Span) : Type(span)
     data class TRecord(val row: Row, override val span: Span) : Type(span)
     data class TRowEmpty(override val span: Span) : Type(span)
-    data class TRowExtend(val row: Row, val labels: LabelMap<Type>, override val span: Span) : Type(span)
+    data class TRowExtend(val labels: LabelMap<Type>, val row: Row, override val span: Span) : Type(span)
 
     /**
      * Walks this type bottom->up
@@ -307,6 +307,10 @@ sealed class Type(open val span: Span) {
 
     fun substVar(from: String, new: Type): Type = everywhere { ty ->
         if (ty is TConst && ty.name == from) new else ty
+    }
+
+    fun substVars(map: Map<String, Type>): Type = everywhere { ty ->
+        if (ty is TConst) map[ty.name] ?: ty else ty
     }
 }
 

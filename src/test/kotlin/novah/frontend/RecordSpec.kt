@@ -85,4 +85,21 @@ class RecordSpec : StringSpec({
         ds["minus"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int, "😃 emoticons" : Long }"""
         ds["plus"]?.type?.simpleName() shouldBe """{ "😑" : Byte, "Uppercase" : Int, "some 'label'" : Boolean, "😃 emoticons" : Long }"""
     }
+
+    "polymorphic rows" {
+        val code = """
+            type Option a = Some a | None
+            typealias Named r = [ name : String | r ]
+            typealias Aged a r = [ age : Option a | r ]
+            
+            typealias User = { ssn : String | Named (Aged Int []) }
+            
+            user : User
+            user = { ssn: "123", name: "Namer", age: Some 30 }
+        """.module()
+
+        val user = TestUtil.compileCode(code).env.decls["user"]
+
+        user?.type?.simpleName() shouldBe "{ ssn : String, name : String, age : Option Int }"
+    }
 })

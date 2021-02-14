@@ -1,0 +1,7 @@
+module test
+
+type Option a = Some a | None
+
+typealias Opt a = Option a
+
+typealias Alias = Option Opt

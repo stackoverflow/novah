@@ -109,7 +109,7 @@ object TestUtil {
         is Type.TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
     }
 
-    class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
+    private class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
 
     /**
      * Like [Type.show] but reset the ids of vars.
@@ -150,16 +150,23 @@ object TestUtil {
                 when (val ty = t.row.unlink()) {
                     is Type.TRowEmpty -> "{}"
                     !is Type.TRowExtend -> "{ | ${go(ty, ctx, topLevel = true)} }"
-                    else -> "{ ${go(ty, ctx, topLevel = true)} }"
+                    else -> {
+                        val rows = go(ty, ctx, topLevel = true)
+                        "{" + rows.substring(1, rows.lastIndex) + "}"
+                    }
                 }
             }
             is Type.TRowExtend -> {
                 val labels = t.labels.show { k, v -> "$k : ${go(v, ctx, topLevel = true)}" }
-                when (val ty = t.row.unlink()) {
+                val str = when (val ty = t.row.unlink()) {
                     is Type.TRowEmpty -> labels
                     !is Type.TRowExtend -> "$labels | ${go(ty, ctx, topLevel = true)}"
-                    else -> "$labels, ${go(ty, ctx, topLevel = true)}"
+                    else -> {
+                        val rows = go(ty, ctx, topLevel = true)
+                        "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                    }
                 }
+                "[ $str ]"
             }
         }
         return go(this, Ctx(), false, topLevel = true)

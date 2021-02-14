@@ -191,16 +191,23 @@ sealed class Type {
                 when (val ty = t.row.unlink()) {
                     is TRowEmpty -> "{}"
                     !is TRowExtend -> "{ | ${go(ty, topLevel = true)} }"
-                    else -> "{ ${go(ty, topLevel = true)} }"
+                    else -> {
+                        val rows = go(ty, topLevel = true)
+                        "{" + rows.substring(1, rows.lastIndex) + "}"
+                    }
                 }
             }
             is TRowExtend -> {
                 val labels = t.labels.show { k, v -> "$k : ${go(v, topLevel = true)}" }
-                when (val ty = t.row.unlink()) {
+                val str = when (val ty = t.row.unlink()) {
                     is TRowEmpty -> labels
                     !is TRowExtend -> "$labels | ${go(ty, topLevel = true)}"
-                    else -> "$labels, ${go(ty, topLevel = true)}"
+                    else -> {
+                        val rows = go(ty, topLevel = true)
+                        "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                    }
                 }
+                "[ $str ]"
             }
         }
         return go(this, false, topLevel = true)

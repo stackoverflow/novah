@@ -1,0 +1,6 @@
+module [33mtest[0m
+at src/test/resources/failure/typealias/partially applied typealias2.novah:5:11 - 5:15
+
+  Partially applied type alias Aged.
+  Aged expects 2 parameter(s) but got 1.
+

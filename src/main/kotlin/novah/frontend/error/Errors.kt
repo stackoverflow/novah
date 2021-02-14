@@ -230,6 +230,11 @@ object Errors {
         
             $b
     """.trimIndent()
+
+    fun partiallyAppliedAlias(name: String, expected: Int, got: Int): String = """
+        Partially applied type alias $name.
+        $name expects $expected parameter(s) but got $got.
+    """.trimIndent()
     
     fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
 

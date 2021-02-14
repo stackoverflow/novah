@@ -284,28 +284,36 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         }
         val map = (typealiases + smod.resolvedTypealiases).map { it.name to it }.toMap()
 
-        fun expandAndcheck(name: String, ty: SType, span: Span): SType = when (ty) {
+        fun expandAndcheck(name: String, ty: SType, span: Span, vars: List<SType> = listOf()): SType = when (ty) {
             is SType.TConst -> {
                 if (ty.name == name) parserError(E.recursiveAlias(name), span)
-                val pointer = map[ty.name]
-                if (pointer != null) expandAndcheck(name, pointer.type, span)
-                else ty
+                val pointer = map[ty.fullname()]
+                if (pointer != null) {
+                    if (vars.size != pointer.tyVars.size)
+                        parserError(E.partiallyAppliedAlias(pointer.name, pointer.tyVars.size, vars.size), span)
+
+                    if (vars.isEmpty() && pointer.tyVars.isEmpty()) expandAndcheck(name, pointer.type, span)
+                    else {
+                        val substMap = pointer.tyVars.zip(vars).toMap()
+                        expandAndcheck(name, pointer.type.substVars(substMap), span)
+                    }
+                } else ty
             }
             is SType.TFun -> ty.copy(expandAndcheck(name, ty.arg, span), expandAndcheck(name, ty.ret, span))
             is SType.TForall -> ty.copy(type = expandAndcheck(name, ty.type, span))
             is SType.TApp -> {
-                val typ = expandAndcheck(name, ty.type, span)
-                val tcons = if (typ is SType.TApp) typ.type else typ
-                ty.copy(tcons, ty.types.map { expandAndcheck(name, it, span) })
+                val resolvedTypes = ty.types.map { expandAndcheck(name, it, span) }
+                val typ = expandAndcheck(name, ty.type, span, resolvedTypes)
+                if (typ is SType.TConst) ty.copy(type = typ, types = resolvedTypes)
+                else typ
             }
             is SType.TParens -> ty.copy(expandAndcheck(name, ty.type, span))
             is SType.TRecord -> ty.copy(row = expandAndcheck(name, ty.row, span))
             is SType.TRowEmpty -> ty
-            is SType.TRowExtend -> {
-                ty.copy(
-                    row = expandAndcheck(name, ty.row, span),
-                    labels = ty.labels.mapList { expandAndcheck(name, it, span) })
-            }
+            is SType.TRowExtend -> ty.copy(
+                row = expandAndcheck(name, ty.row, span),
+                labels = ty.labels.mapList { expandAndcheck(name, it, span) }
+            )
         }
         typealiases.forEach { ta ->
             ta.expanded = expandAndcheck(ta.name, ta.type, ta.span)
