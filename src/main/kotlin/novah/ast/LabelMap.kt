@@ -87,7 +87,6 @@ fun <V> LabelMap<V>.toLList(): List<Pair<String, LinkedList<V>>> {
     return list
 }
 
-@Suppress("UNCHECKED_CAST")
 fun <V> labelMapWith(kvs: List<Pair<String, V>>): LabelMap<V> {
     val map = LabelMap<V>()
     kvs.forEach { (k, v) -> map.putMulti(k, v) }

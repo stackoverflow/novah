@@ -1,5 +1,6 @@
 # Roadmap
 
+- [ ] Rewrite the compiler in novah itself
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [ ] IDE support
 - [ ] LSP implemented in the compiler
