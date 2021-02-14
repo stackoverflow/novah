@@ -102,4 +102,18 @@ class RecordSpec : StringSpec({
 
         user?.type?.simpleName() shouldBe "{ ssn : String, name : String, age : Option Int }"
     }
+
+    "record update" {
+        // this is a hack, would be better to have type level strings or direct syntax
+        // so we could generically update a record
+        val code = """
+            same : forall a. a -> a -> a
+            same x y = y
+            
+            update newName named = { name: same named.name newName | { - name | named } }
+        """.module()
+
+        val user = TestUtil.compileCode(code).env.decls["update"]
+        user?.type?.simpleName() shouldBe "forall t1 t2. t1 -> { name : t1 | t2 } -> { name : t1 | t2 }"
+    }
 })
