@@ -8,7 +8,7 @@ See [Roadmap](https://github.com/stackoverflow/novah/blob/master/ROADMAP.md).
 
 ## Open TODO list
 
-See [TODO](https://github.com/stackoverflow/novah/blob/master/TODO.txt).
+See [TODO](https://github.com/stackoverflow/novah/blob/master/TODO.md).
 
 ## Licenses
 
