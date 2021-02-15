@@ -17,11 +17,10 @@ package novah.frontend.hmftypechecker
 
 import novah.Util.hasDuplicates
 import novah.Util.internalError
-import novah.Util.linkedListOf
-import novah.ast.LabelMapBuilder
 import novah.ast.canonical.*
-import novah.ast.forEachList
-import novah.ast.mapList
+import novah.data.forEachList
+import novah.data.mapList
+import novah.data.singletonPMap
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.main.DeclRef
@@ -250,7 +249,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val restRow = tc.newVar(level + 1)
                 val fieldTy = tc.newVar(level + 1)
                 val paramType =
-                    Type.TRecord(Type.TRowExtend(LabelMapBuilder.singleton(exp.label, linkedListOf(fieldTy)), restRow))
+                    Type.TRecord(Type.TRowExtend(singletonPMap(exp.label, fieldTy), restRow))
                 val infered = infer(env, level + 1, null, Gen.INSTANTIATED, exp.exp)
                 uni.unify(paramType, infered, exp.span)
                 val ty = generalizeOrInstantiate(generalized, level, fieldTy)
@@ -260,7 +259,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val restRow = tc.newVar(level + 1)
                 val fieldTy = tc.newVar(level + 1)
                 val paramType =
-                    Type.TRecord(Type.TRowExtend(LabelMapBuilder.singleton(exp.label, linkedListOf(fieldTy)), restRow))
+                    Type.TRecord(Type.TRowExtend(singletonPMap(exp.label, fieldTy), restRow))
                 val retType = Type.TRecord(restRow)
                 uni.unify(paramType, infer(env, level + 1, null, Gen.INSTANTIATED, exp.exp), exp.span)
                 val ty = generalizeOrInstantiate(generalized, level, retType)

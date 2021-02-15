@@ -16,8 +16,8 @@
 package novah.formatter
 
 import novah.Util.joinToStr
-import novah.ast.show
 import novah.ast.source.*
+import novah.data.show
 import novah.frontend.Application
 import novah.frontend.Comment
 

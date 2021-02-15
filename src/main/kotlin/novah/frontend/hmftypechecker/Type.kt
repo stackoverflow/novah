@@ -16,7 +16,7 @@
 package novah.frontend.hmftypechecker
 
 import novah.Util.joinToStr
-import novah.ast.*
+import novah.data.*
 import novah.frontend.Span
 
 typealias Id = Int
@@ -49,7 +49,7 @@ sealed class Type {
     data class TArrow(val args: List<Type>, val ret: Type) : Type()
     data class TForall(val ids: List<Id>, val type: Type) : Type()
     data class TRecord(val row: Row) : Type()
-    data class TRowExtend(val labels: LabelMap<Type>, val row: Row) : Type()
+    data class TRowExtend(val labels: PLabelMap<Type>, val row: Row) : Type()
     class TRowEmpty : Type() {
         override fun equals(other: Any?): Boolean = other != null && other is TRowEmpty
         override fun hashCode(): Int = 31
