@@ -16,6 +16,7 @@
 package novah.main
 
 import com.github.ajalt.clikt.output.TermUi.echo
+import novah.Util
 import novah.ast.Desugar
 import novah.ast.source.Decl
 import novah.ast.source.Module
@@ -131,6 +132,16 @@ class Environment(private val verbose: Boolean) {
             }
             codegen.run()
         }
+        if (!dryRun) copyNativeLibs(output)
+    }
+
+    /**
+     * Copy all the java classes necessary for novah to run
+     * from the resources folder to the output.
+     */
+    private fun copyNativeLibs(output: File) {
+        val input = javaClass.classLoader.getResourceAsStream("nativeLibs.zip")
+        Util.unzip(input!!, output)
     }
 
     private fun reportCycle(nodes: Set<DagNode<String, Module>>) {

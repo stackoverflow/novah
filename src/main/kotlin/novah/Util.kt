@@ -15,8 +15,11 @@
  */
 package novah
 
-import java.lang.RuntimeException
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
 import java.util.*
+import java.util.zip.ZipInputStream
 
 private class InternalError(msg: String) : RuntimeException(msg)
 
@@ -49,7 +52,7 @@ object Util {
     fun <E> List<E>.prepend(e: E): List<E> = listOf(e) + this
 
     fun <E> List<E>.hasDuplicates(): Boolean = toSet().size != size
-    
+
     fun String.splitAt(index: Int): Pair<String, String> {
         return substring(0, index) to substring(index + 1)
     }
@@ -81,5 +84,37 @@ object Util {
         val pre = if (isEmpty()) "" else prefix
         val pos = if (isEmpty()) "" else postfix
         return joinTo(StringBuilder(), separator, pre, pos, limit, truncated, transform).toString()
+    }
+
+    /**
+     * Unzips this input stream to the outputDir.
+     */
+    fun unzip(input: InputStream, outputDir: File) {
+        val root = outputDir.normalize();
+        input.use { inputSteam ->
+            ZipInputStream(inputSteam).use { zis ->
+                var entry = zis.nextEntry;
+                while (entry != null) {
+                    val path = root.resolve(entry.name).normalize();
+                    if (!path.startsWith(root)) {
+                        throw IOException("Invalid ZIP");
+                    }
+                    if (entry.isDirectory) {
+                        path.mkdirs()
+                    } else {
+                        path.outputStream().use { os ->
+                            val buffer = ByteArray(1024)
+                            var len = zis.read(buffer)
+                            while (len > 0) {
+                                os.write(buffer, 0, len)
+                                len = zis.read(buffer)
+                            }
+                        }
+                    }
+                    entry = zis.nextEntry;
+                }
+                zis.closeEntry();
+            }
+        }
     }
 }
