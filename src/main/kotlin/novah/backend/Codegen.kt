@@ -35,8 +35,11 @@ import novah.backend.TypeUtil.FUNCTION_TYPE
 import novah.backend.TypeUtil.INTEGER_CLASS
 import novah.backend.TypeUtil.LONG_CLASS
 import novah.backend.TypeUtil.OBJECT_TYPE
+import novah.backend.TypeUtil.RECORD_CLASS
+import novah.backend.TypeUtil.RECORD_TYPE
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
+import novah.backend.TypeUtil.STRING_TYPE
 import novah.backend.TypeUtil.buildMethodSignature
 import novah.backend.TypeUtil.descriptor
 import novah.backend.TypeUtil.maybeBuildFieldSignature
@@ -354,6 +357,39 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.Cast -> {
                 genExpr(e.expr, mv, ctx)
                 mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
+            }
+            is Expr.RecordEmpty -> {
+                mv.visitTypeInsn(NEW, RECORD_CLASS)
+                mv.visitInsn(DUP)
+                mv.visitMethodInsn(INVOKESPECIAL, RECORD_CLASS, INIT, "()V", false)
+            }
+            is Expr.RecordSelect -> {
+                genExpr(e.expr, mv, ctx)
+                mv.visitLdcInsn(e.label)
+                mv.visitInsn(ACONST_NULL)
+                val desc = "($STRING_TYPE$OBJECT_TYPE)$OBJECT_TYPE"
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "get", desc, false)
+                val type = toInternalClass(e.type)
+                if (type != OBJECT_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
+            }
+            is Expr.RecordRestrict -> {
+                genExpr(e.expr, mv, ctx)
+                mv.visitLdcInsn(e.label)
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "dissoc", "($STRING_TYPE)$RECORD_TYPE", false)
+            }
+            is Expr.RecordExtend -> {
+                genExpr(e.expr, mv, ctx)
+                // make the map linear before adding the labels then fork it
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "toTransient", "()$RECORD_TYPE", false)
+                e.labels.forEach { kv ->
+                    mv.visitLdcInsn(kv.key())
+                    // TODO: duplicated labels
+                    genExpr(kv.value().first(), mv, ctx)
+                    val desc = "($STRING_TYPE$OBJECT_TYPE)$RECORD_TYPE"
+                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "assoc", desc, false)
+                }
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "persistent", "()$RECORD_TYPE", false)
             }
         }
     }

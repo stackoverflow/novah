@@ -363,6 +363,6 @@ class Optimizer(private val ast: CModule) {
 
         private fun internalize(name: String) = name.replace('.', '/')
 
-        val RECORD_TYPE = internalize("org.organicdesign.fp.collections.PersistentHashMap")
+        const val RECORD_TYPE = "novah/collections/Record"
     }
 }

@@ -30,10 +30,13 @@ object TypeUtil {
     const val BOOL_CLASS = "java/lang/Boolean"
 
     const val STRING_CLASS = "java/lang/String"
+    const val RECORD_CLASS = "novah/collections/Record"
 
     private const val FUNCTION_CLASS = "java/util/function/Function"
     const val FUNCTION_TYPE = "Ljava/util/function/Function;"
     const val OBJECT_TYPE = "Ljava/lang/Object;"
+    const val STRING_TYPE = "Ljava/lang/String;"
+    const val RECORD_TYPE = "Lnovah/collections/Record;"
 
     fun toInternalClass(type: Type): String = when (type) {
         is Type.TVar -> if (type.isForall) OBJECT_CLASS else type.name

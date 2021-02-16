@@ -64,6 +64,18 @@ lamb x x2 = do
   Some "a"
   println (toString (Some "a"))
 
+rec = { name: "Mario", lastName: "Brother", age: 33 }
+
+runRecords () = do
+  println (toString rec)
+  let plus = { "which game": "Super Mario Brothers" | rec }
+  println (toString plus)
+  let minus = { - name | rec }
+  println (toString minus)
+  println rec.name
+  println rec.lastName
+  println (toString rec.age)
+
 run () = do
   let arr = newArrayList ()
   add arr "asd"
@@ -72,5 +84,5 @@ run () = do
 
 main _ = do
   println "running novah"
-  run ()
+  runRecords ()
   //println (myFun (Some (Some "fun")))

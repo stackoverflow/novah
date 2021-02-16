@@ -12,5 +12,5 @@
 - [ ] Desugar types to classes before codegen (?)
 - [ ] Report unused variables
 - [ ] Revamp the error reporting, so it can return json as well as print to the console
-- [ ] Add primitive autoboxing to code generation
+- [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
 - [ ] Add spans to individual imports with error reporting
