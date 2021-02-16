@@ -843,7 +843,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                             val ty = parseType()
                             val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
                             val span = span(tk.span, end.span)
-                            Type.TRecord(Type.TRowExtend(PLabelMap.empty(), ty, span), span)
+                            Type.TRecord(Type.TRowExtend(PLabelMap(), ty, span), span)
                         }
                         else -> {
                             val rextend = parseRowExtend()

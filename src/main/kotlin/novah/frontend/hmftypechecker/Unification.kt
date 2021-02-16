@@ -96,10 +96,10 @@ class Unification(private val tc: Typechecker) {
             return
         }
         if (t1 is Type.TRowEmpty && t2 is Type.TRowExtend) {
-            unificationError(Errors.recordMissingLabels(t2.labels.keys.toList()), span)
+            unificationError(Errors.recordMissingLabels(t2.labels.keys().toList()), span)
         }
         if (t1 is Type.TRowExtend && t2 is Type.TRowEmpty) {
-            unificationError(Errors.recordMissingLabels(t1.labels.keys.toList()), span)
+            unificationError(Errors.recordMissingLabels(t1.labels.keys().toList()), span)
         }
         unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
     }
@@ -110,51 +110,50 @@ class Unification(private val tc: Typechecker) {
         val (labels2, restTy2) = matchRowType(row2)
 
         tailrec fun unifyTypes(
-            t1s: PersistentList<Type>,
-            t2s: PersistentList<Type>
-        ): Pair<PersistentList<Type>, PersistentList<Type>> {
+            t1s: PList<Type>,
+            t2s: PList<Type>
+        ): Pair<PList<Type>, PList<Type>> {
             return when {
-                t1s is Nil || t2s is Nil -> t1s to t2s
-                t1s is Cons && t2s is Cons -> {
-                    unify(t1s.head, t2s.head, span)
-                    unifyTypes(t1s.tail, t2s.tail)
+                t1s.isEmpty() || t2s.isEmpty() -> t1s to t2s
+                else -> {
+                    unify(t1s.first(), t2s.first(), span)
+                    unifyTypes(t1s.removeFirst(), t2s.removeFirst())
                 }
-                else -> internalError("impossible")
             }
         }
 
         tailrec fun unifyLabels(
             missing1: PLabelMap<Type>,
             missing2: PLabelMap<Type>,
-            labels1: List<Pair<String, PersistentList<Type>>>,
-            labels2: List<Pair<String, PersistentList<Type>>>
+            labels1: PList<Pair<String, PList<Type>>>,
+            labels2: PList<Pair<String, PList<Type>>>
         ): Pair<PLabelMap<Type>, PLabelMap<Type>> = when {
             labels1.isEmpty() && labels2.isEmpty() -> missing1 to missing2
             labels1.isEmpty() -> addDistinctLabels(missing1, labels2) to missing2
             labels2.isEmpty() -> missing1 to addDistinctLabels(missing2, labels1)
             else -> {
-                val (label1, tys1) = labels1[0]
-                val (label2, tys2) = labels2[0]
-                val rest1 = labels1.drop(1)
-                val rest2 = labels2.drop(1)
+                val (label1, tys1) = labels1.first()
+                val (label2, tys2) = labels2.first()
+                val rest1 = labels1.removeFirst()
+                val rest2 = labels2.removeFirst()
                 when {
                     label1 == label2 -> {
                         val (m1s, m2s) = unifyTypes(tys1, tys2)
                         val (missing11, missing22) = when {
                             m1s.isEmpty() && m2s.isEmpty() -> missing1 to missing2
-                            m2s.isEmpty() -> missing1 to missing2.assoc(label1, m1s)
-                            m1s.isEmpty() -> missing1.assoc(label2, m2s) to missing2
+                            m2s.isEmpty() -> missing1 to missing2.put(label1, m1s)
+                            m1s.isEmpty() -> missing1.put(label2, m2s) to missing2
                             else -> internalError("impossible")
                         }
                         unifyLabels(missing11, missing22, rest1, rest2)
                     }
-                    label1 < label2 -> unifyLabels(missing1, missing2.assoc(label1, tys1), rest1, labels2)
-                    else -> unifyLabels(missing1.assoc(label2, tys2), missing2, labels1, rest2)
+                    label1 < label2 -> unifyLabels(missing1, missing2.put(label1, tys1), rest1, labels2)
+                    else -> unifyLabels(missing1.put(label2, tys2), missing2, labels1, rest2)
                 }
             }
         }
 
-        val (missing1, missing2) = unifyLabels(emptyPmap(), emptyPmap(), labels1.toPList(), labels2.toPList())
+        val (missing1, missing2) = unifyLabels(PLabelMap(), PLabelMap(), labels1.toPList(), labels2.toPList())
 
         val (empty1, empty2) = missing1.isEmpty() to missing2.isEmpty()
         when {
@@ -280,11 +279,11 @@ fun escapeCheck(genericVars: List<Type>, t1: Type, t2: Type): Boolean {
 }
 
 fun matchRowType(ty: Type): Pair<PLabelMap<Type>, Type> = when (ty) {
-    is Type.TRowEmpty -> emptyPmap<Type>() to Type.TRowEmpty().span(ty.span)
+    is Type.TRowEmpty -> PLabelMap<Type>() to Type.TRowEmpty().span(ty.span)
     is Type.TVar -> {
         when (val tv = ty.tvar) {
             is TypeVar.Link -> matchRowType(tv.type)
-            else -> emptyPmap<Type>() to ty
+            else -> PLabelMap<Type>() to ty
         }
     }
     is Type.TRowExtend -> {
@@ -295,7 +294,7 @@ fun matchRowType(ty: Type): Pair<PLabelMap<Type>, Type> = when (ty) {
     else -> unificationError(Errors.notARow(ty.show(false)), ty.span ?: Span.empty())
 }
 
-fun addDistinctLabels(labelMap: PLabelMap<Type>, labels: List<Pair<String, PersistentList<Type>>>): PLabelMap<Type> {
+fun addDistinctLabels(labelMap: PLabelMap<Type>, labels: PList<Pair<String, PList<Type>>>): PLabelMap<Type> {
     return labels.fold(labelMap) { acc, (s, l) -> acc.assocat(s, l)}
 }
 

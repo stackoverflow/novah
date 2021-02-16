@@ -16,6 +16,7 @@
 package novah.ast.optimized
 
 import novah.ast.source.Visibility
+import novah.data.PLabelMap
 import novah.frontend.Span
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -85,6 +86,10 @@ sealed class Expr(open val type: Type) {
     data class Unit(override val type: Type) : Expr(type)
     data class Throw(val expr: Expr) : Expr(expr.type)
     data class Cast(val expr: Expr, override val type: Type) : Expr(type)
+    data class RecordEmpty(override val type: Type) : Expr(type)
+    data class RecordExtend(val expr: Expr, val labels: PLabelMap<Expr>, override val type: Type) : Expr(type)
+    data class RecordSelect(val expr: Expr, val label: String, override val type: Type) : Expr(type)
+    data class RecordRestrict(val expr: Expr, val label: String, override val type: Type) : Expr(type)
 }
 
 sealed class Type {

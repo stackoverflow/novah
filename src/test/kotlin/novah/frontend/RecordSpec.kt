@@ -51,7 +51,11 @@ class RecordSpec : StringSpec({
             
             minus = { - a | rec }
             
+            minusA = minus.a
+            
             plus = { a: (5 : Byte) | rec }
+            
+            plusA = plus.a
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
@@ -59,7 +63,9 @@ class RecordSpec : StringSpec({
         ds["rec"]?.type?.simpleName() shouldBe "{ a : Long, a : Boolean, a : Int }"
         ds["a"]?.type?.simpleName() shouldBe "Long"
         ds["minus"]?.type?.simpleName() shouldBe "{ a : Boolean, a : Int }"
+        ds["minusA"]?.type?.simpleName() shouldBe "Boolean"
         ds["plus"]?.type?.simpleName() shouldBe "{ a : Byte, a : Long, a : Boolean, a : Int }"
+        ds["plusA"]?.type?.simpleName() shouldBe "Byte"
     }
 
     "polymorphic labels" {
