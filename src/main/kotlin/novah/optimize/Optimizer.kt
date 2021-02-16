@@ -165,7 +165,7 @@ class Optimizer(private val ast: CModule) {
             )
             is CExpr.Unit -> Expr.Unit(typ)
             is CExpr.RecordEmpty -> Expr.RecordEmpty(typ)
-            is CExpr.RecordExtend -> Expr.RecordExtend(exp.convert(locals), labels.mapList { it.convert(locals) }, typ)
+            is CExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.convert(locals) }, exp.convert(locals), typ)
             is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ)
         }

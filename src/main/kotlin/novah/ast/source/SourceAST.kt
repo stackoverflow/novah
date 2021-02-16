@@ -216,7 +216,7 @@ sealed class Expr {
     class Unit : Expr()
     class RecordEmpty : Expr()
     data class RecordSelect(val exp: Expr, val label: String) : Expr()
-    data class RecordExtend(val exp: Expr, val labels: PLabelMap<Expr>) : Expr()
+    data class RecordExtend(val labels: PLabelMap<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val label: String) : Expr()
 
     var span = Span.empty()

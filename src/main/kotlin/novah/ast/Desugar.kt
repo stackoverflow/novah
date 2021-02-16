@@ -155,7 +155,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SExpr.DoLet -> internalError("got `do-let` outside of do statement: $this")
         is SExpr.RecordEmpty -> Expr.RecordEmpty(span)
         is SExpr.RecordSelect -> Expr.RecordSelect(exp.desugar(locals), label, span)
-        is SExpr.RecordExtend -> Expr.RecordExtend(exp.desugar(locals), labels.mapList { it.desugar(locals) }, span)
+        is SExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.desugar(locals) }, exp.desugar(locals), span)
         is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
     }
 

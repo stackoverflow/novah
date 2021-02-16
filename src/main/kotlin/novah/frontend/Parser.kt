@@ -662,7 +662,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val end = expect<RBracket>(withError(E.rbracketExpected("record")))
 
                 val labels = labelMapWith(rows)
-                Expr.RecordExtend(exp, labels).withSpan(begin.span, end.span).withComment(begin.comment)
+                Expr.RecordExtend(labels, exp).withSpan(begin.span, end.span).withComment(begin.comment)
             }
         }
     }
