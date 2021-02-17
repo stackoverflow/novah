@@ -16,8 +16,8 @@
 package novah.formatter
 
 import novah.Util.joinToStr
-import novah.ast.show
 import novah.ast.source.*
+import novah.data.show
 import novah.frontend.Application
 import novah.frontend.Comment
 
@@ -192,6 +192,8 @@ class Formatter {
             is Expr.RecordSelect -> "${show(e.exp)}.${e.label}"
             is Expr.RecordRestrict -> "{ - ${show(e.exp)} | ${e.label} }"
             is Expr.RecordExtend -> "{ ${e.labels.show(::showLabel)} | ${show(e.exp)} }"
+            is Expr.VectorLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
+            is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
         }
     }
 

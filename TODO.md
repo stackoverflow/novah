@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] remove support for impredicative polymorphism (but leav HRTs)
 - [ ] Validate type definitions/aliases for wrong kind (checkWellFormed does it only for applications)
 - [ ] Use persistent map and list for env and label map
 - [X] Add warnings to the compiler (still not working properly)
@@ -12,5 +13,5 @@
 - [ ] Desugar types to classes before codegen (?)
 - [ ] Report unused variables
 - [ ] Revamp the error reporting, so it can return json as well as print to the console
-- [ ] Add primitive autoboxing to code generation
+- [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
 - [ ] Add spans to individual imports with error reporting

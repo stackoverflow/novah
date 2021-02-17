@@ -15,8 +15,9 @@
  */
 package novah.ast.source
 
-import novah.ast.LabelMap
-import novah.ast.mapList
+import novah.data.PLabelMap
+import novah.data.flatMapList
+import novah.data.mapList
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -215,8 +216,10 @@ sealed class Expr {
     class Unit : Expr()
     class RecordEmpty : Expr()
     data class RecordSelect(val exp: Expr, val label: String) : Expr()
-    data class RecordExtend(val exp: Expr, val labels: LabelMap<Expr>) : Expr()
+    data class RecordExtend(val labels: PLabelMap<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val label: String) : Expr()
+    data class VectorLiteral(val exps: List<Expr>) : Expr()
+    data class SetLiteral(val exps: List<Expr>) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null
@@ -278,7 +281,7 @@ sealed class Type(open val span: Span) {
     data class TParens(val type: Type, override val span: Span) : Type(span)
     data class TRecord(val row: Row, override val span: Span) : Type(span)
     data class TRowEmpty(override val span: Span) : Type(span)
-    data class TRowExtend(val labels: LabelMap<Type>, val row: Row, override val span: Span) : Type(span)
+    data class TRowExtend(val labels: PLabelMap<Type>, val row: Row, override val span: Span) : Type(span)
 
     /**
      * Walks this type bottom->up
@@ -317,7 +320,7 @@ sealed class Type(open val span: Span) {
         is TParens -> type.findFreeVars(bound)
         is TRecord -> row.findFreeVars(bound)
         is TRowEmpty -> emptyList()
-        is TRowExtend -> row.findFreeVars(bound) + labels.values.flatMap { tys -> tys.flatMap { it.findFreeVars(bound) } }
+        is TRowExtend -> row.findFreeVars(bound) + labels.flatMapList { it.findFreeVars(bound) }
     }
 
     fun substVar(from: String, new: Type): Type = everywhere { ty ->

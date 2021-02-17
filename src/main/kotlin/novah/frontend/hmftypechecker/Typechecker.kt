@@ -16,10 +16,10 @@
 package novah.frontend.hmftypechecker
 
 import novah.ast.canonical.Module
-import novah.ast.forEachList
 import novah.data.Err
 import novah.data.Ok
 import novah.data.Result
+import novah.data.forEachList
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors

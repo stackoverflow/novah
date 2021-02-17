@@ -16,12 +16,10 @@
 package novah.frontend.hmftypechecker
 
 import novah.Util.internalError
-import novah.ast.*
+import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
-import java.util.*
-import kotlin.collections.HashSet
 
 class Unification(private val tc: Typechecker) {
 
@@ -98,10 +96,10 @@ class Unification(private val tc: Typechecker) {
             return
         }
         if (t1 is Type.TRowEmpty && t2 is Type.TRowExtend) {
-            unificationError(Errors.recordMissingLabels(t2.labels.keys.toList()), span)
+            unificationError(Errors.recordMissingLabels(t2.labels.keys().toList()), span)
         }
         if (t1 is Type.TRowExtend && t2 is Type.TRowEmpty) {
-            unificationError(Errors.recordMissingLabels(t1.labels.keys.toList()), span)
+            unificationError(Errors.recordMissingLabels(t1.labels.keys().toList()), span)
         }
         unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
     }
@@ -111,58 +109,46 @@ class Unification(private val tc: Typechecker) {
         val (labels1, restTy1) = matchRowType(row1)
         val (labels2, restTy2) = matchRowType(row2)
 
-        tailrec fun unifyTypes(t1s: List<Type>, t2s: List<Type>): Pair<LinkedList<Type>, LinkedList<Type>> {
-            return if (t1s.isEmpty() || t2s.isEmpty()) LinkedList(t1s) to LinkedList(t2s)
-            else {
-                unify(t1s[0], t2s[0], span)
-                unifyTypes(t1s.drop(1), t2s.drop(1))
+        tailrec fun unifyTypes(t1s: PList<Type>, t2s: PList<Type>): Pair<PList<Type>, PList<Type>> = when {
+            t1s.isEmpty() || t2s.isEmpty() -> t1s to t2s
+            else -> {
+                unify(t1s.first(), t2s.first(), span)
+                unifyTypes(t1s.removeFirst(), t2s.removeFirst())
             }
         }
 
         tailrec fun unifyLabels(
-            missing1: LabelMap<Type>,
-            missing2: LabelMap<Type>,
-            labels1: List<Pair<String, LinkedList<Type>>>,
-            labels2: List<Pair<String, LinkedList<Type>>>
-        ): Pair<LabelMap<Type>, LabelMap<Type>> = when {
+            missing1: PLabelMap<Type>,
+            missing2: PLabelMap<Type>,
+            labels1: PList<Pair<String, PList<Type>>>,
+            labels2: PList<Pair<String, PList<Type>>>
+        ): Pair<PLabelMap<Type>, PLabelMap<Type>> = when {
             labels1.isEmpty() && labels2.isEmpty() -> missing1 to missing2
             labels1.isEmpty() -> addDistinctLabels(missing1, labels2) to missing2
             labels2.isEmpty() -> missing1 to addDistinctLabels(missing2, labels1)
             else -> {
-                val (label1, tys1) = labels1[0]
-                val (label2, tys2) = labels2[0]
-                val rest1 = labels1.drop(1)
-                val rest2 = labels2.drop(1)
+                val (label1, tys1) = labels1.first()
+                val (label2, tys2) = labels2.first()
+                val rest1 = labels1.removeFirst()
+                val rest2 = labels2.removeFirst()
                 when {
                     label1 == label2 -> {
                         val (m1s, m2s) = unifyTypes(tys1, tys2)
                         val (missing11, missing22) = when {
                             m1s.isEmpty() && m2s.isEmpty() -> missing1 to missing2
-                            m2s.isEmpty() -> {
-                                missing2[label1] = m1s
-                                missing1 to missing2
-                            }
-                            m1s.isEmpty() -> {
-                                missing1[label2] = m2s
-                                missing1 to missing2
-                            }
+                            m2s.isEmpty() -> missing1 to missing2.put(label1, m1s)
+                            m1s.isEmpty() -> missing1.put(label2, m2s) to missing2
                             else -> internalError("impossible")
                         }
                         unifyLabels(missing11, missing22, rest1, rest2)
                     }
-                    label1 < label2 -> {
-                        missing2[label1] = tys1
-                        unifyLabels(missing1, missing2, rest1, labels2)
-                    }
-                    else -> {
-                        missing1[label2] = tys2
-                        unifyLabels(missing1, missing2, labels1, rest2)
-                    }
+                    label1 < label2 -> unifyLabels(missing1, missing2.put(label1, tys1), rest1, labels2)
+                    else -> unifyLabels(missing1.put(label2, tys2), missing2, labels1, rest2)
                 }
             }
         }
 
-        val (missing1, missing2) = unifyLabels(LabelMap(), LabelMap(), labels1.toLList(), labels2.toLList())
+        val (missing1, missing2) = unifyLabels(PLabelMap(), PLabelMap(), labels1.toPList(), labels2.toPList())
 
         val (empty1, empty2) = missing1.isEmpty() to missing2.isEmpty()
         when {
@@ -287,12 +273,12 @@ fun escapeCheck(genericVars: List<Type>, t1: Type, t2: Type): Boolean {
     return genericVars.any { it in freeVars1 || it in freeVars2 }
 }
 
-fun matchRowType(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
-    is Type.TRowEmpty -> LabelMap<Type>() to Type.TRowEmpty().span(ty.span)
+fun matchRowType(ty: Type): Pair<PLabelMap<Type>, Type> = when (ty) {
+    is Type.TRowEmpty -> PLabelMap<Type>() to Type.TRowEmpty().span(ty.span)
     is Type.TVar -> {
         when (val tv = ty.tvar) {
             is TypeVar.Link -> matchRowType(tv.type)
-            else -> LabelMap<Type>() to ty
+            else -> PLabelMap<Type>() to ty
         }
     }
     is Type.TRowExtend -> {
@@ -303,13 +289,11 @@ fun matchRowType(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
     else -> unificationError(Errors.notARow(ty.show(false)), ty.span ?: Span.empty())
 }
 
-fun addDistinctLabels(labelMap: LabelMap<Type>, labels: List<Pair<String, List<Type>>>): LabelMap<Type> {
-    val newMap = LabelMap(labelMap)
-    labels.forEach { (l, el) ->
-        if (newMap.containsKey(l)) internalError("Label map already contains label $l")
-        newMap[l] = LinkedList(el)
+fun addDistinctLabels(labelMap: PLabelMap<Type>, labels: PList<Pair<String, PList<Type>>>): PLabelMap<Type> {
+    return labels.fold(labelMap) { acc, (s, l) ->
+        if (acc.contains(s)) internalError("Label map already contains label $s")
+        acc.assocat(s, l)
     }
-    return newMap
 }
 
 private fun unificationError(msg: String, span: Span): Nothing = inferError(msg, span, ProblemContext.UNIFICATION)

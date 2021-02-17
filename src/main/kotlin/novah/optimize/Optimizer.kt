@@ -21,10 +21,7 @@ import novah.ast.canonical.Pattern
 import novah.ast.canonical.fullname
 import novah.ast.canonical.show
 import novah.ast.optimized.*
-import novah.data.Err
-import novah.data.Ok
-import novah.data.Reflection
-import novah.data.Result
+import novah.data.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.hmftypechecker.*
@@ -167,10 +164,12 @@ class Optimizer(private val ast: CModule) {
                 ProblemContext.FOREIGN
             )
             is CExpr.Unit -> Expr.Unit(typ)
-            is CExpr.RecordEmpty -> TODO()
-            is CExpr.RecordExtend -> TODO()
-            is CExpr.RecordSelect -> TODO()
-            is CExpr.RecordRestrict -> TODO()
+            is CExpr.RecordEmpty -> Expr.RecordEmpty(typ)
+            is CExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.convert(locals) }, exp.convert(locals), typ)
+            is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ)
+            is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ)
+            is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ)
+            is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ)
         }
     }
 
@@ -204,9 +203,10 @@ class Optimizer(private val ast: CModule) {
                 is TypeVar.Unbound -> internalError("got unbound variable after typechecking: ${this.show(true)}")
             }
         }
-        is TType.TRowEmpty -> TODO()
-        is TType.TRecord -> TODO()
-        is TType.TRowExtend -> TODO()
+        // records always have the same type
+        is TType.TRowEmpty -> Type.TVar(RECORD_TYPE)
+        is TType.TRecord -> Type.TVar(RECORD_TYPE)
+        is TType.TRowExtend -> Type.TVar(RECORD_TYPE)
     }
 
     private val rteCtor = RuntimeException::class.java.constructors.find {
@@ -360,9 +360,13 @@ class Optimizer(private val ast: CModule) {
             "prim.Char" -> "java/lang/Character"
             "prim.String" -> "java/lang/String"
             "prim.Unit" -> "java/lang/Object"
+            "prim.Vector" -> "io/lacuna/bifurcan/IList"
+            "prim.Set" -> "io/lacuna/bifurcan/ISet"
             else -> internalize(tvar.name)
         }
 
         private fun internalize(name: String) = name.replace('.', '/')
+
+        const val RECORD_TYPE = "novah/collections/Record"
     }
 }

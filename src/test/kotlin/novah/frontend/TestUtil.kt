@@ -16,13 +16,13 @@
 package novah.frontend
 
 import novah.Util.joinToStr
-import novah.ast.flatMapList
-import novah.ast.show
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.FunparPattern
 import novah.ast.source.Module
+import novah.data.flatMapList
 import novah.data.map
+import novah.data.show
 import novah.data.unwrapOrElse
 import novah.frontend.hmftypechecker.Type
 import novah.frontend.hmftypechecker.TypeVar

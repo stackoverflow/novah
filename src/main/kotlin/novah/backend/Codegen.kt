@@ -35,8 +35,15 @@ import novah.backend.TypeUtil.FUNCTION_TYPE
 import novah.backend.TypeUtil.INTEGER_CLASS
 import novah.backend.TypeUtil.LONG_CLASS
 import novah.backend.TypeUtil.OBJECT_TYPE
+import novah.backend.TypeUtil.RECORD_CLASS
+import novah.backend.TypeUtil.RECORD_TYPE
+import novah.backend.TypeUtil.SET_CLASS
+import novah.backend.TypeUtil.SET_TYPE
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
+import novah.backend.TypeUtil.STRING_TYPE
+import novah.backend.TypeUtil.VECTOR_CLASS
+import novah.backend.TypeUtil.VECTOR_TYPE
 import novah.backend.TypeUtil.buildMethodSignature
 import novah.backend.TypeUtil.descriptor
 import novah.backend.TypeUtil.maybeBuildFieldSignature
@@ -355,6 +362,63 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 genExpr(e.expr, mv, ctx)
                 mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
             }
+            is Expr.RecordEmpty -> {
+                mv.visitTypeInsn(NEW, RECORD_CLASS)
+                mv.visitInsn(DUP)
+                mv.visitMethodInsn(INVOKESPECIAL, RECORD_CLASS, INIT, "()V", false)
+            }
+            is Expr.RecordSelect -> {
+                genExpr(e.expr, mv, ctx)
+                mv.visitLdcInsn(e.label)
+                val desc = "($STRING_TYPE)$OBJECT_TYPE"
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "unsafeGet", desc, false)
+                val type = toInternalClass(e.type)
+                if (type != OBJECT_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
+            }
+            is Expr.RecordRestrict -> {
+                genExpr(e.expr, mv, ctx)
+                mv.visitLdcInsn(e.label)
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "dissoc", "($STRING_TYPE)$RECORD_TYPE", false)
+            }
+            is Expr.RecordExtend -> {
+                genExpr(e.expr, mv, ctx)
+                // make the map linear before adding the labels then fork it
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_linear", "()$RECORD_TYPE", false)
+                e.labels.forEach { kv ->
+                    // we need to reverse here because the head of the linked
+                    // list should be the last key added
+                    kv.value().reversed().forEach { value ->
+                        mv.visitLdcInsn(kv.key())
+                        genExpr(value, mv, ctx)
+                        val desc = "($STRING_TYPE$OBJECT_TYPE)$RECORD_TYPE"
+                        mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "assoc", desc, false)
+                    }
+                }
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_forked", "()$RECORD_TYPE", false)
+            }
+            is Expr.VectorLiteral -> {
+                genInt(intExp(e.exps.size), mv)
+                mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
+                e.exps.forEachIndexed { i, exp ->
+                    mv.visitInsn(DUP)
+                    genInt(intExp(i), mv)
+                    genExpr(exp, mv, ctx)
+                    mv.visitInsn(AASTORE)
+                }
+                mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "of", "([$OBJECT_TYPE)$VECTOR_TYPE", false)
+            }
+            is Expr.SetLiteral -> {
+                genInt(intExp(e.exps.size), mv)
+                mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
+                e.exps.forEachIndexed { i, exp ->
+                    mv.visitInsn(DUP)
+                    genInt(intExp(i), mv)
+                    genExpr(exp, mv, ctx)
+                    mv.visitInsn(AASTORE)
+                }
+                mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "of", "([$OBJECT_TYPE)$SET_TYPE", false)
+            }
         }
     }
 
@@ -564,8 +628,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             mv.visitInsn(ACONST_NULL)
         } else if (fn is Expr.Var && fn.fullname() == "prim/Module.toString") {
             genExpr(e.arg, mv, ctx)
-            val retType = e.arg.type.getReturnTypeNameOr("java/lang/Object")
-            mv.visitMethodInsn(INVOKEVIRTUAL, retType, "toString", "()Ljava/lang/String;", false)
+            mv.visitMethodInsn(INVOKEVIRTUAL, OBJECT_CLASS, "toString", "()Ljava/lang/String;", false)
         } else if (fn is Expr.Var && fn.fullname() == "prim/Module.hashCode") {
             genExpr(e.arg, mv, ctx)
             mv.visitMethodInsn(INVOKEVIRTUAL, toInternalClass(e.arg.type), "hashCode", "()I", false)
@@ -748,5 +811,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             "char" to Char::class.javaObjectType,
             "boolean" to Boolean::class.javaObjectType
         )
+
+        private fun intExp(n: Int): Expr.IntE {
+            return Expr.IntE(n, Type.TVar("prim.Int"))
+        }
     }
 }

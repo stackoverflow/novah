@@ -17,11 +17,10 @@ package novah.frontend.hmftypechecker
 
 import novah.Util.hasDuplicates
 import novah.Util.internalError
-import novah.Util.linkedListOf
-import novah.ast.LabelMapBuilder
 import novah.ast.canonical.*
-import novah.ast.forEachList
-import novah.ast.mapList
+import novah.data.forEachList
+import novah.data.mapList
+import novah.data.singletonPMap
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.main.DeclRef
@@ -228,7 +227,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Expr.Match -> {
                 val expTy = infer(env, level, null, generalized, exp.exp)
-                var resType: Type? = null
+                val resType = tc.newVar(level)
 
                 exp.cases.forEach { case ->
                     val vars = inferpattern(env, level, case.pattern, expTy)
@@ -239,18 +238,16 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     } else env
 
                     val ty = infer(newEnv, level, expectedType, generalized, case.exp)
-                    if (resType != null) {
-                        sub.subsume(level, resType!!, ty, case.exp.span)
-                    } else resType = ty
+                    sub.subsume(level, resType, ty, case.exp.span)
                 }
-                exp.withType(resType ?: internalError(Errors.EMPTY_MATCH))
+                exp.withType(resType)
             }
             is Expr.RecordEmpty -> exp.withType(Type.TRecord(Type.TRowEmpty()))
             is Expr.RecordSelect -> {
                 val restRow = tc.newVar(level + 1)
                 val fieldTy = tc.newVar(level + 1)
                 val paramType =
-                    Type.TRecord(Type.TRowExtend(LabelMapBuilder.singleton(exp.label, linkedListOf(fieldTy)), restRow))
+                    Type.TRecord(Type.TRowExtend(singletonPMap(exp.label, fieldTy), restRow))
                 val infered = infer(env, level + 1, null, Gen.INSTANTIATED, exp.exp)
                 uni.unify(paramType, infered, exp.span)
                 val ty = generalizeOrInstantiate(generalized, level, fieldTy)
@@ -260,7 +257,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val restRow = tc.newVar(level + 1)
                 val fieldTy = tc.newVar(level + 1)
                 val paramType =
-                    Type.TRecord(Type.TRowExtend(LabelMapBuilder.singleton(exp.label, linkedListOf(fieldTy)), restRow))
+                    Type.TRecord(Type.TRowExtend(singletonPMap(exp.label, fieldTy), restRow))
                 val retType = Type.TRecord(restRow)
                 uni.unify(paramType, infer(env, level + 1, null, Gen.INSTANTIATED, exp.exp), exp.span)
                 val ty = generalizeOrInstantiate(generalized, level, retType)
@@ -280,6 +277,38 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     uni.unify(tc.instantiate(nextLevel, expectedType), ty, exp.span)
                 }
                 exp.withType(ty)
+            }
+            is Expr.VectorLiteral -> {
+                val ty = tc.newVar(level + 1)
+                if (exp.exps.isEmpty()) {
+                    val res =
+                        generalizeOrInstantiate(generalized, level, Type.TApp(Type.TConst(primVector), listOf(ty)))
+                    exp.withType(res)
+                } else {
+                    exp.exps.forEach { e ->
+                        val newTy = infer(env, level + 1, null, generalized, e)
+                        uni.unify(newTy, ty, e.span)
+                    }
+                    var res: Type = Type.TApp(Type.TConst(primVector), listOf(ty))
+                    res = generalizeOrInstantiate(generalized, level, res)
+                    exp.withType(res)
+                }
+            }
+            is Expr.SetLiteral -> {
+                val ty = tc.newVar(level + 1)
+                if (exp.exps.isEmpty()) {
+                    val res =
+                        generalizeOrInstantiate(generalized, level, Type.TApp(Type.TConst(primSet), listOf(ty)))
+                    exp.withType(res)
+                } else {
+                    exp.exps.forEach { e ->
+                        val newTy = infer(env, level + 1, null, generalized, e)
+                        uni.unify(newTy, ty, e.span)
+                    }
+                    var res: Type = Type.TApp(Type.TConst(primSet), listOf(ty))
+                    res = generalizeOrInstantiate(generalized, level, res)
+                    exp.withType(res)
+                }
             }
         }
     }

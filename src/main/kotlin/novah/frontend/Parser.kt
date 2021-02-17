@@ -16,13 +16,8 @@
 package novah.frontend
 
 import novah.Util.splitAt
-import novah.ast.LabelMap
-import novah.ast.labelMapWith
 import novah.ast.source.*
-import novah.data.Err
-import novah.data.Ok
-import novah.data.PeekableIterator
-import novah.data.Result
+import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
@@ -367,6 +362,28 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is CaseT -> parseMatch()
             is Do -> parseDo()
             is LBracket -> parseRecord()
+            is LSBracket -> {
+                val tk = iter.next()
+                if (iter.peek().value is RSBracket) {
+                    val end = iter.next()
+                    Expr.VectorLiteral(emptyList()).withSpan(tk.span, end.span).withComment(tk.comment)
+                } else {
+                    val exps = between<Comma, Expr>(::parseExpression)
+                    val end = expect<RSBracket>(withError(E.rsbracketExpected("vector literal")))
+                    Expr.VectorLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
+                }
+            }
+            is SetBracket -> {
+                val tk = iter.next()
+                if (iter.peek().value is RBracket) {
+                    val end = iter.next()
+                    Expr.SetLiteral(emptyList()).withSpan(tk.span, end.span).withComment(tk.comment)
+                } else {
+                    val exps = between<Comma, Expr>(::parseExpression)
+                    val end = expect<RBracket>(withError(E.rsbracketExpected("set literal")))
+                    Expr.SetLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
+                }
+            }
             else -> null
         }
 
@@ -667,7 +684,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val end = expect<RBracket>(withError(E.rbracketExpected("record")))
 
                 val labels = labelMapWith(rows)
-                Expr.RecordExtend(exp, labels).withSpan(begin.span, end.span).withComment(begin.comment)
+                Expr.RecordExtend(labels, exp).withSpan(begin.span, end.span).withComment(begin.comment)
             }
         }
     }
@@ -848,7 +865,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                             val ty = parseType()
                             val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
                             val span = span(tk.span, end.span)
-                            Type.TRecord(Type.TRowExtend(LabelMap(), ty, span), span)
+                            Type.TRecord(Type.TRowExtend(PLabelMap(), ty, span), span)
                         }
                         else -> {
                             val rextend = parseRowExtend()

@@ -15,9 +15,9 @@
  */
 package novah.ast.canonical
 
-import novah.ast.LabelMap
-import novah.ast.mapList
 import novah.ast.source.Visibility
+import novah.data.PLabelMap
+import novah.data.mapList
 import novah.frontend.Span
 import novah.frontend.hmftypechecker.Id
 import novah.frontend.hmftypechecker.Type
@@ -96,8 +96,10 @@ sealed class Expr(open val span: Span) {
     data class Unit(override val span: Span) : Expr(span)
     class RecordEmpty(span: Span) : Expr(span)
     data class RecordSelect(val exp: Expr, val label: String, override val span: Span) : Expr(span)
-    data class RecordExtend(val exp: Expr, val labels: LabelMap<Expr>, override val span: Span) : Expr(span)
+    data class RecordExtend(val labels: PLabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
+    data class VectorLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
+    data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
 
     var type: Type? = null
 

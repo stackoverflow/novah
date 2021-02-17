@@ -16,6 +16,7 @@
 package novah.ast.optimized
 
 import novah.ast.source.Visibility
+import novah.data.PLabelMap
 import novah.frontend.Span
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -85,6 +86,12 @@ sealed class Expr(open val type: Type) {
     data class Unit(override val type: Type) : Expr(type)
     data class Throw(val expr: Expr) : Expr(expr.type)
     data class Cast(val expr: Expr, override val type: Type) : Expr(type)
+    data class RecordEmpty(override val type: Type) : Expr(type)
+    data class RecordExtend(val labels: PLabelMap<Expr>, val expr: Expr, override val type: Type) : Expr(type)
+    data class RecordSelect(val expr: Expr, val label: String, override val type: Type) : Expr(type)
+    data class RecordRestrict(val expr: Expr, val label: String, override val type: Type) : Expr(type)
+    data class VectorLiteral(val exps: List<Expr>, override val type: Type) : Expr(type)
+    data class SetLiteral(val exps: List<Expr>, override val type: Type) : Expr(type)
 }
 
 sealed class Type {
@@ -96,12 +103,6 @@ sealed class Type {
         is TVar -> isForall
         is TFun -> true
         is TConstructor -> types.isNotEmpty()
-    }
-
-    fun getReturnTypeNameOr(notFound: String): String = when (this) {
-        is TVar -> if (isForall) notFound else name
-        is TFun -> ret.getReturnTypeNameOr(notFound)
-        is TConstructor -> name
     }
 }
 
