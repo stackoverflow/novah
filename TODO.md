@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] remove support for impredicative polymorphism (but leav HRTs)
 - [ ] Validate type definitions/aliases for wrong kind (checkWellFormed does it only for applications)
 - [ ] Use persistent map and list for env and label map
 - [X] Add warnings to the compiler (still not working properly)
