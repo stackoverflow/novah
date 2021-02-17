@@ -109,16 +109,11 @@ class Unification(private val tc: Typechecker) {
         val (labels1, restTy1) = matchRowType(row1)
         val (labels2, restTy2) = matchRowType(row2)
 
-        tailrec fun unifyTypes(
-            t1s: PList<Type>,
-            t2s: PList<Type>
-        ): Pair<PList<Type>, PList<Type>> {
-            return when {
-                t1s.isEmpty() || t2s.isEmpty() -> t1s to t2s
-                else -> {
-                    unify(t1s.first(), t2s.first(), span)
-                    unifyTypes(t1s.removeFirst(), t2s.removeFirst())
-                }
+        tailrec fun unifyTypes(t1s: PList<Type>, t2s: PList<Type>): Pair<PList<Type>, PList<Type>> = when {
+            t1s.isEmpty() || t2s.isEmpty() -> t1s to t2s
+            else -> {
+                unify(t1s.first(), t2s.first(), span)
+                unifyTypes(t1s.removeFirst(), t2s.removeFirst())
             }
         }
 
@@ -295,7 +290,7 @@ fun matchRowType(ty: Type): Pair<PLabelMap<Type>, Type> = when (ty) {
 }
 
 fun addDistinctLabels(labelMap: PLabelMap<Type>, labels: PList<Pair<String, PList<Type>>>): PLabelMap<Type> {
-    return labels.fold(labelMap) { acc, (s, l) -> acc.assocat(s, l)}
+    return labels.fold(labelMap) { acc, (s, l) -> acc.assocat(s, l) }
 }
 
 private fun unificationError(msg: String, span: Span): Nothing = inferError(msg, span, ProblemContext.UNIFICATION)
