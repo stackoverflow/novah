@@ -218,6 +218,8 @@ sealed class Expr {
     data class RecordSelect(val exp: Expr, val label: String) : Expr()
     data class RecordExtend(val labels: PLabelMap<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val label: String) : Expr()
+    data class VectorLiteral(val exps: List<Expr>) : Expr()
+    //data class SetLiteral(val exps: List<Expr>) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null

@@ -40,6 +40,8 @@ import novah.backend.TypeUtil.RECORD_TYPE
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
 import novah.backend.TypeUtil.STRING_TYPE
+import novah.backend.TypeUtil.VECTOR_CLASS
+import novah.backend.TypeUtil.VECTOR_TYPE
 import novah.backend.TypeUtil.buildMethodSignature
 import novah.backend.TypeUtil.descriptor
 import novah.backend.TypeUtil.maybeBuildFieldSignature
@@ -392,6 +394,17 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     }
                 }
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_forked", "()$RECORD_TYPE", false)
+            }
+            is Expr.VectorLiteral -> {
+                genInt(intExp(e.exps.size), mv)
+                mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
+                e.exps.forEachIndexed { i, exp ->
+                    mv.visitInsn(DUP)
+                    genInt(intExp(i), mv)
+                    genExpr(exp, mv, ctx)
+                    mv.visitInsn(AASTORE)
+                }
+                mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "of", "([$OBJECT_TYPE)$VECTOR_TYPE", false)
             }
         }
     }
@@ -785,5 +798,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             "char" to Char::class.javaObjectType,
             "boolean" to Boolean::class.javaObjectType
         )
+
+        private fun intExp(n: Int): Expr.IntE {
+            return Expr.IntE(n, Type.TVar("prim.Int"))
+        }
     }
 }

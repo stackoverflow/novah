@@ -227,7 +227,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Expr.Match -> {
                 val expTy = infer(env, level, null, generalized, exp.exp)
-                var resType: Type? = null
+                val resType = tc.newVar(level)
 
                 exp.cases.forEach { case ->
                     val vars = inferpattern(env, level, case.pattern, expTy)
@@ -238,11 +238,9 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     } else env
 
                     val ty = infer(newEnv, level, expectedType, generalized, case.exp)
-                    if (resType != null) {
-                        sub.subsume(level, resType!!, ty, case.exp.span)
-                    } else resType = ty
+                    sub.subsume(level, resType, ty, case.exp.span)
                 }
-                exp.withType(resType ?: internalError(Errors.EMPTY_MATCH))
+                exp.withType(resType)
             }
             is Expr.RecordEmpty -> exp.withType(Type.TRecord(Type.TRowEmpty()))
             is Expr.RecordSelect -> {
@@ -279,6 +277,22 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     uni.unify(tc.instantiate(nextLevel, expectedType), ty, exp.span)
                 }
                 exp.withType(ty)
+            }
+            is Expr.VectorLiteral -> {
+                val ty = tc.newVar(level + 1)
+                if (exp.exps.isEmpty()) {
+                    val res =
+                        generalizeOrInstantiate(generalized, level, Type.TApp(Type.TConst(primVector), listOf(ty)))
+                    exp.withType(res)
+                } else {
+                    exp.exps.forEach { e ->
+                        val newTy = infer(env, level + 1, null, generalized, e)
+                        uni.unify(newTy, ty, e.span)
+                    }
+                    var res: Type = Type.TApp(Type.TConst(primVector), listOf(ty))
+                    res = generalizeOrInstantiate(generalized, level, res)
+                    exp.withType(res)
+                }
             }
         }
     }

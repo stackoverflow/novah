@@ -78,6 +78,13 @@ runRecords () = do
   println (toString dup)
   println dup.name
 
+vec = [1, 2, 3, 4]
+
+runVectors () = do
+  println (toString vec)
+  let vs = ["many", "different", "strings"]
+  println (toString vs)
+
 run () = do
   let arr = newArrayList ()
   add arr "asd"
@@ -86,5 +93,5 @@ run () = do
 
 main _ = do
   println "running novah"
-  runRecords ()
+  runVectors ()
   //println (myFun (Some (Some "fun")))

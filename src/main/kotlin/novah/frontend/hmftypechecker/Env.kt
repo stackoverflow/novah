@@ -23,23 +23,23 @@ import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
 class Env(initial: Map<String, Type> = emptyMap(), types: Map<String, Type> = primTypes) {
-    
+
     private val env = LinkedHashMap(initial)
-    
+
     private val types = LinkedHashMap(types)
-    
+
     fun extend(name: String, type: Type) {
         env[name] = type
     }
-    
+
     fun lookup(name: String): Type? = env[name]
-    
+
     fun makeExtension() = Env(env, types)
-    
+
     fun extendType(name: String, type: Type) {
         types[name] = type
     }
-    
+
     fun lookupType(name: String): Type? = types[name]
 }
 
@@ -53,6 +53,7 @@ const val primBoolean = "prim.Boolean"
 const val primChar = "prim.Char"
 const val primString = "prim.String"
 const val primUnit = "prim.Unit"
+const val primVector = "prim.Vector"
 
 val tByte = Type.TConst(primByte)
 val tShort = Type.TConst(primShort)
@@ -64,8 +65,9 @@ val tBoolean = Type.TConst(primBoolean)
 val tChar = Type.TConst(primChar)
 val tString = Type.TConst(primString)
 val tUnit = Type.TConst(primUnit)
+val tVector = Type.TForall(listOf(-10), Type.TApp(Type.TConst(primVector, Kind.Constructor(1)), listOf(tbound(-10))))
 
-val primTypes = mapOf<String, Type>(
+val primTypes = mapOf(
     primByte to tByte,
     primShort to tShort,
     primInt to tInt,
@@ -75,7 +77,8 @@ val primTypes = mapOf<String, Type>(
     primBoolean to tBoolean,
     primChar to tChar,
     primString to tString,
-    primUnit to tUnit
+    primUnit to tUnit,
+    primVector to tVector
 )
 
 fun javaToNovah(jname: String): String = when (jname) {
@@ -128,6 +131,7 @@ val primModuleEnv = ModuleEnv(
         "String" to tdecl(tString),
         "Char" to tdecl(tChar),
         "Boolean" to tdecl(tBoolean),
-        "Unit" to tdecl(tUnit)
+        "Unit" to tdecl(tUnit),
+        "Vector" to tdecl(tVector)
     )
 )

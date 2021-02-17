@@ -98,6 +98,7 @@ sealed class Expr(open val span: Span) {
     data class RecordSelect(val exp: Expr, val label: String, override val span: Span) : Expr(span)
     data class RecordExtend(val labels: PLabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
+    data class VectorLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
 
     var type: Type? = null
 
