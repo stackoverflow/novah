@@ -294,6 +294,22 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     exp.withType(res)
                 }
             }
+            is Expr.SetLiteral -> {
+                val ty = tc.newVar(level + 1)
+                if (exp.exps.isEmpty()) {
+                    val res =
+                        generalizeOrInstantiate(generalized, level, Type.TApp(Type.TConst(primSet), listOf(ty)))
+                    exp.withType(res)
+                } else {
+                    exp.exps.forEach { e ->
+                        val newTy = infer(env, level + 1, null, generalized, e)
+                        uni.unify(newTy, ty, e.span)
+                    }
+                    var res: Type = Type.TApp(Type.TConst(primSet), listOf(ty))
+                    res = generalizeOrInstantiate(generalized, level, res)
+                    exp.withType(res)
+                }
+            }
         }
     }
 

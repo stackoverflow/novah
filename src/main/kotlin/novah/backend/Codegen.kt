@@ -37,6 +37,8 @@ import novah.backend.TypeUtil.LONG_CLASS
 import novah.backend.TypeUtil.OBJECT_TYPE
 import novah.backend.TypeUtil.RECORD_CLASS
 import novah.backend.TypeUtil.RECORD_TYPE
+import novah.backend.TypeUtil.SET_CLASS
+import novah.backend.TypeUtil.SET_TYPE
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_CLASS
 import novah.backend.TypeUtil.STRING_TYPE
@@ -405,6 +407,17 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitInsn(AASTORE)
                 }
                 mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "of", "([$OBJECT_TYPE)$VECTOR_TYPE", false)
+            }
+            is Expr.SetLiteral -> {
+                genInt(intExp(e.exps.size), mv)
+                mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
+                e.exps.forEachIndexed { i, exp ->
+                    mv.visitInsn(DUP)
+                    genInt(intExp(i), mv)
+                    genExpr(exp, mv, ctx)
+                    mv.visitInsn(AASTORE)
+                }
+                mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "of", "([$OBJECT_TYPE)$SET_TYPE", false)
             }
         }
     }

@@ -85,6 +85,13 @@ runVectors () = do
   let vs = ["many", "different", "strings"]
   println (toString vs)
 
+set = #{1, 2, 3, 4}
+
+runSets () = do
+  println (toString set)
+  let ss = #{"many", "different", "strings"}
+  println (toString ss)
+
 run () = do
   let arr = newArrayList ()
   add arr "asd"
@@ -93,5 +100,5 @@ run () = do
 
 main _ = do
   println "running novah"
-  runVectors ()
+  runSets ()
   //println (myFun (Some (Some "fun")))

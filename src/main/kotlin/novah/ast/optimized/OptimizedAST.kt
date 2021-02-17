@@ -91,6 +91,7 @@ sealed class Expr(open val type: Type) {
     data class RecordSelect(val expr: Expr, val label: String, override val type: Type) : Expr(type)
     data class RecordRestrict(val expr: Expr, val label: String, override val type: Type) : Expr(type)
     data class VectorLiteral(val exps: List<Expr>, override val type: Type) : Expr(type)
+    data class SetLiteral(val exps: List<Expr>, override val type: Type) : Expr(type)
 }
 
 sealed class Type {

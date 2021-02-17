@@ -28,6 +28,7 @@ sealed class Token {
     object RSBracket : Token()
     object LBracket : Token()
     object RBracket : Token()
+    object SetBracket : Token()
     object Hash : Token()
     object Dot : Token()
     object Comma : Token()
@@ -178,7 +179,12 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             ']' -> RSBracket
             '{' -> LBracket
             '}' -> RBracket
-            '#' -> Hash
+            '#' -> {
+                if (iter.peek() == '{') {
+                    iter.next()
+                    SetBracket
+                } else Hash
+            }
             ',' -> Comma
             '\\' -> Backslash
             '\'' -> char()

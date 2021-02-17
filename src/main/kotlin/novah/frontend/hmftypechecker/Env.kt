@@ -54,6 +54,7 @@ const val primChar = "prim.Char"
 const val primString = "prim.String"
 const val primUnit = "prim.Unit"
 const val primVector = "prim.Vector"
+const val primSet = "prim.Set"
 
 val tByte = Type.TConst(primByte)
 val tShort = Type.TConst(primShort)
@@ -66,6 +67,7 @@ val tChar = Type.TConst(primChar)
 val tString = Type.TConst(primString)
 val tUnit = Type.TConst(primUnit)
 val tVector = Type.TForall(listOf(-10), Type.TApp(Type.TConst(primVector, Kind.Constructor(1)), listOf(tbound(-10))))
+val tSet = Type.TForall(listOf(-11), Type.TApp(Type.TConst(primSet, Kind.Constructor(1)), listOf(tbound(-11))))
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -78,7 +80,8 @@ val primTypes = mapOf(
     primChar to tChar,
     primString to tString,
     primUnit to tUnit,
-    primVector to tVector
+    primVector to tVector,
+    primSet to tSet
 )
 
 fun javaToNovah(jname: String): String = when (jname) {
@@ -132,6 +135,7 @@ val primModuleEnv = ModuleEnv(
         "Char" to tdecl(tChar),
         "Boolean" to tdecl(tBoolean),
         "Unit" to tdecl(tUnit),
-        "Vector" to tdecl(tVector)
+        "Vector" to tdecl(tVector),
+        "Set" to tdecl(tSet)
     )
 )

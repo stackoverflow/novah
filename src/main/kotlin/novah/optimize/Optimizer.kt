@@ -169,6 +169,7 @@ class Optimizer(private val ast: CModule) {
             is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ)
             is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ)
+            is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ)
         }
     }
 
@@ -360,6 +361,7 @@ class Optimizer(private val ast: CModule) {
             "prim.String" -> "java/lang/String"
             "prim.Unit" -> "java/lang/Object"
             "prim.Vector" -> "io/lacuna/bifurcan/IList"
+            "prim.Set" -> "io/lacuna/bifurcan/ISet"
             else -> internalize(tvar.name)
         }
 

@@ -373,6 +373,17 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     Expr.VectorLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
                 }
             }
+            is SetBracket -> {
+                val tk = iter.next()
+                if (iter.peek().value is RBracket) {
+                    val end = iter.next()
+                    Expr.SetLiteral(emptyList()).withSpan(tk.span, end.span).withComment(tk.comment)
+                } else {
+                    val exps = between<Comma, Expr>(::parseExpression)
+                    val end = expect<RBracket>(withError(E.rsbracketExpected("set literal")))
+                    Expr.SetLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
+                }
+            }
             else -> null
         }
 
