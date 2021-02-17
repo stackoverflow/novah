@@ -73,8 +73,10 @@ runRecords () = do
   let minus = { - name | rec }
   println (toString minus)
   println rec.name
-  println rec.lastName
   println (toString rec.age)
+  let dup = { name: "Mario", name: "Luigi", name: "Peach", game: "Bros" }
+  println (toString dup)
+  println dup.name
 
 run () = do
   let arr = newArrayList ()

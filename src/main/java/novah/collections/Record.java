@@ -22,16 +22,14 @@ import java.util.function.*;
 
 /**
  * The type of all novah records.
+ * Allows duplicate keys.
  * Just a thin wrapper over bifurcan's Map.
- * It would be better to not have this wrapper
- * and just use Map directly but it shouldn't
- * impact performace.
  */
-public class Record implements IMap<String, Object> {
+public class Record implements IMap<String, Record.ListValue> {
 
-    private final IMap<String, Object> inner;
+    private final IMap<String, Record.ListValue> inner;
 
-    private Record(IMap<String, Object> map) {
+    private Record(IMap<String, Record.ListValue> map) {
         inner = map;
     }
 
@@ -60,13 +58,24 @@ public class Record implements IMap<String, Object> {
     }
 
     @Override
-    public Object get(String key, Object defaultValue) {
+    public Record.ListValue get(String key, Record.ListValue defaultValue) {
         return inner.get(key, defaultValue);
     }
 
-    //TODO: change to Vector
+    /**
+     * Because the typechecker makes sure one
+     * can never access a non-existing key we
+     * can (un)safely return the value without
+     * checking the key is present.
+     */
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    public Object unsafeGet(String key) {
+        var index = inner.indexOf(key).getAsLong();
+        return inner.nth(index).value().value;
+    }
+
     @Override
-    public IList<IEntry<String, Object>> entries() {
+    public IList<IEntry<String, Record.ListValue>> entries() {
         return inner.entries();
     }
 
@@ -75,22 +84,19 @@ public class Record implements IMap<String, Object> {
         return inner.indexOf(key);
     }
 
-    //TODO: change to novah Set
     @Override
     public ISet<String> keys() {
         return inner.keys();
     }
 
-    //TODO: change to Vector
     @Override
-    public IList<Object> values() {
+    public IList<Record.ListValue> values() {
         return inner.values();
     }
 
-    @SuppressWarnings("Unchecked")
     @Override
-    public <U> IMap<String, U> mapValues(BiFunction<String, Object, U> f) {
-        return (IMap<String, U>) new Record(inner.mapValues((BiFunction<String, Object, Object>) f));
+    public <U> IMap<String, U> mapValues(BiFunction<String, Record.ListValue, U> f) {
+        return (IMap<String, U>) new Record(inner.mapValues((BiFunction<String, Record.ListValue, Record.ListValue>) f));
     }
 
 //    @Override
@@ -98,83 +104,123 @@ public class Record implements IMap<String, Object> {
 //
 //    }
 
-    public IMap<String, Object> merge(IMap<String, Object> b, Function<Object, Function<Object, Object>> mergeFn) {
+    public IMap<String, Record.ListValue> merge(IMap<String, Record.ListValue> b, Function<Record.ListValue, Function<Record.ListValue, Record.ListValue>> mergeFn) {
         return merge(b, (e1, e2) -> mergeFn.apply(e1).apply(e2));
     }
 
     @Override
-    public IMap<String, Object> merge(IMap<String, Object> b, BinaryOperator<Object> mergeFn) {
+    public IMap<String, Record.ListValue> merge(IMap<String, Record.ListValue> b, BinaryOperator<Record.ListValue> mergeFn) {
         return new Record(inner.merge(b, mergeFn));
     }
 
     @Override
-    public IMap<String, Object> difference(ISet<String> keys) {
+    public IMap<String, Record.ListValue> difference(ISet<String> keys) {
         return new Record(inner.difference(keys));
     }
 
     @Override
-    public IMap<String, Object> intersection(ISet<String> keys) {
+    public IMap<String, Record.ListValue> intersection(ISet<String> keys) {
         return new Record(inner.intersection(keys));
     }
 
     @Override
-    public IMap<String, Object> union(IMap<String, Object> m) {
+    public IMap<String, Record.ListValue> union(IMap<String, Record.ListValue> m) {
         return new Record(inner.union(m));
     }
 
     @Override
-    public IMap<String, Object> difference(IMap<String, ?> m) {
+    public IMap<String, Record.ListValue> difference(IMap<String, ?> m) {
         return new Record(inner.difference(m));
     }
 
     @Override
-    public IMap<String, Object> intersection(IMap<String, ?> m) {
+    public IMap<String, Record.ListValue> intersection(IMap<String, ?> m) {
         return new Record(inner.intersection(m));
     }
 
     @Override
-    public IMap<String, Object> put(String key, Object value, BinaryOperator<Object> merge) {
+    public IMap<String, Record.ListValue> put(String key, Record.ListValue value, BinaryOperator<Record.ListValue> merge) {
         return new Record(inner.put(key, value, merge));
     }
 
     @Override
-    public IMap<String, Object> update(String key, UnaryOperator<Object> update) {
+    public IMap<String, Record.ListValue> update(String key, UnaryOperator<Record.ListValue> update) {
         return new Record(inner.update(key, update));
     }
 
+    /**
+     * Updates the value represented by this key with
+     * the supplied function.
+     * We can ignore the case where the key is not present
+     * as the typechecker disallows it.
+     */
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    public <T> Record update(String key, Function<T, T> update) {
+        var idx = inner.indexOf(key).getAsLong();
+        var list = inner.nth(idx).value();
+        var newVal = ListValue.of(update.apply((T) list.value), list.next);
+        return new Record(inner.put(key.intern(), newVal));
+    }
+
     @Override
-    public IMap<String, Object> put(String key, Object value) {
+    public IMap<String, Record.ListValue> put(String key, Record.ListValue value) {
         return new Record(inner.put(key, value));
     }
 
+    /**
+     * Adds a key to the map.
+     * Accept duplicates.
+     */
     public Record assoc(String key, Object value) {
-        return new Record(inner.put(key.intern(), value));
+        var idx = inner.indexOf(key);
+        if (idx.isPresent()) {
+            // duplicated key, add the value as the head of the list
+            var list = inner.nth(idx.getAsLong()).value();
+            return new Record(inner.put(key.intern(), ListValue.of(value, list)));
+        }
+        // key is not duplicated
+        return new Record(inner.put(key.intern(), ListValue.of(value)));
     }
 
     @Override
-    public IMap<String, Object> remove(String key) {
+    public IMap<String, Record.ListValue> remove(String key) {
         return new Record(inner.remove(key));
     }
 
+    /**
+     * Removes a key from the map.
+     * If the key has more than one value
+     * only remove the most recent one.
+     * We can ignore the case where the key is not
+     * present because the typechecker makes sure
+     * this can't happen.
+     */
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     public Record dissoc(String key) {
+        var idx = inner.indexOf(key).getAsLong();
+        var list = inner.nth(idx).value();
+        if (list.next != null) {
+            // key is duplicated, just drop the head of the list
+            return new Record(inner.put(key.intern(), list.next));
+        }
         return new Record(inner.remove(key));
     }
 
     @Override
-    public IMap<String, Object> forked() {
+    public IMap<String, Record.ListValue> forked() {
         return isLinear() ? new Record(inner.forked()) : this;
     }
 
-    public Record persistent() {
+    public Record _forked() {
         return isLinear() ? new Record(inner.forked()) : this;
     }
 
     @Override
-    public IMap<String, Object> linear() {
+    public IMap<String, Record.ListValue> linear() {
         return isLinear() ? this : new Record(inner.linear());
     }
 
-    public Record toTransient() {
+    public Record _linear() {
         return isLinear() ? this : new Record(inner.linear());
     }
 
@@ -183,9 +229,8 @@ public class Record implements IMap<String, Object> {
         return inner.isLinear();
     }
 
-    // TODO: return Vector
     @Override
-    public IList<? extends IMap<String, Object>> split(int parts) {
+    public IList<? extends IMap<String, Record.ListValue>> split(int parts) {
         return inner.split(parts);
     }
 //
@@ -200,17 +245,48 @@ public class Record implements IMap<String, Object> {
     }
 
     @Override
-    public IEntry<String, Object> nth(long idx) {
+    public IEntry<String, Record.ListValue> nth(long idx) {
         return inner.nth(idx);
     }
 
     @Override
-    public IEntry<String, Object> nth(long idx, IEntry<String, Object> defaultValue) {
+    public IEntry<String, Record.ListValue> nth(long idx, IEntry<String, Record.ListValue> defaultValue) {
         return inner.nth(idx, defaultValue);
     }
 
     @Override
-    public IMap<String, Object> clone() {
+    public IMap<String, Record.ListValue> clone() {
         return new Record(inner.clone());
+    }
+
+    /**
+     * Because novah allows duplicate keys we need
+     * some way to store many values in a key.
+     * This is a bare-minimum immutable linked list
+     * that allows us to store multiple values without
+     * too much performance impact.
+     */
+    static class ListValue {
+        final Object value;
+        final ListValue next;
+
+        public ListValue(Object val, ListValue next) {
+            value = val;
+            this.next = next;
+        }
+
+        public static ListValue of(Object val) {
+            return new ListValue(val, null);
+        }
+
+        public static ListValue of(Object val, ListValue next) {
+            return new ListValue(val, next);
+        }
+
+        @Override
+        public String toString() {
+            if (next == null) return value.toString();
+            return value.toString() + ", " + next.toString();
+        }
     }
 }

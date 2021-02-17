@@ -366,9 +366,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.RecordSelect -> {
                 genExpr(e.expr, mv, ctx)
                 mv.visitLdcInsn(e.label)
-                mv.visitInsn(ACONST_NULL)
-                val desc = "($STRING_TYPE$OBJECT_TYPE)$OBJECT_TYPE"
-                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "get", desc, false)
+                val desc = "($STRING_TYPE)$OBJECT_TYPE"
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "unsafeGet", desc, false)
                 val type = toInternalClass(e.type)
                 if (type != OBJECT_CLASS)
                     mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
@@ -381,15 +380,18 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.RecordExtend -> {
                 genExpr(e.expr, mv, ctx)
                 // make the map linear before adding the labels then fork it
-                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "toTransient", "()$RECORD_TYPE", false)
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_linear", "()$RECORD_TYPE", false)
                 e.labels.forEach { kv ->
-                    mv.visitLdcInsn(kv.key())
-                    // TODO: duplicated labels
-                    genExpr(kv.value().first(), mv, ctx)
-                    val desc = "($STRING_TYPE$OBJECT_TYPE)$RECORD_TYPE"
-                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "assoc", desc, false)
+                    // we need to reverse here because the head of the linked
+                    // list should be the last key aded
+                    kv.value().reversed().forEach { value ->
+                        mv.visitLdcInsn(kv.key())
+                        genExpr(value, mv, ctx)
+                        val desc = "($STRING_TYPE$OBJECT_TYPE)$RECORD_TYPE"
+                        mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "assoc", desc, false)
+                    }
                 }
-                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "persistent", "()$RECORD_TYPE", false)
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_forked", "()$RECORD_TYPE", false)
             }
         }
     }
@@ -600,8 +602,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             mv.visitInsn(ACONST_NULL)
         } else if (fn is Expr.Var && fn.fullname() == "prim/Module.toString") {
             genExpr(e.arg, mv, ctx)
-            val retType = e.arg.type.getReturnTypeNameOr("java/lang/Object")
-            mv.visitMethodInsn(INVOKEVIRTUAL, retType, "toString", "()Ljava/lang/String;", false)
+            mv.visitMethodInsn(INVOKEVIRTUAL, OBJECT_CLASS, "toString", "()Ljava/lang/String;", false)
         } else if (fn is Expr.Var && fn.fullname() == "prim/Module.hashCode") {
             genExpr(e.arg, mv, ctx)
             mv.visitMethodInsn(INVOKEVIRTUAL, toInternalClass(e.arg.type), "hashCode", "()I", false)
