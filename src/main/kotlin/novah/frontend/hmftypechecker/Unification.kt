@@ -290,7 +290,10 @@ fun matchRowType(ty: Type): Pair<PLabelMap<Type>, Type> = when (ty) {
 }
 
 fun addDistinctLabels(labelMap: PLabelMap<Type>, labels: PList<Pair<String, PList<Type>>>): PLabelMap<Type> {
-    return labels.fold(labelMap) { acc, (s, l) -> acc.assocat(s, l) }
+    return labels.fold(labelMap) { acc, (s, l) ->
+        if (acc.contains(s)) internalError("Label map already contains label $s")
+        acc.assocat(s, l)
+    }
 }
 
 private fun unificationError(msg: String, span: Span): Nothing = inferError(msg, span, ProblemContext.UNIFICATION)
