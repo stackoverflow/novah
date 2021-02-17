@@ -387,7 +387,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_linear", "()$RECORD_TYPE", false)
                 e.labels.forEach { kv ->
                     // we need to reverse here because the head of the linked
-                    // list should be the last key aded
+                    // list should be the last key added
                     kv.value().reversed().forEach { value ->
                         mv.visitLdcInsn(kv.key())
                         genExpr(value, mv, ctx)
