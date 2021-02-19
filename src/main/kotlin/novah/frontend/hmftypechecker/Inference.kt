@@ -19,6 +19,7 @@ import novah.Util.hasDuplicates
 import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.data.forEachList
+import novah.data.mapIndexed
 import novah.data.mapList
 import novah.data.singletonPMap
 import novah.frontend.Span
@@ -265,7 +266,16 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Expr.RecordExtend -> {
                 val nextLevel = level + 1
-                val labelTys = exp.labels.mapList { infer(env, nextLevel, null, Gen.GENERALIZED, it) }
+                val eTy = if (expectedType != null) tc.instantiate(level, expectedType) else null
+                val labelTys = if (eTy != null && eTy is Type.TRecord && eTy.row is Type.TRowExtend) {
+                    val labels = eTy.row.labels
+                    exp.labels.mapValues { k, v ->
+                        v.mapIndexed { i, expr ->
+                            val expected = labels.get(k, null)?.nth(i.toLong())
+                            infer(env, nextLevel, expected, Gen.GENERALIZED, expr)
+                        }
+                    }
+                } else exp.labels.mapList { infer(env, nextLevel, null, generalized, it) }
                 val restRow = tc.newVar(nextLevel)
                 uni.unify(
                     Type.TRecord(restRow),
@@ -273,9 +283,9 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     exp.span
                 )
                 val ty = Type.TRecord(Type.TRowExtend(labelTys, restRow))
-                if (expectedType != null) {
-                    uni.unify(tc.instantiate(nextLevel, expectedType), ty, exp.span)
-                }
+//                if (eTy != null) {
+//                    uni.unify(eTy, ty, exp.span)
+//                }
                 exp.withType(ty)
             }
             is Expr.VectorLiteral -> {

@@ -52,6 +52,14 @@ fun <V, R> PList<V>.map(fn: (V) -> R): PList<R> {
     }.forked()
 }
 
+fun <V, R> PList<V>.mapIndexed(fn: (Int, V) -> R): PList<R> {
+    val nlist = List.empty<R>().linear()
+    var i = 0
+    return fold(nlist) { acc, v ->
+        acc.addLast(fn(i++, v))
+    }.forked()
+}
+
 fun <V> PList<V>.isEmpty() = size() == 0L
 
 fun <V> PLabelMap<V>.isEmpty() = size() == 0L

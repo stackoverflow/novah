@@ -549,8 +549,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             expect<Equals>(withError(E.LET_EQUALS))
             val exp = parseExpression()
             val span = span(ident.span, exp.span)
-            val def =
-                LetDef(Binder(ident.value.v, span), vars, exp, type)
+            val texp = if (type != null) Expr.Ann(exp, type) else exp
+            val def = LetDef(Binder(ident.value.v, span), vars, texp, type)
             def
         }
     }

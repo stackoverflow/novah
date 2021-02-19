@@ -79,6 +79,9 @@ class RecordSpec : StringSpec({
             //plus : forall a r. { | r } -> a -> { x : a | r } 
             plus x rec = { x: x | rec }
             
+            hrr : { hrt : forall a. a -> String, x : Int }
+            hrr = { hrt: toString, x: 1 }
+            
             ap1 () = minus { y: 2, x: true }
             
             ap2 () = plus "x" { y: 2, z: true }
@@ -88,6 +91,7 @@ class RecordSpec : StringSpec({
         ds["isXZero"]?.type?.simpleName() shouldBe "forall t1. { x : Int | t1 } -> Boolean"
         ds["minus"]?.type?.simpleName() shouldBe "forall t1 t2. { x : t1 | t2 } -> { | t2 }"
         ds["plus"]?.type?.simpleName() shouldBe "forall t1 t2. t1 -> { | t2 } -> { x : t1 | t2 }"
+        ds["hrr"]?.type?.simpleName() shouldBe "{ hrt : forall t1. t1 -> String, x : Int }"
         ds["ap1"]?.type?.simpleName() shouldBe "Unit -> { y : Int }"
         ds["ap2"]?.type?.simpleName() shouldBe "Unit -> { x : String, y : Int, z : Boolean }"
     }
@@ -122,6 +126,23 @@ class RecordSpec : StringSpec({
         val user = TestUtil.compileCode(code).env.decls["user"]
 
         user?.type?.simpleName() shouldBe "{ ssn : String, name : String, age : Option Int }"
+    }
+
+    "1st class modules" {
+        val code = """
+            typealias Show a = { show : a -> String }
+            
+            showInt : Show Int
+            showInt = { show: toString }
+            
+            intStr : Int -> String
+            intStr = toString
+        """.module()
+
+        val ds = TestUtil.compileCode(code).env.decls
+        ds.forEach { (t, u) ->
+            println("$t: ${u.type.simpleName()}")
+        }
     }
 
     "record update" {
