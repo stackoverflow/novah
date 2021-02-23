@@ -246,6 +246,9 @@ object Errors {
             $b
     """.trimIndent()
 
+    fun cannotSolveWithPoly(exists: String, type: String) =
+        "Cannot solve existential $exists with polymorphic type $type."
+
     fun partiallyAppliedAlias(name: String, expected: Int, got: Int): String = """
         Partially applied type alias $name.
         $name expects $expected parameter(s) but got $got.

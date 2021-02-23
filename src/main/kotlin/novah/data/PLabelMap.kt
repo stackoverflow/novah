@@ -84,6 +84,10 @@ fun <V> PLabelMap<V>.allList(fn: (V) -> Boolean): Boolean {
     return fold(true) { acc, v -> acc && v.value().all(fn) }
 }
 
+fun <V> PLabelMap<V>.anyList(fn: (V) -> Boolean): Boolean {
+    return fold(true) { acc, v -> acc || v.value().all(fn) }
+}
+
 fun <V> PLabelMap<V>.putMulti(key: String, value: V): PLabelMap<V> {
     val list = get(key, null)
 
