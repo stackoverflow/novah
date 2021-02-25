@@ -57,9 +57,9 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
-                decls[dc.name] = DeclRef(dcty, dc.visibility)
+                //decls[dc.name] = DeclRef(dcty, dc.visibility)
             }
-            types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
+            //types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
@@ -72,12 +72,12 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             val expr = decl.exp
             val name = decl.name
             checkShadow(tc.env, name, decl.span)
-            if (expr is Expr.Ann) {
-                env.extend(name, expr.annType.second)
-            } else {
-                val t = tc.newVar(0)
-                env.extend(name, t)
-            }
+//            if (expr is Expr.Ann) {
+//                env.extend(name, expr.annType.second)
+//            } else {
+//                val t = tc.newVar(0)
+//                env.extend(name, t)
+//            }
         }
 
         vals.forEach { decl ->
@@ -88,7 +88,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
 
             val genTy = generalize(-1, ty)
             env.extend(name, genTy)
-            decls[name] = DeclRef(genTy, decl.visibility)
+            //decls[name] = DeclRef(genTy, decl.visibility)
         }
 
         return ModuleEnv(decls, types)
@@ -102,7 +102,8 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     )
 
     private fun infer(env: Env, level: Level, expectedType: Type?, generalized: Gen, exp: Expr): Type {
-        return when (exp) {
+        TODO()
+        /*return when (exp) {
             is Expr.IntE -> exp.withType(tInt)
             is Expr.LongE -> exp.withType(tLong)
             is Expr.FloatE -> exp.withType(tFloat)
@@ -320,30 +321,30 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     exp.withType(res)
                 }
             }
-        }
+        }*/
     }
 
     private fun check(env: Env, level: Level, type: Type, generalized: Gen, exp: Expr) {
-        when {
-            exp is Expr.IntE && type == tByte && exp.v >= Byte.MIN_VALUE && exp.v <= Byte.MAX_VALUE ->
-                exp.withType(tByte)
-            exp is Expr.IntE && type == tShort && exp.v >= Short.MIN_VALUE && exp.v <= Short.MAX_VALUE ->
-                exp.withType(tShort)
-            exp is Expr.IntE && type == tInt -> exp.withType(tInt)
-            exp is Expr.LongE && type == tLong -> exp.withType(tLong)
-            exp is Expr.FloatE && type == tFloat -> exp.withType(tFloat)
-            exp is Expr.DoubleE && type == tDouble -> exp.withType(tDouble)
-            exp is Expr.StringE && type == tString -> exp.withType(tString)
-            exp is Expr.CharE && type == tChar -> exp.withType(tChar)
-            exp is Expr.Bool && type == tBoolean -> exp.withType(tBoolean)
-            exp is Expr.Unit -> exp.withType(tUnit)
-            else -> {
-                validateType(type, env, exp.span)
-                val inferedType = infer(env, level, type, generalized, exp)
-                sub.subsume(level, type, inferedType, exp.span)
-                exp.withType(type)
-            }
-        }
+//        when {
+//            exp is Expr.IntE && type == tByte && exp.v >= Byte.MIN_VALUE && exp.v <= Byte.MAX_VALUE ->
+//                exp.withType(tByte)
+//            exp is Expr.IntE && type == tShort && exp.v >= Short.MIN_VALUE && exp.v <= Short.MAX_VALUE ->
+//                exp.withType(tShort)
+//            exp is Expr.IntE && type == tInt -> exp.withType(tInt)
+//            exp is Expr.LongE && type == tLong -> exp.withType(tLong)
+//            exp is Expr.FloatE && type == tFloat -> exp.withType(tFloat)
+//            exp is Expr.DoubleE && type == tDouble -> exp.withType(tDouble)
+//            exp is Expr.StringE && type == tString -> exp.withType(tString)
+//            exp is Expr.CharE && type == tChar -> exp.withType(tChar)
+//            exp is Expr.Bool && type == tBoolean -> exp.withType(tBoolean)
+//            exp is Expr.Unit -> exp.withType(tUnit)
+//            else -> {
+//                validateType(type, env, exp.span)
+//                val inferedType = infer(env, level, type, generalized, exp)
+//                sub.subsume(level, type, inferedType, exp.span)
+//                exp.withType(type)
+//            }
+//        }
     }
 
     private fun inferArgs(env: Env, level: Level, paramTypes: List<Type>, argList: List<Expr>) {
@@ -516,7 +517,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         val binder = "${name}\$rec"
         return binder to Expr.Lambda(
             lambdaBinder("\$$name", expr.span),
-            null,
+            //null,
             expr.substVar(name, "\$$name"),
             expr.span
         )
@@ -554,13 +555,14 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     }
 
     private fun getCtorType(dc: DataConstructor, dataType: Type, map: Map<String, Type.TVar>): Type {
-        return when (dataType) {
-            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.nestArrows(dc.args, dataType).span(dc.span)
-            is Type.TForall -> {
-                val args = dc.args.map { it.substConst(map) }
-                Type.TForall(dataType.ids, Type.nestArrows(args, dataType.type)).span(dc.span)
-            }
-            else -> internalError("Got absurd type for data constructor: $dataType")
-        }
+        TODO()
+//        return when (dataType) {
+//            is Type.TConst -> if (dc.args.isEmpty()) dataType else Type.nestArrows(dc.args, dataType).span(dc.span)
+//            is Type.TForall -> {
+//                val args = dc.args.map { it.substConst(map) }
+//                Type.TForall(dataType.ids, Type.nestArrows(args, dataType.type)).span(dc.span)
+//            }
+//            else -> internalError("Got absurd type for data constructor: $dataType")
+//        }
     }
 }

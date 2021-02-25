@@ -18,7 +18,7 @@ package novah.frontend
 import novah.ast.canonical.Decl
 import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
-import novah.frontend.hmftypechecker.Type
+import novah.frontend.typechecker.Type
 
 /**
  * A class that receives a AST and a functions

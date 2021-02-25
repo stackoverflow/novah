@@ -17,6 +17,21 @@ data class TMeta(val name: String) : Type()
 
 sealed class Type {
 
+    /**
+     * Walks this type bottom->up
+     */
+    fun everywhere(f: (Type) -> Type): Type {
+        fun go(t: Type): Type = when (t) {
+            is TConst, is TVar, is TMeta, is TRowEmpty -> f(t)
+            is TApp -> f(t.copy(left = go(t.left), right = go(t.right)))
+            is TArrow -> f(t.copy(left = go(t.left), right = go(t.right)))
+            is TForall -> f(t.copy(type = go(t.type)))
+            is TRecord -> f(t.copy(go(t.row)))
+            is TRowExtend -> f(t.copy(row = go(t.row), labels = t.labels.mapList { go(it) }))
+        }
+        return go(this)
+    }
+
     fun isMono(): Boolean = when (this) {
         is TConst, is TRowEmpty, is TMeta, is TVar -> true
         is TArrow -> left.isMono() && right.isMono()
@@ -26,35 +41,12 @@ sealed class Type {
         is TRowExtend -> row.isMono() && labels.allList { it.isMono() }
     }
 
-    fun substVar(name: String, sub: Type): Type = when (this) {
-        is TConst, is TRowEmpty, is TMeta -> this
-        is TVar -> if (this.name == name) sub else this
-        is TArrow -> {
-            val l = left.substVar(name, sub)
-            val r = right.substVar(name, sub)
-            if (l == left && r == right) this else TArrow(l, r)
-        }
-        is TApp -> {
-            val l = left.substVar(name, sub)
-            val r = right.substVar(name, sub)
-            if (l == left && r == right) this else TApp(l, r)
-        }
-        is TForall -> {
-            if (this.name == name) this
-            else {
-                val b = type.substVar(name, sub)
-                if (type == b) this else copy(type = b)
-            }
-        }
-        is TRecord -> {
-            val r = row.substVar(name, sub)
-            if (r == row) this else TRecord(r)
-        }
-        is TRowExtend -> {
-            val r = row.substVar(name, sub)
-            val ls = labels.mapList { it.substVar(name, sub) }
-            if (r == row && labels == ls) this else TRowExtend(ls, r)
-        }
+    fun substVar(name: String, sub: Type): Type = everywhere { t ->
+        if (t is TVar && t.name == name) sub else t
+    }
+
+    fun substMetas(m: Map<String, Type>): Type = everywhere { t ->
+        if (t is TMeta && m.containsKey(t.name)) m[t.name]!! else t
     }
 
     fun containsMeta(name: String): Boolean = when (this) {
@@ -67,14 +59,37 @@ sealed class Type {
         is TRowExtend -> row.containsMeta(name) || labels.anyList { it.containsMeta(name) }
     }
 
+    fun unsolvedInType(unsolved: List<String>, ns: MutableList<String> = mutableListOf()): List<String> = when (this) {
+        is TConst, is TVar, is TRowEmpty -> ns
+        is TMeta -> {
+            if (unsolved.contains(name) && !ns.contains(name)) ns += name
+            ns
+        }
+        is TArrow -> {
+            left.unsolvedInType(unsolved, ns)
+            right.unsolvedInType(unsolved, ns)
+        }
+        is TApp -> {
+            left.unsolvedInType(unsolved, ns)
+            right.unsolvedInType(unsolved, ns)
+        }
+        is TForall -> type.unsolvedInType(unsolved, ns)
+        is TRecord -> row.unsolvedInType(unsolved, ns)
+        is TRowExtend -> {
+            row.unsolvedInType(unsolved, ns)
+            labels.forEachList { it.unsolvedInType(unsolved, ns) }
+            ns
+        }
+    }
+
     private fun TForall.unnest(): Pair<List<String>, Type> {
-        val ids = mutableListOf(name)
+        val names = mutableListOf(name)
         var ty = type
         while (ty is TForall) {
-            ids += ty.name
+            names += ty.name
             ty = ty.type
         }
-        return ids to ty
+        return names to ty
     }
 
     /**
@@ -96,8 +111,8 @@ sealed class Type {
                 else "$args -> ${go(t.right, nested)}"
             }
             is TForall -> {
-                val (ids, type) = t.unnest()
-                val str = "forall ${ids.joinToStr(" ") { "t$it" }}. ${go(type, false)}"
+                val (names, type) = t.unnest()
+                val str = "forall ${names.joinToStr(" ")}. ${go(type, false)}"
                 if (nested || !topLevel) "($str)" else str
             }
             is TRowEmpty -> "{}"
@@ -129,5 +144,23 @@ sealed class Type {
 
     companion object {
         fun openTForall(ty: TForall, vvar: Type): Type = ty.substVar(ty.name, vvar)
+
+        fun nestForalls(names: List<String>, type: Type): Type =
+            names.foldRight(type) { name, acc -> TForall(name, acc) }
+
+        fun nestApps(app: Type, args: List<Type>): Type =
+            args.reversed().foldRight(app) { arg, acc -> TApp(acc, arg) }
+
+        fun unnestApps(app: TApp): Pair<Type, List<Type>> {
+            val ts = mutableListOf<Type>()
+            ts += app.right
+            var t = app.left
+            while (t is TApp) {
+                ts += t.right
+                t = t.left
+            }
+            ts.reverse()
+            return t to ts
+        }
     }
 }

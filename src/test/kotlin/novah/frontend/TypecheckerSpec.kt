@@ -20,7 +20,16 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
-import novah.frontend.hmftypechecker.*
+import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tByte
+import novah.frontend.typechecker.Prim.tChar
+import novah.frontend.typechecker.Prim.tDouble
+import novah.frontend.typechecker.Prim.tFloat
+import novah.frontend.typechecker.Prim.tInt
+import novah.frontend.typechecker.Prim.tLong
+import novah.frontend.typechecker.Prim.tShort
+import novah.frontend.typechecker.Prim.tString
 
 class TypecheckerSpec : StringSpec({
 

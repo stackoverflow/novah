@@ -1,7 +1,14 @@
 package novah.frontend.typechecker
 
+import novah.ast.canonical.Module
+import novah.data.Err
+import novah.data.Ok
+import novah.data.Result
 import novah.frontend.Span
+import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.main.CompilationError
+import novah.main.ModuleEnv
 
 object Typechecker {
     private var ids = mutableMapOf<String, Int>()
@@ -14,6 +21,16 @@ object Typechecker {
         val next = ids[name] ?: 0
         ids[name] = next + 1
         return "$name\$$next"
+    }
+
+    fun infer(ctx: Context, mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
+        return try {
+            Ok(Inference.infer(ctx, mod))
+        } catch (ie: InferenceError) {
+            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name)))
+        } catch (ce: CompilationError) {
+            Err(ce.problems)
+        }
     }
 }
 

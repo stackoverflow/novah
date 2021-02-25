@@ -17,14 +17,15 @@ package novah.frontend
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.data.blocking.forAll
-import io.kotest.data.row
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import novah.ast.Desugar
-import novah.ast.source.*
+import novah.ast.source.Decl
+import novah.ast.source.Expr
+import novah.ast.source.FunparPattern
+import novah.ast.source.Module
 import novah.data.Err
 import novah.formatter.Formatter
 import novah.frontend.TestUtil._i
@@ -33,7 +34,6 @@ import novah.frontend.TestUtil.abs
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.parseResource
 import novah.frontend.TestUtil.parseString
-import novah.frontend.hmftypechecker.Typechecker
 
 class ParserSpec : StringSpec({
 
@@ -153,7 +153,7 @@ class ParserSpec : StringSpec({
         val code = "type Wrong = Wrong | NotWrong".module()
 
         val ast = parseString(code)
-        val des = Desugar(ast, Typechecker())
+        val des = Desugar(ast)
         des.desugar().shouldBeInstanceOf<Err<*>>()
     }
 
@@ -161,7 +161,7 @@ class ParserSpec : StringSpec({
         val code = "type Tuple a b = Tuple a b".module()
 
         val ast = parseString(code)
-        val des = Desugar(ast, Typechecker())
+        val des = Desugar(ast)
         shouldNotThrowAny {
             des.desugar()
         }

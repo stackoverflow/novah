@@ -106,36 +106,36 @@ fun javaToNovah(jname: String): String = when (jname) {
 
 val primImport = Import.Raw("prim", Span.empty())
 
-private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC)
-private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
+//private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC)
+//private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
 
 private fun tfun(a: Type, b: Type) = Type.TArrow(listOf(a), b)
 private fun tfall(v: Id, t: Type) = Type.TForall(listOf(v), t)
 private fun tbound(x: Id) = Type.TVar(TypeVar.Bound(x))
 
-val primModuleEnv = ModuleEnv(
-    mapOf(
-        "println" to decl(tfun(tString, tUnit)),
-        // TODO: fix these negative numbers (probably by moving them to the stblib)
-        "unsafeCast" to decl(Type.TForall(listOf(-1, -2), tfun(tbound(-1), tbound(-2)))),
-        "toString" to decl(tfall(-3, tfun(tbound(-3), tString))),
-        "hashCode" to decl(tfall(-4, tfun(tbound(-4), tInt))),
-        "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "==" to decl(tfall(-5, tfun(tbound(-5), tfun(tbound(-5), tBoolean))))
-    ),
-    mapOf(
-        "Byte" to tdecl(tByte),
-        "Short" to tdecl(tShort),
-        "Int" to tdecl(tInt),
-        "Long" to tdecl(tLong),
-        "Float" to tdecl(tFloat),
-        "Double" to tdecl(tDouble),
-        "String" to tdecl(tString),
-        "Char" to tdecl(tChar),
-        "Boolean" to tdecl(tBoolean),
-        "Unit" to tdecl(tUnit),
-        "Vector" to tdecl(tVector),
-        "Set" to tdecl(tSet)
-    )
-)
+//val primModuleEnv = ModuleEnv(
+//    mapOf(
+//        "println" to decl(tfun(tString, tUnit)),
+//        // TODO: fix these negative numbers (probably by moving them to the stblib)
+//        "unsafeCast" to decl(Type.TForall(listOf(-1, -2), tfun(tbound(-1), tbound(-2)))),
+//        "toString" to decl(tfall(-3, tfun(tbound(-3), tString))),
+//        "hashCode" to decl(tfall(-4, tfun(tbound(-4), tInt))),
+//        "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
+//        "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
+//        "==" to decl(tfall(-5, tfun(tbound(-5), tfun(tbound(-5), tBoolean))))
+//    ),
+//    mapOf(
+//        "Byte" to tdecl(tByte),
+//        "Short" to tdecl(tShort),
+//        "Int" to tdecl(tInt),
+//        "Long" to tdecl(tLong),
+//        "Float" to tdecl(tFloat),
+//        "Double" to tdecl(tDouble),
+//        "String" to tdecl(tString),
+//        "Char" to tdecl(tChar),
+//        "Boolean" to tdecl(tBoolean),
+//        "Unit" to tdecl(tUnit),
+//        "Vector" to tdecl(tVector),
+//        "Set" to tdecl(tSet)
+//    )
+//)

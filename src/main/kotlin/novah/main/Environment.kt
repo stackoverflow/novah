@@ -31,10 +31,12 @@ import novah.frontend.Parser
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
-import novah.frontend.hmftypechecker.Type
-import novah.frontend.hmftypechecker.Typechecker
 import novah.frontend.resolveForeignImports
 import novah.frontend.resolveImports
+import novah.frontend.typechecker.Context
+import novah.frontend.typechecker.Elem
+import novah.frontend.typechecker.Type
+import novah.frontend.typechecker.Typechecker
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import novah.util.BufferedCharIterator
@@ -95,19 +97,20 @@ class Environment(private val verbose: Boolean) {
         }
         modGraph.findCycle()?.let { reportCycle(it) }
 
-        val tc = Typechecker()
         val orderedMods = modGraph.topoSort()
         orderedMods.forEach { mod ->
-            tc.resetEnv()
-            val importErrs = resolveImports(mod.data, tc, modules)
-            val foreignErrs = resolveForeignImports(mod.data, tc)
+            Typechecker.resetIds()
+            val ctxList = io.lacuna.bifurcan.List<Elem>().linear()
+            val importErrs = resolveImports(mod.data, ctxList, modules)
+            val foreignErrs = resolveForeignImports(mod.data, ctxList)
             val errs = importErrs + foreignErrs
             if (errs.isNotEmpty()) throwErrors(errs)
+            val ctx = Context.new(ctxList.forked())
 
             if (verbose) echo("Typechecking ${mod.data.name}")
 
-            val canonical = Desugar(mod.data, tc).desugar().unwrapOrElse { throwErrors(it) }
-            val menv = tc.infer(canonical).unwrapOrElse { throwErrors(it) }
+            val canonical = Desugar(mod.data).desugar().unwrapOrElse { throwErrors(it) }
+            val menv = Typechecker.infer(ctx, canonical).unwrapOrElse { throwErrors(it) }
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
             modules[mod.data.name] = FullModuleEnv(menv, canonical, taliases)

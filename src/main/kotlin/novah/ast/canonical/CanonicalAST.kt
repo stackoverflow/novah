@@ -19,8 +19,7 @@ import novah.ast.source.Visibility
 import novah.data.PLabelMap
 import novah.data.mapList
 import novah.frontend.Span
-import novah.frontend.hmftypechecker.Id
-import novah.frontend.hmftypechecker.Type
+import novah.frontend.typechecker.Type
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Constructor as JConstructor
@@ -70,18 +69,13 @@ sealed class Expr(open val span: Span) {
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
     data class Var(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class Constructor(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
-    data class Lambda(
-        val pattern: FunparPattern,
-        val ann: Pair<List<Id>, Type>?,
-        val body: Expr,
-        override val span: Span
-    ) : Expr(span)
+    data class Lambda(val pattern: FunparPattern, val body: Expr, override val span: Span) : Expr(span)
 
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
     data class Match(val exp: Expr, val cases: List<Case>, override val span: Span) : Expr(span)
-    data class Ann(val exp: Expr, val annType: Pair<List<Id>, Type>, override val span: Span) : Expr(span)
+    data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class NativeFieldGet(val name: String, val field: Field, val isStatic: Boolean, override val span: Span) :
         Expr(span)

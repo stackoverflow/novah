@@ -2,7 +2,6 @@ package novah.frontend.typechecker
 
 import novah.frontend.Span
 import novah.frontend.error.ProblemContext
-import novah.frontend.typechecker.Context.Companion.applyCtx
 import novah.frontend.typechecker.Type.Companion.openTForall
 import novah.frontend.typechecker.Typechecker.freshName
 import novah.frontend.typechecker.WellFormed.wfType
@@ -10,14 +9,14 @@ import novah.frontend.error.Errors as E
 
 object Subsumption {
 
-    fun solve(ctx: Context, x: TMeta, type: Type, span: Span): Context {
+    private fun solve(ctx: Context, x: TMeta, type: Type, span: Span): Context {
         if (!type.isMono()) subsumeError(E.cannotSolveWithPoly(x.show(false), type.show(false)), span)
-        val (ctx2, right) = ctx.split(CTMeta(x.name, null))
+        val (ctx2, right) = ctx.split<CTMeta>(x.name)
         wfType(ctx2, type, span)
         return ctx2.append(CTMeta(x.name, type)).concat(right)
     }
 
-    fun instL(ctx: Context, x: TMeta, type: Type, span: Span): Context {
+    private fun instL(ctx: Context, x: TMeta, type: Type, span: Span): Context {
         return try {
             solve(ctx, x, type, span)
         } catch (_: InferenceError) {
@@ -35,16 +34,16 @@ object Subsumption {
                     val b = freshName(y)
                     val ta = TMeta(a)
                     val tb = TMeta(b)
-                    val ctx2 = ctx.replace(CTMeta(y), CTMeta(b), CTMeta(a), CTMeta(y, TArrow(ta, tb)))
+                    val ctx2 = ctx.replace<CTMeta>(y, CTMeta(b), CTMeta(a), CTMeta(y, TArrow(ta, tb)))
                     val ctx3 = instR(ctx2, type.left, ta, span)
-                    instL(ctx3, tb, applyCtx(ctx3, type.right), span)
+                    instL(ctx3, tb, ctx3.apply(type.right), span)
                 }
                 else -> subsumeError(E.typeIsNotInstance(x.show(false), type.show(false)), span)
             }
         }
     }
 
-    fun instR(ctx: Context, type: Type, x: TMeta, span: Span): Context {
+    private fun instR(ctx: Context, type: Type, x: TMeta, span: Span): Context {
         return try {
             solve(ctx, x, type, span)
         } catch (_: InferenceError) {
@@ -61,9 +60,9 @@ object Subsumption {
                     val b = freshName(y)
                     val ta = TMeta(a)
                     val tb = TMeta(b)
-                    val ctx2 = ctx.replace(CTMeta(y), CTMeta(b), CTMeta(a), CTMeta(y, TArrow(ta, tb)))
+                    val ctx2 = ctx.replace<CTMeta>(y, CTMeta(b), CTMeta(a), CTMeta(y, TArrow(ta, tb)))
                     val ctx3 = instL(ctx2, ta, type.left, span)
-                    instR(ctx3, applyCtx(ctx3, type.right), tb, span)
+                    instR(ctx3, ctx3.apply(type.right), tb, span)
                 }
                 else -> subsumeError(E.typeIsNotInstance(x.show(false), type.show(false)), span)
             }
@@ -71,13 +70,11 @@ object Subsumption {
     }
 
     fun subsume(ctx: Context, a: Type, b: Type, span: Span): Context {
+        // this covers TConst, TVar, TMeta and TRowEmpty
         if (a == b) return ctx
-        if (a is TConst && b is TConst && a.name == b.name) return ctx
-        if (a is TVar && b is TVar && a.name == b.name) return ctx
-        if (a is TMeta && b is TMeta && a.name == b.name) return ctx
         if (a is TArrow && b is TArrow) {
             val new = subsume(ctx, a.left, b.left, span)
-            return subsume(new, applyCtx(new, a.right), applyCtx(new, b.right), span)
+            return subsume(new, new.apply(a.right), new.apply(b.right), span)
         }
         if (a is TApp && b is TApp) {
             TODO("Unification")

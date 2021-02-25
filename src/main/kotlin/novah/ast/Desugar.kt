@@ -26,10 +26,9 @@ import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.hmftypechecker.Id
-import novah.frontend.hmftypechecker.Kind
-import novah.frontend.hmftypechecker.Type
-import novah.frontend.hmftypechecker.Typechecker
+import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Type.Companion.nestApps
+import novah.frontend.typechecker.Type.Companion.nestForalls
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
 import kotlin.math.max
@@ -49,7 +48,7 @@ import novah.frontend.error.Errors as E
 /**
  * Converts a source AST to the canonical spanned AST
  */
-class Desugar(private val smod: SModule, private val tc: Typechecker) {
+class Desugar(private val smod: SModule) {
 
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
@@ -82,12 +81,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
             var expr = nestLambdas(patterns.map { it.desugar() }, exp.desugar())
 
             // if the declaration has a type annotation, annotate it
-            expr = if (type != null) {
-                // We want type annotations to be `forall` not `some`, so
-                // we won't replace constants with vars here
-                val ann = emptyList<Id>() to type.desugar()
-                Expr.Ann(expr, ann, span)
-            } else expr
+            expr = if (type != null) Expr.Ann(expr, type.desugar(), span) else expr
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility)
         }
         else -> null
@@ -141,11 +135,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
         is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }), locals)
         is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar(locals) }, span)
-        is SExpr.Ann -> {
-            val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
-            else emptyList<Id>() to type.desugar()
-            Expr.Ann(exp.desugar(locals), ann, span)
-        }
+        is SExpr.Ann -> Expr.Ann(exp.desugar(locals), type.desugar(), span)
         is SExpr.Do -> {
             if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
             val converted = convertDoLets(exps)
@@ -187,8 +177,8 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
     private fun SLetDef.desugar(locals: List<String>): LetDef {
         fun go(binders: List<FunparPattern>, exp: Expr): Expr {
-            return if (binders.size == 1) Expr.Lambda(binders[0], null, exp, exp.span)
-            else Expr.Lambda(binders[0], null, go(binders.drop(1), exp), exp.span)
+            return if (binders.size == 1) Expr.Lambda(binders[0], exp, exp.span)
+            else Expr.Lambda(binders[0], go(binders.drop(1), exp), exp.span)
         }
 
         return if (patterns.isEmpty()) {
@@ -216,71 +206,25 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
 
     private fun SType.goDesugar(kindArity: Int = 0): Type = when (this) {
         is SType.TConst -> {
-            val kind = if (kindArity == 0) Kind.Star else Kind.Constructor(kindArity)
-            if (name[0].isLowerCase()) Type.TConst(name, kind).span(span)
+            //val kind = if (kindArity == 0) Kind.Star else Kind.Constructor(kindArity)
+            if (name[0].isLowerCase()) TVar(name)//, kind).span(span)
             else {
                 val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
-                Type.TConst(varName, kind).span(span)
+                TConst(varName)//, kind).span(span)
             }
         }
-        is SType.TFun -> Type.TArrow(listOf(arg.goDesugar()), ret.goDesugar()).span(span)
-        is SType.TForall -> {
-            val (ids, ty) = replaceConstantsWithVars(names, type.goDesugar(kindArity))
-            Type.TForall(ids, ty).span(span)
-        }
+        is SType.TFun -> TArrow(arg.goDesugar(), ret.goDesugar())//.span(span)
+        is SType.TForall -> nestForalls(names, type.goDesugar(kindArity))
         is SType.TParens -> type.goDesugar(kindArity)
-        is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
-        is SType.TRecord -> Type.TRecord(row.goDesugar()).span(span)
-        is SType.TRowEmpty -> Type.TRowEmpty().span(span)
-        is SType.TRowExtend -> Type.TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
-    }
-
-    /**
-     * Normalizes a forall type:
-     * forall c b a. a -> b
-     * to
-     * forall a b. a -> b
-     */
-    private fun replaceConstantsWithVars(vars: List<String>, type: Type): Pair<List<Id>, Type> {
-        val map = mutableMapOf<String, Type.TVar?>()
-        val ids = mutableListOf<Id>()
-        vars.forEach { map[it] = null }
-
-        fun go(t: Type): Type = when (t) {
-            is Type.TConst -> {
-                if (map.containsKey(t.name)) {
-                    val vvar = map[t.name]
-                    if (vvar != null) vvar
-                    else {
-                        val (id, nvar) = tc.newBoundVar()
-                        ids += id
-                        map[t.name] = nvar
-                        nvar
-                    }
-                } else t
-            }
-            is Type.TVar -> t
-            is Type.TApp -> {
-                val newType = go(t.type)
-                val pars = t.types.map(::go)
-                t.copy(newType, pars)
-            }
-            is Type.TArrow -> {
-                val pars = t.args.map(::go)
-                val ret = go(t.ret)
-                t.copy(pars, ret)
-            }
-            is Type.TForall -> t.copy(t.ids, go(t.type))
-            is Type.TRowEmpty -> t
-            is Type.TRecord -> t.copy(go(t.row))
-            is Type.TRowExtend -> t.copy(t.labels.mapList { go(it) }, go(t.row))
-        }
-        return ids to go(type)
+        is SType.TApp -> nestApps(type.goDesugar(types.size), types.map { it.goDesugar() })//.span(span)
+        is SType.TRecord -> TRecord(row.goDesugar())//.span(span)
+        is SType.TRowEmpty -> TRowEmpty()//.span(span)
+        is SType.TRowExtend -> TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar())//.span(span)
     }
 
     private fun nestLambdas(binders: List<FunparPattern>, exp: Expr): Expr {
         return if (binders.isEmpty()) exp
-        else Expr.Lambda(binders[0], null, nestLambdas(binders.drop(1), exp), exp.span)
+        else Expr.Lambda(binders[0], nestLambdas(binders.drop(1), exp), exp.span)
     }
 
     private fun nestLets(defs: List<SLetDef>, exp: Expr, locals: List<String>): Expr {

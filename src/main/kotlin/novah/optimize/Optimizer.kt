@@ -24,9 +24,15 @@ import novah.ast.optimized.*
 import novah.data.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.hmftypechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
+import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Prim.tBoolean
+import novah.frontend.typechecker.Prim.tByte
+import novah.frontend.typechecker.Prim.tLong
+import novah.frontend.typechecker.Prim.tShort
+import novah.frontend.typechecker.Prim.tString
+import novah.frontend.typechecker.Type.Companion.unnestApps
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.DataDecl as CDataDecl
@@ -34,7 +40,7 @@ import novah.ast.canonical.Decl.ValDecl as CValDecl
 import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
 import novah.frontend.error.Errors as E
-import novah.frontend.hmftypechecker.Type as TType
+import novah.frontend.typechecker.Type as TType
 
 /**
  * Converts the canonical AST to the
@@ -182,31 +188,20 @@ class Optimizer(private val ast: CModule) {
     }
 
     private fun TType.convert(): Type = when (this) {
-        is TType.TConst -> {
-            if (show(false)[0].isLowerCase()) Type.TVar(name.toUpperCase(), true)
-            else
-                Type.TVar(getPrimitiveTypeName(this))
+        is TConst ->  Type.TVar(getPrimitiveTypeName(this))
+        is TVar -> Type.TVar(name.toUpperCase(), true)
+        is TApp -> {
+            val (app, args) = unnestApps(this)
+            val ty = app.convert() as Type.TVar
+            Type.TConstructor(ty.name, args.map { it.convert() })
         }
-        is TType.TApp -> {
-            val ty = type.convert() as Type.TVar
-            Type.TConstructor(ty.name, types.map { it.convert() })
-        }
-        // the only functions that can have more than 1 argument are native ones
-        // but those don't need a type as we get the type from the reflected method/field/constructor
-        is TType.TArrow -> Type.TFun(args[0].convert(), ret.convert())
-        is TType.TForall -> type.convert()
-        is TType.TVar -> {
-            when (val tv = tvar) {
-                is TypeVar.Link -> tv.type.convert()
-                is TypeVar.Bound -> Type.TVar("T${tv.id}", true)
-                is TypeVar.Generic -> internalError("got unbound generic variable after typechecking: ${this.show(true)}")
-                is TypeVar.Unbound -> internalError("got unbound variable after typechecking: ${this.show(true)}")
-            }
-        }
+        is TArrow -> Type.TFun(left.convert(), right.convert())
+        is TForall -> type.convert()
+        is TMeta -> internalError("got unbound variable after typechecking: ${this.show(true)}")
         // records always have the same type
-        is TType.TRowEmpty -> Type.TVar(RECORD_TYPE)
-        is TType.TRecord -> Type.TVar(RECORD_TYPE)
-        is TType.TRowExtend -> Type.TVar(RECORD_TYPE)
+        is TRowEmpty -> Type.TVar(RECORD_TYPE)
+        is TRecord -> Type.TVar(RECORD_TYPE)
+        is TRowExtend -> Type.TVar(RECORD_TYPE)
     }
 
     private val rteCtor = RuntimeException::class.java.constructors.find {
@@ -322,15 +317,15 @@ class Optimizer(private val ast: CModule) {
 
     private fun peelArgs(type: TType): Pair<List<Type>, Type> {
         tailrec fun innerPeelArgs(args: List<TType>, t: TType): Pair<List<TType>, TType> = when (t) {
-            is TType.TArrow -> {
-                if (t.ret is TType.TArrow) innerPeelArgs(args + t.args, t.ret)
-                else args + t.args to t.ret
+            is TArrow -> {
+                if (t.right is TArrow) innerPeelArgs(args + t.left, t.right)
+                else args + t.left to t.right
             }
             else -> args to t
         }
 
         var rawType = type
-        while (rawType is TType.TForall) {
+        while (rawType is TForall) {
             rawType = rawType.type
         }
         val (pars, ret) = innerPeelArgs(emptyList(), rawType)
@@ -349,7 +344,7 @@ class Optimizer(private val ast: CModule) {
         }
 
         // TODO: use primitive types and implement autoboxing
-        private fun getPrimitiveTypeName(tvar: TType.TConst): String = when (tvar.name) {
+        private fun getPrimitiveTypeName(tvar: TConst): String = when (tvar.name) {
             "prim.Byte" -> "java/lang/Byte"
             "prim.Short" -> "java/lang/Short"
             "prim.Int" -> "java/lang/Integer"
