@@ -1,6 +1,20 @@
+/**
+ * Copyright 2021 Islon Scherer
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package novah.frontend.typechecker
 
-import novah.Util
 import novah.Util.hasDuplicates
 import novah.Util.internalError
 import novah.ast.canonical.*
@@ -19,10 +33,10 @@ import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Prim.tUnit
 import novah.frontend.typechecker.Subsumption.subsume
+import novah.frontend.typechecker.Type.Companion.instantiateForall
 import novah.frontend.typechecker.Type.Companion.nestApps
 import novah.frontend.typechecker.Type.Companion.nestArrows
 import novah.frontend.typechecker.Type.Companion.nestForalls
-import novah.frontend.typechecker.Type.Companion.instantiateForall
 import novah.frontend.typechecker.Typechecker.context
 import novah.frontend.typechecker.Typechecker.freshName
 import novah.frontend.typechecker.WellFormed.wfContext
