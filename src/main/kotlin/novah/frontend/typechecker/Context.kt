@@ -2,7 +2,6 @@ package novah.frontend.typechecker
 
 import io.lacuna.bifurcan.IList
 import io.lacuna.bifurcan.List
-import novah.data.mapList
 
 sealed class Elem(open val name: String)
 
@@ -12,10 +11,23 @@ data class CTMeta(override val name: String, val type: Type? = null) : Elem(name
 //data class CMarker(override val name: String) : Elem(name)
 
 // TODO: optimize with reverse indexes
-class Context private constructor(val ctx: IList<Elem>) {
+class Context private constructor(private var ctx: IList<Elem>) {
 
     fun size() = ctx.size()
     fun mark() = ctx.size()
+
+    /**
+     * Fork this context into a new one.
+     */
+    fun fork() = Context(ctx)
+
+    /**
+     * Resets the context back to [other].
+     * Should be used together with [fork].
+     */
+    fun resetTo(other: Context) {
+        ctx = other.ctx
+    }
 
     fun lookupInner(clazz: Class<out Elem>, name: String): Elem? {
         for (e in ctx) {
@@ -28,6 +40,8 @@ class Context private constructor(val ctx: IList<Elem>) {
         return lookupInner(T::class.java, name) as? T
     }
 
+    inline fun <reified T : Elem> contains(name: String): Boolean = lookup<T>(name) != null
+
     fun lookupShadowInner(clazz: Class<out Elem>, name: String): Elem? {
         for (e in ctx) {
             if (e.name == name && clazz.isInstance(e)) return e
@@ -39,55 +53,57 @@ class Context private constructor(val ctx: IList<Elem>) {
         return lookupShadowInner(R::class.java, name) as R?
     }
 
-    inline fun <reified R : Elem> split(name: String): Pair<Context, IList<Elem>> {
-        val (ct, after) = innerSplit(R::class.java, name)
-        return ct to after
-    }
+    inline fun <reified R : Elem> split(name: String): IList<Elem> = innerSplit(R::class.java, name)
 
-    fun innerSplit(clazz: Class<out Elem>, name: String): Pair<Context, IList<Elem>> {
+    fun innerSplit(clazz: Class<out Elem>, name: String): IList<Elem> {
         var i = 0L
         for (e in ctx) {
             if (e.name == name && clazz.isInstance(e)) break
             i++
         }
-        if (i <= 0) return this to List()
+        if (i <= 0) return List()
         val before = ctx.slice(0, i)
         val after = ctx.slice(i + 1, ctx.size())
-        return Context(before) to after
+        ctx = before
+        return after
     }
 
-    fun append(elem: Elem): Context = Context(ctx.addLast(elem))
-
-    fun append(vararg es: Elem): Context {
-        return Context(es.fold(ctx) { acc, el -> acc.addLast(el) })
+    fun append(elem: Elem): Context = apply {
+        ctx = ctx.addLast(elem)
     }
 
-    fun concat(elems: IList<Elem>): Context = Context(ctx.concat(elems))
+    fun append(vararg es: Elem): Context = apply {
+        for (e in es) ctx = ctx.addLast(e)
+    }
 
-    fun removeLast(): Pair<Elem, Context> {
+    fun concat(elems: IList<Elem>): Context = apply {
+        ctx = ctx.concat(elems)
+    }
+
+    fun removeLast(): Elem {
         val last = ctx.last()
-        return last to Context(ctx.removeLast())
+        ctx = ctx.removeLast()
+        return last
     }
 
-    fun replaceInner(clazz: Class<out Elem>, name: String, vararg els: Elem): Context {
-        val (new, right) = innerSplit(clazz, name)
-        return Context(els.fold(new.ctx) { acc, el -> acc.addLast(el) }.concat(right))
+    fun replaceInner(clazz: Class<out Elem>, name: String, vararg els: Elem) {
+        val right = innerSplit(clazz, name)
+        for (e in els) ctx = ctx.addLast(e)
+        ctx = ctx.concat(right)
     }
 
-    inline fun <reified R : Elem> replace(name: String, vararg els: Elem): Context {
-        return replaceInner(R::class.java, name, *els)
-    }
+    inline fun <reified R : Elem> replace(name: String, vararg els: Elem) = replaceInner(R::class.java, name, *els)
 
     // instead of using a marker we use a index for optimization purposes
-    fun leaveWithUnsolved(index: Long): Pair<Context, kotlin.collections.List<String>> {
-        if (index >= ctx.size()) return this to emptyList()
+    fun leaveWithUnsolved(index: Long): kotlin.collections.List<String> {
+        if (index >= ctx.size()) return emptyList()
         val ns = mutableListOf<String>()
         for (i in index until ctx.size()) {
             val n = ctx.nth(i)
             if (n is CTMeta && n.type == null) ns += n.name
         }
-        val c = ctx.slice(0, index)
-        return Context(c) to ns
+        ctx = ctx.slice(0, index)
+        return ns
     }
 
     /**
@@ -98,6 +114,14 @@ class Context private constructor(val ctx: IList<Elem>) {
             val solved = lookup<CTMeta>(t.name)
             if (solved?.type != null) apply(solved.type) else t
         } else t
+    }
+
+    fun isComplete(from: Long): Boolean {
+        for (i in from until size()) {
+            val elem = ctx.nth(i)
+            if (elem is CTMeta && elem.type == null) return false
+        }
+        return true
     }
 
     companion object {

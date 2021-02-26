@@ -37,7 +37,7 @@ import novah.ast.source.Type as SType
 typealias VarRef = String
 typealias ModuleName = String
 
-fun resolveImports(mod: Module, ctx: IList<Elem>, modules: Map<String, FullModuleEnv>): List<CompilerProblem> {
+fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<CompilerProblem> {
     val visible = { (_, tvis): Map.Entry<String, DeclRef> -> tvis.visibility == Visibility.PUBLIC }
     val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
 
@@ -48,11 +48,12 @@ fun resolveImports(mod: Module, ctx: IList<Elem>, modules: Map<String, FullModul
     val resolved = mutableMapOf<VarRef, ModuleName>()
     val resolvedTypealiases = mutableListOf<Decl.TypealiasDecl>()
     val errors = mutableListOf<CompilerProblem>()
+    val ctx = Typechecker.context
     // add the primitive module as import to every module
     val imports = mod.imports + Prim.primImport
     for (imp in imports) {
         val mkError = makeError(imp.span())
-        val m = if (imp.module == "prim") Prim.moduleEnv else modules[imp.module]?.env
+        val m = if (imp.module == Prim.PRIM) Prim.moduleEnv else modules[imp.module]?.env
         if (m == null) {
             errors += mkError(Errors.moduleNotFound(imp.module))
             continue
@@ -66,11 +67,11 @@ fun resolveImports(mod: Module, ctx: IList<Elem>, modules: Map<String, FullModul
                 m.types.filter(visibleType).forEach { name, (type, _) ->
                     resolved["$alias$name"] = mname
                     //env.extendType("$mname.$name", type)
-                    ctx.addLast(CTVar("$mname.$name"))
+                    ctx.append(CTVar("$mname.$name"))
                 }
                 m.decls.filter(visible).forEach { name, (type, _) ->
                     resolved["$alias$name"] = mname
-                    ctx.addLast(CVar("$alias$name", type))
+                    ctx.append(CVar("$alias$name", type))
                 }
                 typealiases.filter { (_, ta) -> ta.visibility == Visibility.PUBLIC }.forEach { (_, ta) ->
                     resolvedTypealiases += ta
@@ -92,7 +93,7 @@ fun resolveImports(mod: Module, ctx: IList<Elem>, modules: Map<String, FullModul
                                 continue
                             }
                             resolved["$alias${ref.name}"] = mname
-                            ctx.addLast(CVar("$alias${ref.name}", declRef.type))
+                            ctx.append(CVar("$alias${ref.name}", declRef.type))
                         }
                         is DeclarationRef.RefType -> {
                             val talias = typealiases[ref.name]
@@ -114,7 +115,7 @@ fun resolveImports(mod: Module, ctx: IList<Elem>, modules: Map<String, FullModul
                                 continue
                             }
                             //env.extendType("$mname.${ref.name}", declRef.type)
-                            ctx.addLast(CTVar("$mname.${ref.name}"))
+                            ctx.append(CTVar("$mname.${ref.name}"))
                             resolved["$alias${ref.name}"] = mname
                             when {
                                 ref.ctors == null -> {
@@ -126,7 +127,7 @@ fun resolveImports(mod: Module, ctx: IList<Elem>, modules: Map<String, FullModul
                                             errors += mkError(Errors.cannotImportInModule("constructor $ctor", mname))
                                             continue
                                         }
-                                        ctx.addLast(CVar("$alias$ctor", ctorDecl.type))
+                                        ctx.append(CVar("$alias$ctor", ctorDecl.type))
                                         resolved["$alias$ctor"] = mname
                                     }
                                 }
@@ -141,7 +142,7 @@ fun resolveImports(mod: Module, ctx: IList<Elem>, modules: Map<String, FullModul
                                             errors += mkError(Errors.cannotImportInModule("constructor $ctor", mname))
                                             continue
                                         }
-                                        ctx.addLast(CVar("$alias$ctor", ctorDecl.type))
+                                        ctx.append(CVar("$alias$ctor", ctorDecl.type))
                                         resolved["$alias$ctor"] = mname
                                     }
                                 }
@@ -161,7 +162,7 @@ fun resolveImports(mod: Module, ctx: IList<Elem>, modules: Map<String, FullModul
  * Resolves all java imports in this module.
  */
 @Suppress("UNCHECKED_CAST")
-fun resolveForeignImports(mod: Module, ctx: IList<Elem>): List<CompilerProblem> {
+fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     // TODO: pass the real classpath here, for now it only works for stdlib types
     val cl = NovahClassLoader("")
     val errors = mutableListOf<CompilerProblem>()
@@ -170,6 +171,7 @@ fun resolveForeignImports(mod: Module, ctx: IList<Elem>): List<CompilerProblem> 
         CompilerProblem(msg, ProblemContext.FOREIGN_IMPORT, span, mod.sourceName, mod.name)
     }
 
+    val ctx = Typechecker.context
     val typealiases = mutableMapOf<String, String>()
     val foreigVars = mutableMapOf<String, ForeignRef>()
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
@@ -180,7 +182,7 @@ fun resolveForeignImports(mod: Module, ctx: IList<Elem>): List<CompilerProblem> 
             continue
         }
         //env.extendType(fqType, Type.TConst(fqType))
-        ctx.addLast(CTVar(fqType))
+        ctx.append(CTVar(fqType))
         if (type.alias != null) {
             if (mod.resolvedImports.containsKey(type.alias))
                 errors += makeError(type.span)(Errors.duplicatedImport(type.alias))
@@ -225,7 +227,7 @@ fun resolveForeignImports(mod: Module, ctx: IList<Elem>): List<CompilerProblem> 
                     errors += error(Errors.duplicatedImport(name))
                 }
                 foreigVars[name] = ForeignRef.MethodRef(method)
-                ctx.addLast(CVar(name, ctxType))
+                ctx.append(CVar(name, ctxType))
             }
             is ForeignImport.Ctor -> {
                 val pars = imp.pars.map { typealiases[it] ?: it }
@@ -239,7 +241,7 @@ fun resolveForeignImports(mod: Module, ctx: IList<Elem>): List<CompilerProblem> 
                     errors += error(Errors.duplicatedImport(imp.alias))
                 }
                 foreigVars[imp.alias] = ForeignRef.CtorRef(ctor)
-                ctx.addLast(CVar(imp.alias, ctxType))
+                ctx.append(CVar(imp.alias, ctxType))
             }
             is ForeignImport.Getter -> {
                 val field = Reflection.findField(clazz, imp.name)
@@ -266,7 +268,7 @@ fun resolveForeignImports(mod: Module, ctx: IList<Elem>): List<CompilerProblem> 
                 } else {
                     TArrow(TConst(type), TConst(javaToNovah(field.type.canonicalName)))
                 }
-                ctx.addLast(CVar(name, ctxType))
+                ctx.append(CVar(name, ctxType))
             }
             is ForeignImport.Setter -> {
                 val field = Reflection.findField(clazz, imp.name)
@@ -297,7 +299,7 @@ fun resolveForeignImports(mod: Module, ctx: IList<Elem>): List<CompilerProblem> 
                 } else {
                     TArrow(TConst(type), TArrow(parType, tUnit))
                 }
-                ctx.addLast(CVar(imp.alias, ctxType))
+                ctx.append(CVar(imp.alias, ctxType))
             }
             else -> internalError("Got imported type: ${imp.type}")
         }

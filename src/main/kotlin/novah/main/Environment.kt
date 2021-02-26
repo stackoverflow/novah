@@ -100,17 +100,16 @@ class Environment(private val verbose: Boolean) {
         val orderedMods = modGraph.topoSort()
         orderedMods.forEach { mod ->
             Typechecker.resetIds()
-            val ctxList = io.lacuna.bifurcan.List<Elem>().linear()
-            val importErrs = resolveImports(mod.data, ctxList, modules)
-            val foreignErrs = resolveForeignImports(mod.data, ctxList)
+            Typechecker.resetContext()
+            val importErrs = resolveImports(mod.data, modules)
+            val foreignErrs = resolveForeignImports(mod.data)
             val errs = importErrs + foreignErrs
             if (errs.isNotEmpty()) throwErrors(errs)
-            val ctx = Context.new(ctxList.forked())
 
             if (verbose) echo("Typechecking ${mod.data.name}")
 
             val canonical = Desugar(mod.data).desugar().unwrapOrElse { throwErrors(it) }
-            val menv = Typechecker.infer(ctx, canonical).unwrapOrElse { throwErrors(it) }
+            val menv = Typechecker.infer(canonical).unwrapOrElse { throwErrors(it) }
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
             modules[mod.data.name] = FullModuleEnv(menv, canonical, taliases)

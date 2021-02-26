@@ -40,7 +40,7 @@ class TypecheckerSpec : StringSpec({
     }
 
     fun inferFX(expr: String): Type {
-        return TestUtil.compileCode("f x = $expr".module()).env.decls["f"]!!.type
+        return TestUtil.compileCode("f () = $expr".module()).env.decls["f"]!!.type
     }
 
     "typecheck primitive expressions" {
@@ -117,7 +117,7 @@ class TypecheckerSpec : StringSpec({
     "typecheck if" {
         val ty = inferFX("if false then 0 else 1")
 
-        ty.simpleName() shouldBe "forall t1. t1 -> Int"
+        ty.simpleName() shouldBe "Unit -> Int"
     }
 
     "typecheck subsumed if" {
@@ -141,13 +141,13 @@ class TypecheckerSpec : StringSpec({
 
         val ty2 = inferFX("(\\y -> y) false")
 
-        ty2.simpleName() shouldBe "forall t1. t1 -> Boolean"
+        ty2.simpleName() shouldBe "Unit -> Boolean"
     }
 
     "typecheck pre-added context vars" {
         val ty = inferFX("toString 10")
 
-        ty.simpleName() shouldBe "forall t1. t1 -> String"
+        ty.simpleName() shouldBe "Unit -> String"
     }
 
     "typecheck let" {

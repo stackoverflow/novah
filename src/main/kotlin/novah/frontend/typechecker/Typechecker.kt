@@ -13,19 +13,28 @@ import novah.main.ModuleEnv
 object Typechecker {
     private var ids = mutableMapOf<String, Int>()
 
+    val context = Context.new()
+
     fun resetIds() {
         ids.clear()
     }
 
-    fun freshName(name: String): String {
-        val next = ids[name] ?: 0
-        ids[name] = next + 1
-        return "$name\$$next"
+    fun resetContext() {
+        context.resetTo(Context.new())
     }
 
-    fun infer(ctx: Context, mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
+    private val pat = Regex("\\\$.*")
+
+    fun freshName(name: String): String {
+        val rname = name.replace(pat, "")
+        val next = ids[rname] ?: 0
+        ids[rname] = next + 1
+        return "$rname\$$next"
+    }
+
+    fun infer(mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
         return try {
-            Ok(Inference.infer(ctx, mod))
+            Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
             Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name)))
         } catch (ce: CompilationError) {

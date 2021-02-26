@@ -114,12 +114,20 @@ object TestUtil {
         is TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
     }
 
-    private class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
+    private val pat = Regex("""\w+\$\d+""")
 
     /**
      * Like [Type.show] but reset the ids of vars.
      */
     fun Type.simpleName(): String {
-        return this.show(false)
+        val map = mutableMapOf<String, String>()
+        var id = 1
+        val str = show(false)
+        pat.findAll(str).forEach {
+            val key = it.groups[0]!!.value
+            if (!map.containsKey(key))
+                map[key] = "t${id++}"
+        }
+        return map.keys.fold(str) { acc, k -> acc.replace(k, map[k]!!) }
     }
 }

@@ -3,58 +3,56 @@ package novah.frontend.typechecker
 import novah.data.mapList
 import novah.frontend.Span
 import novah.frontend.error.Errors
+import novah.frontend.typechecker.Typechecker.context
 
 object WellFormed {
 
-    fun wfType(ctx: Context, t: Type, span: Span) {
+    fun wfType(t: Type, span: Span) {
         when (t) {
             is TConst -> {
-                if (ctx.lookup<CTVar>(t.name) == null) inferError(Errors.undefinedVar(t.name), span)
+                if (context.lookup<CTVar>(t.name) == null) inferError(Errors.undefinedVar(t.name), span)
             }
             is TVar -> {
-                if (ctx.lookup<CTVar>(t.name) == null) inferError(Errors.undefinedVar(t.name), span)
+                if (context.lookup<CTVar>(t.name) == null) inferError(Errors.undefinedVar(t.name), span)
             }
             is TMeta -> {
-                if (ctx.lookup<CTMeta>(t.name) == null) inferError(Errors.undefinedVar(t.name), span)
+                if (context.lookup<CTMeta>(t.name) == null) inferError(Errors.undefinedVar(t.name), span)
             }
             is TArrow -> {
-                wfType(ctx, t.left, span)
-                wfType(ctx, t.right, span)
+                wfType(t.left, span)
+                wfType(t.right, span)
             }
             is TApp -> {
-                wfType(ctx, t.left, span)
-                wfType(ctx, t.right, span)
+                wfType(t.left, span)
+                wfType(t.right, span)
             }
-            is TForall -> wfType(ctx, t.type, span)
-            is TRecord -> wfType(ctx, t.row, span)
+            is TForall -> wfType(t.type, span)
+            is TRecord -> wfType(t.row, span)
             is TRowEmpty -> {}
             is TRowExtend -> {
-                wfType(ctx, t.row, span)
-                t.labels.mapList { wfType(ctx, it, span) }
+                wfType(t.row, span)
+                t.labels.mapList { wfType(it, span) }
             }
         }
     }
 
-    fun wfElem(ctx: Context, elem: Elem, span: Span) {
-        when (elem) {
-            is CTVar -> {
-                if (ctx.lookup<CTVar>(elem.name) != null) inferError(Errors.duplicatedType(elem.name), span)
-            }
-            is CVar -> {
-                if (ctx.lookup<CVar>(elem.name) != null) inferError(Errors.duplicatedType(elem.name), span)
-            }
-            is CTMeta -> {
-                if (ctx.lookup<CTMeta>(elem.name) != null) inferError(Errors.duplicatedType(elem.name), span)
-            }
+    private fun wfElem(ctx: Context, elem: Elem): String? {
+        when {
+            elem is CTVar && ctx.contains<CTVar>(elem.name) -> return elem.name
+            elem is CTMeta && ctx.contains<CTMeta>(elem.name) -> return elem.name
+            elem is CVar && ctx.contains<CVar>(elem.name) -> return elem.name
         }
+        return null
     }
 
-    fun wfContext(ctx: Context, span: Span) {
-        var c = ctx
-        while (c.size() > 0) {
-            val (elem, new) = c.removeLast()
-            wfElem(new, elem, span)
-            c = new
+    fun wfContext(): List<String> {
+        val errors = mutableListOf<String>()
+        val ctx = context.fork()
+        while (ctx.size() > 0) {
+            val elem = ctx.removeLast()
+            val name = wfElem(ctx, elem)
+            if (name != null) errors += name
         }
+        return errors
     }
 }

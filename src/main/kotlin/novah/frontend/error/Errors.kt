@@ -134,6 +134,8 @@ object Errors {
 
     const val RECURSIVE_ROWS = "Recursive row types"
 
+    const val INCOMPLETE_CONTEXT = "Context is not complete."
+
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field
@@ -254,8 +256,6 @@ object Errors {
         $name expects $expected parameter(s) but got $got.
     """.trimIndent()
     
-    fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
-
     fun recursiveAlias(name: String) = "Typealias $name is recursive."
 
     fun undefinedVar(name: String) = "Undefined variable $name."
@@ -269,6 +269,8 @@ object Errors {
     fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
 
     fun duplicatedType(name: String) = "Type $name is already defined or imported."
+
+    fun duplicatedVariable(name: String) = "Variable $name is already defined or imported."
 
     fun unusedVariables(vars: List<String>): String {
         return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."

@@ -1,10 +1,13 @@
 package novah.frontend.typechecker
 
-import novah.ast.canonical.Decl
-import novah.ast.canonical.Expr
-import novah.ast.canonical.FunparPattern
-import novah.ast.canonical.Module
+import novah.Util
+import novah.Util.hasDuplicates
+import novah.Util.internalError
+import novah.ast.canonical.*
+import novah.data.mapList
 import novah.frontend.Span
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.Prim.tBoolean
 import novah.frontend.typechecker.Prim.tByte
 import novah.frontend.typechecker.Prim.tChar
@@ -16,180 +19,206 @@ import novah.frontend.typechecker.Prim.tShort
 import novah.frontend.typechecker.Prim.tString
 import novah.frontend.typechecker.Prim.tUnit
 import novah.frontend.typechecker.Subsumption.subsume
-import novah.frontend.typechecker.Type.Companion.openTForall
-import novah.frontend.error.Errors as E
+import novah.frontend.typechecker.Type.Companion.nestApps
+import novah.frontend.typechecker.Type.Companion.nestArrows
+import novah.frontend.typechecker.Type.Companion.nestForalls
+import novah.frontend.typechecker.Type.Companion.instantiateForall
+import novah.frontend.typechecker.Typechecker.context
 import novah.frontend.typechecker.Typechecker.freshName
+import novah.frontend.typechecker.WellFormed.wfContext
 import novah.frontend.typechecker.WellFormed.wfType
+import novah.main.CompilationError
 import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
+import novah.frontend.error.Errors as E
 
 object Inference {
 
-    fun infer(ctx: Context, mod: Module): ModuleEnv {
+    fun infer(mod: Module): ModuleEnv {
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
 
-//        mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
-//            val (ddtype, ddelem) = dataDeclToType(ddecl, mod.name)
-//            types[ddecl.name] = TypeDeclRef(ddtype, ddecl.visibility, ddecl.dataCtors.map { it.name })
-//            ictx.context.add(ddelem)
-//
-//            dataConstructorsToType(ddecl, ddtype).forEach { (ctor, type) ->
-//                decls[ctor.name] = DeclRef(type, ctor.visibility)
-//                wf.wfType(type, ctor.span)
-//                ictx.context.add(Elem.CVar(ctor.name.raw(), type))
-//            }
-//        }
-//
-//        val vals = mod.decls.filterIsInstance<Decl.ValDecl>()
-//        vals.forEach { decl ->
-//            val expr = decl.exp
-//            val name = decl.name.raw()
-//            if (expr is Expr.Ann) {
-//                wf.wfType(expr.annType, expr.span)
-//                ictx.context.add(Elem.CVar(name, expr.annType))
-//            } else {
-//                val t = store.fresh("t")
-//                ictx.context.add(Elem.CVar(name, Type.TForall(t, Type.TVar(t))))
-//            }
-//        }
-//
-//        val errorNames = wf.wfContext()
-//        val errors = errorNames.map { err ->
-//            val decl = vals.find { it.name == err.rawName() } ?: internalError("Could not find defined variable $err.")
-//            val msg = if (decl.name[0].isUpperCase()) E.duplicatedType(err)
-//            else E.duplicatedVariable(err)
-//            CompilerProblem(msg, ProblemContext.TYPECHECK, decl.span, mod.sourceName, mod.name)
-//        }
-//        if (errors.isNotEmpty()) throw CompilationError(errors)
-//
-//        vals.forEach { decl ->
-//            val ty = infer(decl.exp)
-//            val name = decl.name.raw()
-//            ictx.context.replaceCVar(name, Elem.CVar(name, ty))
-//            decls[decl.name] = DeclRef(ty, decl.visibility)
-//        }
+        mod.decls.filterIsInstance<Decl.DataDecl>().forEach { ddecl ->
+            val (ddtype, ddelem) = dataDeclToType(ddecl, mod.name)
+            types[ddecl.name] = TypeDeclRef(ddtype, ddecl.visibility, ddecl.dataCtors.map { it.name })
+            context.append(ddelem)
+
+            dataConstructorsToType(ddecl, ddtype).forEach { (ctor, type) ->
+                decls[ctor.name] = DeclRef(type, ctor.visibility)
+                wfType(type, ctor.span)
+                context.append(CVar(ctor.name, type))
+            }
+        }
+
+        val vals = mod.decls.filterIsInstance<Decl.ValDecl>()
+        vals.forEach { decl ->
+            val expr = decl.exp
+            val name = decl.name
+            if (expr is Expr.Ann) {
+                wfType(expr.annType, expr.span)
+                context.append(CVar(name, expr.annType))
+            } else {
+                val t = freshName("t")
+                context.append(CVar(name, TForall(t, TVar(t))))
+            }
+        }
+
+        val errorNames = wfContext()
+        val errors = errorNames.map { err ->
+            val decl = vals.find { it.name == err } ?: internalError("Could not find defined variable $err.")
+            val msg = if (decl.name[0].isUpperCase()) E.duplicatedType(err)
+            else E.duplicatedVariable(err)
+            CompilerProblem(msg, ProblemContext.TYPECHECK, decl.span, mod.sourceName, mod.name)
+        }
+        if (errors.isNotEmpty()) throw CompilationError(errors)
+
+        vals.forEach { decl ->
+            val ty = inferExpr(decl.exp)
+            val name = decl.name
+            context.replace<CVar>(name, CVar(name, ty))
+            decls[decl.name] = DeclRef(ty, decl.visibility)
+        }
         return ModuleEnv(decls, types)
+    }
+
+    private fun inferExpr(expr: Expr): Type {
+        val mark = context.mark()
+        val ty = generalizeFrom(mark, context.apply(infer(expr)))
+        //expr.resolveMetas()
+
+        if (!context.isComplete(mark)) inferError(E.INCOMPLETE_CONTEXT, expr.span)
+        return ty
     }
 
     /**
      * The inference mode of the type checker.
      * Synthesizes a type for the given expression
      */
-    fun infer(ctx: Context, exp: Expr): Pair<Type, Context> {
+    private fun infer(exp: Expr): Type {
         return when (exp) {
-            is Expr.IntE -> exp.withType(tInt) to ctx
-            is Expr.LongE -> exp.withType(tLong) to ctx
-            is Expr.FloatE -> exp.withType(tFloat) to ctx
-            is Expr.DoubleE -> exp.withType(tDouble) to ctx
-            is Expr.CharE -> exp.withType(tChar) to ctx
-            is Expr.Bool -> exp.withType(tBoolean) to ctx
-            is Expr.StringE -> exp.withType(tString) to ctx
-            is Expr.Unit -> exp.withType(tUnit) to ctx
+            is Expr.IntE -> exp.withType(tInt)
+            is Expr.LongE -> exp.withType(tLong)
+            is Expr.FloatE -> exp.withType(tFloat)
+            is Expr.DoubleE -> exp.withType(tDouble)
+            is Expr.CharE -> exp.withType(tChar)
+            is Expr.Bool -> exp.withType(tBoolean)
+            is Expr.StringE -> exp.withType(tString)
+            is Expr.Unit -> exp.withType(tUnit)
             is Expr.Var -> {
-                val x = ctx.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(x.type) to ctx
+                val x = context.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(x.type)
             }
             is Expr.Constructor -> {
-                val x = ctx.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(x.type) to ctx
+                val x = context.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(x.type)
             }
             is Expr.NativeFieldGet -> {
-                val ty = ctx.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(ty.type) to ctx
+                val ty = context.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(ty.type)
             }
             is Expr.NativeFieldSet -> {
-                val ty = ctx.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(ty.type) to ctx
+                val ty = context.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(ty.type)
             }
             is Expr.NativeMethod -> {
-                val ty = ctx.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(ty.type) to ctx
+                val ty = context.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(ty.type)
             }
             is Expr.NativeConstructor -> {
-                val ty = ctx.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(ty.type) to ctx
+                val ty = context.lookup<CVar>(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+                exp.withType(ty.type)
             }
             is Expr.Lambda -> {
                 when (val pattern = exp.pattern) {
                     is FunparPattern.Ignored -> {
-                        val bodyType = infer(ctx, exp.body).first
+                        val bodyType = infer(exp.body)
                         val tvar = freshName("t")
                         val ty = TForall(tvar, TArrow(TVar(tvar), bodyType))
-                        exp.withType(ty) to ctx
+                        exp.withType(ty)
                     }
                     is FunparPattern.Unit -> {
-                        val bodyType = infer(ctx, exp.body).first
+                        val bodyType = infer(exp.body)
                         val ty = TArrow(tUnit, bodyType)
-                        exp.withType(ty) to ctx
+                        exp.withType(ty)
                     }
                     is FunparPattern.Bind -> {
                         val binder = pattern.binder.name
-                        checkShadow(ctx, binder, exp.pattern.span)
+                        checkShadow(binder, exp.pattern.span)
 
                         val a = freshName(binder)
                         val b = freshName(binder)
                         val ta = TMeta(a)
                         val tb = TMeta(b)
-                        val marker = ctx.mark()
-                        var ctx2 = ctx.append(CTMeta(a), CTMeta(b), CVar(binder, ta))
-                        ctx2 = check(ctx2, exp.body, tb)
+                        val marker = context.mark()
+                        context.append(CTMeta(a), CTMeta(b), CVar(binder, ta))
+                        check(exp.body, tb)
 
-                        val ty = ctx2.apply(TArrow(ta, tb))
-                        exp.withType(generalizeFrom(ctx2, marker, ty)) to ctx
+                        val ty = context.apply(TArrow(ta, tb))
+                        exp.withType(generalizeFrom(marker, ty))
                     }
                 }
             }
             is Expr.App -> {
-                val (left, ctx2) = infer(ctx, exp.fn)
-                val (right, ctx3) = inferapp(ctx2, ctx2.apply(left), exp.arg)
-                exp.withType(right) to ctx3
+                val left = infer(exp.fn)
+                val right = inferapp(context.apply(left), exp.arg)
+                exp.withType(right)
             }
             is Expr.Ann -> {
                 val ty = exp.annType
-                wfType(ctx, ty, exp.span)
-                val ctx2 = check(ctx, exp.exp, ty)
+                wfType(ty, exp.span)
+                check(exp.exp, ty)
                 // set not only the type of the annotation but the type of the inner expression
                 exp.exp.withType(ty)
-                exp.withType(ty) to ctx2
+                exp.withType(ty)
             }
             is Expr.If -> {
-                check(ctx, exp.cond, tBoolean)
-                val (tt, _) = infer(ctx, exp.thenCase)
-                val (te, _) = infer(ctx, exp.elseCase)
-                subsume(ctx, tt, te, exp.span)
-                exp.withType(tt) to ctx
+                check(exp.cond, tBoolean)
+                val tt = infer(exp.thenCase)
+                val te = infer(exp.elseCase)
+                subsume(tt, te, exp.span)
+                exp.withType(tt)
             }
             is Expr.Let -> {
                 val ld = exp.letDef
                 val binder = ld.binder.name
-                checkShadow(ctx, binder, ld.binder.span)
+                checkShadow(binder, ld.binder.span)
 
+                val mark = context.fork()
                 // infer or check the binding
-                val ctx2 = if (ld.type != null) {
-                    wfType(ctx, ld.type, ld.binder.span)
-                    val ctx2 = check(ctx, ld.expr, ld.type)
-                    ctx2.append(CVar(binder, ld.type))
+                if (ld.type != null) {
+                    wfType(ld.type, ld.binder.span)
+                    check(ld.expr, ld.type)
+                    context.append(CVar(binder, ld.type))
                 } else {
-                    val (typ, ctx2) = infer(ctx, ld.expr)
-                    ctx2.append(CVar(binder, typ))
+                    val typ = infer(ld.expr)
+                    context.append(CVar(binder, typ))
                 }
 
                 // infer the body
-                val (ty, _) = infer(ctx2, exp.body)
-                exp.withType(ty) to ctx
+                val ty = infer(exp.body)
+                context.resetTo(mark)
+                exp.withType(ty)
             }
             is Expr.Do -> {
                 var ty: Type? = null
-                var ctx2 = ctx
-                for (e in exp.exps) {
-                    val res = infer(ctx, e)
-                    ty = res.first
-                    ctx2 = res.second
-                }
-                exp.withType(ty!!) to ctx2
+                for (e in exp.exps) ty = infer(e)
+                exp.withType(ty!!)
             }
+            is Expr.Match -> {
+                val expType = infer(exp.exp)
+                var resType: Type? = null
+
+                exp.cases.forEach { case ->
+                    val vars = checkpattern(case.pattern, expType)
+                    withEnteringContext(vars) {
+                        if (resType == null) resType = infer(case.exp)
+                        else check(case.exp, resType!!)
+                    }
+                }
+                exp.withType(resType ?: internalError(E.EMPTY_MATCH))
+            }
+            is Expr.RecordEmpty -> exp.withType(TRecord(TRowEmpty()))
             else -> TODO()
         }
     }
@@ -198,96 +227,64 @@ object Inference {
      * The check mode of the type checker.
      * Checks expression [exp] has type [ty].
      */
-    fun check(ctx: Context, exp: Expr, ty: Type): Context {
-        return when {
-            exp is Expr.IntE && ty == tByte && exp.v >= Byte.MIN_VALUE && exp.v <= Byte.MAX_VALUE -> {
-                exp.withType(tByte)
-                ctx
-            }
-            exp is Expr.IntE && ty == tShort && exp.v >= Short.MIN_VALUE && exp.v <= Short.MAX_VALUE -> {
+    fun check(exp: Expr, ty: Type) {
+        when {
+            exp is Expr.IntE && ty == tByte && exp.v >= Byte.MIN_VALUE && exp.v <= Byte.MAX_VALUE -> exp.withType(tByte)
+            exp is Expr.IntE && ty == tShort && exp.v >= Short.MIN_VALUE && exp.v <= Short.MAX_VALUE ->
                 exp.withType(tShort)
-                ctx
-            }
-            exp is Expr.IntE && ty == tInt -> {
-                exp.withType(tInt)
-                ctx
-            }
-            exp is Expr.LongE && ty == tLong -> {
-                exp.withType(tLong)
-                ctx
-            }
-            exp is Expr.FloatE && ty == tFloat -> {
-                exp.withType(tFloat)
-                ctx
-            }
-            exp is Expr.DoubleE && ty == tDouble -> {
-                exp.withType(tDouble)
-                ctx
-            }
-            exp is Expr.StringE && ty == tString -> {
-                exp.withType(tString)
-                ctx
-            }
-            exp is Expr.CharE && ty == tChar -> {
-                exp.withType(tChar)
-                ctx
-            }
-            exp is Expr.Bool && ty == tBoolean -> {
-                exp.withType(tBoolean)
-                ctx
-            }
-            exp is Expr.Unit -> {
-                exp.withType(tUnit)
-                ctx
-            }
+            exp is Expr.IntE && ty == tInt -> exp.withType(tInt)
+            exp is Expr.LongE && ty == tLong -> exp.withType(tLong)
+            exp is Expr.FloatE && ty == tFloat -> exp.withType(tFloat)
+            exp is Expr.DoubleE && ty == tDouble -> exp.withType(tDouble)
+            exp is Expr.StringE && ty == tString -> exp.withType(tString)
+            exp is Expr.CharE && ty == tChar -> exp.withType(tChar)
+            exp is Expr.Bool && ty == tBoolean -> exp.withType(tBoolean)
+            exp is Expr.Unit -> exp.withType(tUnit)
             ty is TForall -> {
                 val x = freshName(ty.name)
-                val ctx2 = ctx.append(CTVar(x))
-                check(ctx2, exp, openTForall(ty, TVar(x)))
-                ctx
+                context.append(CTVar(x))
+                check(exp, instantiateForall(ty, TVar(x)))
             }
             ty is TArrow && exp is Expr.Lambda -> {
                 when (exp.pattern) {
                     is FunparPattern.Ignored -> {
-                        check(ctx, exp.body, ty.right)
+                        check(exp.body, ty.right)
                         exp.withType(ty)
-                        ctx
                     }
                     is FunparPattern.Unit -> {
-                        subsume(ctx, ty.left, tUnit, exp.span)
-                        check(ctx, exp.body, ty.right)
+                        subsume(ty.left, tUnit, exp.span)
+                        check(exp.body, ty.right)
                         exp.withType(ty)
-                        ctx
                     }
                     is FunparPattern.Bind -> {
                         val x = exp.pattern.binder.name
-                        val ctx2 = ctx.append(CVar(x, ty.left))
-                        check(ctx2, exp.body, ty.right)
+                        val mark = context.fork()
+                        context.append(CVar(x, ty.left))
+                        check(exp.body, ty.right)
+                        context.resetTo(mark)
                         exp.withType(ty)
-                        ctx
                     }
                 }
             }
             exp is Expr.If -> {
-                check(ctx, exp.cond, tBoolean)
-                check(ctx, exp.thenCase, ty)
-                check(ctx, exp.elseCase, ty)
-                if (exp.thenCase.type != null) exp.withType(exp.thenCase.type!!)
-                ctx
+                check(exp.cond, tBoolean)
+                check(exp.thenCase, ty)
+                check(exp.elseCase, ty)
+                exp.withType(exp.thenCase.type!!)
             }
             else -> {
-                val (type, ctx2) = infer(ctx, exp)
-                subsume(ctx2, ctx2.apply(type), ctx2.apply(type), exp.span)
+                val type = infer(exp)
+                subsume(context.apply(ty), context.apply(type), exp.span)
             }
         }
     }
 
-    private fun inferapp(ctx: Context, type: Type, expr: Expr): Pair<Type, Context> {
+    private fun inferapp(type: Type, expr: Expr): Type {
         return when (type) {
             is TForall -> {
                 val x = freshName(type.name)
-                val ctx2 = ctx.append(CTMeta(x))
-                inferapp(ctx2, openTForall(type, TMeta(x)), expr)
+                context.append(CTMeta(x))
+                inferapp(instantiateForall(type, TMeta(x)), expr)
             }
             is TMeta -> {
                 val x = type.name
@@ -295,15 +292,58 @@ object Inference {
                 val b = freshName(x)
                 val ta = TMeta(a)
                 val tb = TMeta(b)
-                var ctx2 = ctx.replace<CTMeta>(x, CTMeta(b), CTMeta(a), CTMeta(x, TArrow(ta, tb)))
-                ctx2 = check(ctx2, expr, ta)
-                tb to ctx2
+                context.replace<CTMeta>(x, CTMeta(b), CTMeta(a), CTMeta(x, TArrow(ta, tb)))
+                check(expr, ta)
+                tb
             }
             is TArrow -> {
-                val ctx2 = check(ctx, expr, type.left)
-                type.right to ctx2
+                check(expr, type.left)
+                type.right
             }
             else -> inferError(E.NOT_A_FUNCTION, expr.span)
+        }
+    }
+
+    private fun checkpattern(pat: Pattern, type: Type): List<CVar> {
+        tailrec fun peelArgs(args: List<Type>, t: Type): Pair<List<Type>, Type> = when (t) {
+            is TArrow -> {
+                if (t.right is TArrow) peelArgs(args + t.left, t.right)
+                else args + t.left to t.right
+            }
+            else -> args to t
+        }
+
+        return when (pat) {
+            is Pattern.LiteralP -> {
+                check(pat.lit.e, type)
+                listOf()
+            }
+            is Pattern.Wildcard -> listOf()
+            is Pattern.Var -> {
+                checkShadow(pat.name, pat.span)
+                listOf(CVar(pat.name, type))
+            }
+            is Pattern.Ctor -> {
+                val ctorTyp = infer(pat.ctor)
+
+                val (ctorTypes, ret) = peelArgs(listOf(), instantiateForalls(ctorTyp))
+                // TODO: change to unification
+                subsume(ret, type, pat.span)
+
+                if (ctorTypes.size - pat.fields.size != 0)
+                    internalError("unified two constructors with wrong kinds: $pat")
+
+                if (ctorTypes.isEmpty()) listOf()
+                else {
+                    val vars = mutableListOf<CVar>()
+                    ctorTypes.zip(pat.fields).forEach { (type, pattern) ->
+                        vars.addAll(checkpattern(pattern, type))
+                    }
+                    val varNames = vars.map { it.name }
+                    if (varNames.hasDuplicates()) inferError(E.overlappingNamesInBinder(varNames), pat.span)
+                    vars
+                }
+            }
         }
     }
 
@@ -321,17 +361,65 @@ object Inference {
         return res
     }
 
-    private fun generalizeFrom(ctx: Context, index: Long, type: Type): Type {
-        val (_, ty) = ctx.leaveWithUnsolved(index)
+    private fun generalizeFrom(index: Long, type: Type): Type {
+        val ty = context.leaveWithUnsolved(index)
         return generalize(ty, type)
+    }
+
+    /**
+     * Return the type defined by this ADT and the context element
+     * associated with it.
+     */
+    private fun dataDeclToType(dd: Decl.DataDecl, moduleName: String): Pair<Type, Elem> {
+        val typeName = "$moduleName.${dd.name}"
+        val elem = CTVar(typeName)
+        if (dd.tyVars.isEmpty()) return TConst(typeName) to elem
+
+        val innerTypes = dd.tyVars.map { TVar(it) }
+        return nestApps(TConst(typeName), innerTypes) to elem
+    }
+
+    /**
+     * Takes a data declaration and returns all variables (constructors)
+     * that should be added to the context.
+     */
+    private fun dataConstructorsToType(dd: Decl.DataDecl, dataType: Type): List<Pair<DataConstructor, Type>> {
+        return dd.dataCtors.map { ctor ->
+            val type = nestForalls(dd.tyVars, nestArrows(ctor.args + dataType))
+            ctor to type
+        }
+    }
+
+    private fun instantiateForalls(type: Type): Type = when (type) {
+        is TForall -> {
+            val x = freshName(type.name)
+            context.append(CTMeta(x))
+            instantiateForalls(instantiateForall(type, TMeta(x)))
+        }
+        is TArrow -> TArrow(instantiateForalls(type.left), instantiateForalls(type.right))
+        is TApp -> TApp(instantiateForalls(type.left), instantiateForalls(type.right))
+        is TRecord -> TRecord(instantiateForalls(type.row))
+        is TRowExtend -> TRowExtend(type.labels.mapList { instantiateForalls(it) }, instantiateForalls(type.row))
+        else -> type
     }
 
     /**
      * Check if `name` is shadowing some variable
      * and throw an error if that's the case.
      */
-    private fun checkShadow(ctx: Context, name: String, span: Span) {
-        val shadow = ctx.lookupShadow<CVar>(name)
+    private fun checkShadow(name: String, span: Span) {
+        val shadow = context.lookupShadow<CVar>(name)
         if (shadow != null) inferError(E.shadowedVariable(name), span)
+    }
+
+    private inline fun <T> withEnteringContext(vars: List<CVar>, f: () -> T): T {
+        return if (vars.isEmpty()) f()
+        else {
+            val mark = context.fork()
+            context.append(*vars.toTypedArray())
+            val res = f()
+            context.resetTo(mark)
+            res
+        }
     }
 }

@@ -29,19 +29,19 @@ object Prim {
     const val set = "$PRIM.Set"
 
     // primitives
-    val tByte = tvar(byte)
-    val tShort = tvar(short)
-    val tInt = tvar(int)
-    val tLong = tvar(long)
-    val tFloat = tvar(float)
-    val tDouble = tvar(double)
-    val tString = tvar(string)
-    val tChar = tvar(char)
-    val tBoolean = tvar(boolean)
+    val tByte = tconst(byte)
+    val tShort = tconst(short)
+    val tInt = tconst(int)
+    val tLong = tconst(long)
+    val tFloat = tconst(float)
+    val tDouble = tconst(double)
+    val tString = tconst(string)
+    val tChar = tconst(char)
+    val tBoolean = tconst(boolean)
 
-    val tUnit = tvar(unit)
-    val tVector = tfall("a", TApp(TConst(vector), tvar("a")))
-    val tSet = tfall("a", TApp(TConst(set), tvar("a")))
+    val tUnit = tconst(unit)
+    val tVector = tfall("a", TApp(TConst(vector), TVar("a")))
+    val tSet = tfall("a", TApp(TConst(set), TVar("a")))
 
     fun javaToNovah(jname: String): String = when (jname) {
         "byte" -> byte
@@ -76,12 +76,12 @@ object Prim {
     val moduleEnv = ModuleEnv(
         mapOf(
             "println" to decl(tfun(tString, tUnit)),
-            "toString" to decl(tfall("a", tfun(tvar("a"), tString))),
-            "hashCode" to decl(tfall("a", tfun(tvar("a"), tInt))),
-            "unsafeCast" to decl(tfall("a", tfall("b", tfun(tvar("a"), tvar("b"))))),
+            "toString" to decl(tfall("a", tfun(TVar("a"), tString))),
+            "hashCode" to decl(tfall("a", tfun(TVar("a"), tInt))),
+            "unsafeCast" to decl(tfall("a", tfall("b", tfun(TVar("a"), TVar("b"))))),
             "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
             "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-            "==" to decl(tfall("a", tfun(tvar("a"), tfun(tvar("a"), tBoolean))))
+            "==" to decl(tfall("a", tfun(TVar("a"), tfun(TVar("a"), tBoolean))))
         ),
         mapOf(
             "Byte" to tdecl(tByte),
@@ -99,8 +99,7 @@ object Prim {
         )
     )
 
-    private fun tvar(x: String) = TVar(x)
+    private fun tconst(x: String) = TConst(x)
     private fun tfun(a: Type, b: Type) = TArrow(a, b)
-    private fun tapp(a: Type, b: Type) = TApp(a, b)
     private fun tfall(v: String, t: Type) = TForall(v, t)
 }

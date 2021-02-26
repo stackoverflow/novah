@@ -82,20 +82,10 @@ sealed class Type {
         }
     }
 
-    private fun TForall.unnest(): Pair<List<String>, Type> {
-        val names = mutableListOf(name)
-        var ty = type
-        while (ty is TForall) {
-            names += ty.name
-            ty = ty.type
-        }
-        return names to ty
-    }
-
     /**
      * Pretty print version of [toString]
      */
-    fun show(qualified: Boolean): String {
+    fun show(qualified: Boolean = true): String {
         fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
             is TConst -> if (qualified) t.name else t.name.split('.').last()
             is TVar -> t.name
@@ -111,7 +101,7 @@ sealed class Type {
                 else "$args -> ${go(t.right, nested)}"
             }
             is TForall -> {
-                val (names, type) = t.unnest()
+                val (names, type) = unnestForalls(t)
                 val str = "forall ${names.joinToStr(" ")}. ${go(type, false)}"
                 if (nested || !topLevel) "($str)" else str
             }
@@ -143,10 +133,23 @@ sealed class Type {
     }
 
     companion object {
-        fun openTForall(ty: TForall, vvar: Type): Type = ty.substVar(ty.name, vvar)
+        fun instantiateForall(ty: TForall, vvar: Type): Type = ty.type.substVar(ty.name, vvar)
 
         fun nestForalls(names: List<String>, type: Type): Type =
             names.foldRight(type) { name, acc -> TForall(name, acc) }
+
+        fun unnestForalls(type: TForall): Pair<List<String>, Type> {
+            val names = mutableListOf(type.name)
+            var ty = type.type
+            while (ty is TForall) {
+                names += ty.name
+                ty = ty.type
+            }
+            return names to ty
+        }
+
+        fun nestArrows(types: List<Type>): Type =
+            types.reduceRight { t, acc -> TArrow(t, acc) }
 
         fun nestApps(app: Type, args: List<Type>): Type =
             args.reversed().foldRight(app) { arg, acc -> TApp(acc, arg) }
