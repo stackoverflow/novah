@@ -77,7 +77,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
 
         vals.forEach { decl ->
             val name = decl.name
-            val newEnv = env.makeExtension()
+            val newEnv = env.fork()
             val ty = if (decl.recursive) inferRecursive(name, decl.exp, newEnv, 0)
             else infer(newEnv, 0, decl.exp)
 
@@ -124,7 +124,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 exp.withType(ty)
             }
             is Expr.Lambda -> {
-                val newEnv = env.makeExtension()
+                val newEnv = env.fork()
                 val param = when (val pat = exp.pattern) {
                     is FunparPattern.Bind -> {
                         checkShadow(newEnv, pat.binder.name, pat.binder.span)
@@ -189,7 +189,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 exp.cases.forEach { case ->
                     val vars = inferpattern(env, level, case.pattern, expTy)
                     val newEnv = if (vars.isNotEmpty()) {
-                        val theEnv = env.makeExtension()
+                        val theEnv = env.fork()
                         vars.forEach { theEnv.extend(it.first, it.second) }
                         theEnv
                     } else env
@@ -278,7 +278,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                         check(env, level + 1, type.ret, exp.body)
                     }
                     is FunparPattern.Bind -> {
-                        val newEnv = env.makeExtension()
+                        val newEnv = env.fork()
                         newEnv.extend(pat.binder.name, type.args[0])
                         check(newEnv, level + 1, type.ret, exp.body)
                     }

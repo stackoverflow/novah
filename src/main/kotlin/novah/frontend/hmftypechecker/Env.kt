@@ -15,6 +15,8 @@
  */
 package novah.frontend.hmftypechecker
 
+import io.lacuna.bifurcan.IMap
+import io.lacuna.bifurcan.LinearMap
 import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.frontend.Span
@@ -22,25 +24,25 @@ import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
-class Env(initial: Map<String, Type> = emptyMap(), types: Map<String, Type> = primTypes) {
-
-    private val env = LinkedHashMap(initial)
-
-    private val types = LinkedHashMap(types)
+class Env private constructor(private val env: IMap<String, Type>, private val types: IMap<String, Type>) {
 
     fun extend(name: String, type: Type) {
-        env[name] = type
+        env.put(name, type)
     }
 
-    fun lookup(name: String): Type? = env[name]
+    fun lookup(name: String): Type? = env.get(name, null)
 
-    fun makeExtension() = Env(env, types)
+    fun fork() = Env(env.forked().linear(), types.forked().linear())
 
     fun extendType(name: String, type: Type) {
-        types[name] = type
+        types.put(name, type)
     }
 
-    fun lookupType(name: String): Type? = types[name]
+    fun lookupType(name: String): Type? = types.get(name, null)
+
+    companion object {
+        fun new() = Env(LinearMap(), LinearMap.from(primTypes))
+    }
 }
 
 const val primByte = "prim.Byte"

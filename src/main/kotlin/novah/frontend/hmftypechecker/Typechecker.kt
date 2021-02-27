@@ -30,7 +30,7 @@ import novah.main.ModuleEnv
 class Typechecker {
     private var currentId = 0
 
-    var env = Env()
+    var env = Env.new()
     private val uni = Unification(this)
     private val sub = Subsumption(this, uni)
     private val infer = Inference(this, uni, sub)
@@ -41,7 +41,7 @@ class Typechecker {
     }
 
     fun resetEnv() {
-        env = Env()
+        env = Env.new()
     }
 
     fun newVar(level: Level) = TVar(TypeVar.Unbound(nextId(), level))
