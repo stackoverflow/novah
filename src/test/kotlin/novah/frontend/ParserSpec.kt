@@ -153,7 +153,7 @@ class ParserSpec : StringSpec({
         val code = "type Wrong = Wrong | NotWrong".module()
 
         val ast = parseString(code)
-        val des = Desugar(ast, Typechecker())
+        val des = Desugar(ast)
         des.desugar().shouldBeInstanceOf<Err<*>>()
     }
 
@@ -161,7 +161,7 @@ class ParserSpec : StringSpec({
         val code = "type Tuple a b = Tuple a b".module()
 
         val ast = parseString(code)
-        val des = Desugar(ast, Typechecker())
+        val des = Desugar(ast)
         shouldNotThrowAny {
             des.desugar()
         }

@@ -20,8 +20,10 @@ import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
+import novah.frontend.hmftypechecker.Typechecker.newGenVar
+import novah.frontend.hmftypechecker.Typechecker.newVar
 
-class Unification(private val tc: Typechecker) {
+object Unification {
 
     fun unify(t1: Type, t2: Type, span: Span) {
         if (t1 == t2) return
@@ -76,7 +78,7 @@ class Unification(private val tc: Typechecker) {
         if (t1 is TForall && t2 is TForall) {
             if (t1.ids.size != t2.ids.size)
                 unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
-            val genericVars = t1.ids.zip(t2.ids).reversed().map { (_, _) -> tc.newGenVar() }
+            val genericVars = t1.ids.zip(t2.ids).reversed().map { (_, _) -> newGenVar() }
 
             val genericT1 = substituteBoundVars(t1.ids, genericVars, t1.type)
             val genericT2 = substituteBoundVars(t2.ids, genericVars, t2.type)
@@ -157,10 +159,10 @@ class Unification(private val tc: Typechecker) {
             !empty1 && empty2 -> unify(restTy1, TRowExtend(missing1, restTy2), span)
             !empty1 && !empty2 -> {
                 when {
-                    restTy1 is TRowEmpty -> unify(restTy1, TRowExtend(missing1, tc.newVar(0)), span)
+                    restTy1 is TRowEmpty -> unify(restTy1, TRowExtend(missing1, newVar(0)), span)
                     restTy1 is TVar && restTy1.tvar is TypeVar.Unbound -> {
                         val tv = restTy1.tvar as TypeVar.Unbound
-                        val restRow = tc.newVar(tv.level)
+                        val restRow = newVar(tv.level)
                         unify(restTy2, TRowExtend(missing2, restRow), span)
                         if (restTy1.tvar is TypeVar.Link) unificationError(Errors.RECURSIVE_ROWS, span)
                         unify(restTy1, TRowExtend(missing1, restRow), span)
@@ -170,129 +172,129 @@ class Unification(private val tc: Typechecker) {
             }
         }
     }
-}
 
-fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type, span: Span) {
-    fun go(t: Type) {
-        when (t) {
-            is TVar -> {
-                when (val tv = t.tvar) {
-                    is TypeVar.Link -> go(tv.type)
-                    is TypeVar.Generic, is TypeVar.Bound -> {
-                    }
-                    is TypeVar.Unbound -> {
-                        if (id == tv.id) {
-                            inferError(Errors.infiniteType(type.show(false)), span, ProblemContext.UNIFICATION)
-                        } else if (tv.level > level) {
-                            t.tvar = TypeVar.Unbound(tv.id, level)
+    fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type, span: Span) {
+        fun go(t: Type) {
+            when (t) {
+                is TVar -> {
+                    when (val tv = t.tvar) {
+                        is TypeVar.Link -> go(tv.type)
+                        is TypeVar.Generic, is TypeVar.Bound -> {
+                        }
+                        is TypeVar.Unbound -> {
+                            if (id == tv.id) {
+                                inferError(Errors.infiniteType(type.show(false)), span, ProblemContext.UNIFICATION)
+                            } else if (tv.level > level) {
+                                t.tvar = TypeVar.Unbound(tv.id, level)
+                            }
                         }
                     }
                 }
-            }
-            is TApp -> {
-                go(t.type)
-                t.types.forEach(::go)
-            }
-            is TArrow -> {
-                t.args.forEach(::go)
-                go(t.ret)
-            }
-            is TForall -> go(t.type)
-            is TRecord -> go(t.row)
-            is TRowExtend -> {
-                t.labels.forEachList { go(it) }
-                go(t.row)
-            }
-            is TConst, is TRowEmpty -> {
-            }
-        }
-    }
-    go(type)
-}
-
-fun substituteBoundVars(varIds: List<Id>, types: List<Type>, type: Type): Type {
-    fun go(idMap: Map<Id, Type>, t: Type): Type = when (t) {
-        is TConst, is TRowEmpty -> t
-        is TVar -> {
-            when (val tv = t.tvar) {
-                is TypeVar.Link -> go(idMap, tv.type)
-                is TypeVar.Bound -> idMap[tv.id] ?: t
-                else -> t
-            }
-        }
-        is TApp -> t.copy(go(idMap, t.type), t.types.map { go(idMap, it) })
-        is TArrow -> t.copy(t.args.map { go(idMap, it) }, go(idMap, t.ret))
-        is TForall -> {
-            val map = mutableMapOf<Id, Type>()
-            idMap.forEach { (k, v) -> if (k !in t.ids) map[k] = v }
-            t.copy(t.ids, go(map, t.type))
-        }
-        is TRecord -> t.copy(go(idMap, t.row))
-        is TRowExtend -> t.copy(row = go(idMap, t.row), labels = t.labels.mapList { go(idMap, it) })
-    }
-    return go(varIds.zip(types).toMap(), type)
-}
-
-fun freeGenericVars(type: Type): HashSet<Type> {
-    val freeSet = HashSet<Type>()
-    fun go(t: Type) {
-        when (t) {
-            is TConst, is TRowEmpty -> {
-            }
-            is TVar -> {
-                when (val tv = t.tvar) {
-                    is TypeVar.Link -> go(tv.type)
-                    is TypeVar.Generic -> freeSet.add(t)
-                    else -> {
-                    }
+                is TApp -> {
+                    go(t.type)
+                    t.types.forEach(::go)
+                }
+                is TArrow -> {
+                    t.args.forEach(::go)
+                    go(t.ret)
+                }
+                is TForall -> go(t.type)
+                is TRecord -> go(t.row)
+                is TRowExtend -> {
+                    t.labels.forEachList { go(it) }
+                    go(t.row)
+                }
+                is TConst, is TRowEmpty -> {
                 }
             }
-            is TApp -> {
-                go(t.type)
-                t.types.forEach(::go)
+        }
+        go(type)
+    }
+
+    fun substituteBoundVars(varIds: List<Id>, types: List<Type>, type: Type): Type {
+        fun go(idMap: Map<Id, Type>, t: Type): Type = when (t) {
+            is TConst, is TRowEmpty -> t
+            is TVar -> {
+                when (val tv = t.tvar) {
+                    is TypeVar.Link -> go(idMap, tv.type)
+                    is TypeVar.Bound -> idMap[tv.id] ?: t
+                    else -> t
+                }
             }
-            is TArrow -> {
-                t.args.forEach(::go)
-                go(t.ret)
+            is TApp -> t.copy(go(idMap, t.type), t.types.map { go(idMap, it) })
+            is TArrow -> t.copy(t.args.map { go(idMap, it) }, go(idMap, t.ret))
+            is TForall -> {
+                val map = mutableMapOf<Id, Type>()
+                idMap.forEach { (k, v) -> if (k !in t.ids) map[k] = v }
+                t.copy(t.ids, go(map, t.type))
             }
-            is TForall -> go(t.type)
-            is TRecord -> go(t.row)
-            is TRowExtend -> {
-                t.labels.forEachList { go(it) }
-                go(t.row)
+            is TRecord -> t.copy(go(idMap, t.row))
+            is TRowExtend -> t.copy(row = go(idMap, t.row), labels = t.labels.mapList { go(idMap, it) })
+        }
+        return go(varIds.zip(types).toMap(), type)
+    }
+
+    fun freeGenericVars(type: Type): HashSet<Type> {
+        val freeSet = HashSet<Type>()
+        fun go(t: Type) {
+            when (t) {
+                is TConst, is TRowEmpty -> {
+                }
+                is TVar -> {
+                    when (val tv = t.tvar) {
+                        is TypeVar.Link -> go(tv.type)
+                        is TypeVar.Generic -> freeSet.add(t)
+                        else -> {
+                        }
+                    }
+                }
+                is TApp -> {
+                    go(t.type)
+                    t.types.forEach(::go)
+                }
+                is TArrow -> {
+                    t.args.forEach(::go)
+                    go(t.ret)
+                }
+                is TForall -> go(t.type)
+                is TRecord -> go(t.row)
+                is TRowExtend -> {
+                    t.labels.forEachList { go(it) }
+                    go(t.row)
+                }
             }
         }
+        go(type)
+        return freeSet
     }
-    go(type)
-    return freeSet
-}
 
-fun escapeCheck(genericVars: List<Type>, t1: Type, t2: Type): Boolean {
-    val freeVars1 = freeGenericVars(t1)
-    val freeVars2 = freeGenericVars(t2)
-    return genericVars.any { it in freeVars1 || it in freeVars2 }
-}
+    fun escapeCheck(genericVars: List<Type>, t1: Type, t2: Type): Boolean {
+        val freeVars1 = freeGenericVars(t1)
+        val freeVars2 = freeGenericVars(t2)
+        return genericVars.any { it in freeVars1 || it in freeVars2 }
+    }
 
-fun matchRowType(ty: Type): Pair<PLabelMap<Type>, Type> = when (ty) {
-    is TRowEmpty -> PLabelMap<Type>() to TRowEmpty().span(ty.span)
-    is TVar -> {
-        when (val tv = ty.tvar) {
-            is TypeVar.Link -> matchRowType(tv.type)
-            else -> PLabelMap<Type>() to ty
+    fun matchRowType(ty: Type): Pair<PLabelMap<Type>, Type> = when (ty) {
+        is TRowEmpty -> PLabelMap<Type>() to TRowEmpty().span(ty.span)
+        is TVar -> {
+            when (val tv = ty.tvar) {
+                is TypeVar.Link -> matchRowType(tv.type)
+                else -> PLabelMap<Type>() to ty
+            }
         }
+        is TRowExtend -> {
+            val (restLabels, restTy) = matchRowType(ty.row)
+            if (restLabels.isEmpty()) ty.labels to restTy
+            else ty.labels.merge(restLabels) to restTy
+        }
+        else -> unificationError(Errors.notARow(ty.show(false)), ty.span ?: Span.empty())
     }
-    is TRowExtend -> {
-        val (restLabels, restTy) = matchRowType(ty.row)
-        if (restLabels.isEmpty()) ty.labels to restTy
-        else ty.labels.merge(restLabels) to restTy
-    }
-    else -> unificationError(Errors.notARow(ty.show(false)), ty.span ?: Span.empty())
-}
 
-fun addDistinctLabels(labelMap: PLabelMap<Type>, labels: PList<Pair<String, PList<Type>>>): PLabelMap<Type> {
-    return labels.fold(labelMap) { acc, (s, l) ->
-        if (acc.contains(s)) internalError("Label map already contains label $s")
-        acc.assocat(s, l)
+    fun addDistinctLabels(labelMap: PLabelMap<Type>, labels: PList<Pair<String, PList<Type>>>): PLabelMap<Type> {
+        return labels.fold(labelMap) { acc, (s, l) ->
+            if (acc.contains(s)) internalError("Label map already contains label $s")
+            acc.assocat(s, l)
+        }
     }
 }
 

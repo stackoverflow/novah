@@ -15,5 +15,3 @@
 - [ ] Revamp the error reporting, so it can return json as well as print to the console
 - [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
 - [ ] Add spans to individual imports with error reporting
-
-- [ ] Make typechecker less OO

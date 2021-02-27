@@ -34,7 +34,7 @@ import java.lang.reflect.Method
 typealias VarRef = String
 typealias ModuleName = String
 
-fun resolveImports(mod: Module, tc: Typechecker, modules: Map<String, FullModuleEnv>): List<CompilerProblem> {
+fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<CompilerProblem> {
     val visible = { (_, tvis): Map.Entry<String, DeclRef> -> tvis.visibility == Visibility.PUBLIC }
     val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
 
@@ -42,7 +42,7 @@ fun resolveImports(mod: Module, tc: Typechecker, modules: Map<String, FullModule
         CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name)
     }
 
-    val env = tc.env
+    val env = Typechecker.env
     val resolved = mutableMapOf<VarRef, ModuleName>()
     val resolvedTypealiases = mutableListOf<Decl.TypealiasDecl>()
     val errors = mutableListOf<CompilerProblem>()
@@ -157,7 +157,7 @@ fun resolveImports(mod: Module, tc: Typechecker, modules: Map<String, FullModule
  * Resolves all java imports in this module.
  */
 @Suppress("UNCHECKED_CAST")
-fun resolveForeignImports(mod: Module, tc: Typechecker): List<CompilerProblem> {
+fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     // TODO: pass the real classpath here, for now it only works for stdlib types
     val cl = NovahClassLoader("")
     val errors = mutableListOf<CompilerProblem>()
@@ -168,7 +168,7 @@ fun resolveForeignImports(mod: Module, tc: Typechecker): List<CompilerProblem> {
 
     val typealiases = mutableMapOf<String, String>()
     val foreigVars = mutableMapOf<String, ForeignRef>()
-    val env = tc.env
+    val env = Typechecker.env
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
     for (type in (types as List<ForeignImport.Type>)) {
         val fqType = type.type

@@ -24,16 +24,14 @@ import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
+import novah.frontend.hmftypechecker.Unification.substituteBoundVars
 import novah.main.CompilationError
 import novah.main.ModuleEnv
 
-class Typechecker {
+object Typechecker {
     private var currentId = 0
 
     var env = Env.new()
-    private val uni = Unification(this)
-    private val sub = Subsumption(this, uni)
-    private val infer = Inference(this, uni, sub)
 
     private fun nextId(): Int = ++currentId
     fun resetId() {
@@ -53,7 +51,7 @@ class Typechecker {
 
     fun infer(mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
         return try {
-            Ok(infer.infer(mod))
+            Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
             Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name)))
         } catch (ce: CompilationError) {
@@ -61,7 +59,7 @@ class Typechecker {
         }
     }
 
-    fun substituteWithNewVars(level: Level, ids: List<Id>, type: Type): Pair<List<Type>, Type> {
+    private fun substituteWithNewVars(level: Level, ids: List<Id>, type: Type): Pair<List<Type>, Type> {
         val vars = ids.reversed().map { newVar(level) }
         return vars to substituteBoundVars(ids, vars, type)
     }

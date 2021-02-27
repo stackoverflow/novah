@@ -95,19 +95,18 @@ class Environment(private val verbose: Boolean) {
         }
         modGraph.findCycle()?.let { reportCycle(it) }
 
-        val tc = Typechecker()
         val orderedMods = modGraph.topoSort()
         orderedMods.forEach { mod ->
-            tc.resetEnv()
-            val importErrs = resolveImports(mod.data, tc, modules)
-            val foreignErrs = resolveForeignImports(mod.data, tc)
+            Typechecker.resetEnv()
+            val importErrs = resolveImports(mod.data, modules)
+            val foreignErrs = resolveForeignImports(mod.data)
             val errs = importErrs + foreignErrs
             if (errs.isNotEmpty()) throwErrors(errs)
 
             if (verbose) echo("Typechecking ${mod.data.name}")
 
-            val canonical = Desugar(mod.data, tc).desugar().unwrapOrElse { throwErrors(it) }
-            val menv = tc.infer(canonical).unwrapOrElse { throwErrors(it) }
+            val canonical = Desugar(mod.data).desugar().unwrapOrElse { throwErrors(it) }
+            val menv = Typechecker.infer(canonical).unwrapOrElse { throwErrors(it) }
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
             modules[mod.data.name] = FullModuleEnv(menv, canonical, taliases)

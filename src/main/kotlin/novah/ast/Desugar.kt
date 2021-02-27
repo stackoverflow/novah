@@ -46,7 +46,7 @@ import novah.frontend.error.Errors as E
 /**
  * Converts a source AST to the canonical spanned AST
  */
-class Desugar(private val smod: SModule, private val tc: Typechecker) {
+class Desugar(private val smod: SModule) {
 
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
@@ -252,7 +252,7 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                     val vvar = map[t.name]
                     if (vvar != null) vvar
                     else {
-                        val (id, nvar) = tc.newBoundVar()
+                        val (id, nvar) = Typechecker.newBoundVar()
                         ids += id
                         map[t.name] = nvar
                         nvar

@@ -23,11 +23,19 @@ import novah.data.mapList
 import novah.data.singletonPMap
 import novah.frontend.Span
 import novah.frontend.error.Errors
+import novah.frontend.hmftypechecker.Subsumption.subsume
+import novah.frontend.hmftypechecker.Typechecker.checkWellFormed
+import novah.frontend.hmftypechecker.Typechecker.env
+import novah.frontend.hmftypechecker.Typechecker.instantiate
+import novah.frontend.hmftypechecker.Typechecker.instantiateTypeAnnotation
+import novah.frontend.hmftypechecker.Typechecker.newBoundVar
+import novah.frontend.hmftypechecker.Typechecker.newVar
+import novah.frontend.hmftypechecker.Unification.unify
 import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
-class Inference(private val tc: Typechecker, private val uni: Unification, private val sub: Subsumption) {
+object Inference {
 
     /**
      * Infer the whole module
@@ -35,11 +43,10 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
     fun infer(ast: Module): ModuleEnv {
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
-        val env = tc.env
 
         // add the fixpoint operator to the context for recursive functions
         // TODO: add this to the env as primitive
-        val (id, vvar) = tc.newBoundVar()
+        val (id, vvar) = newBoundVar()
         env.extend("\$fix", TForall(listOf(id), TArrow(listOf(TArrow(listOf(vvar), vvar)), vvar)))
 
         val datas = ast.decls.filterIsInstance<Decl.DataDecl>()
@@ -58,7 +65,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
-                tc.checkWellFormed(env.lookup(dc.name)!!, dc.span)
+                checkWellFormed(env.lookup(dc.name)!!, dc.span)
             }
         }
 
@@ -66,11 +73,11 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         vals.forEach { decl ->
             val expr = decl.exp
             val name = decl.name
-            checkShadow(tc.env, name, decl.span)
+            checkShadow(env, name, decl.span)
             if (expr is Expr.Ann) {
                 env.extend(name, expr.annType.second)
             } else {
-                val t = tc.newVar(0)
+                val t = newVar(0)
                 env.extend(name, t)
             }
         }
@@ -128,16 +135,16 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 val param = when (val pat = exp.pattern) {
                     is FunparPattern.Bind -> {
                         checkShadow(newEnv, pat.binder.name, pat.binder.span)
-                        val param = tc.newVar(level + 1)
+                        val param = newVar(level + 1)
                         newEnv.extend(pat.binder.name, param)
                         param
                     }
                     is FunparPattern.Unit -> tUnit
-                    is FunparPattern.Ignored -> tc.newVar(level + 1)
+                    is FunparPattern.Ignored -> newVar(level + 1)
                 }
 
                 val infRetType = infer(newEnv, level + 1, exp.body)
-                val retType = if (isAnnotated(exp.body)) infRetType else tc.instantiate(level + 1, infRetType)
+                val retType = if (isAnnotated(exp.body)) infRetType else instantiate(level + 1, infRetType)
 
                 val ty = if (!param.isMono()) inferError(Errors.polyParameterToLambda(param.show(false)), Span.empty())
                 else generalize(level, TArrow(listOf(param), retType))
@@ -155,14 +162,14 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Expr.App -> {
                 val nextLevel = level + 1
-                val fnType = tc.instantiate(nextLevel, infer(env, nextLevel, exp.fn))
+                val fnType = instantiate(nextLevel, infer(env, nextLevel, exp.fn))
                 val (paramTypes, retType) = matchFunType(1, fnType, exp.fn.span)
                 inferArg(env, nextLevel, paramTypes[0], exp.arg)
-                val ty = generalize(level, tc.instantiate(nextLevel, retType))
+                val ty = generalize(level, instantiate(nextLevel, retType))
                 exp.withType(ty)
             }
             is Expr.Ann -> {
-                val (_, type) = tc.instantiateTypeAnnotation(level, exp.annType.first, exp.annType.second)
+                val (_, type) = instantiateTypeAnnotation(level, exp.annType.first, exp.annType.second)
                 check(env, level, type, exp.exp)
                 exp.withType(type)
             }
@@ -170,7 +177,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                 check(env, level + 1, tBoolean, exp.cond)
                 val thenType = infer(env, level, exp.thenCase)
                 val elseType = infer(env, level, exp.elseCase)
-                uni.unify(thenType, elseType, exp.span)
+                unify(thenType, elseType, exp.span)
                 exp.withType(thenType)
             }
             is Expr.Do -> {
@@ -184,7 +191,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Expr.Match -> {
                 val expTy = infer(env, level, exp.exp)
-                val resType = tc.newVar(level)
+                val resType = newVar(level)
 
                 exp.cases.forEach { case ->
                     val vars = inferpattern(env, level, case.pattern, expTy)
@@ -195,43 +202,43 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                     } else env
 
                     val ty = infer(newEnv, level, case.exp)
-                    sub.subsume(level, resType, ty, case.exp.span)
+                    subsume(level, resType, ty, case.exp.span)
                 }
                 exp.withType(resType)
             }
             is Expr.RecordEmpty -> exp.withType(TRecord(TRowEmpty()))
             is Expr.RecordSelect -> {
-                val restRow = tc.newVar(level)
-                val fieldTy = tc.newVar(level)
+                val restRow = newVar(level)
+                val fieldTy = newVar(level)
                 val paramType = TRecord(TRowExtend(singletonPMap(exp.label, fieldTy), restRow))
                 val infered = infer(env, level, exp.exp)
-                uni.unify(paramType, infered, exp.span)
+                unify(paramType, infered, exp.span)
                 exp.withType(fieldTy)
             }
             is Expr.RecordRestrict -> {
-                val restRow = tc.newVar(level)
-                val fieldTy = tc.newVar(level)
+                val restRow = newVar(level)
+                val fieldTy = newVar(level)
                 val paramType = TRecord(TRowExtend(singletonPMap(exp.label, fieldTy), restRow))
                 val retType = TRecord(restRow)
-                uni.unify(paramType, infer(env, level, exp.exp), exp.span)
+                unify(paramType, infer(env, level, exp.exp), exp.span)
                 exp.withType(retType)
             }
             is Expr.RecordExtend -> {
                 val labelTys = exp.labels.mapList { infer(env, level, it) }
-                val restRow = tc.newVar(level)
-                uni.unify(TRecord(restRow), infer(env, level, exp.exp), exp.span)
+                val restRow = newVar(level)
+                unify(TRecord(restRow), infer(env, level, exp.exp), exp.span)
                 val ty = TRecord(TRowExtend(labelTys, restRow))
                 exp.withType(ty)
             }
             is Expr.VectorLiteral -> {
                 if (exp.exps.isEmpty()) {
-                    val type = tc.newVar(level)
+                    val type = newVar(level)
                     exp.withType(TApp(TConst(primVector), listOf(type)))
                 } else {
-                    val ty = tc.newVar(level + 1)
+                    val ty = newVar(level + 1)
                     exp.exps.forEach { e ->
                         val newTy = infer(env, level + 1, e)
-                        uni.unify(newTy, ty, e.span)
+                        unify(newTy, ty, e.span)
                     }
                     val res: Type = TApp(TConst(primVector), listOf(ty))
                     exp.withType(res)
@@ -239,13 +246,13 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             is Expr.SetLiteral -> {
                 if (exp.exps.isEmpty()) {
-                    val type = tc.newVar(level)
+                    val type = newVar(level)
                     exp.withType(TApp(TConst(primSet), listOf(type)))
                 } else {
-                    val ty = tc.newVar(level + 1)
+                    val ty = newVar(level + 1)
                     exp.exps.forEach { e ->
                         val newTy = infer(env, level + 1, e)
-                        uni.unify(newTy, ty, e.span)
+                        unify(newTy, ty, e.span)
                     }
                     val res: Type = TApp(TConst(primSet), listOf(ty))
                     exp.withType(res)
@@ -274,7 +281,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                         check(env, level + 1, type.ret, exp.body)
                     }
                     is FunparPattern.Unit -> {
-                        sub.subsume(level + 1, type.args[0], tUnit, exp.span)
+                        subsume(level + 1, type.args[0], tUnit, exp.span)
                         check(env, level + 1, type.ret, exp.body)
                     }
                     is FunparPattern.Bind -> {
@@ -283,15 +290,15 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
                         check(newEnv, level + 1, type.ret, exp.body)
                     }
                 }
-                exp.withType(generalize(level, tc.instantiate(level + 1, type)))
+                exp.withType(generalize(level, instantiate(level + 1, type)))
             }
             exp is Expr.App -> {
                 val nextLevel = level + 1
-                val fnType = tc.instantiate(nextLevel, infer(env, nextLevel, exp.fn))
+                val fnType = instantiate(nextLevel, infer(env, nextLevel, exp.fn))
                 val (paramTypes, retType) = matchFunType(1, fnType, exp.fn.span)
-                val instReturnTy = tc.instantiate(nextLevel, retType)
+                val instReturnTy = instantiate(nextLevel, retType)
                 if (!type.isUnbound()) {
-                    uni.unify(tc.instantiate(nextLevel, type), instReturnTy, exp.span)
+                    unify(instantiate(nextLevel, type), instReturnTy, exp.span)
                 }
                 inferArg(env, nextLevel, paramTypes[0], exp.arg)
                 val ty = generalize(level, instReturnTy)
@@ -299,7 +306,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             }
             else -> {
                 validateType(type, env, exp.span)
-                sub.subsume(level, type, infer(env, level, exp), exp.span)
+                subsume(level, type, infer(env, level, exp), exp.span)
                 exp.withType(type)
             }
         }
@@ -307,8 +314,8 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
 
     private fun inferArg(env: Env, level: Level, paramType: Type, arg: Expr) {
         val argType = infer(env, level, arg)
-        if (isAnnotated(arg)) uni.unify(paramType, argType, arg.span)
-        else sub.subsume(level, paramType, argType, arg.span)
+        if (isAnnotated(arg)) unify(paramType, argType, arg.span)
+        else subsume(level, paramType, argType, arg.span)
     }
 
     private fun inferpattern(env: Env, level: Level, pat: Pattern, ty: Type): List<Pair<String, Type>> {
@@ -322,7 +329,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         return when (pat) {
             is Pattern.LiteralP -> {
                 val type = infer(env, level, pat.lit.e)
-                uni.unify(ty, type, pat.lit.e.span)
+                unify(ty, type, pat.lit.e.span)
                 emptyList()
             }
             is Pattern.Wildcard -> emptyList()
@@ -333,8 +340,8 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
             is Pattern.Ctor -> {
                 val cty = infer(env, level, pat.ctor)
 
-                val (ctorTypes, ret) = peelArgs(listOf(), tc.instantiate(level, cty))
-                uni.unify(ret, ty, pat.ctor.span)
+                val (ctorTypes, ret) = peelArgs(listOf(), instantiate(level, cty))
+                unify(ret, ty, pat.ctor.span)
 
                 if (ctorTypes.size - pat.fields.size != 0)
                     internalError("unified two constructors with wrong kinds: $pat")
@@ -361,8 +368,8 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
         t is TVar && t.tvar is TypeVar.Link -> matchFunType(numParams, (t.tvar as TypeVar.Link).type, span)
         t is TVar && t.tvar is TypeVar.Unbound -> {
             val unb = t.tvar as TypeVar.Unbound
-            val params = (1..numParams).map { tc.newVar(unb.level) }.reversed()
-            val retur = tc.newVar(unb.level)
+            val params = (1..numParams).map { newVar(unb.level) }.reversed()
+            val retur = newVar(unb.level)
             t.tvar = TypeVar.Link(TArrow(params, retur).span(t.span))
             params to retur
         }
@@ -472,7 +479,7 @@ class Inference(private val tc: Typechecker, private val uni: Unification, priva
 
         return if (d.tyVars.isEmpty()) raw to emptyMap()
         else {
-            val varsMap = d.tyVars.map { it to tc.newBoundVar() }
+            val varsMap = d.tyVars.map { it to newBoundVar() }
             val map = mutableMapOf<String, TVar>()
             varsMap.forEach { (name, idVar) -> map[name] = idVar.second }
             val vars = varsMap.map { it.second }
