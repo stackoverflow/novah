@@ -44,11 +44,11 @@ class Typechecker {
         env = Env()
     }
 
-    fun newVar(level: Level) = Type.TVar(TypeVar.Unbound(nextId(), level))
-    fun newGenVar() = Type.TVar(TypeVar.Generic(nextId()))
-    fun newBoundVar(): Pair<Id, Type.TVar> {
+    fun newVar(level: Level) = TVar(TypeVar.Unbound(nextId(), level))
+    fun newGenVar() = TVar(TypeVar.Generic(nextId()))
+    fun newBoundVar(): Pair<Id, TVar> {
         val id = nextId()
-        return id to Type.TVar(TypeVar.Bound(id))
+        return id to TVar(TypeVar.Bound(id))
     }
 
     fun infer(mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
@@ -67,11 +67,11 @@ class Typechecker {
     }
 
     tailrec fun instantiate(level: Level, type: Type): Type = when {
-        type is Type.TForall -> {
+        type is TForall -> {
             val (_, instType) = substituteWithNewVars(level, type.ids, type.type)
             instType
         }
-        type is Type.TVar && type.tvar is TypeVar.Link -> instantiate(level, (type.tvar as TypeVar.Link).type)
+        type is TVar && type.tvar is TypeVar.Link -> instantiate(level, (type.tvar as TypeVar.Link).type)
         else -> type
     }
 
@@ -82,35 +82,35 @@ class Typechecker {
 
     fun checkWellFormed(ty: Type, span: Span) {
         when (ty) {
-            is Type.TConst -> {
+            is TConst -> {
                 val envType = env.lookupType(ty.name) ?: inferError(Errors.undefinedType(ty.show(false)), span)
 
                 if (ty.kind != envType.kind()) {
                     inferError(Errors.wrongKind(ty.kind.toString(), envType.kind().toString()), span)
                 }
             }
-            is Type.TApp -> {
+            is TApp -> {
                 checkWellFormed(ty.type, span)
                 ty.types.forEach { checkWellFormed(it, span) }
             }
-            is Type.TArrow -> {
+            is TArrow -> {
                 ty.args.forEach { checkWellFormed(it, span) }
                 checkWellFormed(ty.ret, span)
             }
-            is Type.TForall -> checkWellFormed(ty.type, span)
-            is Type.TVar -> {
+            is TForall -> checkWellFormed(ty.type, span)
+            is TVar -> {
                 when (val tv = ty.tvar) {
                     is TypeVar.Link -> checkWellFormed(tv.type, span)
                     is TypeVar.Generic -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
                     is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
                 }
             }
-            is Type.TRecord -> checkWellFormed(ty.row, span)
-            is Type.TRowExtend -> {
+            is TRecord -> checkWellFormed(ty.row, span)
+            is TRowExtend -> {
                 checkWellFormed(ty.row, span)
                 ty.labels.forEachList { checkWellFormed(it, span) }
             }
-            is Type.TRowEmpty -> {
+            is TRowEmpty -> {
             }
         }
     }

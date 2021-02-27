@@ -26,10 +26,7 @@ import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.hmftypechecker.Id
-import novah.frontend.hmftypechecker.Kind
-import novah.frontend.hmftypechecker.Type
-import novah.frontend.hmftypechecker.Typechecker
+import novah.frontend.hmftypechecker.*
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
 import kotlin.math.max
@@ -217,22 +214,25 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
     private fun SType.goDesugar(kindArity: Int = 0): Type = when (this) {
         is SType.TConst -> {
             val kind = if (kindArity == 0) Kind.Star else Kind.Constructor(kindArity)
-            if (name[0].isLowerCase()) Type.TConst(name, kind).span(span)
+            if (name[0].isLowerCase()) {
+                // this will be replaced later in [replaceConstantsWithVars]
+                TConst(name, kind).span(span)
+            }
             else {
                 val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
-                Type.TConst(varName, kind).span(span)
+                TConst(varName, kind).span(span)
             }
         }
-        is SType.TFun -> Type.TArrow(listOf(arg.goDesugar()), ret.goDesugar()).span(span)
+        is SType.TFun -> TArrow(listOf(arg.goDesugar()), ret.goDesugar()).span(span)
         is SType.TForall -> {
             val (ids, ty) = replaceConstantsWithVars(names, type.goDesugar(kindArity))
-            Type.TForall(ids, ty).span(span)
+            TForall(ids, ty).span(span)
         }
         is SType.TParens -> type.goDesugar(kindArity)
-        is SType.TApp -> Type.TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
-        is SType.TRecord -> Type.TRecord(row.goDesugar()).span(span)
-        is SType.TRowEmpty -> Type.TRowEmpty().span(span)
-        is SType.TRowExtend -> Type.TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
+        is SType.TApp -> TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
+        is SType.TRecord -> TRecord(row.goDesugar()).span(span)
+        is SType.TRowEmpty -> TRowEmpty().span(span)
+        is SType.TRowExtend -> TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
     }
 
     /**
@@ -242,12 +242,12 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
      * forall a b. a -> b
      */
     private fun replaceConstantsWithVars(vars: List<String>, type: Type): Pair<List<Id>, Type> {
-        val map = mutableMapOf<String, Type.TVar?>()
+        val map = mutableMapOf<String, TVar?>()
         val ids = mutableListOf<Id>()
         vars.forEach { map[it] = null }
 
         fun go(t: Type): Type = when (t) {
-            is Type.TConst -> {
+            is TConst -> {
                 if (map.containsKey(t.name)) {
                     val vvar = map[t.name]
                     if (vvar != null) vvar
@@ -259,21 +259,21 @@ class Desugar(private val smod: SModule, private val tc: Typechecker) {
                     }
                 } else t
             }
-            is Type.TVar -> t
-            is Type.TApp -> {
+            is TVar -> t
+            is TApp -> {
                 val newType = go(t.type)
                 val pars = t.types.map(::go)
                 t.copy(newType, pars)
             }
-            is Type.TArrow -> {
+            is TArrow -> {
                 val pars = t.args.map(::go)
                 val ret = go(t.ret)
                 t.copy(pars, ret)
             }
-            is Type.TForall -> t.copy(t.ids, go(t.type))
-            is Type.TRowEmpty -> t
-            is Type.TRecord -> t.copy(go(t.row))
-            is Type.TRowExtend -> t.copy(t.labels.mapList { go(it) }, go(t.row))
+            is TForall -> t.copy(t.ids, go(t.type))
+            is TRowEmpty -> t
+            is TRecord -> t.copy(go(t.row))
+            is TRowExtend -> t.copy(t.labels.mapList { go(it) }, go(t.row))
         }
         return ids to go(type)
     }

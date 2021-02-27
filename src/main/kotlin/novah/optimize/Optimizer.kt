@@ -182,20 +182,20 @@ class Optimizer(private val ast: CModule) {
     }
 
     private fun TType.convert(): Type = when (this) {
-        is TType.TConst -> {
+        is TConst -> {
             if (show(false)[0].isLowerCase()) Type.TVar(name.toUpperCase(), true)
             else
                 Type.TVar(getPrimitiveTypeName(this))
         }
-        is TType.TApp -> {
+        is TApp -> {
             val ty = type.convert() as Type.TVar
             Type.TConstructor(ty.name, types.map { it.convert() })
         }
         // the only functions that can have more than 1 argument are native ones
         // but those don't need a type as we get the type from the reflected method/field/constructor
-        is TType.TArrow -> Type.TFun(args[0].convert(), ret.convert())
-        is TType.TForall -> type.convert()
-        is TType.TVar -> {
+        is TArrow -> Type.TFun(args[0].convert(), ret.convert())
+        is TForall -> type.convert()
+        is TVar -> {
             when (val tv = tvar) {
                 is TypeVar.Link -> tv.type.convert()
                 is TypeVar.Bound -> Type.TVar("T${tv.id}", true)
@@ -204,9 +204,9 @@ class Optimizer(private val ast: CModule) {
             }
         }
         // records always have the same type
-        is TType.TRowEmpty -> Type.TVar(RECORD_TYPE)
-        is TType.TRecord -> Type.TVar(RECORD_TYPE)
-        is TType.TRowExtend -> Type.TVar(RECORD_TYPE)
+        is TRowEmpty -> Type.TVar(RECORD_TYPE)
+        is TRecord -> Type.TVar(RECORD_TYPE)
+        is TRowExtend -> Type.TVar(RECORD_TYPE)
     }
 
     private val rteCtor = RuntimeException::class.java.constructors.find {
@@ -322,15 +322,15 @@ class Optimizer(private val ast: CModule) {
 
     private fun peelArgs(type: TType): Pair<List<Type>, Type> {
         tailrec fun innerPeelArgs(args: List<TType>, t: TType): Pair<List<TType>, TType> = when (t) {
-            is TType.TArrow -> {
-                if (t.ret is TType.TArrow) innerPeelArgs(args + t.args, t.ret)
+            is TArrow -> {
+                if (t.ret is TArrow) innerPeelArgs(args + t.args, t.ret)
                 else args + t.args to t.ret
             }
             else -> args to t
         }
 
         var rawType = type
-        while (rawType is TType.TForall) {
+        while (rawType is TForall) {
             rawType = rawType.type
         }
         val (pars, ret) = innerPeelArgs(emptyList(), rawType)
@@ -349,7 +349,7 @@ class Optimizer(private val ast: CModule) {
         }
 
         // TODO: use primitive types and implement autoboxing
-        private fun getPrimitiveTypeName(tvar: TType.TConst): String = when (tvar.name) {
+        private fun getPrimitiveTypeName(tvar: TConst): String = when (tvar.name) {
             "prim.Byte" -> "java/lang/Byte"
             "prim.Short" -> "java/lang/Short"
             "prim.Int" -> "java/lang/Integer"

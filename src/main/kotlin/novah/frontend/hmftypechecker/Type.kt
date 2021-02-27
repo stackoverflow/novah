@@ -43,31 +43,32 @@ sealed class TypeVar {
 
 typealias Row = Type
 
+data class TConst(val name: Name, val kind: Kind = Kind.Star) : Type()
+data class TApp(val type: Type, val types: List<Type>) : Type()
+data class TArrow(val args: List<Type>, val ret: Type) : Type()
+data class TForall(val ids: List<Id>, val type: Type) : Type()
+data class TRecord(val row: Row) : Type()
+data class TRowExtend(val labels: PLabelMap<Type>, val row: Row) : Type()
+class TRowEmpty : Type() {
+    override fun equals(other: Any?): Boolean = other != null && other is TRowEmpty
+    override fun hashCode(): Int = 31
+    override fun toString(): String = "TRowEmpty"
+}
+
+class TVar(var tvar: TypeVar) : Type() {
+    override fun equals(other: Any?): Boolean {
+        if (other == null || other !is TVar) return false
+        return tvar == other.tvar
+    }
+
+    override fun hashCode(): Int {
+        return tvar.hashCode() * 31
+    }
+
+    override fun toString(): String = "TVar($tvar)"
+}
+
 sealed class Type {
-    data class TConst(val name: Name, val kind: Kind = Kind.Star) : Type()
-    data class TApp(val type: Type, val types: List<Type>) : Type()
-    data class TArrow(val args: List<Type>, val ret: Type) : Type()
-    data class TForall(val ids: List<Id>, val type: Type) : Type()
-    data class TRecord(val row: Row) : Type()
-    data class TRowExtend(val labels: PLabelMap<Type>, val row: Row) : Type()
-    class TRowEmpty : Type() {
-        override fun equals(other: Any?): Boolean = other != null && other is TRowEmpty
-        override fun hashCode(): Int = 31
-        override fun toString(): String = "TRowEmpty"
-    }
-
-    class TVar(var tvar: TypeVar) : Type() {
-        override fun equals(other: Any?): Boolean {
-            if (other == null || other !is TVar) return false
-            return tvar == other.tvar
-        }
-
-        override fun hashCode(): Int {
-            return tvar.hashCode() * 31
-        }
-
-        override fun toString(): String = "TVar($tvar)"
-    }
 
     var span: Span? = null
     fun span(s: Span?): Type = apply { span = s }

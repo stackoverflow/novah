@@ -25,55 +25,55 @@ class Unification(private val tc: Typechecker) {
 
     fun unify(t1: Type, t2: Type, span: Span) {
         if (t1 == t2) return
-        if (t1 is Type.TConst && t2 is Type.TConst && t1.name == t2.name) return
-        if (t1 is Type.TApp && t2 is Type.TApp) {
+        if (t1 is TConst && t2 is TConst && t1.name == t2.name) return
+        if (t1 is TApp && t2 is TApp) {
             unify(t1.type, t2.type, span)
             if (t1.types.size != t2.types.size)
                 unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
             t1.types.zip(t2.types).forEach { (tt1, tt2) -> unify(tt1, tt2, span) }
             return
         }
-        if (t1 is Type.TArrow && t2 is Type.TArrow) {
+        if (t1 is TArrow && t2 is TArrow) {
             if (t1.args.size != t2.args.size)
                 unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
             t1.args.zip(t2.args).forEach { (t1arg, t2arg) -> unify(t1arg, t2arg, span) }
             unify(t1.ret, t2.ret, span)
             return
         }
-        if (t1 is Type.TVar && t1.tvar is TypeVar.Link) {
+        if (t1 is TVar && t1.tvar is TypeVar.Link) {
             unify((t1.tvar as TypeVar.Link).type, t2, span)
             return
         }
-        if (t2 is Type.TVar && t2.tvar is TypeVar.Link) {
+        if (t2 is TVar && t2.tvar is TypeVar.Link) {
             unify(t1, (t2.tvar as TypeVar.Link).type, span)
             return
         }
-        if (t1 is Type.TVar && t2 is Type.TVar && t1.tvar is TypeVar.Unbound && t2.tvar is TypeVar.Unbound) {
+        if (t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Unbound && t2.tvar is TypeVar.Unbound) {
             if ((t1.tvar as TypeVar.Unbound).id == (t2.tvar as TypeVar.Unbound).id)
                 internalError("Error in unification: ${t1.show(false)} with ${t2.show(false)}")
         }
-        if (t1 is Type.TVar && t2 is Type.TVar && t1.tvar is TypeVar.Generic && t2.tvar is TypeVar.Generic) {
+        if (t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Generic && t2.tvar is TypeVar.Generic) {
             if ((t1.tvar as TypeVar.Generic).id == (t2.tvar as TypeVar.Generic).id)
                 internalError("Error in unification: ${t1.show(false)} with ${t2.show(false)}")
         }
-        if (t1 is Type.TVar && t2 is Type.TVar && t1.tvar is TypeVar.Bound && t2.tvar is TypeVar.Bound) {
+        if (t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Bound && t2.tvar is TypeVar.Bound) {
             val t1str = t1.show(false)
             val t2str = t2.show(false)
             internalError("Error in unification (bound vars should have been instantiated): $t1str with $t2str")
         }
-        if (t1 is Type.TVar && t1.tvar is TypeVar.Unbound) {
+        if (t1 is TVar && t1.tvar is TypeVar.Unbound) {
             val tvar = t1.tvar as TypeVar.Unbound
             occursCheckAndAdjustLevels(tvar.id, tvar.level, t2, span)
             t1.tvar = TypeVar.Link(t2)
             return
         }
-        if (t2 is Type.TVar && t2.tvar is TypeVar.Unbound) {
+        if (t2 is TVar && t2.tvar is TypeVar.Unbound) {
             val tvar = t2.tvar as TypeVar.Unbound
             occursCheckAndAdjustLevels(tvar.id, tvar.level, t1, span)
             t2.tvar = TypeVar.Link(t1)
             return
         }
-        if (t1 is Type.TForall && t2 is Type.TForall) {
+        if (t1 is TForall && t2 is TForall) {
             if (t1.ids.size != t2.ids.size)
                 unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
             val genericVars = t1.ids.zip(t2.ids).reversed().map { (_, _) -> tc.newGenVar() }
@@ -86,19 +86,19 @@ class Unification(private val tc: Typechecker) {
                 unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
             return
         }
-        if (t1 is Type.TRowEmpty && t2 is Type.TRowEmpty) return
-        if (t1 is Type.TRecord && t2 is Type.TRecord) {
+        if (t1 is TRowEmpty && t2 is TRowEmpty) return
+        if (t1 is TRecord && t2 is TRecord) {
             unify(t1.row, t2.row, span)
             return
         }
-        if (t1 is Type.TRowExtend && t2 is Type.TRowExtend) {
+        if (t1 is TRowExtend && t2 is TRowExtend) {
             unifyRows(t1, t2, span)
             return
         }
-        if (t1 is Type.TRowEmpty && t2 is Type.TRowExtend) {
+        if (t1 is TRowEmpty && t2 is TRowExtend) {
             unificationError(Errors.recordMissingLabels(t2.labels.keys().toList()), span)
         }
-        if (t1 is Type.TRowExtend && t2 is Type.TRowEmpty) {
+        if (t1 is TRowExtend && t2 is TRowEmpty) {
             unificationError(Errors.recordMissingLabels(t1.labels.keys().toList()), span)
         }
         unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
@@ -153,17 +153,17 @@ class Unification(private val tc: Typechecker) {
         val (empty1, empty2) = missing1.isEmpty() to missing2.isEmpty()
         when {
             empty1 && empty2 -> unify(restTy1, restTy2, span)
-            empty1 && !empty2 -> unify(restTy2, Type.TRowExtend(missing2, restTy1), span)
-            !empty1 && empty2 -> unify(restTy1, Type.TRowExtend(missing1, restTy2), span)
+            empty1 && !empty2 -> unify(restTy2, TRowExtend(missing2, restTy1), span)
+            !empty1 && empty2 -> unify(restTy1, TRowExtend(missing1, restTy2), span)
             !empty1 && !empty2 -> {
                 when {
-                    restTy1 is Type.TRowEmpty -> unify(restTy1, Type.TRowExtend(missing1, tc.newVar(0)), span)
-                    restTy1 is Type.TVar && restTy1.tvar is TypeVar.Unbound -> {
+                    restTy1 is TRowEmpty -> unify(restTy1, TRowExtend(missing1, tc.newVar(0)), span)
+                    restTy1 is TVar && restTy1.tvar is TypeVar.Unbound -> {
                         val tv = restTy1.tvar as TypeVar.Unbound
                         val restRow = tc.newVar(tv.level)
-                        unify(restTy2, Type.TRowExtend(missing2, restRow), span)
+                        unify(restTy2, TRowExtend(missing2, restRow), span)
                         if (restTy1.tvar is TypeVar.Link) unificationError(Errors.RECURSIVE_ROWS, span)
-                        unify(restTy1, Type.TRowExtend(missing1, restRow), span)
+                        unify(restTy1, TRowExtend(missing1, restRow), span)
                     }
                     else -> unificationError(Errors.typesDontMatch(row1.show(false), row2.show(false)), span)
                 }
@@ -175,7 +175,7 @@ class Unification(private val tc: Typechecker) {
 fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type, span: Span) {
     fun go(t: Type) {
         when (t) {
-            is Type.TVar -> {
+            is TVar -> {
                 when (val tv = t.tvar) {
                     is TypeVar.Link -> go(tv.type)
                     is TypeVar.Generic, is TypeVar.Bound -> {
@@ -189,21 +189,21 @@ fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type, span: Span) {
                     }
                 }
             }
-            is Type.TApp -> {
+            is TApp -> {
                 go(t.type)
                 t.types.forEach(::go)
             }
-            is Type.TArrow -> {
+            is TArrow -> {
                 t.args.forEach(::go)
                 go(t.ret)
             }
-            is Type.TForall -> go(t.type)
-            is Type.TRecord -> go(t.row)
-            is Type.TRowExtend -> {
+            is TForall -> go(t.type)
+            is TRecord -> go(t.row)
+            is TRowExtend -> {
                 t.labels.forEachList { go(it) }
                 go(t.row)
             }
-            is Type.TConst, is Type.TRowEmpty -> {
+            is TConst, is TRowEmpty -> {
             }
         }
     }
@@ -212,23 +212,23 @@ fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type, span: Span) {
 
 fun substituteBoundVars(varIds: List<Id>, types: List<Type>, type: Type): Type {
     fun go(idMap: Map<Id, Type>, t: Type): Type = when (t) {
-        is Type.TConst, is Type.TRowEmpty -> t
-        is Type.TVar -> {
+        is TConst, is TRowEmpty -> t
+        is TVar -> {
             when (val tv = t.tvar) {
                 is TypeVar.Link -> go(idMap, tv.type)
                 is TypeVar.Bound -> idMap[tv.id] ?: t
                 else -> t
             }
         }
-        is Type.TApp -> t.copy(go(idMap, t.type), t.types.map { go(idMap, it) })
-        is Type.TArrow -> t.copy(t.args.map { go(idMap, it) }, go(idMap, t.ret))
-        is Type.TForall -> {
+        is TApp -> t.copy(go(idMap, t.type), t.types.map { go(idMap, it) })
+        is TArrow -> t.copy(t.args.map { go(idMap, it) }, go(idMap, t.ret))
+        is TForall -> {
             val map = mutableMapOf<Id, Type>()
             idMap.forEach { (k, v) -> if (k !in t.ids) map[k] = v }
             t.copy(t.ids, go(map, t.type))
         }
-        is Type.TRecord -> t.copy(go(idMap, t.row))
-        is Type.TRowExtend -> t.copy(row = go(idMap, t.row), labels = t.labels.mapList { go(idMap, it) })
+        is TRecord -> t.copy(go(idMap, t.row))
+        is TRowExtend -> t.copy(row = go(idMap, t.row), labels = t.labels.mapList { go(idMap, it) })
     }
     return go(varIds.zip(types).toMap(), type)
 }
@@ -237,9 +237,9 @@ fun freeGenericVars(type: Type): HashSet<Type> {
     val freeSet = HashSet<Type>()
     fun go(t: Type) {
         when (t) {
-            is Type.TConst, is Type.TRowEmpty -> {
+            is TConst, is TRowEmpty -> {
             }
-            is Type.TVar -> {
+            is TVar -> {
                 when (val tv = t.tvar) {
                     is TypeVar.Link -> go(tv.type)
                     is TypeVar.Generic -> freeSet.add(t)
@@ -247,17 +247,17 @@ fun freeGenericVars(type: Type): HashSet<Type> {
                     }
                 }
             }
-            is Type.TApp -> {
+            is TApp -> {
                 go(t.type)
                 t.types.forEach(::go)
             }
-            is Type.TArrow -> {
+            is TArrow -> {
                 t.args.forEach(::go)
                 go(t.ret)
             }
-            is Type.TForall -> go(t.type)
-            is Type.TRecord -> go(t.row)
-            is Type.TRowExtend -> {
+            is TForall -> go(t.type)
+            is TRecord -> go(t.row)
+            is TRowExtend -> {
                 t.labels.forEachList { go(it) }
                 go(t.row)
             }
@@ -274,14 +274,14 @@ fun escapeCheck(genericVars: List<Type>, t1: Type, t2: Type): Boolean {
 }
 
 fun matchRowType(ty: Type): Pair<PLabelMap<Type>, Type> = when (ty) {
-    is Type.TRowEmpty -> PLabelMap<Type>() to Type.TRowEmpty().span(ty.span)
-    is Type.TVar -> {
+    is TRowEmpty -> PLabelMap<Type>() to TRowEmpty().span(ty.span)
+    is TVar -> {
         when (val tv = ty.tvar) {
             is TypeVar.Link -> matchRowType(tv.type)
             else -> PLabelMap<Type>() to ty
         }
     }
-    is Type.TRowExtend -> {
+    is TRowExtend -> {
         val (restLabels, restTy) = matchRowType(ty.row)
         if (restLabels.isEmpty()) ty.labels to restTy
         else ty.labels.merge(restLabels) to restTy
