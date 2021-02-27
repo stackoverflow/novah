@@ -20,6 +20,7 @@ import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.Type.Companion.instantiateForall
 import novah.frontend.typechecker.Typechecker.context
 import novah.frontend.typechecker.Typechecker.freshName
+import novah.frontend.typechecker.Unification.unify
 import novah.frontend.typechecker.WellFormed.wfType
 import novah.frontend.error.Errors as E
 
@@ -55,7 +56,8 @@ object Subsumption {
                     instR(type.left, ta, span)
                     instL(tb, context.apply(type.right), span)
                 }
-                else -> subsumeError(E.typeIsNotInstance(x.show(false), type.show(false)), span)
+                //else -> subsumeError(E.typeIsNotInstance(x.show(false), type.show(false)), span)
+                else -> unify(x, type, span)
             }
         }
     }
@@ -82,7 +84,8 @@ object Subsumption {
                     instL(ta, type.left, span)
                     instR(context.apply(type.right), tb, span)
                 }
-                else -> subsumeError(E.typeIsNotInstance(x.show(false), type.show(false)), span)
+                //else -> subsumeError(E.typeIsNotInstance(x.show(false), type.show(false)), span)
+                else -> unify(type, x, span)
             }
         }
     }
@@ -95,10 +98,10 @@ object Subsumption {
             return subsume(context.apply(a.right), context.apply(b.right), span)
         }
         if (a is TApp && b is TApp) {
-            TODO("Unification")
+            unify(a, b, span)
         }
         if (a is TRecord && b is TRecord) {
-            TODO("Unification")
+            unify(a.row, b.row, span)
         }
         if (a is TForall) {
             val x = freshName(a.name)
@@ -118,7 +121,7 @@ object Subsumption {
             if (a.containsMeta(b.name)) inferError(E.infiniteType(b.show(false)), span)
             return instR(a, b, span)
         }
-        subsumeError(E.typeIsNotInstance(a.show(false), b.show(false)), span)
+        unify(a, b, span)
     }
 
     private fun subsumeError(msg: String, span: Span): Nothing = inferError(msg, span, ProblemContext.SUBSUMPTION)

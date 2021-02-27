@@ -19,6 +19,7 @@ import novah.data.mapList
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.frontend.typechecker.Typechecker.context
+import novah.frontend.typechecker.Typechecker.freshName
 
 object WellFormed {
 
@@ -41,7 +42,13 @@ object WellFormed {
                 wfType(t.left, span)
                 wfType(t.right, span)
             }
-            is TForall -> wfType(t.type, span)
+            is TForall -> {
+                val fork = context.fork()
+                val x = freshName(t.name)
+                context.append(CTVar(x))
+                wfType(Type.instantiateForall(t, TVar(x)), span)
+                context.resetTo(fork)
+            }
             is TRecord -> wfType(t.row, span)
             is TRowEmpty -> {}
             is TRowExtend -> {

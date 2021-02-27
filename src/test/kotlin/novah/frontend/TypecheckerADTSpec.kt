@@ -73,7 +73,7 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["ids"]?.type?.simpleName() shouldBe "Unit -> List (forall t1. t1 -> t1)"
+        tys["ids"]?.type?.simpleName() shouldBe "Unit -> List (forall a. a -> a)"
     }
 
     "typecheck one parameter ADTs" {
@@ -95,7 +95,7 @@ class TypecheckerADTSpec : StringSpec({
         val tys = TestUtil.compileCode(code).env.decls
 
         tys["x"]?.type?.simpleName() shouldBe "Int -> Maybe String"
-        tys["y"]?.type?.simpleName() shouldBe "forall t1. t1 -> Maybe t1"
+        tys["y"]?.type?.simpleName() shouldBe "forall a. a -> Maybe a"
         tys["w"]?.type?.simpleName() shouldBe "Int -> Maybe Int"
     }
 

@@ -51,11 +51,22 @@ class Context private constructor(private var ctx: IList<Elem>) {
         return null
     }
 
+    fun indexOfInner(clazz: Class<out Elem>, name: String): Long {
+        var i = 0L
+        for (e in ctx) {
+            if (e.name == name && clazz.isInstance(e)) return i
+            i++
+        }
+        return -1
+    }
+
     inline fun <reified T : Elem> lookup(name: String): T? {
         return lookupInner(T::class.java, name) as? T
     }
 
     inline fun <reified T : Elem> contains(name: String): Boolean = lookup<T>(name) != null
+
+    inline fun <reified T : Elem> indexOf(name: String): Long = indexOfInner(T::class.java, name)
 
     fun lookupShadowInner(clazz: Class<out Elem>, name: String): Elem? {
         for (e in ctx) {

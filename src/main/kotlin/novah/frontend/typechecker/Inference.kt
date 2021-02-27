@@ -210,7 +210,7 @@ object Inference {
                 }
 
                 // infer the body
-                val ty = infer(exp.body)
+                val ty = context.apply(infer(exp.body))
                 context.resetTo(mark)
                 exp.withType(ty)
             }
