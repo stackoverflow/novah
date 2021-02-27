@@ -95,6 +95,8 @@ sealed class Type {
         is TRowExtend -> row.isMono() && labels.allList(Type::isMono)
     }
 
+    fun isUnbound(): Boolean = this is TVar && tvar is TypeVar.Unbound
+
     fun substConst(map: Map<String, Type>): Type = when (this) {
         is TConst -> map[name] ?: this
         is TApp -> copy(type.substConst(map), types.map { it.substConst(map) })
