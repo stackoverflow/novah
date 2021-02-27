@@ -123,66 +123,22 @@ object TestUtil {
         is TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
     }
 
-    private class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
+    private val pat = Regex("""t\d+""")
 
     /**
      * Like [Type.show] but reset the ids of vars.
      */
     fun Type.simpleName(): String {
-        fun go(t: Type, ctx: Ctx = Ctx(), nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
-            is TConst -> t.name.split('.').last()
-            is TApp -> {
-                val sname = go(t.type, ctx, nested)
-                val str = if (t.types.isEmpty()) sname
-                else sname + " " + t.types.joinToString(" ") { go(it, ctx, true) }
-                if (nested) "($str)" else str
-            }
-            is TArrow -> {
-                val args = if (t.args.size == 1) {
-                    go(t.args[0], ctx, false)
-                } else {
-                    t.args.joinToString(" ", prefix = "(", postfix = ")") { go(it, ctx, false) }
-                }
-                if (nested) "($args -> ${go(t.ret, ctx, false)})"
-                else "$args -> ${go(t.ret, ctx, nested)}"
-            }
-            is TForall -> {
-                t.ids.forEach { ctx.map[it] = ctx.counter++ }
-                val str = "forall ${t.ids.joinToStr(" ") { "t${ctx.map[it]}" }}. ${go(t.type, ctx, false)}"
-                if (nested || !topLevel) "($str)" else str
-            }
-            is TVar -> {
-                when (val tv = t.tvar) {
-                    is TypeVar.Link -> go(tv.type, ctx, nested, topLevel)
-                    is TypeVar.Unbound -> "t${tv.id}"
-                    is TypeVar.Generic -> "t${tv.id}"
-                    is TypeVar.Bound -> "t${ctx.map[tv.id]}"
-                }
-            }
-            is TRowEmpty -> "{}"
-            is TRecord -> {
-                when (val ty = t.row.unlink()) {
-                    is TRowEmpty -> "{}"
-                    !is TRowExtend -> "{ | ${go(ty, ctx, topLevel = true)} }"
-                    else -> {
-                        val rows = go(ty, ctx, topLevel = true)
-                        "{" + rows.substring(1, rows.lastIndex) + "}"
-                    }
-                }
-            }
-            is TRowExtend -> {
-                val labels = t.labels.show { k, v -> "$k : ${go(v, ctx, topLevel = true)}" }
-                val str = when (val ty = t.row.unlink()) {
-                    is TRowEmpty -> labels
-                    !is TRowExtend -> "$labels | ${go(ty, ctx, topLevel = true)}"
-                    else -> {
-                        val rows = go(ty, ctx, topLevel = true)
-                        "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
-                    }
-                }
-                "[ $str ]"
+        val set = mutableSetOf<String>()
+        var id = 1
+        var str = show(false)
+        val matches = pat.findAll(str)
+        matches.forEach { m ->
+            if (!set.contains(m.value)) {
+                str = str.replace(m.value, "t${id++}")
+                set += m.value
             }
         }
-        return go(this, Ctx(), false, topLevel = true)
+        return str
     }
 }
