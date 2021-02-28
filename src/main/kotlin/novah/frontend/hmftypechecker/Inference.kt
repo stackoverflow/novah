@@ -207,7 +207,7 @@ object Inference {
                     } else env
 
                     val ty = infer(newEnv, level, case.exp)
-                    subsume(level, resType, ty, case.exp.span)
+                    unify(resType, ty, case.exp.span)
                 }
                 exp.withType(resType)
             }
