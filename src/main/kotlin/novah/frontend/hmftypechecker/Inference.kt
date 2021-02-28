@@ -152,9 +152,14 @@ object Inference {
             }
             is Expr.Let -> {
                 val name = exp.letDef.binder.name
-                val varType = if (exp.letDef.recursive) {
-                    inferRecursive(name, exp.letDef.expr, env, level + 1)
-                } else infer(env, level + 1, exp.letDef.expr)
+                val varType = when {
+                    exp.letDef.type != null -> {
+                        check(env, level + 1, exp.letDef.type, exp.letDef.expr)
+                        exp.letDef.type
+                    }
+                    exp.letDef.recursive -> inferRecursive(name, exp.letDef.expr, env, level + 1)
+                    else -> infer(env, level + 1, exp.letDef.expr)
+                }
                 checkShadow(env, name, exp.letDef.binder.span)
                 env.extend(exp.letDef.binder.name, varType)
                 val ty = infer(env, level, exp.body)
