@@ -80,6 +80,9 @@ object Util {
         return joinTo(StringBuilder(), separator, pre, pos, limit, truncated, transform).toString()
     }
 
+    fun validByte(i: Int): Boolean = i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE
+    fun validShort(i: Int): Boolean = i >= Short.MIN_VALUE && i <= Short.MAX_VALUE
+
     /**
      * Unzips this input stream to the outputDir.
      */

@@ -17,6 +17,8 @@ package novah.frontend.hmftypechecker
 
 import novah.Util.hasDuplicates
 import novah.Util.internalError
+import novah.Util.validByte
+import novah.Util.validShort
 import novah.ast.canonical.*
 import novah.data.forEachList
 import novah.data.mapList
@@ -268,10 +270,8 @@ object Inference {
 
     private fun check(env: Env, level: Level, type: Type, exp: Expr) {
         when {
-            exp is Expr.IntE && type == tByte && exp.v >= Byte.MIN_VALUE && exp.v <= Byte.MAX_VALUE ->
-                exp.withType(tByte)
-            exp is Expr.IntE && type == tShort && exp.v >= Short.MIN_VALUE && exp.v <= Short.MAX_VALUE ->
-                exp.withType(tShort)
+            exp is Expr.IntE && type == tByte && validByte(exp.v) -> exp.withType(tByte)
+            exp is Expr.IntE && type == tShort && validShort(exp.v) -> exp.withType(tShort)
             exp is Expr.IntE && type == tInt -> exp.withType(tInt)
             exp is Expr.LongE && type == tLong -> exp.withType(tLong)
             exp is Expr.FloatE && type == tFloat -> exp.withType(tFloat)
