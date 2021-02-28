@@ -35,6 +35,9 @@ class CollectionsSpec : StringSpec({
             
             tvec2 : Vector String
             tvec2 = ["a", "b", "c"]
+            
+            tvec3 : Vector Byte
+            tvec3 = [1, 2, 3, 4]
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
@@ -43,6 +46,7 @@ class CollectionsSpec : StringSpec({
         ds["vec3"]?.type?.simpleName() shouldBe "Vector String"
         ds["tvec"]?.type?.simpleName() shouldBe "Vector Long"
         ds["tvec2"]?.type?.simpleName() shouldBe "Vector String"
+        ds["tvec3"]?.type?.simpleName() shouldBe "Vector Byte"
     }
 
     "basic sets" {
@@ -58,6 +62,9 @@ class CollectionsSpec : StringSpec({
             
             tset2 : Set String
             tset2 = #{"a", "b", "c"}
+            
+            tset3 : Set Short
+            tset3 = #{1, 2, 3}
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
@@ -66,5 +73,6 @@ class CollectionsSpec : StringSpec({
         ds["set3"]?.type?.simpleName() shouldBe "Set String"
         ds["tset"]?.type?.simpleName() shouldBe "Set Long"
         ds["tset2"]?.type?.simpleName() shouldBe "Set String"
+        ds["tset3"]?.type?.simpleName() shouldBe "Set Short"
     }
 })

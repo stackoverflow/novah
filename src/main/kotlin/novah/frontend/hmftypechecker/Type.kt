@@ -98,6 +98,8 @@ sealed class Type {
 
     fun isUnbound(): Boolean = this is TVar && tvar is TypeVar.Unbound
 
+    fun isConst(name: Name): Boolean = this is TConst && this.name == name
+
     fun substConst(map: Map<String, Type>): Type = when (this) {
         is TConst -> map[name] ?: this
         is TApp -> copy(type.substConst(map), types.map { it.substConst(map) })

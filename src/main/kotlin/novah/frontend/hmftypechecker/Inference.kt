@@ -304,6 +304,16 @@ object Inference {
                 val ty = generalize(level, instReturnTy)
                 exp.withType(ty)
             }
+            exp is Expr.VectorLiteral && type is TApp && type.type.isConst(primVector) && type.types.size == 1 -> {
+                val innerTy = type.types[0]
+                exp.exps.forEach { check(env, level + 1, innerTy, it) }
+                exp.withType(type)
+            }
+            exp is Expr.SetLiteral && type is TApp && type.type.isConst(primSet) && type.types.size == 1 -> {
+                val innerTy = type.types[0]
+                exp.exps.forEach { check(env, level + 1, innerTy, it) }
+                exp.withType(type)
+            }
             else -> {
                 validateType(type, env, exp.span)
                 subsume(level, type, infer(env, level, exp), exp.span)

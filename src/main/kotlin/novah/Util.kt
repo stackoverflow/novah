@@ -63,12 +63,6 @@ object Util {
         return new
     }
 
-    fun <V> linkedListOf(vararg vs: V): LinkedList<V> {
-        val ll = LinkedList<V>()
-        vs.forEach { ll.add(it) }
-        return ll
-    }
-
     /**
      * Like [joinToString] but don't append the prefix/suffix if
      * the list is empty.
