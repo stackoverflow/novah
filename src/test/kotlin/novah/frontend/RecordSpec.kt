@@ -137,4 +137,25 @@ class RecordSpec : StringSpec({
         val user = TestUtil.compileCode(code).env.decls["update"]
         user?.type?.simpleName() shouldBe "forall t1 t2. t1 -> { name : t1 | t2 } -> { name : t1 | t2 }"
     }
+
+    "1st class modules" {
+        val code = """
+            typealias Prelude =
+              { id : forall a. a -> a
+              , const : forall a b. a -> b -> a
+              }
+            
+            id : forall a. a -> a
+            id x = x
+            
+            prelude : Prelude
+            prelude =
+              { id: id
+              , const: \x y -> x
+              }
+        """.module()
+
+        val pre = TestUtil.compileCode(code).env.decls["prelude"]?.type
+        pre?.simpleName() shouldBe "{ const : forall t1 t2. t1 -> t2 -> t1, id : forall t3. t3 -> t3 }"
+    }
 })

@@ -63,12 +63,6 @@ object Util {
         return new
     }
 
-    fun <V> linkedListOf(vararg vs: V): LinkedList<V> {
-        val ll = LinkedList<V>()
-        vs.forEach { ll.add(it) }
-        return ll
-    }
-
     /**
      * Like [joinToString] but don't append the prefix/suffix if
      * the list is empty.
@@ -85,6 +79,9 @@ object Util {
         val pos = if (isEmpty()) "" else postfix
         return joinTo(StringBuilder(), separator, pre, pos, limit, truncated, transform).toString()
     }
+
+    fun validByte(i: Int): Boolean = i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE
+    fun validShort(i: Int): Boolean = i >= Short.MIN_VALUE && i <= Short.MAX_VALUE
 
     /**
      * Unzips this input stream to the outputDir.

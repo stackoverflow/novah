@@ -19,12 +19,14 @@ import io.kotest.assertions.failure
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil
+import novah.frontend.hmftypechecker.Typechecker
 import java.io.File
 
 class FailureSpec : StringSpec({
 
     "run all failure tests" {
         File("src/test/resources/failure").walkTopDown().filter { it.extension == "novah" }.forEach { file ->
+            Typechecker.resetId()
             val path = file.toPath()
             val testName = file.nameWithoutExtension
             val output = File("${file.parent}/$testName.txt")

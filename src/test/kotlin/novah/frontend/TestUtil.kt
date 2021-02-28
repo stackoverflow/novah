@@ -24,8 +24,7 @@ import novah.data.flatMapList
 import novah.data.map
 import novah.data.show
 import novah.data.unwrapOrElse
-import novah.frontend.hmftypechecker.Type
-import novah.frontend.hmftypechecker.TypeVar
+import novah.frontend.hmftypechecker.*
 import novah.main.CompilationError
 import novah.main.Compiler
 import novah.main.FullModuleEnv
@@ -108,82 +107,38 @@ object TestUtil {
     fun String.module() = "module test\n\n${this.trimIndent()}"
 
     fun Type.findUnbound(): List<Type> = when (this) {
-        is Type.TArrow -> args.flatMap { it.findUnbound() } + ret.findUnbound()
-        is Type.TApp -> type.findUnbound() + types.flatMap { it.findUnbound() }
-        is Type.TForall -> type.findUnbound()
-        is Type.TVar -> {
+        is TArrow -> args.flatMap { it.findUnbound() } + ret.findUnbound()
+        is TApp -> type.findUnbound() + types.flatMap { it.findUnbound() }
+        is TForall -> type.findUnbound()
+        is TVar -> {
             when (val tv = tvar) {
                 is TypeVar.Link -> tv.type.findUnbound()
                 is TypeVar.Unbound -> listOf(this)
                 else -> emptyList()
             }
         }
-        is Type.TConst -> emptyList()
-        is Type.TRowEmpty -> emptyList()
-        is Type.TRecord -> row.findUnbound()
-        is Type.TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
+        is TConst -> emptyList()
+        is TRowEmpty -> emptyList()
+        is TRecord -> row.findUnbound()
+        is TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
     }
 
-    private class Ctx(val map: MutableMap<Int, Int> = mutableMapOf(), var counter: Int = 1)
+    private val pat = Regex("""t\d+""")
 
     /**
      * Like [Type.show] but reset the ids of vars.
      */
     fun Type.simpleName(): String {
-        fun go(t: Type, ctx: Ctx = Ctx(), nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
-            is Type.TConst -> t.name.split('.').last()
-            is Type.TApp -> {
-                val sname = go(t.type, ctx, nested)
-                val str = if (t.types.isEmpty()) sname
-                else sname + " " + t.types.joinToString(" ") { go(it, ctx, true) }
-                if (nested) "($str)" else str
-            }
-            is Type.TArrow -> {
-                val args = if (t.args.size == 1) {
-                    go(t.args[0], ctx, false)
-                } else {
-                    t.args.joinToString(" ", prefix = "(", postfix = ")") { go(it, ctx, false) }
-                }
-                if (nested) "($args -> ${go(t.ret, ctx, false)})"
-                else "$args -> ${go(t.ret, ctx, nested)}"
-            }
-            is Type.TForall -> {
-                t.ids.forEach { ctx.map[it] = ctx.counter++ }
-                val str = "forall ${t.ids.joinToStr(" ") { "t${ctx.map[it]}" }}. ${go(t.type, ctx, false)}"
-                if (nested || !topLevel) "($str)" else str
-            }
-            is Type.TVar -> {
-                when (val tv = t.tvar) {
-                    is TypeVar.Link -> go(tv.type, ctx, nested, topLevel)
-                    is TypeVar.Unbound -> "t${tv.id}"
-                    is TypeVar.Generic -> "t${tv.id}"
-                    is TypeVar.Bound -> "t${ctx.map[tv.id]}"
-                }
-            }
-            is Type.TRowEmpty -> "{}"
-            is Type.TRecord -> {
-                when (val ty = t.row.unlink()) {
-                    is Type.TRowEmpty -> "{}"
-                    !is Type.TRowExtend -> "{ | ${go(ty, ctx, topLevel = true)} }"
-                    else -> {
-                        val rows = go(ty, ctx, topLevel = true)
-                        "{" + rows.substring(1, rows.lastIndex) + "}"
-                    }
-                }
-            }
-            is Type.TRowExtend -> {
-                val labels = t.labels.show { k, v -> "$k : ${go(v, ctx, topLevel = true)}" }
-                val str = when (val ty = t.row.unlink()) {
-                    is Type.TRowEmpty -> labels
-                    !is Type.TRowExtend -> "$labels | ${go(ty, ctx, topLevel = true)}"
-                    else -> {
-                        val rows = go(ty, ctx, topLevel = true)
-                        "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
-                    }
-                }
-                "[ $str ]"
+        val set = mutableSetOf<String>()
+        var id = 1
+        var str = show(false)
+        val matches = pat.findAll(str)
+        matches.forEach { m ->
+            if (!set.contains(m.value)) {
+                str = str.replace(m.value, "t${id++}")
+                set += m.value
             }
         }
-        return go(this, Ctx(), false, topLevel = true)
+        return str
     }
 }

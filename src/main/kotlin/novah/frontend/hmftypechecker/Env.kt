@@ -15,6 +15,8 @@
  */
 package novah.frontend.hmftypechecker
 
+import io.lacuna.bifurcan.IMap
+import io.lacuna.bifurcan.LinearMap
 import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.frontend.Span
@@ -22,25 +24,25 @@ import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
-class Env(initial: Map<String, Type> = emptyMap(), types: Map<String, Type> = primTypes) {
-
-    private val env = LinkedHashMap(initial)
-
-    private val types = LinkedHashMap(types)
+class Env private constructor(private val env: IMap<String, Type>, private val types: IMap<String, Type>) {
 
     fun extend(name: String, type: Type) {
-        env[name] = type
+        env.put(name, type)
     }
 
-    fun lookup(name: String): Type? = env[name]
+    fun lookup(name: String): Type? = env.get(name, null)
 
-    fun makeExtension() = Env(env, types)
+    fun fork() = Env(env.forked().linear(), types.forked().linear())
 
     fun extendType(name: String, type: Type) {
-        types[name] = type
+        types.put(name, type)
     }
 
-    fun lookupType(name: String): Type? = types[name]
+    fun lookupType(name: String): Type? = types.get(name, null)
+
+    companion object {
+        fun new() = Env(LinearMap(), LinearMap.from(primTypes))
+    }
 }
 
 const val primByte = "prim.Byte"
@@ -56,18 +58,18 @@ const val primUnit = "prim.Unit"
 const val primVector = "prim.Vector"
 const val primSet = "prim.Set"
 
-val tByte = Type.TConst(primByte)
-val tShort = Type.TConst(primShort)
-val tInt = Type.TConst(primInt)
-val tLong = Type.TConst(primLong)
-val tFloat = Type.TConst(primFloat)
-val tDouble = Type.TConst(primDouble)
-val tBoolean = Type.TConst(primBoolean)
-val tChar = Type.TConst(primChar)
-val tString = Type.TConst(primString)
-val tUnit = Type.TConst(primUnit)
-val tVector = Type.TForall(listOf(-10), Type.TApp(Type.TConst(primVector, Kind.Constructor(1)), listOf(tbound(-10))))
-val tSet = Type.TForall(listOf(-11), Type.TApp(Type.TConst(primSet, Kind.Constructor(1)), listOf(tbound(-11))))
+val tByte = TConst(primByte)
+val tShort = TConst(primShort)
+val tInt = TConst(primInt)
+val tLong = TConst(primLong)
+val tFloat = TConst(primFloat)
+val tDouble = TConst(primDouble)
+val tBoolean = TConst(primBoolean)
+val tChar = TConst(primChar)
+val tString = TConst(primString)
+val tUnit = TConst(primUnit)
+val tVector = TForall(listOf(-10), TApp(TConst(primVector, Kind.Constructor(1)), listOf(tbound(-10))))
+val tSet = TForall(listOf(-11), TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-11))))
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -109,15 +111,15 @@ val primImport = Import.Raw("prim", Span.empty())
 private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC)
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
 
-private fun tfun(a: Type, b: Type) = Type.TArrow(listOf(a), b)
-private fun tfall(v: Id, t: Type) = Type.TForall(listOf(v), t)
-private fun tbound(x: Id) = Type.TVar(TypeVar.Bound(x))
+private fun tfun(a: Type, b: Type) = TArrow(listOf(a), b)
+private fun tfall(v: Id, t: Type) = TForall(listOf(v), t)
+private fun tbound(x: Id) = TVar(TypeVar.Bound(x))
 
 val primModuleEnv = ModuleEnv(
     mapOf(
         "println" to decl(tfun(tString, tUnit)),
         // TODO: fix these negative numbers (probably by moving them to the stblib)
-        "unsafeCast" to decl(Type.TForall(listOf(-1, -2), tfun(tbound(-1), tbound(-2)))),
+        "unsafeCast" to decl(TForall(listOf(-1, -2), tfun(tbound(-1), tbound(-2)))),
         "toString" to decl(tfall(-3, tfun(tbound(-3), tString))),
         "hashCode" to decl(tfall(-4, tfun(tbound(-4), tInt))),
         "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
