@@ -146,7 +146,7 @@ object Inference {
                 val infRetType = infer(newEnv, level + 1, exp.body)
                 val retType = if (isAnnotated(exp.body)) infRetType else instantiate(level + 1, infRetType)
 
-                val ty = if (!param.isMono()) inferError(Errors.polyParameterToLambda(param.show(false)), Span.empty())
+                val ty = if (!param.isMono()) inferError(Errors.polyParameterToLambda(param.show(false)), exp.body.span)
                 else generalize(level, TArrow(listOf(param), retType))
                 exp.withType(ty)
             }
