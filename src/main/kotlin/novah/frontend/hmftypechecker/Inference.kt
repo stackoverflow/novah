@@ -161,7 +161,7 @@ object Inference {
                     else -> infer(env, level + 1, exp.letDef.expr)
                 }
                 checkShadow(env, name, exp.letDef.binder.span)
-                env.extend(exp.letDef.binder.name, varType)
+                env.extend(name, varType)
                 val ty = infer(env, level, exp.body)
                 exp.withType(ty)
             }
