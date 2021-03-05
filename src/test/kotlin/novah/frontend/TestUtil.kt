@@ -121,6 +121,7 @@ object TestUtil {
         is TRowEmpty -> emptyList()
         is TRecord -> row.findUnbound()
         is TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
+        is TImplicit -> type.findUnbound()
     }
 
     private val pat = Regex("""t\d+""")

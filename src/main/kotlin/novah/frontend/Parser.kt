@@ -279,7 +279,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             val vars = tryParseListOf { tryParseFunparPattern() }
 
-            expect<Equals>(withError(E.EQUALS))
+            expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
             val exp = parseExpression()
             Decl.ValDecl(name, vars, exp, type, vis).withSpan(nameTk.span, exp.span)
@@ -361,7 +361,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is LetT -> parseLet(inDo)
             is CaseT -> parseMatch()
             is Do -> parseDo()
-            is LBracket -> parseRecord()
+            is LBracket -> parseRecordOrImplicit()
             is LSBracket -> {
                 val tk = iter.next()
                 if (iter.peek().value is RSBracket) {
@@ -664,12 +664,18 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
-    private fun parseRecord(): Expr {
+    private fun parseRecordOrImplicit(): Expr {
         return withIgnoreOffside {
             val begin = expect<LBracket>(noErr())
             val nex = iter.peek().value
 
-            if (nex is RBracket) {
+            if (nex is LBracket) {
+                iter.next()
+                val exp = expect<Ident>(withError(E.INSTANCE_VAR)).value.v
+                expect<RBracket>(withError(E.INSTANCE_VAR))
+                val end = expect<RBracket>(withError(E.INSTANCE_VAR))
+                Expr.ImplicitVar(exp).withSpan(begin.span, end.span).withComment(begin.comment)
+            } else if (nex is RBracket) {
                 val end = iter.next()
                 Expr.RecordEmpty().withSpan(begin.span, end.span).withComment(begin.comment)
             } else if (nex is Op && nex.op == "-") {
@@ -719,6 +725,14 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is Ident -> {
                 iter.next()
                 FunparPattern.Bind(Binder(tk.value.v, tk.span))
+            }
+            is LBracket -> {
+                iter.next()
+                expect<LBracket>(withError(E.INSTANCE_VAR))
+                val id = expect<Ident>(withError(E.INSTANCE_VAR))
+                expect<RBracket>(withError(E.INSTANCE_VAR))
+                val end = expect<RBracket>(withError(E.INSTANCE_VAR))
+                FunparPattern.Bind(Binder(id.value.v, span(tk.span, end.span), true))
             }
             else -> null
         }
@@ -856,6 +870,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 withIgnoreOffside {
                     iter.next()
                     when (iter.peek().value) {
+                        is LBracket -> {
+                            iter.next()
+                            val ty = parseType()
+                            expect<RBracket>(withError(E.INSTANCE_TYPE))
+                            val end = expect<RBracket>(withError(E.INSTANCE_TYPE))
+                            Type.TImplicit(ty, span(tk.span, end.span))
+                        }
                         is RBracket -> {
                             val span = span(tk.span, iter.next().span)
                             Type.TRecord(Type.TRowEmpty(span), span)
@@ -865,7 +886,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                             val ty = parseType()
                             val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
                             val span = span(tk.span, end.span)
-                            Type.TRecord(Type.TRowExtend(PLabelMap(), ty, span), span)
+                            Type.TRecord(Type.TRowExtend(LabelMap(), ty, span), span)
                         }
                         else -> {
                             val rextend = parseRowExtend()

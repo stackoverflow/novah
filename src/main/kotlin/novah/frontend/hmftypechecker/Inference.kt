@@ -25,6 +25,7 @@ import novah.data.mapList
 import novah.data.singletonPMap
 import novah.frontend.Span
 import novah.frontend.error.Errors
+import novah.frontend.hmftypechecker.InstanceSearch.instanceSearch
 import novah.frontend.hmftypechecker.Subsumption.subsume
 import novah.frontend.hmftypechecker.Typechecker.checkWellFormed
 import novah.frontend.hmftypechecker.Typechecker.env
@@ -38,6 +39,8 @@ import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
 object Inference {
+
+    private val implicitsToCheck = mutableListOf<Expr.App>()
 
     /**
      * Infer the whole module
@@ -85,10 +88,13 @@ object Inference {
         }
 
         vals.forEach { decl ->
+            implicitsToCheck.clear()
             val name = decl.name
             val newEnv = env.fork()
             val ty = if (decl.recursive) inferRecursive(name, decl.exp, newEnv, 0)
             else infer(newEnv, 0, decl.exp)
+
+            if (implicitsToCheck.isNotEmpty()) instanceSearch(implicitsToCheck)
 
             val genTy = generalize(-1, ty)
             env.extend(name, genTy)
@@ -116,6 +122,10 @@ object Inference {
                 val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
                 exp.withType(ty)
             }
+            is Expr.ImplicitVar -> {
+                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                exp.withType(TImplicit(ty))
+            }
             is Expr.NativeFieldGet -> {
                 val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
                 exp.withType(ty)
@@ -136,9 +146,10 @@ object Inference {
                 val newEnv = env.fork()
                 val param = when (val pat = exp.pattern) {
                     is FunparPattern.Bind -> {
-                        checkShadow(newEnv, pat.binder.name, pat.binder.span)
-                        val param = newVar(level + 1)
-                        newEnv.extend(pat.binder.name, param)
+                        val binder = pat.binder
+                        checkShadow(newEnv, binder.name, binder.span)
+                        val param = if (binder.isImplicit) TImplicit(newVar(level + 1)) else newVar(level + 1)
+                        newEnv.extend(binder.name, param)
                         param
                     }
                     is FunparPattern.Unit -> tUnit
@@ -167,14 +178,7 @@ object Inference {
                 val ty = infer(env, level, exp.body)
                 exp.withType(ty)
             }
-            is Expr.App -> {
-                val nextLevel = level + 1
-                val fnType = instantiate(nextLevel, infer(env, nextLevel, exp.fn))
-                val (paramTypes, retType) = matchFunType(1, fnType, exp.fn.span)
-                inferArg(env, nextLevel, paramTypes[0], exp.arg)
-                val ty = generalize(level, instantiate(nextLevel, retType))
-                exp.withType(ty)
-            }
+            is Expr.App -> inferApp(env, level, exp)
             is Expr.Ann -> {
                 val (_, type) = instantiateTypeAnnotation(level, exp.annType.first, exp.annType.second)
                 check(env, level, type, exp.exp)
@@ -280,6 +284,10 @@ object Inference {
             exp is Expr.CharE && type == tChar -> exp.withType(tChar)
             exp is Expr.Bool && type == tBoolean -> exp.withType(tBoolean)
             exp is Expr.Unit && type == tUnit -> exp.withType(tUnit)
+            type is TForall -> {
+                val ty = instantiate(level, type)
+                check(env, level, ty, exp)
+            }
             exp is Expr.Lambda && type is TArrow -> {
                 when (val pat = exp.pattern) {
                     is FunparPattern.Ignored -> {
@@ -291,24 +299,18 @@ object Inference {
                     }
                     is FunparPattern.Bind -> {
                         val newEnv = env.fork()
-                        newEnv.extend(pat.binder.name, type.args[0])
+                        val ty = type.args[0]
+                        if (pat.binder.isImplicit && ty !is TImplicit) {
+                            val imp = TImplicit(ty)
+                            inferError(Errors.typesDontMatch(ty.show(false), imp.show(false)), pat.binder.span)
+                        }
+                        newEnv.extend(pat.binder.name, ty)
                         check(newEnv, level + 1, type.ret, exp.body)
                     }
                 }
                 exp.withType(generalize(level, instantiate(level + 1, type)))
             }
-            exp is Expr.App -> {
-                val nextLevel = level + 1
-                val fnType = instantiate(nextLevel, infer(env, nextLevel, exp.fn))
-                val (paramTypes, retType) = matchFunType(1, fnType, exp.fn.span)
-                val instReturnTy = instantiate(nextLevel, retType)
-                if (!type.isUnbound()) {
-                    unify(instantiate(nextLevel, type), instReturnTy, exp.span)
-                }
-                inferArg(env, nextLevel, paramTypes[0], exp.arg)
-                val ty = generalize(level, instReturnTy)
-                exp.withType(ty)
-            }
+            exp is Expr.App -> inferApp(env, level, exp, type)
             exp is Expr.VectorLiteral && type is TApp && type.type.isConst(primVector) && type.types.size == 1 -> {
                 val innerTy = type.types[0]
                 exp.exps.forEach { check(env, level + 1, innerTy, it) }
@@ -325,6 +327,32 @@ object Inference {
                 exp.withType(type)
             }
         }
+    }
+
+    private fun inferApp(env: Env, level: Level, exp: Expr.App, type: Type? = null): Type {
+        val nextLevel = level + 1
+        val params = mutableListOf<Type>()
+        var retTy = instantiate(nextLevel, infer(env, nextLevel, exp.fn))
+        do {
+            val (paramTypes, retType) = matchFunType(1, retTy, exp.fn.span)
+            params += paramTypes[0]
+            retTy = retType
+        } while (paramTypes[0] is TImplicit && exp.arg !is Expr.ImplicitVar)
+
+        val instReturnTy = instantiate(nextLevel, retTy)
+        if (type != null && !type.isUnbound()) {
+            unify(instantiate(nextLevel, type), instReturnTy, exp.span)
+        }
+        inferArg(env, nextLevel, params.last(), exp.arg)
+        val ty = generalize(level, instReturnTy)
+
+        if (params.size > 1) {
+            for (p in params.dropLast(1)) {
+                exp.implicitContexts += ImplicitContext((p as TImplicit).type, env)
+            }
+            implicitsToCheck += exp
+        }
+        return exp.withType(ty)
     }
 
     private fun inferArg(env: Env, level: Level, paramType: Type, arg: Expr) {

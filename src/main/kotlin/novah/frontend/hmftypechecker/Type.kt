@@ -47,8 +47,9 @@ data class TConst(val name: Name, val kind: Kind = Kind.Star) : Type()
 data class TApp(val type: Type, val types: List<Type>) : Type()
 data class TArrow(val args: List<Type>, val ret: Type) : Type()
 data class TForall(val ids: List<Id>, val type: Type) : Type()
+data class TImplicit(val type: Type) : Type()
 data class TRecord(val row: Row) : Type()
-data class TRowExtend(val labels: PLabelMap<Type>, val row: Row) : Type()
+data class TRowExtend(val labels: LabelMap<Type>, val row: Row) : Type()
 class TRowEmpty : Type() {
     override fun equals(other: Any?): Boolean = other != null && other is TRowEmpty
     override fun hashCode(): Int = 31
@@ -56,16 +57,12 @@ class TRowEmpty : Type() {
 }
 
 class TVar(var tvar: TypeVar) : Type() {
+    override fun hashCode(): Int = tvar.hashCode() * 31
+    override fun toString(): String = "TVar($tvar)"
     override fun equals(other: Any?): Boolean {
         if (other == null || other !is TVar) return false
         return tvar == other.tvar
     }
-
-    override fun hashCode(): Int {
-        return tvar.hashCode() * 31
-    }
-
-    override fun toString(): String = "TVar($tvar)"
 }
 
 sealed class Type {
@@ -94,6 +91,7 @@ sealed class Type {
         is TArrow -> args.all(Type::isMono) && ret.isMono()
         is TRecord -> row.isMono()
         is TRowExtend -> row.isMono() && labels.allList(Type::isMono)
+        is TImplicit -> type.isMono()
     }
 
     fun isUnbound(): Boolean = this is TVar && tvar is TypeVar.Unbound
@@ -114,6 +112,7 @@ sealed class Type {
         is TRowEmpty -> this
         is TRecord -> copy(row.substConst(map))
         is TRowExtend -> copy(row = row.substConst(map), labels = labels.mapList { it.substConst(map) })
+        is TImplicit -> copy(type.substConst(map))
     }
 
     /**
@@ -151,6 +150,10 @@ sealed class Type {
                     go(t.row)
                     t.labels.forEachList(::go)
                 }
+                is TImplicit -> {
+                    f(t)
+                    go(t.type)
+                }
             }
         }
         go(this)
@@ -171,6 +174,7 @@ sealed class Type {
         is TRowEmpty -> Kind.Star
         is TRecord -> row.kind()
         is TRowExtend -> row.kind()
+        is TImplicit -> type.kind()
     }
 
     /**
@@ -202,8 +206,8 @@ sealed class Type {
                 when (val tv = t.tvar) {
                     is TypeVar.Link -> go(tv.type, nested, topLevel)
                     is TypeVar.Unbound -> "t${tv.id}"
-                    is TypeVar.Generic -> "t${tv.id}"
                     is TypeVar.Bound -> "t${tv.id}"
+                    is TypeVar.Generic -> "t${tv.id}"
                 }
             }
             is TRowEmpty -> "{}"
@@ -229,6 +233,7 @@ sealed class Type {
                 }
                 "[ $str ]"
             }
+            is TImplicit -> "{{ ${go(t.type)} }}"
         }
         return go(this, false, topLevel = true)
     }

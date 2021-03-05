@@ -16,9 +16,10 @@
 package novah.ast.canonical
 
 import novah.ast.source.Visibility
-import novah.data.PLabelMap
+import novah.data.LabelMap
 import novah.data.mapList
 import novah.frontend.Span
+import novah.frontend.hmftypechecker.Env
 import novah.frontend.hmftypechecker.Id
 import novah.frontend.hmftypechecker.Type
 import java.lang.reflect.Field
@@ -70,6 +71,7 @@ sealed class Expr(open val span: Span) {
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
     data class Var(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class Constructor(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
+    data class ImplicitVar(val name: String, override val span: Span) : Expr(span)
     data class Lambda(
         val pattern: FunparPattern,
         val ann: Pair<List<Id>, Type>?,
@@ -77,7 +79,10 @@ sealed class Expr(open val span: Span) {
         override val span: Span
     ) : Expr(span)
 
-    data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
+    data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span) {
+        val implicitContexts = mutableListOf<ImplicitContext>()
+    }
+
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
     data class Match(val exp: Expr, val cases: List<Case>, override val span: Span) : Expr(span)
@@ -96,7 +101,7 @@ sealed class Expr(open val span: Span) {
     data class Unit(override val span: Span) : Expr(span)
     class RecordEmpty(span: Span) : Expr(span)
     data class RecordSelect(val exp: Expr, val label: String, override val span: Span) : Expr(span)
-    data class RecordExtend(val labels: PLabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
+    data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
     data class VectorLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
@@ -109,12 +114,14 @@ sealed class Expr(open val span: Span) {
     }
 }
 
+class ImplicitContext(val type: Type, val env: Env, var resolved: Expr? = null)
+
 fun Expr.Var.fullname() = if (moduleName != null) "$moduleName.$name" else name
 fun Expr.Constructor.fullname() = if (moduleName != null) "$moduleName.$name" else name
 fun Expr.Constructor.fullname(module: String): String = "$module.$name"
 
-data class Binder(val name: String, val span: Span) {
-    override fun toString(): String = name
+data class Binder(val name: String, val span: Span, val isImplicit: Boolean = false) {
+    override fun toString(): String = if (isImplicit) "{{$name}}" else name
 }
 
 sealed class FunparPattern(val span: Span) {

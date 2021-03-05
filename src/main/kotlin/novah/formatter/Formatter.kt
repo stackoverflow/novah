@@ -178,6 +178,7 @@ class Formatter {
             }
             is Expr.Var -> e.toString()
             is Expr.Operator -> e.toString()
+            is Expr.ImplicitVar -> "{{${e.name}}}"
             is Expr.Constructor -> e.toString()
             is Expr.IntE -> e.text
             is Expr.LongE -> e.text
@@ -250,6 +251,7 @@ class Formatter {
         is Type.TRecord -> "{ ${show(t.row)} }"
         is Type.TRowEmpty -> "{}"
         is Type.TRowExtend -> "{ ${t.labels.show(::showLabelType)} | ${show(t.row)} }"
+        is Type.TImplicit -> "{{ ${show(t.type)} }}"
     }
 
     private fun showLabelType(l: String, ty: Type): String = "$l : ${show(ty)}"

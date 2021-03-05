@@ -127,6 +127,7 @@ class Desugar(private val smod: SModule) {
                 } else Expr.Var(name, span, imports[fullname()])
             }
         }
+        is SExpr.ImplicitVar -> Expr.ImplicitVar(name, span)
         is SExpr.Operator -> Expr.Var(name, span, imports[fullname()])
         is SExpr.Constructor -> Expr.Constructor(name, span, imports[fullname()])
         is SExpr.Lambda -> {
@@ -198,7 +199,7 @@ class Desugar(private val smod: SModule) {
         }
     }
 
-    private fun SBinder.desugar(): Binder = Binder(name, span)
+    private fun SBinder.desugar(): Binder = Binder(name, span, isImplicit)
 
     private fun SFunparPattern.desugar(): FunparPattern = when (this) {
         is SFunparPattern.Ignored -> FunparPattern.Ignored(span)
@@ -217,8 +218,7 @@ class Desugar(private val smod: SModule) {
             if (name[0].isLowerCase()) {
                 // this will be replaced later in [replaceConstantsWithVars]
                 TConst(name, kind).span(span)
-            }
-            else {
+            } else {
                 val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
                 TConst(varName, kind).span(span)
             }
@@ -233,6 +233,7 @@ class Desugar(private val smod: SModule) {
         is SType.TRecord -> TRecord(row.goDesugar()).span(span)
         is SType.TRowEmpty -> TRowEmpty().span(span)
         is SType.TRowExtend -> TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
+        is SType.TImplicit -> TImplicit(type.goDesugar()).span(span)
     }
 
     /**
@@ -274,6 +275,7 @@ class Desugar(private val smod: SModule) {
             is TRowEmpty -> t
             is TRecord -> t.copy(go(t.row))
             is TRowExtend -> t.copy(t.labels.mapList { go(it) }, go(t.row))
+            is TImplicit -> t.copy(go(t.type))
         }
         return ids to go(type)
     }
@@ -331,6 +333,7 @@ class Desugar(private val smod: SModule) {
                 row = expandAndcheck(name, ty.row, span),
                 labels = ty.labels.mapList { expandAndcheck(name, it, span) }
             )
+            is SType.TImplicit -> ty.copy(expandAndcheck(name, ty.type, span))
         }
         typealiases.forEach { ta ->
             ta.expanded = expandAndcheck(ta.name, ta.type, ta.span)
@@ -363,7 +366,9 @@ class Desugar(private val smod: SModule) {
             is SType.TRowEmpty -> ty
             is SType.TRowExtend -> ty.copy(
                 row = resolveAliases(ty.row),
-                labels = ty.labels.mapList { resolveAliases(it) })
+                labels = ty.labels.mapList { resolveAliases(it) }
+            )
+            is SType.TImplicit -> ty.copy(resolveAliases(ty.type))
         }
     }
 

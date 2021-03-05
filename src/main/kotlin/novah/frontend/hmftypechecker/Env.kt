@@ -40,6 +40,10 @@ class Env private constructor(private val env: IMap<String, Type>, private val t
 
     fun lookupType(name: String): Type? = types.get(name, null)
 
+    fun forEach(action: (String, Type) -> Unit) {
+        env.forEach { action(it.key(), it.value()) }
+    }
+
     companion object {
         fun new() = Env(LinearMap(), LinearMap.from(primTypes))
     }

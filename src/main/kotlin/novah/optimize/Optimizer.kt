@@ -103,6 +103,7 @@ class Optimizer(private val ast: CModule) {
                     ?: internalError("Could not find constructor $name")
                 Expr.Constructor(internalize(ctorName), arity, typ)
             }
+            is CExpr.ImplicitVar -> Expr.LocalVar(name, typ)
             is CExpr.Lambda -> {
                 haslambda = true
                 val bind = pattern.convert()
@@ -207,6 +208,7 @@ class Optimizer(private val ast: CModule) {
         is TRowEmpty -> Type.TVar(RECORD_TYPE)
         is TRecord -> Type.TVar(RECORD_TYPE)
         is TRowExtend -> Type.TVar(RECORD_TYPE)
+        is TImplicit -> type.convert()
     }
 
     private val rteCtor = RuntimeException::class.java.constructors.find {

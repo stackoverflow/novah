@@ -15,7 +15,7 @@
  */
 package novah.ast.source
 
-import novah.data.PLabelMap
+import novah.data.LabelMap
 import novah.data.flatMapList
 import novah.data.mapList
 import novah.frontend.Comment
@@ -191,6 +191,8 @@ sealed class Expr {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
+    data class ImplicitVar(val name: String) : Expr()
+
     data class Constructor(val name: String, val alias: String? = null) : Expr() {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
@@ -216,7 +218,7 @@ sealed class Expr {
     class Unit : Expr()
     class RecordEmpty : Expr()
     data class RecordSelect(val exp: Expr, val label: String) : Expr()
-    data class RecordExtend(val labels: PLabelMap<Expr>, val exp: Expr) : Expr()
+    data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val label: String) : Expr()
     data class VectorLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
@@ -239,7 +241,7 @@ fun Expr.Var.fullname(): String = if (alias != null) "$alias.$name" else name
 fun Expr.Constructor.fullname(): String = if (alias != null) "$alias.$name" else name
 fun Expr.Operator.fullname(): String = if (alias != null) "$alias.$name" else name
 
-data class Binder(val name: String, val span: Span) {
+data class Binder(val name: String, val span: Span, val isImplicit: Boolean = false) {
     override fun toString(): String = name
 }
 
@@ -281,7 +283,8 @@ sealed class Type(open val span: Span) {
     data class TParens(val type: Type, override val span: Span) : Type(span)
     data class TRecord(val row: Row, override val span: Span) : Type(span)
     data class TRowEmpty(override val span: Span) : Type(span)
-    data class TRowExtend(val labels: PLabelMap<Type>, val row: Row, override val span: Span) : Type(span)
+    data class TRowExtend(val labels: LabelMap<Type>, val row: Row, override val span: Span) : Type(span)
+    data class TImplicit(val type: Type, override val span: Span) : Type(span)
 
     /**
      * Walks this type bottom->up
@@ -295,9 +298,8 @@ sealed class Type(open val span: Span) {
             is TParens -> f(t.copy(go(t.type)))
             is TRecord -> f(t.copy(go(t.row)))
             is TRowEmpty -> f(t)
-            is TRowExtend -> {
-                f(t.copy(row = go(t.row), labels = t.labels.mapList { go(it) }))
-            }
+            is TRowExtend -> f(t.copy(row = go(t.row), labels = t.labels.mapList { go(it) }))
+            is TImplicit -> f(t.copy(go(t.type)))
         }
         return go(this)
     }
@@ -321,6 +323,7 @@ sealed class Type(open val span: Span) {
         is TRecord -> row.findFreeVars(bound)
         is TRowEmpty -> emptyList()
         is TRowExtend -> row.findFreeVars(bound) + labels.flatMapList { it.findFreeVars(bound) }
+        is TImplicit -> type.findFreeVars(bound)
     }
 
     fun substVar(from: String, new: Type): Type = everywhere { ty ->
