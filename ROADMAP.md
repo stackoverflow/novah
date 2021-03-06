@@ -4,10 +4,10 @@
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [ ] IDE support
 - [ ] LSP implemented in the compiler
-- [ ] Some form of ad-hoc polymorphism (scrap-you-typeclasses style)
 - [ ] Syntatic sugar for lambdas
 - [ ] Syntax for record update/set (probably with type-level strings or macros?)
 - [ ] Standard library
+- [X] Generic programming with instance arguments (implicits)
 - [X] Literal syntax for basic data structures
 - [X] Persistent data structures
 - [X] Row polymorphism
