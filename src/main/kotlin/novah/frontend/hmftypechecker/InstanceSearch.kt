@@ -27,18 +27,19 @@ object InstanceSearch {
                 imp.env.forEachInstance { name, type ->
                     try {
                         Unification.unify(type, imp.type, app.span)
-                        if (exp != null)
-                            inferError(Errors.duplicatedInstance(imp.type.show(false)), app.span)
-                        else {
-                            exp = Expr.Var(name, app.span)
-                            exp!!.withType(type)
-                        }
                     } catch (_: InferenceError) {
                     }
+                    if (exp != null)
+                        inferError(Errors.duplicatedInstance(imp.type.show(false)), app.span)
+                    else {
+                        // TODO: what about imported/aliased vars?
+                        exp = Expr.Var(name, app.span).apply { this.type = type }
+                    }
+
                 }
                 if (exp == null) inferError(Errors.noInstanceFound(imp.type.show(false)), app.span)
                 imp.resolved = exp
-                //println("resolved implicit " + imp.type.show(false) + " with expression $exp")
+                //println("resolved instance " + imp.type.show(false) + " with expression $exp")
             }
         }
     }

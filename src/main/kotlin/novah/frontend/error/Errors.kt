@@ -292,7 +292,7 @@ object Errors {
     """.trimIndent()
 
     fun duplicatedInstance(type: String) = """
-        Found more than one possible value for instance
+        Found more than one possible instance for type
         
             $type
         

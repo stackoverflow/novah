@@ -1,0 +1,9 @@
+module test
+
+typealias Show a =
+  { show : a -> String }
+
+show : forall a. {{ Show a }} -> a -> String
+show {{s}} x = s.show x
+
+main () = show 3
