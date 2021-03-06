@@ -24,7 +24,11 @@ import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
-class Env private constructor(private val env: IMap<String, Type>, private val types: IMap<String, Type>) {
+class Env private constructor(
+    private val env: IMap<String, Type>,
+    private val types: IMap<String, Type>,
+    private val instances: IMap<String, Type>
+) {
 
     fun extend(name: String, type: Type) {
         env.put(name, type)
@@ -32,7 +36,7 @@ class Env private constructor(private val env: IMap<String, Type>, private val t
 
     fun lookup(name: String): Type? = env.get(name, null)
 
-    fun fork() = Env(env.forked().linear(), types.forked().linear())
+    fun fork() = Env(env.forked().linear(), types.forked().linear(), instances.forked().linear())
 
     fun extendType(name: String, type: Type) {
         types.put(name, type)
@@ -40,12 +44,18 @@ class Env private constructor(private val env: IMap<String, Type>, private val t
 
     fun lookupType(name: String): Type? = types.get(name, null)
 
-    fun forEach(action: (String, Type) -> Unit) {
-        env.forEach { action(it.key(), it.value()) }
+    fun extendInstance(name: String, type: Type) {
+        instances.put(name, type)
+    }
+
+    fun lookupInstance(name: String): Type? = instances.get(name, null)
+
+    fun forEachInstance(action: (String, Type) -> Unit) {
+        instances.forEach { action(it.key(), it.value()) }
     }
 
     companion object {
-        fun new() = Env(LinearMap(), LinearMap.from(primTypes))
+        fun new() = Env(LinearMap(), LinearMap.from(primTypes), LinearMap())
     }
 }
 
@@ -112,7 +122,7 @@ fun javaToNovah(jname: String): String = when (jname) {
 
 val primImport = Import.Raw("prim", Span.empty())
 
-private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC)
+private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC, false)
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
 
 private fun tfun(a: Type, b: Type) = TArrow(listOf(a), b)

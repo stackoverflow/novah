@@ -136,6 +136,10 @@ object Errors {
 
     const val INSTANCE_VAR = "Instance variables need to be enclosed in double brackets: {{var}}."
 
+    const val INSTANCE_ERROR = "Type and type alias declarations cannot be instances, only values."
+
+    const val ALIAS_DOT = "Expected dot (.) after aliased variable."
+
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field

@@ -24,20 +24,21 @@ object InstanceSearch {
         for (app in apps) {
             for (imp in app.implicitContexts) {
                 var exp: Expr? = null
-                imp.env.forEach { name, type ->
+                imp.env.forEachInstance { name, type ->
                     try {
                         Unification.unify(type, imp.type, app.span)
                         if (exp != null)
                             inferError(Errors.duplicatedInstance(imp.type.show(false)), app.span)
                         else {
                             exp = Expr.Var(name, app.span)
+                            exp!!.withType(type)
                         }
                     } catch (_: InferenceError) {
                     }
                 }
                 if (exp == null) inferError(Errors.noInstanceFound(imp.type.show(false)), app.span)
                 imp.resolved = exp
-                println("resolved implicit " + imp.type.show(false) + " with expression $exp")
+                //println("resolved implicit " + imp.type.show(false) + " with expression $exp")
             }
         }
     }

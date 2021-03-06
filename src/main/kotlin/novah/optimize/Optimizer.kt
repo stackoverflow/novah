@@ -16,11 +16,9 @@
 package novah.optimize
 
 import novah.Util.internalError
-import novah.ast.canonical.FunparPattern
-import novah.ast.canonical.Pattern
-import novah.ast.canonical.fullname
-import novah.ast.canonical.show
+import novah.ast.canonical.*
 import novah.ast.optimized.*
+import novah.ast.optimized.Decl
 import novah.data.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
@@ -90,11 +88,10 @@ class Optimizer(private val ast: CModule) {
             is CExpr.CharE -> Expr.CharE(v, typ)
             is CExpr.Bool -> Expr.Bool(v, typ)
             is CExpr.Var -> {
-                val vname = name
-                if (vname in locals) Expr.LocalVar(vname, typ)
+                if (name in locals) Expr.LocalVar(name, typ)
                 else {
                     val cname = internalize(moduleName ?: ast.name) + "/Module"
-                    Expr.Var(vname, cname, typ)
+                    Expr.Var(name, cname, typ)
                 }
             }
             is CExpr.Constructor -> {
@@ -103,7 +100,13 @@ class Optimizer(private val ast: CModule) {
                     ?: internalError("Could not find constructor $name")
                 Expr.Constructor(internalize(ctorName), arity, typ)
             }
-            is CExpr.ImplicitVar -> Expr.LocalVar(name, typ)
+            is CExpr.ImplicitVar -> {
+                if (name in locals) Expr.LocalVar(name, typ)
+                else {
+                    val cname = internalize(moduleName ?: ast.name) + "/Module"
+                    Expr.Var(name, cname, typ)
+                }
+            }
             is CExpr.Lambda -> {
                 haslambda = true
                 val bind = pattern.convert()
@@ -133,7 +136,15 @@ class Optimizer(private val ast: CModule) {
                         is CExpr.NativeConstructor -> Expr.NativeCtor(exp.ctor, pars.map { it.convert(locals) }, typ)
                         else -> internalError("Problem in `unrollForeignApp`, got non-native expression: $exp")
                     }
-                } else Expr.App(fn.convert(locals), arg.convert(locals), typ)
+                } else {
+                    if (implicitContexts.isNotEmpty()) {
+                        val app = resolvedImplicits().fold(fn.convert(locals)) { acc, argg ->
+                            // the argument and return type of the function doesn't matter here
+                            Expr.App(acc, argg.convert(locals), Type.TFun(typ, typ))
+                        }
+                        Expr.App(app, arg.convert(locals), typ)
+                    } else Expr.App(fn.convert(locals), arg.convert(locals), typ)
+                }
             }
             is CExpr.If -> Expr.If(
                 listOf(cond.convert(locals) to thenCase.convert(locals)),
@@ -200,8 +211,10 @@ class Optimizer(private val ast: CModule) {
             when (val tv = tvar) {
                 is TypeVar.Link -> tv.type.convert()
                 is TypeVar.Bound -> Type.TVar("T${tv.id}", true)
-                is TypeVar.Generic -> internalError("got unbound generic variable after typechecking: ${this.show(true)}")
-                is TypeVar.Unbound -> internalError("got unbound variable after typechecking: ${this.show(true)}")
+                is TypeVar.Generic ->
+                    internalError("got unbound generic variable after typechecking: ${show(true)} at $span")
+                is TypeVar.Unbound ->
+                    internalError("got unbound variable after typechecking: ${show(true)} at $span")
             }
         }
         // records always have the same type

@@ -134,7 +134,8 @@ sealed class Decl(val name: String, val visibility: Visibility) {
         val patterns: List<FunparPattern>,
         val exp: Expr,
         val type: Type?,
-        visibility: Visibility
+        visibility: Visibility,
+        val isInstance: Boolean
     ) : Decl(name, visibility)
 
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
@@ -191,7 +192,9 @@ sealed class Expr {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
-    data class ImplicitVar(val name: String) : Expr()
+    data class ImplicitVar(val name: String, val alias: String? = null) : Expr() {
+        override fun toString(): String = if (alias != null) "{{$alias.$name}}" else "{{$name}}"
+    }
 
     data class Constructor(val name: String, val alias: String? = null) : Expr() {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
@@ -238,6 +241,7 @@ sealed class Expr {
 }
 
 fun Expr.Var.fullname(): String = if (alias != null) "$alias.$name" else name
+fun Expr.ImplicitVar.fullname(): String = if (alias != null) "$alias.$name" else name
 fun Expr.Constructor.fullname(): String = if (alias != null) "$alias.$name" else name
 fun Expr.Operator.fullname(): String = if (alias != null) "$alias.$name" else name
 
@@ -251,7 +255,13 @@ sealed class FunparPattern(open val span: Span) {
     data class Bind(val binder: Binder) : FunparPattern(binder.span)
 }
 
-data class LetDef(val name: Binder, val patterns: List<FunparPattern>, val expr: Expr, val type: Type? = null)
+data class LetDef(
+    val name: Binder,
+    val patterns: List<FunparPattern>,
+    val expr: Expr,
+    val isInstance: Boolean,
+    val type: Type? = null
+)
 
 data class Case(val pattern: Pattern, val exp: Expr)
 

@@ -183,7 +183,7 @@ class CompilationError(val problems: List<CompilerProblem>) :
 
 data class FullModuleEnv(val env: ModuleEnv, val ast: TypedModule, val aliases: List<Decl.TypealiasDecl>)
 
-data class DeclRef(val type: Type, val visibility: Visibility)
+data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: Boolean)
 
 data class TypeDeclRef(val type: Type, val visibility: Visibility, val ctors: List<String>)
 

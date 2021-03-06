@@ -65,9 +65,10 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
                     resolved["$alias$name"] = mname
                     env.extendType("$mname.$name", type)
                 }
-                m.decls.filter(visible).forEach { name, (type, _) ->
+                m.decls.filter(visible).forEach { name, (type, _, isInstance) ->
                     resolved["$alias$name"] = mname
                     env.extend("$alias$name", type)
+                    if (isInstance) env.extendInstance("$alias$name", type)
                 }
                 typealiases.filter { (_, ta) -> ta.visibility == Visibility.PUBLIC }.forEach { (_, ta) ->
                     resolvedTypealiases += ta
@@ -88,8 +89,10 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
                                 errors += mkError(Errors.cannotImportInModule("declaration ${ref.name}", mname))
                                 continue
                             }
-                            resolved["$alias${ref.name}"] = mname
-                            env.extend("$alias${ref.name}", declRef.type)
+                            val fname = "$alias${ref.name}"
+                            resolved[fname] = mname
+                            env.extend(fname, declRef.type)
+                            if (declRef.isInstance) env.extendInstance(fname, declRef.type)
                         }
                         is DeclarationRef.RefType -> {
                             val talias = typealiases[ref.name]

@@ -223,15 +223,27 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         var tk = iter.peek()
         val comment = tk.comment
         var visibility: Token? = null
+        var isInstance = false
         if (tk.value is PublicT || tk.value is PublicPlus) {
             iter.next()
             visibility = tk.value
             tk = iter.peek()
         }
+        if (tk.value is Instance) {
+            iter.next()
+            isInstance = true
+            tk = iter.peek()
+        }
         val decl = when (tk.value) {
-            is TypeT -> parseDataDecl(visibility)
-            is Ident -> parseVarDecl(visibility)
-            is TypealiasT -> parseTypealias(visibility)
+            is TypeT -> {
+                if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
+                parseDataDecl(visibility)
+            }
+            is Ident -> parseVarDecl(visibility, isInstance)
+            is TypealiasT -> {
+                if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
+                parseTypealias(visibility)
+            }
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
         decl.comment = comment
@@ -260,7 +272,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
-    private fun parseVarDecl(visibility: Token?): Decl {
+    private fun parseVarDecl(visibility: Token?, isInstance: Boolean): Decl {
         var vis = Visibility.PRIVATE
         if (visibility != null) {
             if (visibility is PublicPlus) throwError(E.PUB_PLUS to iter.current().span)
@@ -282,7 +294,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
             val exp = parseExpression()
-            Decl.ValDecl(name, vars, exp, type, vis).withSpan(nameTk.span, exp.span)
+            Decl.ValDecl(name, vars, exp, type, vis, isInstance).withSpan(nameTk.span, exp.span)
         }
     }
 
@@ -500,6 +512,10 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseLet(inDo: Boolean = false): Expr {
         val let = expect<LetT>(noErr())
+        val isInstance = if (iter.peek().value is Instance) {
+            iter.next()
+            true
+        } else false
 
         val tk = iter.peek()
         val align = tk.offside()
@@ -510,11 +526,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         withOffside(align) {
             if (inDo) {
                 while (!iter.peekIsOffside() && iter.peek().value !in statementEnding) {
-                    defs += parseLetDef()
+                    defs += parseLetDef(isInstance)
                 }
             } else {
                 while (iter.peek().value != In) {
-                    defs += parseLetDef()
+                    defs += parseLetDef(isInstance)
                 }
             }
         }
@@ -531,7 +547,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return Expr.Let(defs, exp).withSpan(span).withComment(let.comment)
     }
 
-    private fun parseLetDef(): LetDef {
+    private fun parseLetDef(isInstance: Boolean): LetDef {
         val ident = expect<Ident>(withError(E.LET_DECL))
         val name = ident.value.v
 
@@ -549,8 +565,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             expect<Equals>(withError(E.LET_EQUALS))
             val exp = parseExpression()
             val span = span(ident.span, exp.span)
-            val def =
-                LetDef(Binder(ident.value.v, span), vars, exp, type)
+            val def = LetDef(Binder(ident.value.v, span), vars, exp, isInstance, type)
             def
         }
     }
@@ -671,10 +686,15 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
             if (nex is LBracket) {
                 iter.next()
+                var alias: String? = null
+                if (iter.peek().value is UpperIdent) {
+                    alias = expect<UpperIdent>(noErr()).value.v
+                    expect<Dot>(withError(E.ALIAS_DOT))
+                }
                 val exp = expect<Ident>(withError(E.INSTANCE_VAR)).value.v
                 expect<RBracket>(withError(E.INSTANCE_VAR))
                 val end = expect<RBracket>(withError(E.INSTANCE_VAR))
-                Expr.ImplicitVar(exp).withSpan(begin.span, end.span).withComment(begin.comment)
+                Expr.ImplicitVar(exp, alias).withSpan(begin.span, end.span).withComment(begin.comment)
             } else if (nex is RBracket) {
                 val end = iter.next()
                 Expr.RecordEmpty().withSpan(begin.span, end.span).withComment(begin.comment)

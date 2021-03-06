@@ -16,3 +16,5 @@
 - [ ] Properly handle records in check mode in the typechecker
 - [ ] Show types qualified in type check errors
 - [ ] Check if instance vars can be fully qualified
+- [ ] Primitives to create java arrays
+- [ ] Recursive instance search

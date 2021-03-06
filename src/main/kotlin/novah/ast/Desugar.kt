@@ -85,7 +85,7 @@ class Desugar(private val smod: SModule) {
                 val ann = emptyList<Id>() to type.desugar()
                 Expr.Ann(expr, ann, span)
             } else expr
-            Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility)
+            Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance)
         }
         else -> null
     }
@@ -127,7 +127,7 @@ class Desugar(private val smod: SModule) {
                 } else Expr.Var(name, span, imports[fullname()])
             }
         }
-        is SExpr.ImplicitVar -> Expr.ImplicitVar(name, span)
+        is SExpr.ImplicitVar -> Expr.ImplicitVar(name, span, if (name in locals) null else imports[fullname()])
         is SExpr.Operator -> Expr.Var(name, span, imports[fullname()])
         is SExpr.Constructor -> Expr.Constructor(name, span, imports[fullname()])
         is SExpr.Lambda -> {
@@ -190,12 +190,12 @@ class Desugar(private val smod: SModule) {
         }
 
         return if (patterns.isEmpty()) {
-            LetDef(name.desugar(), expr.desugar(locals), false, type?.desugar())
+            LetDef(name.desugar(), expr.desugar(locals), false, isInstance, type?.desugar())
         } else {
             val exp = expr.desugar(locals)
             val vars = collectVars(exp)
             val recursive = name.name in vars
-            LetDef(name.desugar(), go(patterns.map { it.desugar() }, exp), recursive, type?.desugar())
+            LetDef(name.desugar(), go(patterns.map { it.desugar() }, exp), recursive, isInstance, type?.desugar())
         }
     }
 

@@ -50,6 +50,7 @@ import novah.backend.TypeUtil.maybeBuildFieldSignature
 import novah.backend.TypeUtil.toInternalClass
 import novah.backend.TypeUtil.toInternalMethodType
 import novah.backend.TypeUtil.toInternalType
+import novah.data.forEachList
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.ClassWriter.COMPUTE_FRAMES
 import org.objectweb.asm.Handle
@@ -191,7 +192,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLdcInsn(e.v)
             }
             is Expr.LocalVar -> {
-                val local = ctx[e.name] ?: internalError("unmapped local variable in code generation: $e")
+                val local = ctx[e.name] ?: internalError("unmapped local variable (${e.name}) in code generation: $e")
                 ctx.setLocalVar(e)
                 mv.visitVarInsn(ALOAD, local)
             }
@@ -269,7 +270,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val localTypes = mutableListOf<Type>()
                 // load all local variables captured by this closure in order to partially apply them
                 for (localVar in e.locals) {
-                    val local = ctx[localVar.name] ?: internalError("unmapped local variable in code generation: $e")
+                    val local = ctx[localVar.name]
+                        ?: internalError("unmapped local variable (${localVar.name}) in code generation: $e")
                     localTypes += localVar.type
                     mv.visitVarInsn(ALOAD, local)
                 }
@@ -718,6 +720,14 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.Throw -> go(exp.expr)
             is Expr.Cast -> go(exp.expr)
+            is Expr.RecordExtend -> {
+                exp.labels.forEachList { go(it) }
+                go(exp.expr)
+            }
+            is Expr.RecordSelect -> go(exp.expr)
+            is Expr.RecordRestrict -> go(exp.expr)
+            is Expr.VectorLiteral -> for (e in exp.exps) go(e)
+            is Expr.SetLiteral -> for (e in exp.exps) go(e)
             else -> {
             }
         }

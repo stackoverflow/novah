@@ -64,7 +64,7 @@ object Inference {
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
-                decls[dc.name] = DeclRef(dcty, dc.visibility)
+                decls[dc.name] = DeclRef(dcty, dc.visibility, false)
             }
             types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
         }
@@ -81,9 +81,11 @@ object Inference {
             checkShadow(env, name, decl.span)
             if (expr is Expr.Ann) {
                 env.extend(name, expr.annType.second)
+                if (decl.isInstance) env.extendInstance(name, expr.annType.second)
             } else {
                 val t = newVar(0)
                 env.extend(name, t)
+                if (decl.isInstance) env.extendInstance(name, t)
             }
         }
 
@@ -98,7 +100,8 @@ object Inference {
 
             val genTy = generalize(-1, ty)
             env.extend(name, genTy)
-            decls[name] = DeclRef(genTy, decl.visibility)
+            if (decl.isInstance) env.extendInstance(name, genTy)
+            decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance)
         }
 
         return ModuleEnv(decls, types)
@@ -174,8 +177,11 @@ object Inference {
                     else -> infer(env, level + 1, exp.letDef.expr)
                 }
                 checkShadow(env, name, exp.letDef.binder.span)
-                env.extend(name, varType)
-                val ty = infer(env, level, exp.body)
+                val newEnv = env.fork()
+                newEnv.extend(name, varType)
+                if (exp.letDef.isInstance) newEnv.extendInstance(name, varType)
+
+                val ty = infer(newEnv, level, exp.body)
                 exp.withType(ty)
             }
             is Expr.App -> inferApp(env, level, exp)
@@ -284,8 +290,8 @@ object Inference {
             exp is Expr.CharE && type == tChar -> exp.withType(tChar)
             exp is Expr.Bool && type == tBoolean -> exp.withType(tBoolean)
             exp is Expr.Unit && type == tUnit -> exp.withType(tUnit)
-            type is TForall -> {
-                val ty = instantiate(level, type)
+            exp is Expr.Lambda && type is TForall -> {
+                val ty = instantiate(level + 1, type)
                 check(env, level, ty, exp)
             }
             exp is Expr.Lambda && type is TArrow -> {
@@ -348,7 +354,7 @@ object Inference {
 
         if (params.size > 1) {
             for (p in params.dropLast(1)) {
-                exp.implicitContexts += ImplicitContext((p as TImplicit).type, env)
+                exp.implicitContexts += ImplicitContext((p as TImplicit).type, env.fork())
             }
             implicitsToCheck += exp
         }

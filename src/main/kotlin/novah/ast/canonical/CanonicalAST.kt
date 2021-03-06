@@ -15,6 +15,7 @@
  */
 package novah.ast.canonical
 
+import novah.Util.internalError
 import novah.ast.source.Visibility
 import novah.data.LabelMap
 import novah.data.mapList
@@ -51,7 +52,8 @@ sealed class Decl {
         val recursive: Boolean,
         val span: Span,
         val type: Type?,
-        val visibility: Visibility
+        val visibility: Visibility,
+        val isInstance: Boolean
     ) : Decl()
 }
 
@@ -71,7 +73,7 @@ sealed class Expr(open val span: Span) {
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
     data class Var(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class Constructor(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
-    data class ImplicitVar(val name: String, override val span: Span) : Expr(span)
+    data class ImplicitVar(val name: String, override val span: Span, val moduleName: String?) : Expr(span)
     data class Lambda(
         val pattern: FunparPattern,
         val ann: Pair<List<Id>, Type>?,
@@ -130,7 +132,13 @@ sealed class FunparPattern(val span: Span) {
     class Bind(val binder: Binder) : FunparPattern(binder.span)
 }
 
-data class LetDef(val binder: Binder, val expr: Expr, val recursive: Boolean, val type: Type? = null)
+data class LetDef(
+    val binder: Binder,
+    val expr: Expr,
+    val recursive: Boolean,
+    val isInstance: Boolean,
+    val type: Type? = null
+)
 
 data class Case(val pattern: Pattern, val exp: Expr)
 
@@ -201,4 +209,10 @@ fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
         exp
     }
     return acc
+}
+
+fun Expr.App.resolvedImplicits(): List<Expr> {
+    val res = implicitContexts.mapNotNull { it.resolved }
+    if (res.size != implicitContexts.size) internalError("unresolved instance argument at $span")
+    return res
 }
