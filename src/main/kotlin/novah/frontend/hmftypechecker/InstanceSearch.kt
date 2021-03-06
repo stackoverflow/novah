@@ -25,15 +25,19 @@ object InstanceSearch {
             for (imp in app.implicitContexts) {
                 var exp: Expr? = null
                 imp.env.forEachInstance { name, type ->
-                    try {
+                    val found = try {
                         Unification.unify(type, imp.type, app.span)
+                        true
                     } catch (_: InferenceError) {
+                        false
                     }
-                    if (exp != null)
-                        inferError(Errors.duplicatedInstance(imp.type.show(false)), app.span)
-                    else {
-                        // TODO: what about imported/aliased vars?
-                        exp = Expr.Var(name, app.span).apply { this.type = type }
+                    if (found) {
+                        if (exp != null)
+                            inferError(Errors.duplicatedInstance(imp.type.show(false)), app.span)
+                        else {
+                            // TODO: what about imported/aliased vars?
+                            exp = Expr.Var(name, app.span).apply { this.type = type }
+                        }
                     }
 
                 }
