@@ -1,0 +1,4 @@
+module test
+
+exp : Int -> Int
+exp {{x}} = x

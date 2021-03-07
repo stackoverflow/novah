@@ -251,6 +251,12 @@ object Errors {
         
             $b
     """.trimIndent()
+    
+    fun implicitTypesDontMatch(vari: String, type: String) = """
+        Cannot match instance variable $vari with non-instance type
+        
+            $type
+    """.trimIndent()
 
     fun partiallyAppliedAlias(name: String, expected: Int, got: Int): String = """
         Partially applied type alias $name.

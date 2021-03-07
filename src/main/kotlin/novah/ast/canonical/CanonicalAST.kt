@@ -255,7 +255,10 @@ fun Expr.show(): String = when (this) {
     is Expr.RecordEmpty -> "{}"
     is Expr.RecordSelect -> "${exp.show()}.$label"
     is Expr.RecordRestrict -> "{ - $label | ${exp.show()} }"
-    is Expr.RecordExtend -> "{ ${labels.show { s, expr -> "$s: ${expr.show()}" }} | ${exp.show()} }"
+    is Expr.RecordExtend -> {
+        val rest = if (exp is Expr.RecordEmpty) "" else " | ${exp.show()} "
+        "{ ${labels.show { s, expr -> "$s: ${expr.show()}" }} $rest}"
+    }
     is Expr.VectorLiteral -> "[${exps.joinToString { it.show() }}]"
     is Expr.SetLiteral -> "#{${exps.joinToString { it.show() }}}"
 }

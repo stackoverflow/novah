@@ -316,8 +316,7 @@ object Inference {
                         val newEnv = env.fork()
                         val ty = type.args[0]
                         if (pat.binder.isImplicit && ty !is TImplicit) {
-                            val imp = TImplicit(ty)
-                            inferError(Errors.typesDontMatch(ty.show(), imp.show()), pat.binder.span)
+                            inferError(Errors.implicitTypesDontMatch(pat.binder.toString(), ty.show()), pat.binder.span)
                         }
                         newEnv.extend(pat.binder.name, ty)
                         check(newEnv, level + 1, type.ret, exp.body)
