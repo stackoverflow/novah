@@ -28,6 +28,7 @@ import novah.frontend.error.Errors
 import novah.frontend.hmftypechecker.InstanceSearch.instanceSearch
 import novah.frontend.hmftypechecker.Subsumption.subsume
 import novah.frontend.hmftypechecker.Typechecker.checkWellFormed
+import novah.frontend.hmftypechecker.Typechecker.context
 import novah.frontend.hmftypechecker.Typechecker.env
 import novah.frontend.hmftypechecker.Typechecker.instantiate
 import novah.frontend.hmftypechecker.Typechecker.instantiateTypeAnnotation
@@ -91,6 +92,7 @@ object Inference {
 
         vals.forEach { decl ->
             implicitsToCheck.clear()
+            context?.apply { this.decl = decl }
             val name = decl.name
             val newEnv = env.fork()
             val ty = if (decl.recursive) inferRecursive(name, decl.exp, newEnv, 0)
@@ -108,7 +110,8 @@ object Inference {
     }
 
     private fun infer(env: Env, level: Level, exp: Expr): Type {
-        return when (exp) {
+        context?.apply { exps.push(exp) }
+        val ty = when (exp) {
             is Expr.IntE -> exp.withType(tInt)
             is Expr.LongE -> exp.withType(tLong)
             is Expr.FloatE -> exp.withType(tFloat)
@@ -276,9 +279,15 @@ object Inference {
                 }
             }
         }
+        context?.apply { exps.pop() }
+        return ty
     }
 
     private fun check(env: Env, level: Level, type: Type, exp: Expr) {
+        context?.apply {
+            exps.push(exp)
+            types.push(type)
+        }
         when {
             exp is Expr.IntE && type == tByte && validByte(exp.v) -> exp.withType(tByte)
             exp is Expr.IntE && type == tShort && validShort(exp.v) -> exp.withType(tShort)
@@ -332,6 +341,10 @@ object Inference {
                 subsume(level, type, infer(env, level, exp), exp.span)
                 exp.withType(type)
             }
+        }
+        context?.apply {
+            exps.pop()
+            types.pop()
         }
     }
 

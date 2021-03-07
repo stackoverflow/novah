@@ -19,6 +19,7 @@ import novah.Util.internalError
 import novah.ast.source.Visibility
 import novah.data.LabelMap
 import novah.data.mapList
+import novah.data.show
 import novah.frontend.Span
 import novah.frontend.hmftypechecker.Env
 import novah.frontend.hmftypechecker.Id
@@ -119,6 +120,7 @@ sealed class Expr(open val span: Span) {
 class ImplicitContext(val type: Type, val env: Env, var resolved: Expr? = null)
 
 fun Expr.Var.fullname() = if (moduleName != null) "$moduleName.$name" else name
+fun Expr.ImplicitVar.fullname() = if (moduleName != null) "$moduleName.$name" else name
 fun Expr.Constructor.fullname() = if (moduleName != null) "$moduleName.$name" else name
 fun Expr.Constructor.fullname(module: String): String = "$module.$name"
 
@@ -215,4 +217,45 @@ fun Expr.App.resolvedImplicits(): List<Expr> {
     val res = implicitContexts.mapNotNull { it.resolved }
     if (res.size != implicitContexts.size) internalError("unresolved instance argument at $span")
     return res
+}
+
+fun Expr.show(): String = when (this) {
+    is Expr.IntE -> "$v"
+    is Expr.LongE -> "$v"
+    is Expr.FloatE -> "$v"
+    is Expr.DoubleE -> "$v"
+    is Expr.StringE -> "\"$v\""
+    is Expr.CharE -> "'$v'"
+    is Expr.Bool -> "$v"
+    is Expr.Var -> fullname()
+    is Expr.Constructor -> fullname()
+    is Expr.ImplicitVar -> fullname()
+    is Expr.Lambda -> {
+        val arg = when (pattern) {
+            is FunparPattern.Unit -> "()"
+            is FunparPattern.Ignored -> "_"
+            is FunparPattern.Bind -> pattern.binder.toString()
+        }
+        "\\$arg -> ${body.show()}"
+    }
+    is Expr.App -> "(${fn.show()} ${arg.show()})"
+    is Expr.If -> "if ${cond.show()} then ${thenCase.show()} else ${elseCase.show()}"
+    is Expr.Let -> "let ${letDef.binder} = ${letDef.expr.show()} in ${body.show()}"
+    is Expr.Match -> {
+        val cs = cases.joinToString("\n") { it.pattern.show() + " -> " + it.exp.show() }
+        "case ${exp.show()} of\n$cs"
+    }
+    is Expr.Ann -> "${exp.show()} : ${annType.second.show()}"
+    is Expr.Do -> "do\n" + exps.joinToString("\n") { it.show() }
+    is Expr.NativeFieldGet -> name
+    is Expr.NativeFieldSet -> name
+    is Expr.NativeMethod -> name
+    is Expr.NativeConstructor -> name
+    is Expr.Unit -> "()"
+    is Expr.RecordEmpty -> "{}"
+    is Expr.RecordSelect -> "${exp.show()}.$label"
+    is Expr.RecordRestrict -> "{ - $label | ${exp.show()} }"
+    is Expr.RecordExtend -> "{ ${labels.show { s, expr -> "$s: ${expr.show()}" }} | ${exp.show()} }"
+    is Expr.VectorLiteral -> "[${exps.joinToString { it.show() }}]"
+    is Expr.SetLiteral -> "#{${exps.joinToString { it.show() }}}"
 }

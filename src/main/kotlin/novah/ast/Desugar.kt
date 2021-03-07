@@ -391,6 +391,7 @@ class Desugar(private val smod: SModule) {
             exp.everywhere { e ->
                 when (e) {
                     is Expr.Var -> deps += e.fullname()
+                    is Expr.ImplicitVar -> deps += e.fullname()
                     is Expr.Constructor -> deps += e.fullname()
                     else -> {
                     }

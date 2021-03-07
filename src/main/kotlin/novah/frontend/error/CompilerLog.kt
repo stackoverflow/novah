@@ -15,7 +15,9 @@
  */
 package novah.frontend.error
 
+import novah.ast.canonical.show
 import novah.frontend.Span
+import novah.frontend.hmftypechecker.TypingContext
 
 enum class Severity {
     WARN, ERROR;
@@ -30,18 +32,44 @@ data class CompilerProblem(
     val span: Span,
     val fileName: String,
     val module: String? = null,
+    val typingContext: TypingContext? = null,
     val severity: Severity = Severity.ERROR
 ) {
     fun formatToConsole(): String {
         val mod = if (module != null) "module $YELLOW$module$RESET\n" else ""
         val at = "at $fileName:$span\n\n"
-        return "$mod$at${msg.prependIndent("  ")}\n\n"
+        
+        val ctx = if (typingContext != null) formatTypingContext(typingContext) else ""
+        return "$mod$at${msg.prependIndent("  ")}\n\n$ctx"
+    }
+    
+    private fun formatTypingContext(ctx: TypingContext): String {
+        var str = ""
+        val ty = ctx.types.peek()
+        if (ty != null) {
+            str += "while checking type ${ty.show()}\n"
+        }
+
+        val exp = ctx.exps.peek()
+        if (exp != null) {
+            var expStr = exp.show()
+            expStr = if (expStr.length > MAX_EXPR_SIZE) expStr.substring(0, MAX_EXPR_SIZE) + "..." else expStr
+            str += "while checking expression $expStr\n"
+        }
+
+        val decl = ctx.decl
+        if (decl != null) {
+            str += "in declaration ${decl.name}"
+        }
+        return if (str.isEmpty()) str else "$str\n\n"
     }
 
     companion object {
         const val RED = "\u001b[31m"
         const val YELLOW = "\u001b[33m"
         const val RESET = "\u001b[0m"
+        
+        const val MAX_EXPR_SIZE = 50
     }
 }
 
@@ -57,8 +85,6 @@ enum class ProblemContext {
     DESUGAR,
     TYPECHECK,
     SUBSUMPTION,
-    INSTL,
-    INSTR,
     PATTERN_MATCHING,
     FOREIGN,
     OPTIMIZATION,

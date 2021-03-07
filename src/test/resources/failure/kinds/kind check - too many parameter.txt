@@ -9,3 +9,7 @@ at src/test/resources/failure/kinds/kind check - too many parameter.novah:6:7 - 
   
       Day
 
+while checking type Day Int
+while checking expression Week
+in declaration f
+

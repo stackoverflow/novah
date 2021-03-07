@@ -3,3 +3,7 @@ at src/test/resources/failure/types/undefined type.novah:3:13 - 3:18
 
   Undefined type Undef.
 
+while checking type Undef
+while checking expression 1
+in declaration f
+

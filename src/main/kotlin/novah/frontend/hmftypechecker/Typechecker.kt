@@ -15,6 +15,8 @@
  */
 package novah.frontend.hmftypechecker
 
+import novah.ast.canonical.Decl
+import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
 import novah.data.Err
 import novah.data.Ok
@@ -27,8 +29,7 @@ import novah.frontend.error.ProblemContext
 import novah.frontend.hmftypechecker.Unification.substituteBoundVars
 import novah.main.CompilationError
 import novah.main.ModuleEnv
-
-class TypingContext(val mod: Module)
+import java.util.*
 
 object Typechecker {
     private var currentId = 0
@@ -60,9 +61,9 @@ object Typechecker {
         return try {
             Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
-            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name)))
+            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name, context)))
         } catch (ce: CompilationError) {
-            Err(ce.problems)
+            Err(ce.problems.map { it.copy(typingContext = context) })
         }
     }
 
@@ -121,6 +122,13 @@ object Typechecker {
         }
     }
 }
+
+class TypingContext(
+    val mod: Module,
+    var decl: Decl.ValDecl? = null,
+    val exps: ArrayDeque<Expr> = ArrayDeque(),
+    val types: ArrayDeque<Type> = ArrayDeque()
+)
 
 class InferenceError(val msg: String, val span: Span, val ctx: ProblemContext) : RuntimeException(msg)
 

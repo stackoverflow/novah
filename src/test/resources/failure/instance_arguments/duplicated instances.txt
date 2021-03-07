@@ -8,3 +8,5 @@ at src/test/resources/failure/instance_arguments/duplicated instances.novah:17:1
   Make sure there's no overlapping instances in the context
   or pass the argument explicitly.
 
+in declaration main
+

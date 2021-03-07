@@ -8,3 +8,5 @@ at src/test/resources/failure/instance_arguments/instance not found.novah:9:11 -
   Make sure there's one instance in the context
   or pass the argument explicitly.
 
+in declaration main
+

@@ -5,3 +5,8 @@ at src/test/resources/failure/pattern_matching/overlapping variables in match.no
   
       v, v
 
+while checking expression case x of
+Tuple v v -> v
+Tuple t _ -> t
+in declaration f
+
