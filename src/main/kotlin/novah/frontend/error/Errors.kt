@@ -73,8 +73,6 @@ object Errors {
         |Example: \x -> x + 3
     """.trimMargin()
 
-    const val EQUALS = "Expected `=` after function parameters/patterns."
-
     const val LAMBDA_ARROW = "Expected `->` after lambda parameter definition."
 
     const val LAMBDA_BACKSLASH = "Expected lambda definition to start with backslash: `\\`."
@@ -133,6 +131,14 @@ object Errors {
     const val RECORD_LABEL = "A label of a record can only be a lower case identifier or a String."
 
     const val RECURSIVE_ROWS = "Recursive row types"
+
+    const val INSTANCE_TYPE = "Instance types need to be enclosed in double brackets: {{ type }}."
+
+    const val INSTANCE_VAR = "Instance variables need to be enclosed in double brackets: {{var}}."
+
+    const val INSTANCE_ERROR = "Type and type alias declarations cannot be instances, only values."
+
+    const val ALIAS_DOT = "Expected dot (.) after aliased variable."
 
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
@@ -285,11 +291,31 @@ object Errors {
         is a not a row type.
     """.trimIndent()
 
+    fun duplicatedInstance(type: String) = """
+        Found more than one possible instance for type
+        
+            $type
+        
+        Make sure there's no overlapping instances in the context
+        or pass the argument explicitly.
+    """.trimIndent()
+
+    fun noInstanceFound(type: String) = """
+        Could not find instance for type
+        
+            $type
+        
+        Make sure there's one instance in the context
+        or pass the argument explicitly.
+    """.trimIndent()
+
     fun redundantMatches(pats: List<String>) = """
         A case expression contains redundant cases:
         
             ${pats.joinToString()}
     """.trimIndent()
+
+    fun equalsExpected(ctx: String) = "Expected `=` after $ctx."
 
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."
     fun rparensExpected(ctx: String) = "Expected `)` after $ctx."

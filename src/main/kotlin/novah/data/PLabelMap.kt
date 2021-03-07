@@ -20,7 +20,7 @@ import io.lacuna.bifurcan.SortedMap
 
 typealias PList<V> = List<V>
 
-typealias PLabelMap<V> = SortedMap<String, PList<V>>
+typealias LabelMap<V> = SortedMap<String, PList<V>>
 
 private val labelRegex = Regex("""[a-z](?:\w+|_)*""")
 
@@ -29,7 +29,7 @@ fun isValidLabel(ident: String): Boolean = ident.matches(labelRegex)
 fun showLabel(label: String): String =
     if (isValidLabel(label)) label else "\"$label\""
 
-fun <V> PLabelMap<V>.show(fn: (String, V) -> String): String {
+fun <V> LabelMap<V>.show(fn: (String, V) -> String): String {
     val builder = StringBuilder()
     var addComma = false
     forEach { kv ->
@@ -42,8 +42,8 @@ fun <V> PLabelMap<V>.show(fn: (String, V) -> String): String {
     return builder.toString()
 }
 
-fun <V> singletonPMap(k: String, v: V): PLabelMap<V> =
-    PLabelMap<V>().put(k, PList.of(v))
+fun <V> singletonPMap(k: String, v: V): LabelMap<V> =
+    LabelMap<V>().put(k, PList.of(v))
 
 fun <V, R> PList<V>.map(fn: (V) -> R): PList<R> {
     val nlist = List.empty<R>().linear()
@@ -54,54 +54,54 @@ fun <V, R> PList<V>.map(fn: (V) -> R): PList<R> {
 
 fun <V> PList<V>.isEmpty() = size() == 0L
 
-fun <V> PLabelMap<V>.isEmpty() = size() == 0L
+fun <V> LabelMap<V>.isEmpty() = size() == 0L
 
-fun <V, R> PLabelMap<V>.mapList(fn: (V) -> R): PLabelMap<R> {
+fun <V, R> LabelMap<V>.mapList(fn: (V) -> R): LabelMap<R> {
     return mapValues { _, l -> l.map(fn) }
 }
 
-fun <V> PLabelMap<V>.forEachList(fn: (V) -> Unit) {
+fun <V> LabelMap<V>.forEachList(fn: (V) -> Unit) {
     forEach { kv ->
         kv.value().forEach(fn)
     }
 }
 
-fun <V, R> PLabelMap<V>.flatMapList(fn: (V) -> Iterable<R>): List<R> {
+fun <V, R> LabelMap<V>.flatMapList(fn: (V) -> Iterable<R>): List<R> {
     return PList.from(flatMap { kv ->
         kv.value().flatMap(fn)
     })
 }
 
-fun <V> PLabelMap<V>.allList(fn: (V) -> Boolean): Boolean {
+fun <V> LabelMap<V>.allList(fn: (V) -> Boolean): Boolean {
     return fold(true) { acc, v -> acc && v.value().all(fn) }
 }
 
-fun <V> PLabelMap<V>.putMulti(key: String, value: V): PLabelMap<V> {
+fun <V> LabelMap<V>.putMulti(key: String, value: V): LabelMap<V> {
     val list = get(key, null)
 
     return if (list != null) put(key, list.addFirst(value))
     else put(key, PList.of(value))
 }
 
-fun <V> PLabelMap<V>.assocat(key: String, values: PList<V>): PLabelMap<V> {
+fun <V> LabelMap<V>.assocat(key: String, values: PList<V>): LabelMap<V> {
     val list = get(key, null)
 
     return if (list != null) put(key, list.concat(values) as PList<V>)
     else put(key, values)
 }
 
-fun <V> PLabelMap<V>.toPList(): List<Pair<String, PList<V>>> {
+fun <V> LabelMap<V>.toPList(): List<Pair<String, PList<V>>> {
     val list = PList.empty<Pair<String, PList<V>>>().linear()
     return fold(list) { acc, kv ->
         acc.addLast(kv.key() to kv.value())
     }.forked()
 }
 
-fun <V> labelMapWith(kvs: kotlin.collections.List<Pair<String, V>>): PLabelMap<V> {
-    return kvs.fold(PLabelMap()) { acc, el -> acc.putMulti(el.first, el.second) }
+fun <V> labelMapWith(kvs: kotlin.collections.List<Pair<String, V>>): LabelMap<V> {
+    return kvs.fold(LabelMap()) { acc, el -> acc.putMulti(el.first, el.second) }
 }
 
-fun <V> PLabelMap<V>.merge(other: PLabelMap<V>): PLabelMap<V> {
+fun <V> LabelMap<V>.merge(other: LabelMap<V>): LabelMap<V> {
     val m = forked().linear()
     return other.fold(m) { acc, kv ->
         acc.assocat(kv.key(), kv.value())

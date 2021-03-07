@@ -15,3 +15,39 @@ sayHello : String -> Unit
 sayHello name = do
   println "Hello"
   println name
+
+typealias Show a =
+  { show : a -> String }
+
+show : forall a. {{ Show a }} -> a -> String
+show {{s}} x = s.show x
+
+instance
+showInt : Show Int
+showInt = { show: (\x -> toString x) : Int -> String }
+
+instance
+showBool : Show Boolean
+showBool = { show: (\x -> toString x) : Boolean -> String }
+
+type Option a = Some a | None
+
+showOptionImpl : forall a. {{ Show a }} -> Option a -> String
+showOptionImpl {{s}} o = case o of
+  Some x -> s.show x
+  None -> "None"
+
+showOption : forall a. {{ Show a }} -> Show (Option a)
+showOption {{s}} = { show: showOptionImpl {{s}} }
+
+print : Option Int -> Unit
+print o = do
+  let instance showOptInt = showOption {{showInt}}
+  println (show 5)
+  println (show false)
+  println (show o)
+
+pub
+main () = do
+  print None
+  ()

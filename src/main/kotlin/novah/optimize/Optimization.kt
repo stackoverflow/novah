@@ -18,6 +18,7 @@ package novah.optimize
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
 import novah.ast.optimized.Module
+import novah.data.mapList
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
@@ -136,6 +137,11 @@ object Optimization {
             is Expr.InstanceOf -> f(e.copy(exp = go(e.exp)))
             is Expr.Throw -> f(e.copy(expr = go(e.expr)))
             is Expr.Cast -> f(e.copy(expr = go(e.expr)))
+            is Expr.RecordExtend -> f(e.copy(labels = e.labels.mapList { go(it) }, expr = go(e.expr)))
+            is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
+            is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
+            is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
+            is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
             else -> f(e)
         }
         return go(expr)
@@ -155,19 +161,23 @@ object Optimization {
                 e.args.fold(ac) { accu, arg -> go(arg, accu) }
             }
             is Expr.If -> {
-                val ac = e.conds.fold(f(e, acc)) { accu, (c, t) -> go(c, go(t, accu))}
+                val ac = e.conds.fold(f(e, acc)) { accu, (c, t) -> go(c, go(t, accu)) }
                 go(e.elseCase, ac)
             }
             is Expr.Let -> go(e.body, go(e.bindExpr, f(e, acc)))
-            is Expr.Do -> {
-                e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
-            }
-            is Expr.OperatorApp -> {
-                e.operands.fold(f(e, acc)) { accu, op -> go(op, accu) }
-            }
+            is Expr.Do -> e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
+            is Expr.OperatorApp -> e.operands.fold(f(e, acc)) { accu, op -> go(op, accu) }
             is Expr.InstanceOf -> go(e.exp, f(e, acc))
             is Expr.Throw -> go(e.expr, f(e, acc))
             is Expr.Cast -> go(e.expr, f(e, acc))
+            is Expr.RecordExtend -> {
+                val vals = e.labels.values().flatten()
+                (vals + e.expr).fold(f(e, acc)) { accu, exp -> go(exp, accu) }
+            }
+            is Expr.RecordSelect -> go(e.expr, f(e, acc))
+            is Expr.RecordRestrict -> go(e.expr, f(e, acc))
+            is Expr.VectorLiteral -> e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
+            is Expr.SetLiteral -> e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
             else -> f(e, acc)
         }
         return go(expr, init)
