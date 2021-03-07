@@ -28,10 +28,16 @@ import novah.frontend.hmftypechecker.Unification.substituteBoundVars
 import novah.main.CompilationError
 import novah.main.ModuleEnv
 
+class TypingContext(val mod: Module)
+
 object Typechecker {
     private var currentId = 0
 
     var env = Env.new()
+        private set
+
+    var context: TypingContext? = null
+        private set
 
     private fun nextId(): Int = ++currentId
     fun resetId() {
@@ -50,6 +56,7 @@ object Typechecker {
     }
 
     fun infer(mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
+        context = TypingContext(mod)
         return try {
             Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
