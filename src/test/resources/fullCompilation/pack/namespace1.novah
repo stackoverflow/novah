@@ -19,14 +19,15 @@ sayHello name = do
 typealias Show a =
   { show : a -> String }
 
+pub
 show : forall a. {{ Show a }} -> a -> String
 show {{s}} x = s.show x
 
-instance
+pub instance
 showInt : Show Int
 showInt = { show: (\x -> toString x) : Int -> String }
 
-instance
+pub instance
 showBool : Show Boolean
 showBool = { show: (\x -> toString x) : Boolean -> String }
 

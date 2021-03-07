@@ -15,6 +15,7 @@
  */
 package novah.frontend.hmftypechecker
 
+import novah.Util.splitAt
 import novah.ast.canonical.Expr
 import novah.frontend.error.Errors
 
@@ -35,8 +36,9 @@ object InstanceSearch {
                         if (exp != null)
                             inferError(Errors.duplicatedInstance(imp.type.show()), app.span)
                         else {
-                            // TODO: what about imported/aliased vars?
-                            exp = Expr.Var(name, app.span).apply { this.type = type }
+                            val idx = name.lastIndexOf('.')
+                            val (mod, nam) = if (idx != -1) name.splitAt(idx) else null to name
+                            exp = Expr.Var(nam, app.span, mod).apply { this.type = type }
                         }
                     }
 

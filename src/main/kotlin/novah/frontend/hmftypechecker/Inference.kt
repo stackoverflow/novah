@@ -121,15 +121,15 @@ object Inference {
             is Expr.StringE -> exp.withType(tString)
             is Expr.Unit -> exp.withType(tUnit)
             is Expr.Var -> {
-                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.fullname()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
                 exp.withType(ty)
             }
             is Expr.Constructor -> {
-                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.fullname()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
                 exp.withType(ty)
             }
             is Expr.ImplicitVar -> {
-                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.fullname()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
                 exp.withType(TImplicit(ty))
             }
             is Expr.NativeFieldGet -> {

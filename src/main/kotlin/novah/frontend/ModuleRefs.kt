@@ -67,8 +67,8 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
                 }
                 m.decls.filter(visible).forEach { name, (type, _, isInstance) ->
                     resolved["$alias$name"] = mname
-                    env.extend("$alias$name", type)
-                    if (isInstance) env.extendInstance("$alias$name", type)
+                    env.extend("$mname.$name", type)
+                    if (isInstance) env.extendInstance("$mname.$name", type)
                 }
                 typealiases.filter { (_, ta) -> ta.visibility == Visibility.PUBLIC }.forEach { (_, ta) ->
                     resolvedTypealiases += ta
@@ -89,8 +89,8 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
                                 errors += mkError(Errors.cannotImportInModule("declaration ${ref.name}", mname))
                                 continue
                             }
-                            val fname = "$alias${ref.name}"
-                            resolved[fname] = mname
+                            val fname = "$mname.${ref.name}"
+                            resolved["$alias${ref.name}"] = mname
                             env.extend(fname, declRef.type)
                             if (declRef.isInstance) env.extendInstance(fname, declRef.type)
                         }
@@ -125,7 +125,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
                                             errors += mkError(Errors.cannotImportInModule("constructor $ctor", mname))
                                             continue
                                         }
-                                        env.extend("$alias$ctor", ctorDecl.type)
+                                        env.extend("$mname.$ctor", ctorDecl.type)
                                         resolved["$alias$ctor"] = mname
                                     }
                                 }
@@ -140,7 +140,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
                                             errors += mkError(Errors.cannotImportInModule("constructor $ctor", mname))
                                             continue
                                         }
-                                        env.extend("$alias$ctor", ctorDecl.type)
+                                        env.extend("$mname.$ctor", ctorDecl.type)
                                         resolved["$alias$ctor"] = mname
                                     }
                                 }

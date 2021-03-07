@@ -11,7 +11,6 @@
 - [ ] Add JSON support to the error reporter
 - [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
 - [ ] Add spans to individual imports with error reporting
-- [ ] Properly handle records in check mode in the typechecker
-- [ ] Check if instance vars can be fully qualified
+- [ ] Properly handle records in check mode in the typechecker (not trivial!)
 - [ ] Primitives to create java arrays
 - [ ] Recursive instance search
