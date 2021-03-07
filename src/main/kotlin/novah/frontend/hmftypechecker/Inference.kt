@@ -162,7 +162,7 @@ object Inference {
                 val infRetType = infer(newEnv, level + 1, exp.body)
                 val retType = if (isAnnotated(exp.body)) infRetType else instantiate(level + 1, infRetType)
 
-                val ty = if (!param.isMono()) inferError(Errors.polyParameterToLambda(param.show(false)), exp.body.span)
+                val ty = if (!param.isMono()) inferError(Errors.polyParameterToLambda(param.show()), exp.body.span)
                 else generalize(level, TArrow(listOf(param), retType))
                 exp.withType(ty)
             }
@@ -308,7 +308,7 @@ object Inference {
                         val ty = type.args[0]
                         if (pat.binder.isImplicit && ty !is TImplicit) {
                             val imp = TImplicit(ty)
-                            inferError(Errors.typesDontMatch(ty.show(false), imp.show(false)), pat.binder.span)
+                            inferError(Errors.typesDontMatch(ty.show(), imp.show()), pat.binder.span)
                         }
                         newEnv.extend(pat.binder.name, ty)
                         check(newEnv, level + 1, type.ret, exp.body)
@@ -484,7 +484,7 @@ object Inference {
     private fun validateType(type: Type, env: Env, span: Span) {
         type.everywhere { ty ->
             if (ty is TConst && env.lookupType(ty.name) == null) {
-                inferError(Errors.undefinedType(ty.show(false)), ty.span ?: span)
+                inferError(Errors.undefinedType(ty.show()), ty.span ?: span)
             }
         }
     }

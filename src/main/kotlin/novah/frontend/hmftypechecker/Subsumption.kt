@@ -34,7 +34,7 @@ object Subsumption {
             val genT1 = substituteBoundVars(unt1.ids, genVars, unt1.type)
             unify(genT1, instT2, span)
             if (escapeCheck(genVars, unt1, t2)) {
-                inferError(Errors.typeIsNotInstance(t2.show(false), unt1.show(false)), span, ProblemContext.SUBSUMPTION)
+                inferError(Errors.typeIsNotInstance(t2.show(), unt1.show()), span, ProblemContext.SUBSUMPTION)
             }
         } else {
             unify(unt1, instT2, span)

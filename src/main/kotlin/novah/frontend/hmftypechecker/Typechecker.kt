@@ -81,7 +81,7 @@ object Typechecker {
     fun checkWellFormed(ty: Type, span: Span) {
         when (ty) {
             is TConst -> {
-                val envType = env.lookupType(ty.name) ?: inferError(Errors.undefinedType(ty.show(false)), span)
+                val envType = env.lookupType(ty.name) ?: inferError(Errors.undefinedType(ty.show()), span)
 
                 if (ty.kind != envType.kind()) {
                     inferError(Errors.wrongKind(ty.kind.toString(), envType.kind().toString()), span)
@@ -99,8 +99,8 @@ object Typechecker {
             is TVar -> {
                 when (val tv = ty.tvar) {
                     is TypeVar.Link -> checkWellFormed(tv.type, span)
-                    is TypeVar.Generic -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
-                    is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
+                    is TypeVar.Generic -> inferError(Errors.unusedVariables(listOf(ty.show())), span)
+                    is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show())), span)
                 }
             }
             is TRecord -> checkWellFormed(ty.row, span)
@@ -108,6 +108,7 @@ object Typechecker {
                 checkWellFormed(ty.row, span)
                 ty.labels.forEachList { checkWellFormed(it, span) }
             }
+            is TImplicit -> checkWellFormed(ty.type, span)
             is TRowEmpty -> {
             }
         }

@@ -33,7 +33,7 @@ object InstanceSearch {
                     }
                     if (found) {
                         if (exp != null)
-                            inferError(Errors.duplicatedInstance(imp.type.show(false)), app.span)
+                            inferError(Errors.duplicatedInstance(imp.type.show()), app.span)
                         else {
                             // TODO: what about imported/aliased vars?
                             exp = Expr.Var(name, app.span).apply { this.type = type }
@@ -41,7 +41,7 @@ object InstanceSearch {
                     }
 
                 }
-                if (exp == null) inferError(Errors.noInstanceFound(imp.type.show(false)), app.span)
+                if (exp == null) inferError(Errors.noInstanceFound(imp.type.show()), app.span)
                 imp.resolved = exp
                 //println("resolved instance " + imp.type.show(false) + " with expression $exp")
             }
