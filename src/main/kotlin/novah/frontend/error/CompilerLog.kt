@@ -53,7 +53,7 @@ data class CompilerProblem(
         val exp = ctx.exps.peek()
         if (exp != null) {
             var expStr = exp.show()
-            expStr = if (expStr.length > MAX_EXPR_SIZE) expStr.substring(0, MAX_EXPR_SIZE) + "..." else expStr
+            expStr = if (expStr.length > MAX_EXPR_SIZE) expStr.substring(0, MAX_EXPR_SIZE) + " ..." else expStr
             str += "while checking expression $expStr\n"
         }
 

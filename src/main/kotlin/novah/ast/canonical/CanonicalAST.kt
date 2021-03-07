@@ -242,11 +242,11 @@ fun Expr.show(): String = when (this) {
     is Expr.If -> "if ${cond.show()} then ${thenCase.show()} else ${elseCase.show()}"
     is Expr.Let -> "let ${letDef.binder} = ${letDef.expr.show()} in ${body.show()}"
     is Expr.Match -> {
-        val cs = cases.joinToString("\n") { it.pattern.show() + " -> " + it.exp.show() }
-        "case ${exp.show()} of\n$cs"
+        val cs = cases.joinToString("\n  ") { it.pattern.show() + " -> " + it.exp.show() }
+        "case ${exp.show()} of\n  $cs"
     }
     is Expr.Ann -> "${exp.show()} : ${annType.second.show()}"
-    is Expr.Do -> "do\n" + exps.joinToString("\n") { it.show() }
+    is Expr.Do -> "do\n  " + exps.joinToString("\n  ") { it.show() }
     is Expr.NativeFieldGet -> name
     is Expr.NativeFieldSet -> name
     is Expr.NativeMethod -> name

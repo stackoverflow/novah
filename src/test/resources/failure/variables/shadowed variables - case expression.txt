@@ -4,8 +4,8 @@ at src/test/resources/failure/variables/shadowed variables - case expression.nov
   Value x is shadowing another value with the same name.
 
 while checking expression case 4 of
-0 -> "zero"
-1 -> "one"
-x -> (prim.toStri...
+  0 -> "zero"
+  1 -> "one"
+  x -> (prim. ...
 in declaration f
 
