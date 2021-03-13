@@ -1,12 +1,13 @@
 module [33mtest[0m
-at src/test/resources/failure/instance_arguments/duplicated instances.novah:17:11 - 17:17
+at src/test/resources/failure/instance_arguments/duplicated instances.novah:16:11 - 16:17
 
   Found more than one possible instance for type
   
-      { show : Int -> String }
+      Show Int
   
   Make sure there's no overlapping instances in the context
   or pass the argument explicitly.
 
+while checking expression (show 4)
 in declaration main
 

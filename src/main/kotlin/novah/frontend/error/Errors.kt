@@ -117,9 +117,9 @@ object Errors {
     const val LET_DO_IN = "Let expressions in a do statement cannot have an `in` clause."
 
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
-    
+
     const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
-    
+
     const val NOT_A_FUNCTION = "Expected expression to be a function."
 
     const val TYPEALIAS_NAME = "Expected name for typealias."
@@ -164,10 +164,11 @@ object Errors {
         |$example
     """.trimMargin()
     }
-    
+
     fun expectedDefinition(name: String) = "Expected definition to follow its type declaration for $name."
 
-    fun expectedLetDefinition(name: String) = "Expected definition to follow its type declaration for $name in let clause."
+    fun expectedLetDefinition(name: String) =
+        "Expected definition to follow its type declaration for $name in let clause."
 
     fun classNotFound(name: String) = "Could not find class $name in classpath."
 
@@ -193,7 +194,7 @@ object Errors {
     }
 
     fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
-    
+
     fun duplicatedImport(name: String) = "Another import with name $name is already in scope."
 
     fun literalExpected(name: String) = "Expected $name literal."
@@ -235,13 +236,13 @@ object Errors {
         
             $got
     """.trimIndent()
-    
+
     fun infiniteType(name: String) = "Occurs check failed: infinite type $name."
-    
+
     fun typeIsNotInstance(a: String, b: String) = """
         Type $a is not an instance of type $b.
     """.trimIndent()
-    
+
     fun typesDontMatch(a: String, b: String) = """
         Cannot match type
         
@@ -251,18 +252,35 @@ object Errors {
         
             $b
     """.trimIndent()
-    
+
     fun implicitTypesDontMatch(vari: String, type: String) = """
         Cannot match instance variable $vari with non-instance type
         
             $type
     """.trimIndent()
 
+    fun maxSearchDepth(type: String) = """
+        Could not find instance for type
+        
+            $type
+        
+        The maximum recursion depth was reached.
+    """.trimIndent()
+    
+    fun unamedType(type: String) = """
+        Type
+        
+            $type
+        
+        is not a named type.
+        Only named types can be used as instance arguments.
+    """.trimIndent()
+
     fun partiallyAppliedAlias(name: String, expected: Int, got: Int): String = """
         Partially applied type alias $name.
         $name expects $expected parameter(s) but got $got.
     """.trimIndent()
-    
+
     fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
 
     fun recursiveAlias(name: String) = "Typealias $name is recursive."
@@ -297,7 +315,7 @@ object Errors {
         is a not a row type.
     """.trimIndent()
 
-    fun duplicatedInstance(type: String) = """
+    fun overlappingInstances(type: String) = """
         Found more than one possible instance for type
         
             $type

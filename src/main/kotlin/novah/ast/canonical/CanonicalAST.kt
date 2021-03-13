@@ -15,7 +15,6 @@
  */
 package novah.ast.canonical
 
-import novah.Util.internalError
 import novah.ast.source.Visibility
 import novah.data.LabelMap
 import novah.data.mapList
@@ -83,7 +82,7 @@ sealed class Expr(open val span: Span) {
     ) : Expr(span)
 
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span) {
-        val implicitContexts = mutableListOf<ImplicitContext>()
+        var implicitContext: ImplicitContext? = null
     }
 
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
@@ -117,7 +116,7 @@ sealed class Expr(open val span: Span) {
     }
 }
 
-class ImplicitContext(val type: Type, val env: Env, var resolved: Expr? = null)
+class ImplicitContext(val type: Type, val env: Env, val resolveds: MutableList<Expr> = mutableListOf())
 
 fun Expr.Var.fullname() = if (moduleName != null) "$moduleName.$name" else name
 fun Expr.ImplicitVar.fullname() = if (moduleName != null) "$moduleName.$name" else name
@@ -213,11 +212,7 @@ fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
     return acc
 }
 
-fun Expr.App.resolvedImplicits(): List<Expr> {
-    val res = implicitContexts.mapNotNull { it.resolved }
-    if (res.size != implicitContexts.size) internalError("unresolved instance argument at $span")
-    return res
-}
+fun Expr.App.resolvedImplicits(): List<Expr> = implicitContext?.resolveds ?: emptyList()
 
 fun Expr.show(): String = when (this) {
     is Expr.IntE -> "$v"

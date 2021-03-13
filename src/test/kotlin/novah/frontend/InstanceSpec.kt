@@ -24,29 +24,28 @@ class InstanceSpec : StringSpec({
 
     "constrained types" {
         val code = """
-            typealias Show a =
-              { show : a -> String }
+            type Show a = Show { show : a -> String }
             
             show : forall a. {{ Show a }} -> a -> String
-            show {{s}} x = s.show x
+            show {{s}} x = case s of Show ss -> ss.show x
             
             instance
             //showInt : Show Int
-            showInt = { show: (\x -> toString x) : Int -> String }
+            showInt = Show { show: (\x -> toString x) : Int -> String }
             
             instance
             //showBool : Show Boolean
-            showBool = { show: (\x -> toString x) : Boolean -> String }
+            showBool = Show { show: (\x -> toString x) : Boolean -> String }
             
             type Option a = Some a | None
             
             showOptionImpl : forall a. {{ Show a }} -> Option a -> String
             showOptionImpl {{s}} o = case o of
-              Some x -> s.show x
+              Some x -> show x
               None -> "None"
             
             showOption : forall a. {{ Show a }} -> Show (Option a)
-            showOption {{s}} = { show: showOptionImpl {{s}} }
+            showOption {{s}} = Show { show: showOptionImpl {{s}} }
             
             print : Option Int -> String
             print o = do
@@ -57,9 +56,54 @@ class InstanceSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["show"]?.type?.simpleName() shouldBe "forall t1. {{ { show : t1 -> String } }} -> t1 -> String"
-        ds["showInt"]?.type?.simpleName() shouldBe "{ show : Int -> String }"
-        ds["showBool"]?.type?.simpleName() shouldBe "{ show : Boolean -> String }"
-        ds["showOption"]?.type?.simpleName() shouldBe "forall t1. {{ { show : t1 -> String } }} -> { show : Option t1 -> String }"
+        ds["show"]?.type?.simpleName() shouldBe "forall t1. {{ Show t1 }} -> t1 -> String"
+        ds["showInt"]?.type?.simpleName() shouldBe "Show Int"
+        ds["showBool"]?.type?.simpleName() shouldBe "Show Boolean"
+        ds["showOption"]?.type?.simpleName() shouldBe "forall t1. {{ Show t1 }} -> Show (Option t1)"
+    }
+    
+    "recursive search" {
+        val code = """
+            type Show a = Show { show : a -> String }
+            
+            show : forall a. {{ Show a }} -> a -> String
+            show {{s}} x = case s of Show m -> m.show x
+            
+            instance
+            showInt : Show Int
+            showInt = Show { show: (\x -> toString x) : Int -> String }
+            
+            instance
+            showBool : Show Boolean
+            showBool = Show { show: (\x -> toString x) : Boolean -> String }
+            
+            type Option a = Some a | None
+            
+            showOptionImpl : forall a. {{ Show a }} -> Option a -> String
+            showOptionImpl {{s}} o = case o of
+              Some x -> show x
+              None -> "None"
+            
+            instance
+            showOption : forall a. {{ Show a }} -> Show (Option a)
+            showOption {{s}} = Show { show: showOptionImpl {{s}} }
+            
+            type Result a b = Ok a | Err b
+            
+            showResultImpl : forall a b. {{ Show a }} -> {{ Show b }} -> Result a b -> String
+            showResultImpl {{a}} {{b}} r = case r of
+              Ok o -> show o
+              Err e -> show e
+            
+            instance
+            showResult : forall a b. {{ Show a }} -> {{ Show b }} -> Show (Result a b)
+            showResult {{a}} {{b}} = Show { show: showResultImpl {{a}} {{b}} }
+            
+            main () = show (Some None)
+            
+            main2 () = show (Some (Ok true))
+        """.module()
+
+        TestUtil.compileCode(code).env.decls
     }
 })

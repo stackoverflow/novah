@@ -384,9 +384,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "dissoc", "($STRING_TYPE)$RECORD_TYPE", false)
             }
             is Expr.RecordExtend -> {
+                val shouldLinearize = e.labels.size() > MAP_LINEAR_THRESHOLD
                 genExpr(e.expr, mv, ctx)
                 // make the map linear before adding the labels then fork it
-                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_linear", "()$RECORD_TYPE", false)
+                if (shouldLinearize) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_linear", "()$RECORD_TYPE", false)
+                }
                 e.labels.forEach { kv ->
                     // we need to reverse here because the head of the linked
                     // list should be the last key added
@@ -397,7 +400,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                         mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "assoc", desc, false)
                     }
                 }
-                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_forked", "()$RECORD_TYPE", false)
+                if (shouldLinearize) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_forked", "()$RECORD_TYPE", false)
+                }
             }
             is Expr.VectorLiteral -> {
                 genInt(intExp(e.exps.size), mv)
@@ -688,6 +693,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 go(exp.fn)
                 go(exp.arg)
             }
+            is Expr.CtorApp -> {
+                for (e in exp.args) go(e)
+            }
             is Expr.If -> {
                 for ((cond, then) in exp.conds) {
                     go(cond)
@@ -809,6 +817,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     }
 
     companion object {
+        private const val MAP_LINEAR_THRESHOLD = 5
+        
         private val ctorCache = mutableMapOf<String, DataConstructor>()
 
         private val primitiveWrappers = mutableMapOf(

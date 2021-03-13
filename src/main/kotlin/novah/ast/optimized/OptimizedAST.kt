@@ -104,6 +104,8 @@ sealed class Type {
         is TFun -> true
         is TConstructor -> types.isNotEmpty()
     }
+    
+    fun isMono(): Boolean = if (this is TVar) !isForall else true
 }
 
 fun Expr.Var.fullname() = "$className.$name"

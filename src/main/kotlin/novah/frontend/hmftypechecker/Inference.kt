@@ -27,6 +27,7 @@ import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.frontend.hmftypechecker.InstanceSearch.instanceSearch
 import novah.frontend.hmftypechecker.Subsumption.subsume
+import novah.frontend.hmftypechecker.Type.Companion.nestArrows
 import novah.frontend.hmftypechecker.Typechecker.checkWellFormed
 import novah.frontend.hmftypechecker.Typechecker.context
 import novah.frontend.hmftypechecker.Typechecker.env
@@ -313,12 +314,15 @@ object Inference {
                         check(env, level + 1, type.ret, exp.body)
                     }
                     is FunparPattern.Bind -> {
+                        val bind = pat.binder
                         val newEnv = env.fork()
                         val ty = type.args[0]
-                        if (pat.binder.isImplicit && ty !is TImplicit) {
-                            inferError(Errors.implicitTypesDontMatch(pat.binder.toString(), ty.show()), pat.binder.span)
+                        if (bind.isImplicit) {
+                            if (ty !is TImplicit)
+                                inferError(Errors.implicitTypesDontMatch(bind.toString(), ty.show()), bind.span)
+                            newEnv.extendInstance(bind.name, ty)
                         }
-                        newEnv.extend(pat.binder.name, ty)
+                        newEnv.extend(bind.name, ty)
                         check(newEnv, level + 1, type.ret, exp.body)
                     }
                 }
@@ -365,9 +369,8 @@ object Inference {
         val ty = generalize(level, instReturnTy)
 
         if (params.size > 1) {
-            for (p in params.dropLast(1)) {
-                exp.implicitContexts += ImplicitContext((p as TImplicit).type, env.fork())
-            }
+            val impTy = nestArrows(params, instReturnTy)
+            exp.implicitContext = ImplicitContext(impTy, env.fork())
             implicitsToCheck += exp
         }
         return exp.withType(ty)

@@ -13,4 +13,4 @@
 - [ ] Add spans to individual imports with error reporting
 - [ ] Properly handle records in check mode in the typechecker (not trivial!)
 - [ ] Primitives to create java arrays
-- [ ] Recursive instance search
+- [ ] Store and report type aliases in types

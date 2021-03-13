@@ -56,7 +56,10 @@ object Unification {
             t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Bound && t2.tvar is TypeVar.Bound -> {
                 val t1str = t1.show()
                 val t2str = t2.show()
-                internalError("Error in unification (bound vars should have been instantiated): $t1str with $t2str")
+                unificationError(
+                    "Error in unification (bound vars should have been instantiated): $t1str with $t2str",
+                    span
+                )
             }
             t1 is TVar && t1.tvar is TypeVar.Unbound -> {
                 val tvar = t1.tvar as TypeVar.Unbound
