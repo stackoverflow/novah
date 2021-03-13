@@ -294,7 +294,7 @@ class Desugar(private val smod: SModule) {
         exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }
 
     /**
-     * Expand a type alias and make sure they are not recursive
+     * Expand type aliases and make sure they are not recursive
      */
     private fun validateTypealiases(): Map<String, TypealiasDecl> {
         val typealiases = smod.decls.filterIsInstance<TypealiasDecl>()
@@ -391,6 +391,7 @@ class Desugar(private val smod: SModule) {
             exp.everywhere { e ->
                 when (e) {
                     is Expr.Var -> deps += e.fullname()
+                    is Expr.ImplicitVar -> deps += e.fullname()
                     is Expr.Constructor -> deps += e.fullname()
                     else -> {
                     }

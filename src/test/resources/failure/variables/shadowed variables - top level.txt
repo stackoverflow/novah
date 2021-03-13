@@ -3,3 +3,6 @@ at src/test/resources/failure/variables/shadowed variables - top level.novah:5:3
 
   Value x is shadowing another value with the same name.
 
+while checking expression \x -> "abc"
+in declaration f
+

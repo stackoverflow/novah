@@ -7,6 +7,7 @@
 - [ ] Syntatic sugar for lambdas
 - [ ] Syntax for record update/set (probably with type-level strings or macros?)
 - [ ] Standard library
+- [ ] Opaque/newtypes
 - [X] Generic programming with instance arguments (implicits)
 - [X] Literal syntax for basic data structures
 - [X] Persistent data structures

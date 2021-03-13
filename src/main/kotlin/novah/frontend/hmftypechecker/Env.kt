@@ -15,8 +15,7 @@
  */
 package novah.frontend.hmftypechecker
 
-import io.lacuna.bifurcan.IMap
-import io.lacuna.bifurcan.LinearMap
+import io.lacuna.bifurcan.Map
 import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.frontend.Span
@@ -25,9 +24,9 @@ import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
 class Env private constructor(
-    private val env: IMap<String, Type>,
-    private val types: IMap<String, Type>,
-    private val instances: IMap<String, Type>
+    private val env: Map<String, Type>,
+    private val types: Map<String, Type>,
+    private val instances: Map<String, Type>
 ) {
 
     fun extend(name: String, type: Type) {
@@ -55,7 +54,7 @@ class Env private constructor(
     }
 
     companion object {
-        fun new() = Env(LinearMap(), LinearMap.from(primTypes), LinearMap())
+        fun new() = Env(Map<String, Type>().linear(), Map.from(primTypes).linear(), Map<String, Type>().linear())
     }
 }
 

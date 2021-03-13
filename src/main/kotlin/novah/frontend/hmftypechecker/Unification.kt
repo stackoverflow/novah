@@ -34,12 +34,12 @@ object Unification {
             t1 is TApp && t2 is TApp -> {
                 unify(t1.type, t2.type, span)
                 if (t1.types.size != t2.types.size)
-                    unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
+                    unificationError(Errors.typesDontMatch(t1.show(), t2.show()), span)
                 t1.types.zip(t2.types).forEach { (tt1, tt2) -> unify(tt1, tt2, span) }
             }
             t1 is TArrow && t2 is TArrow -> {
                 if (t1.args.size != t2.args.size)
-                    unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
+                    unificationError(Errors.typesDontMatch(t1.show(), t2.show()), span)
                 t1.args.zip(t2.args).forEach { (t1arg, t2arg) -> unify(t1arg, t2arg, span) }
                 unify(t1.ret, t2.ret, span)
             }
@@ -47,16 +47,19 @@ object Unification {
             t2 is TVar && t2.tvar is TypeVar.Link -> unify(t1, (t2.tvar as TypeVar.Link).type, span)
             t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Unbound && t2.tvar is TypeVar.Unbound
                     && (t1.tvar as TypeVar.Unbound).id == (t2.tvar as TypeVar.Unbound).id -> {
-                internalError("Error in unification: ${t1.show(false)} with ${t2.show(false)}")
+                internalError("Error in unification: ${t1.show()} with ${t2.show()}")
             }
             t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Generic && t2.tvar is TypeVar.Generic
                     && (t1.tvar as TypeVar.Generic).id == (t2.tvar as TypeVar.Generic).id -> {
-                internalError("Error in unification: ${t1.show(false)} with ${t2.show(false)}")
+                internalError("Error in unification: ${t1.show()} with ${t2.show()}")
             }
             t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Bound && t2.tvar is TypeVar.Bound -> {
-                val t1str = t1.show(false)
-                val t2str = t2.show(false)
-                internalError("Error in unification (bound vars should have been instantiated): $t1str with $t2str")
+                val t1str = t1.show()
+                val t2str = t2.show()
+                unificationError(
+                    "Error in unification (bound vars should have been instantiated): $t1str with $t2str",
+                    span
+                )
             }
             t1 is TVar && t1.tvar is TypeVar.Unbound -> {
                 val tvar = t1.tvar as TypeVar.Unbound
@@ -70,7 +73,7 @@ object Unification {
             }
             t1 is TForall && t2 is TForall -> {
                 if (t1.ids.size != t2.ids.size)
-                    unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
+                    unificationError(Errors.typesDontMatch(t1.show(), t2.show()), span)
                 val genericVars = t1.ids.zip(t2.ids).reversed().map { (_, _) -> newGenVar() }
 
                 val genericT1 = substituteBoundVars(t1.ids, genericVars, t1.type)
@@ -78,7 +81,7 @@ object Unification {
                 unify(genericT1, genericT2, span)
 
                 if (escapeCheck(genericVars, t1, t2))
-                    unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
+                    unificationError(Errors.typesDontMatch(t1.show(), t2.show()), span)
             }
             t1 is TRowEmpty && t2 is TRowEmpty -> {
             }
@@ -92,7 +95,7 @@ object Unification {
             }
             t1 is TImplicit -> unify(t1.type, t2, span)
             t2 is TImplicit -> unify(t1, t2.type, span)
-            else -> unificationError(Errors.typesDontMatch(t1.show(false), t2.show(false)), span)
+            else -> unificationError(Errors.typesDontMatch(t1.show(), t2.show()), span)
         }
     }
 
@@ -157,7 +160,7 @@ object Unification {
                         if (restTy1.tvar is TypeVar.Link) unificationError(Errors.RECURSIVE_ROWS, span)
                         unify(restTy1, TRowExtend(missing1, restRow), span)
                     }
-                    else -> unificationError(Errors.typesDontMatch(row1.show(false), row2.show(false)), span)
+                    else -> unificationError(Errors.typesDontMatch(row1.show(), row2.show()), span)
                 }
             }
         }
@@ -173,7 +176,7 @@ object Unification {
                         }
                         is TypeVar.Unbound -> {
                             if (id == tv.id) {
-                                inferError(Errors.infiniteType(type.show(false)), span, ProblemContext.UNIFICATION)
+                                inferError(Errors.infiniteType(type.show()), span, ProblemContext.UNIFICATION)
                             } else if (tv.level > level) {
                                 t.tvar = TypeVar.Unbound(tv.id, level)
                             }
@@ -280,7 +283,7 @@ object Unification {
             if (restLabels.isEmpty()) ty.labels to restTy
             else ty.labels.merge(restLabels) to restTy
         }
-        else -> unificationError(Errors.notARow(ty.show(false)), ty.span ?: Span.empty())
+        else -> unificationError(Errors.notARow(ty.show()), ty.span ?: Span.empty())
     }
 
     fun addDistinctLabels(labelMap: LabelMap<Type>, labels: PList<Pair<String, PList<Type>>>): LabelMap<Type> {

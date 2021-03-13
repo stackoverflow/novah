@@ -16,38 +16,38 @@ sayHello name = do
   println "Hello"
   println name
 
-typealias Show a =
-  { show : a -> String }
+type Show a = Show { show : a -> String }
 
+pub
 show : forall a. {{ Show a }} -> a -> String
-show {{s}} x = s.show x
+show {{s}} x = case s of Show ss -> ss.show x
 
-instance
+pub instance
 showInt : Show Int
-showInt = { show: (\x -> toString x) : Int -> String }
+showInt = Show { show: (\x -> toString x) : Int -> String }
 
-instance
+pub instance
 showBool : Show Boolean
-showBool = { show: (\x -> toString x) : Boolean -> String }
+showBool = Show { show: (\x -> toString x) : Boolean -> String }
 
 type Option a = Some a | None
 
 showOptionImpl : forall a. {{ Show a }} -> Option a -> String
 showOptionImpl {{s}} o = case o of
-  Some x -> s.show x
+  Some x -> show x
   None -> "None"
 
+instance
 showOption : forall a. {{ Show a }} -> Show (Option a)
-showOption {{s}} = { show: showOptionImpl {{s}} }
+showOption {{s}} = Show { show: showOptionImpl {{s}} }
 
-print : Option Int -> Unit
-print o = do
-  let instance showOptInt = showOption {{showInt}}
+print : forall a. {{ Show a }} -> Option a -> Unit
+print {{s}} o = do
   println (show 5)
   println (show false)
   println (show o)
 
 pub
 main () = do
-  print None
+  print (Some (Some None))
   ()

@@ -27,7 +27,9 @@ import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.frontend.hmftypechecker.InstanceSearch.instanceSearch
 import novah.frontend.hmftypechecker.Subsumption.subsume
+import novah.frontend.hmftypechecker.Type.Companion.nestArrows
 import novah.frontend.hmftypechecker.Typechecker.checkWellFormed
+import novah.frontend.hmftypechecker.Typechecker.context
 import novah.frontend.hmftypechecker.Typechecker.env
 import novah.frontend.hmftypechecker.Typechecker.instantiate
 import novah.frontend.hmftypechecker.Typechecker.instantiateTypeAnnotation
@@ -91,6 +93,7 @@ object Inference {
 
         vals.forEach { decl ->
             implicitsToCheck.clear()
+            context?.apply { this.decl = decl }
             val name = decl.name
             val newEnv = env.fork()
             val ty = if (decl.recursive) inferRecursive(name, decl.exp, newEnv, 0)
@@ -108,7 +111,8 @@ object Inference {
     }
 
     private fun infer(env: Env, level: Level, exp: Expr): Type {
-        return when (exp) {
+        context?.apply { exps.push(exp) }
+        val ty = when (exp) {
             is Expr.IntE -> exp.withType(tInt)
             is Expr.LongE -> exp.withType(tLong)
             is Expr.FloatE -> exp.withType(tFloat)
@@ -118,15 +122,15 @@ object Inference {
             is Expr.StringE -> exp.withType(tString)
             is Expr.Unit -> exp.withType(tUnit)
             is Expr.Var -> {
-                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.fullname()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
                 exp.withType(ty)
             }
             is Expr.Constructor -> {
-                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.fullname()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
                 exp.withType(ty)
             }
             is Expr.ImplicitVar -> {
-                val ty = env.lookup(exp.name) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
+                val ty = env.lookup(exp.fullname()) ?: inferError(Errors.undefinedVar(exp.name), exp.span)
                 exp.withType(TImplicit(ty))
             }
             is Expr.NativeFieldGet -> {
@@ -162,7 +166,7 @@ object Inference {
                 val infRetType = infer(newEnv, level + 1, exp.body)
                 val retType = if (isAnnotated(exp.body)) infRetType else instantiate(level + 1, infRetType)
 
-                val ty = if (!param.isMono()) inferError(Errors.polyParameterToLambda(param.show(false)), exp.body.span)
+                val ty = if (!param.isMono()) inferError(Errors.polyParameterToLambda(param.show()), exp.body.span)
                 else generalize(level, TArrow(listOf(param), retType))
                 exp.withType(ty)
             }
@@ -276,9 +280,15 @@ object Inference {
                 }
             }
         }
+        context?.apply { exps.pop() }
+        return ty
     }
 
     private fun check(env: Env, level: Level, type: Type, exp: Expr) {
+        context?.apply {
+            exps.push(exp)
+            types.push(type)
+        }
         when {
             exp is Expr.IntE && type == tByte && validByte(exp.v) -> exp.withType(tByte)
             exp is Expr.IntE && type == tShort && validShort(exp.v) -> exp.withType(tShort)
@@ -304,13 +314,15 @@ object Inference {
                         check(env, level + 1, type.ret, exp.body)
                     }
                     is FunparPattern.Bind -> {
+                        val bind = pat.binder
                         val newEnv = env.fork()
                         val ty = type.args[0]
-                        if (pat.binder.isImplicit && ty !is TImplicit) {
-                            val imp = TImplicit(ty)
-                            inferError(Errors.typesDontMatch(ty.show(false), imp.show(false)), pat.binder.span)
+                        if (bind.isImplicit) {
+                            if (ty !is TImplicit)
+                                inferError(Errors.implicitTypesDontMatch(bind.toString(), ty.show()), bind.span)
+                            newEnv.extendInstance(bind.name, ty)
                         }
-                        newEnv.extend(pat.binder.name, ty)
+                        newEnv.extend(bind.name, ty)
                         check(newEnv, level + 1, type.ret, exp.body)
                     }
                 }
@@ -333,6 +345,10 @@ object Inference {
                 exp.withType(type)
             }
         }
+        context?.apply {
+            exps.pop()
+            types.pop()
+        }
     }
 
     private fun inferApp(env: Env, level: Level, exp: Expr.App, type: Type? = null): Type {
@@ -353,9 +369,8 @@ object Inference {
         val ty = generalize(level, instReturnTy)
 
         if (params.size > 1) {
-            for (p in params.dropLast(1)) {
-                exp.implicitContexts += ImplicitContext((p as TImplicit).type, env.fork())
-            }
+            val impTy = nestArrows(params, instReturnTy)
+            exp.implicitContext = ImplicitContext(impTy, env.fork())
             implicitsToCheck += exp
         }
         return exp.withType(ty)
@@ -484,7 +499,7 @@ object Inference {
     private fun validateType(type: Type, env: Env, span: Span) {
         type.everywhere { ty ->
             if (ty is TConst && env.lookupType(ty.name) == null) {
-                inferError(Errors.undefinedType(ty.show(false)), ty.span ?: span)
+                inferError(Errors.undefinedType(ty.show()), ty.span ?: span)
             }
         }
     }

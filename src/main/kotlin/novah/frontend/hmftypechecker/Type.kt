@@ -180,9 +180,13 @@ sealed class Type {
     /**
      * Pretty print version of [toString]
      */
-    fun show(qualified: Boolean): String {
+    fun show(qualified: Boolean = true): String {
         fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
-            is TConst -> if (qualified) t.name else t.name.split('.').last()
+            is TConst -> {
+                val isCurrent = Typechecker.context?.mod?.name?.let { t.name.startsWith(it) } ?: false
+                val shouldQualify = !t.name.startsWith("prim.") && !isCurrent
+                if (qualified && shouldQualify) t.name else t.name.split('.').last()
+            }
             is TApp -> {
                 val sname = go(t.type, nested)
                 val str = if (t.types.isEmpty()) sname

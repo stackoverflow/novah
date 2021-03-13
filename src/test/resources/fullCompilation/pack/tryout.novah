@@ -1,0 +1,13 @@
+module pack.tryout
+
+type Foo a = Foo { foo : a -> String }
+
+foo : Foo String
+foo = Foo { foo: (\x -> x) : String -> String }
+
+show : forall a. Foo a -> a -> String
+show s x = case s of Foo ss -> ss.foo x
+
+main () = do
+  show foo "abcd"
+  ()

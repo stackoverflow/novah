@@ -137,7 +137,7 @@ class Optimizer(private val ast: CModule) {
                         else -> internalError("Problem in `unrollForeignApp`, got non-native expression: $exp")
                     }
                 } else {
-                    if (implicitContexts.isNotEmpty()) {
+                    if (implicitContext != null) {
                         val app = resolvedImplicits().fold(fn.convert(locals)) { acc, argg ->
                             // the argument and return type of the function doesn't matter here
                             Expr.App(acc, argg.convert(locals), Type.TFun(typ, typ))
@@ -256,7 +256,7 @@ class Optimizer(private val ast: CModule) {
         ): Expr {
             val castedExpr = Expr.Cast(ctorExpr, ctorType)
             val field = Expr.ConstructorAccess(name, fieldIndex, castedExpr, fieldType)
-            return if (fieldType == expectedFieldType) field
+            return if (fieldType == expectedFieldType || fieldType.isMono()) field
             else Expr.Cast(field, expectedFieldType)
         }
 

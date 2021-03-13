@@ -9,3 +9,6 @@ at src/test/resources/failure/types/high ranked types without annotation.novah:6
   
       String
 
+while checking expression (f "a")
+in declaration fun
+

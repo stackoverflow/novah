@@ -1,9 +1,11 @@
 module pack.namespace2
 
-import pack.namespace1 (sayHello)
+import pack.namespace1 as N1
 
 pub
 same : Int -> Int -> Boolean
 same x x2 = x == x2
 
-main _ = sayHello "Mario"
+inst = N1.show 3
+
+main _ = N1.sayHello "Mario"

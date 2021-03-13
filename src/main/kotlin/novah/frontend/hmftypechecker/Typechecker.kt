@@ -15,6 +15,8 @@
  */
 package novah.frontend.hmftypechecker
 
+import novah.ast.canonical.Decl
+import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
 import novah.data.Err
 import novah.data.Ok
@@ -27,11 +29,16 @@ import novah.frontend.error.ProblemContext
 import novah.frontend.hmftypechecker.Unification.substituteBoundVars
 import novah.main.CompilationError
 import novah.main.ModuleEnv
+import java.util.*
 
 object Typechecker {
     private var currentId = 0
 
     var env = Env.new()
+        private set
+
+    var context: TypingContext? = null
+        private set
 
     private fun nextId(): Int = ++currentId
     fun resetId() {
@@ -50,12 +57,13 @@ object Typechecker {
     }
 
     fun infer(mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
+        context = TypingContext(mod)
         return try {
             Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
-            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name)))
+            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name, context)))
         } catch (ce: CompilationError) {
-            Err(ce.problems)
+            Err(ce.problems.map { it.copy(typingContext = context) })
         }
     }
 
@@ -81,7 +89,7 @@ object Typechecker {
     fun checkWellFormed(ty: Type, span: Span) {
         when (ty) {
             is TConst -> {
-                val envType = env.lookupType(ty.name) ?: inferError(Errors.undefinedType(ty.show(false)), span)
+                val envType = env.lookupType(ty.name) ?: inferError(Errors.undefinedType(ty.show()), span)
 
                 if (ty.kind != envType.kind()) {
                     inferError(Errors.wrongKind(ty.kind.toString(), envType.kind().toString()), span)
@@ -99,8 +107,8 @@ object Typechecker {
             is TVar -> {
                 when (val tv = ty.tvar) {
                     is TypeVar.Link -> checkWellFormed(tv.type, span)
-                    is TypeVar.Generic -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
-                    is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show(false))), span)
+                    is TypeVar.Generic -> inferError(Errors.unusedVariables(listOf(ty.show())), span)
+                    is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show())), span)
                 }
             }
             is TRecord -> checkWellFormed(ty.row, span)
@@ -108,11 +116,19 @@ object Typechecker {
                 checkWellFormed(ty.row, span)
                 ty.labels.forEachList { checkWellFormed(it, span) }
             }
+            is TImplicit -> checkWellFormed(ty.type, span)
             is TRowEmpty -> {
             }
         }
     }
 }
+
+class TypingContext(
+    val mod: Module,
+    var decl: Decl.ValDecl? = null,
+    val exps: ArrayDeque<Expr> = ArrayDeque(),
+    val types: ArrayDeque<Type> = ArrayDeque()
+)
 
 class InferenceError(val msg: String, val span: Span, val ctx: ProblemContext) : RuntimeException(msg)
 
