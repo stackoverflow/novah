@@ -31,6 +31,7 @@ import novah.frontend.Parser
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
+import novah.frontend.error.Severity
 import novah.frontend.hmftypechecker.Type
 import novah.frontend.hmftypechecker.Typechecker
 import novah.frontend.resolveForeignImports
@@ -51,7 +52,10 @@ class Environment(private val verbose: Boolean) {
     private val modules = mutableMapOf<String, FullModuleEnv>()
 
     private val errors = mutableListOf<CompilerProblem>()
+    private val warnings = mutableListOf<CompilerProblem>()
 
+    fun getWarnings(): List<CompilerProblem> = warnings
+    
     /**
      * Lex, parse and typecheck all modules and store them.
      */
@@ -100,8 +104,9 @@ class Environment(private val verbose: Boolean) {
             Typechecker.resetEnv()
             val importErrs = resolveImports(mod.data, modules)
             val foreignErrs = resolveForeignImports(mod.data)
-            val errs = importErrs + foreignErrs
+            val (warns, errs) = (importErrs + foreignErrs).partition { it.severity == Severity.WARN }
             if (errs.isNotEmpty()) throwErrors(errs)
+            warnings.addAll(warns)
 
             if (verbose) echo("Typechecking ${mod.data.name}")
 

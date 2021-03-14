@@ -24,7 +24,8 @@ class CompilationSpec : StringSpec({
 
     "fully compile all files in a directory structure" {
         val compiler = TestUtil.compilerFor("fullCompilation")
-        compiler.run(cleanAndGetOutDir())
+        val warns = compiler.run(cleanAndGetOutDir())
+        warns.forEach { println(it.formatToConsole()) }
     }
 
     "empty modules succeed" {

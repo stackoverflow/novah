@@ -61,7 +61,13 @@ class CompileCommand : CliktCommand() {
         if (verbose) echo("Compiling files to $out")
 
         try {
-            Compiler.new(srcs.asSequence(), verbose).run(out)
+            val warns = Compiler.new(srcs.asSequence(), verbose).run(out)
+            if (warns.isNotEmpty()) {
+                val label = if (warns.size > 1) "Warnings" else "Warning"
+                echo("$YELLOW$label:$RESET\n")
+                warns.forEach { echo(it.formatToConsole(), err = true) }
+            }
+            echo("Success")
         } catch (ce: CompilationError) {
             val (errors, warns) = ce.problems.partition { it.severity == Severity.ERROR }
             if (warns.isNotEmpty()) {
@@ -71,9 +77,10 @@ class CompileCommand : CliktCommand() {
             }
             if (errors.isNotEmpty()) {
                 val label = if (errors.size > 1) "Errors" else "Error"
-                echo("$RED$label:$RESET\n")
+                echo("$RED$label:$RESET\n", err = true)
                 errors.forEach { echo(it.formatToConsole(), err = true) }
             }
+            echo("Failure", err = true)
             exitProcess(1)
         }
     }
