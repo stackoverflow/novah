@@ -173,7 +173,6 @@ private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList()
 private fun tfun(a: Type, b: Type) = TArrow(listOf(a), b)
 private fun tfall(v: Id, t: Type) = TForall(listOf(v), t)
 private fun tbound(x: Id) = TVar(TypeVar.Bound(x))
-private fun tapp(const: Type, arg: Type) = TApp(const, listOf(arg))
 
 val primModuleEnv = ModuleEnv(
     mapOf(
