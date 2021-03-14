@@ -17,6 +17,7 @@ package novah.data
 
 import io.lacuna.bifurcan.List
 import io.lacuna.bifurcan.Set
+import novah.Core
 
 // TODO: implement this class
 class NovahClassLoader(private val classPath: String) : ClassLoader() {
@@ -31,6 +32,7 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
         // remove this when proper loading is implemented
         if (name == List::class.java.canonicalName) return List::class.java
         if (name == Set::class.java.canonicalName) return Set::class.java
+        if (name == Core::class.java.canonicalName) return Core::class.java
         return clparent.loadClass(name)
     }
 

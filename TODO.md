@@ -3,7 +3,6 @@
 - [ ] Implement a kind checker for types
 - [ ] Order declarations by topology taking recursive functions in consideration and allowing mutually recursive
       functions in case they have type annotations (or maybe just use a fix operator?)
-- [ ] Real support for operators
 - [ ] Some better way to type check mutually recursive functions (fixpoint?)
 - [ ] Report that an imported type is private instead of not found
 - [ ] Desugar types to Class<?> before codegen (what to do with user defined types?)

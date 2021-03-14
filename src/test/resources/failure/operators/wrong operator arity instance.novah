@@ -1,0 +1,10 @@
+module test
+
+type Nop = Nop
+
+instance
+nop : Nop
+nop = Nop
+
+(+) : {{ Nop }} -> Int -> Int
+(+) {{x}} y = y

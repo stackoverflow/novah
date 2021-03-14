@@ -53,7 +53,8 @@ sealed class Decl {
         val span: Span,
         val type: Type?,
         val visibility: Visibility,
-        val isInstance: Boolean
+        val isInstance: Boolean,
+        val isOperator: Boolean
     ) : Decl()
 }
 

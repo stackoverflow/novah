@@ -513,19 +513,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     }
 
     private fun genLong(e: Expr.LongE, mv: MethodVisitor) {
-        val l = e.v
-        when {
-            l == 0L -> mv.visitInsn(ICONST_0)
-            l == 1L -> mv.visitInsn(ICONST_1)
-            l == 2L -> mv.visitInsn(ICONST_2)
-            l == 3L -> mv.visitInsn(ICONST_3)
-            l == 4L -> mv.visitInsn(ICONST_4)
-            l == 5L -> mv.visitInsn(ICONST_5)
-            l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, l.toInt())
-            l >= Short.MIN_VALUE && l <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, l.toInt())
-            l >= Int.MIN_VALUE && l <= Int.MAX_VALUE -> mv.visitLdcInsn(l.toInt())
-            else -> mv.visitLdcInsn(l)
-        }
+        mv.visitLdcInsn(e.v)
     }
 
     private fun genFloat(e: Expr.FloatE, mv: MethodVisitor) {
@@ -635,7 +623,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         if (fn is Expr.Var && fn.fullname() == "prim/Module.println") {
             mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;")
             genExpr(e.arg, mv, ctx)
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false)
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false)
             mv.visitInsn(ACONST_NULL)
         } else if (fn is Expr.Var && fn.fullname() == "prim/Module.toString") {
             genExpr(e.arg, mv, ctx)

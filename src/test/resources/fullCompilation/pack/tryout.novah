@@ -1,11 +1,35 @@
 module pack.tryout
 
-type Option a = Some a | None
+foreign import novah.Core:mult(Int, Int) as multInt
+foreign import novah.Core:sum(Int, Int) as sumInt
+foreign import novah.Core:sum(Long, Long) as sumLong
+foreign import novah.Core:sum(Float, Float) as sumFloat
+foreign import novah.Core:sum(Double, Double) as sumDouble
 
-fun x = case x of
-  Some a -> a
+type Plus a = Plus { plus : a -> a -> a }
 
-fun2 x = case x of
-  None -> "a"
-  None -> "b"
-  _ -> "c"
+(+) : forall a. {{ Plus a }} -> a -> a -> a
+(+) {{p}} x y = case p of Plus pl -> pl.plus x y
+
+instance
+plusInt : Plus Int
+plusInt = Plus { plus: \x y -> sumInt x y }
+
+instance
+plusLong : Plus Long
+plusLong = Plus { plus: \x y -> sumLong x y }
+
+instance
+plusFloat : Plus Float
+plusFloat = Plus { plus: \x y -> sumFloat x y }
+
+instance
+plusDouble : Plus Double
+plusDouble = Plus { plus: \x y -> sumDouble x y }
+
+(*) : Int -> Int -> Int
+(*) x y = multInt x y
+
+main () = do
+  println (5.0 + 10.0)
+  ()

@@ -54,7 +54,7 @@ class TypedASTSpec : StringSpec({
         map["ife"]?.type?.simpleName() shouldBe "Int -> Int"
         map["lam"]?.type?.simpleName() shouldBe "Boolean -> Boolean"
         map["lett"]?.type?.simpleName() shouldBe "Boolean -> Boolean"
-        map["app"]?.type?.simpleName() shouldBe "String -> Unit"
+        map["app"]?.type?.simpleName() shouldBe "forall t1. t1 -> Unit"
         map["fall"]?.type?.simpleName() shouldBe "forall t1. t1 -> t1"
     }
 

@@ -99,6 +99,7 @@ object Inference {
             val ty = if (decl.recursive) inferRecursive(name, decl.exp, newEnv, 0)
             else infer(newEnv, 0, decl.exp)
 
+            if (decl.isOperator) validateOperator(decl)
             if (implicitsToCheck.isNotEmpty()) instanceSearch(implicitsToCheck)
 
             val genTy = generalize(-1, ty)
@@ -535,6 +536,25 @@ object Inference {
      */
     private fun checkShadowType(env: Env, type: String, span: Span) {
         if (env.lookupType(type) != null) inferError(Errors.duplicatedType(type), span)
+    }
+
+    /**
+     * Makes sure the operator receives only 2 non-instance parameters.
+     */
+    private fun validateOperator(decl: Decl.ValDecl) {
+        fun numPars(ty: Type, gotNonImplicit: Boolean = false): Int = when (ty) {
+            is TForall -> numPars(ty.type)
+            is TArrow -> {
+                when {
+                    gotNonImplicit -> 1 + numPars(ty.ret, gotNonImplicit)
+                    ty.args[0] is TImplicit -> numPars(ty.ret)
+                    else -> 1 + numPars(ty.ret, gotNonImplicit)
+                }
+            }
+            else -> 0
+        }
+        val arity = numPars(decl.exp.type!!)
+        if (arity != 2) inferError(Errors.wrongOperatorArity(decl.name, arity), decl.span)
     }
 
     private fun getDataType(d: Decl.DataDecl, moduleName: String): Pair<Type, Map<String, TVar>> {
