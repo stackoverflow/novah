@@ -53,7 +53,7 @@ class Desugar(private val smod: SModule) {
     private val moduleName = smod.name
     private var synonyms = emptyMap<String, TypealiasDecl>()
     private val warnings = mutableListOf<CompilerProblem>()
-    
+
     fun getWarnings(): List<CompilerProblem> = warnings
 
     fun desugar(): Result<Module, List<CompilerProblem>> {
@@ -92,7 +92,7 @@ class Desugar(private val smod: SModule) {
                 warnings += makeWarn(E.noTypeAnnDecl(name), span)
                 expr
             }
-            Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance)
+            Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
         }
         else -> null
     }
@@ -516,7 +516,7 @@ class Desugar(private val smod: SModule) {
 
     private fun makeWarn(msg: String, span: Span): CompilerProblem =
         CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name, null, Severity.WARN)
-    
+
     private fun makeError(msg: String, span: Span): CompilerProblem =
         CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
 }

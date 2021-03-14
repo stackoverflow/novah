@@ -139,6 +139,8 @@ object Errors {
     const val INSTANCE_ERROR = "Type and type alias declarations cannot be instances, only values."
 
     const val ALIAS_DOT = "Expected dot (.) after aliased variable."
+    
+    const val INVALID_OPERATOR_DECL = "Operator declarations have to be defined between parentheses."
 
     val IMPORT_RAW = """Raw imports should only be used for core namespaces.
         |Use an alias or explicit import instead.""".trimMargin()
@@ -171,6 +173,10 @@ object Errors {
     fun noTypeAnnDecl(name: String) = """
         No type annotation given for top-level declaration $name.
         Consider adding a type annotation.
+    """.trimIndent()
+    
+    fun wrongOperatorArity(op: String, arity: Int) = """
+        Binary operator $op has wrong arity: it should have 2 non-implicit parameters but got $arity.
     """.trimIndent()
 
     fun expectedDefinition(name: String) = "Expected definition to follow its type declaration for $name."

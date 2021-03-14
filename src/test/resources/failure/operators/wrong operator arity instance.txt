@@ -1,0 +1,7 @@
+module [33mtest[0m
+at src/test/resources/failure/operators/wrong operator arity instance.novah:9:1 - 10:16
+
+  Binary operator + has wrong arity: it should have 2 non-implicit parameters but got 1.
+
+in declaration +
+

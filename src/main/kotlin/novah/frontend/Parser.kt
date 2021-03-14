@@ -240,6 +240,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 parseDataDecl(visibility)
             }
             is Ident -> parseVarDecl(visibility, isInstance)
+            is LParen -> parseVarDecl(visibility, isInstance, true)
             is TypealiasT -> {
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
                 parseTypealias(visibility)
@@ -272,21 +273,32 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
-    private fun parseVarDecl(visibility: Token?, isInstance: Boolean): Decl {
+    private fun parseVarDecl(visibility: Token?, isInstance: Boolean, isOperator: Boolean = false): Decl {
+        fun parseName(name: String): Pair<Spanned<Token>, String> {
+            return if (isOperator) {
+                val tk = expect<LParen>(withError(E.INVALID_OPERATOR_DECL))
+                val op = expect<Op>(withError(E.INVALID_OPERATOR_DECL))
+                expect<RParen>(withError(E.INVALID_OPERATOR_DECL))
+                tk to op.value.op
+            } else {
+                val id = expect<Ident>(withError(E.expectedDefinition(name)))
+                id to id.value.v
+            }
+        }
+        
         var vis = Visibility.PRIVATE
         if (visibility != null) {
             if (visibility is PublicPlus) throwError(E.PUB_PLUS to iter.current().span)
             vis = Visibility.PUBLIC
         }
-        var nameTk = expect<Ident>(noErr())
-        val name = nameTk.value.v
+        val (nameTk, name) = parseName("")
         return withOffside(nameTk.offside() + 1, false) {
             var type: Type? = null
             if (iter.peek().value is Colon) {
                 type = parseTypeSignature()
                 withOffside(nameTk.offside(), false) {
-                    nameTk = expect(withError(E.expectedDefinition(name)))
-                    if (nameTk.value.v != name) throwError(withError(E.expectedDefinition(name))(nameTk))
+                    val (nameTk2, name2) = parseName(name)
+                    if (name != name2) throwError(withError(E.expectedDefinition(name))(nameTk2))
                 }
             }
             val vars = tryParseListOf { tryParseFunparPattern() }
@@ -294,7 +306,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
             val exp = parseExpression()
-            Decl.ValDecl(name, vars, exp, type, vis, isInstance).withSpan(nameTk.span, exp.span)
+            Decl.ValDecl(name, vars, exp, type, vis, isInstance, isOperator).withSpan(nameTk.span, exp.span)
         }
     }
 

@@ -178,14 +178,14 @@ private fun tbound(x: Id) = TVar(TypeVar.Bound(x))
 
 val primModuleEnv = ModuleEnv(
     mapOf(
-        "println" to decl(tfun(tString, tUnit)),
-        // TODO: fix these negative numbers (probably by moving them to the stblib)
+        // TODO: fix these negative numbers (probably by moving them to Core)
         "unsafeCast" to decl(TForall(listOf(-1, -2), tfun(tbound(-1), tbound(-2)))),
         "toString" to decl(tfall(-3, tfun(tbound(-3), tString))),
         "hashCode" to decl(tfall(-4, tfun(tbound(-4), tInt))),
         "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
         "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "==" to decl(tfall(-5, tfun(tbound(-5), tfun(tbound(-5), tBoolean))))
+        "==" to decl(tfall(-5, tfun(tbound(-5), tfun(tbound(-5), tBoolean)))),
+        "println" to decl(tfall(-6, tfun(tbound(-6), tUnit))),
     ),
     mapOf(
         "Byte" to tdecl(tByte),

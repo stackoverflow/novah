@@ -135,7 +135,8 @@ sealed class Decl(val name: String, val visibility: Visibility) {
         val exp: Expr,
         val type: Type?,
         visibility: Visibility,
-        val isInstance: Boolean
+        val isInstance: Boolean,
+        val isOperator: Boolean
     ) : Decl(name, visibility)
 
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
