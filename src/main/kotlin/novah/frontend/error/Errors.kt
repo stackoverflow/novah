@@ -142,7 +142,7 @@ object Errors {
 
     val IMPORT_RAW = """Raw imports should only be used for core namespaces.
         |Use an alias or explicit import instead.""".trimMargin()
-
+    
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field
@@ -167,6 +167,11 @@ object Errors {
         |$example
     """.trimMargin()
     }
+    
+    fun noTypeAnnDecl(name: String) = """
+        No type annotation given for top-level declaration $name.
+        Consider adding a type annotation.
+    """.trimIndent()
 
     fun expectedDefinition(name: String) = "Expected definition to follow its type declaration for $name."
 

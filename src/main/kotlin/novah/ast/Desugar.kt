@@ -26,6 +26,7 @@ import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.frontend.error.Severity
 import novah.frontend.hmftypechecker.*
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
@@ -51,6 +52,9 @@ class Desugar(private val smod: SModule) {
     private val imports = smod.resolvedImports
     private val moduleName = smod.name
     private var synonyms = emptyMap<String, TypealiasDecl>()
+    private val warnings = mutableListOf<CompilerProblem>()
+    
+    fun getWarnings(): List<CompilerProblem> = warnings
 
     fun desugar(): Result<Module, List<CompilerProblem>> {
         return try {
@@ -78,13 +82,16 @@ class Desugar(private val smod: SModule) {
             declVars.clear()
             var expr = nestLambdas(patterns.map { it.desugar() }, exp.desugar())
 
-            // if the declaration has a type annotation, annotate it
+            // if the declaration has a type annotation, annotate it, else warn
             expr = if (type != null) {
                 // We want type annotations to be `forall` not `some`, so
                 // we won't replace constants with vars here
                 val ann = emptyList<Id>() to type.desugar()
                 Expr.Ann(expr, ann, span)
-            } else expr
+            } else {
+                warnings += makeWarn(E.noTypeAnnDecl(name), span)
+                expr
+            }
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance)
         }
         else -> null
@@ -507,7 +514,9 @@ class Desugar(private val smod: SModule) {
 
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
 
-    private fun makeError(msg: String, span: Span): CompilerProblem {
-        return CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
-    }
+    private fun makeWarn(msg: String, span: Span): CompilerProblem =
+        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name, null, Severity.WARN)
+    
+    private fun makeError(msg: String, span: Span): CompilerProblem =
+        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
 }

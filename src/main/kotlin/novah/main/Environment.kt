@@ -110,7 +110,9 @@ class Environment(private val verbose: Boolean) {
 
             if (verbose) echo("Typechecking ${mod.data.name}")
 
-            val canonical = Desugar(mod.data).desugar().unwrapOrElse { throwErrors(it) }
+            val desugar = Desugar(mod.data)
+            val canonical = desugar.desugar().unwrapOrElse { throwErrors(it) }
+            warnings.addAll(desugar.getWarnings())
             val menv = Typechecker.infer(canonical).unwrapOrElse { throwErrors(it) }
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
@@ -124,7 +126,10 @@ class Environment(private val verbose: Boolean) {
      */
     fun generateCode(output: File, dryRun: Boolean = false) {
         modules.values.forEach { menv ->
-            val opt = Optimizer(menv.ast).convert().unwrapOrElse { throwError(it) }
+            val optimizer = Optimizer(menv.ast)
+            val opt = optimizer.convert().unwrapOrElse { throwError(it) }
+            
+            warnings.addAll(optimizer.getWarnings())
             val optAST = Optimization.run(opt)
 
             if (dryRun) return

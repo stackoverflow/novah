@@ -1,5 +1,11 @@
 module pack.tryout
 
-import pack.namespace1
+type Option a = Some a | None
 
-x = 1
+fun x = case x of
+  Some a -> a
+
+fun2 x = case x of
+  None -> "a"
+  None -> "b"
+  _ -> "c"

@@ -20,8 +20,10 @@ import novah.ast.canonical.*
 import novah.ast.optimized.*
 import novah.ast.optimized.Decl
 import novah.data.*
+import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.frontend.error.Severity
 import novah.frontend.hmftypechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
@@ -41,6 +43,9 @@ import novah.frontend.hmftypechecker.Type as TType
 class Optimizer(private val ast: CModule) {
 
     private var haslambda = false
+    private val warnings = mutableListOf<CompilerProblem>()
+    
+    fun getWarnings(): List<CompilerProblem> = warnings
 
     fun convert(): Result<Module, CompilerProblem> {
         return try {
@@ -352,16 +357,28 @@ class Optimizer(private val ast: CModule) {
         return pars.map { it.convert() } to ret.convert()
     }
 
-    companion object {
-        private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr) {
-            if (!res.exhaustive) {
-                inferError(E.NON_EXHAUSTIVE_PATTERN, expr.span, ProblemContext.PATTERN_MATCHING)
-            }
-            if (res.redundantMatches.isNotEmpty()) {
-                val unreacheable = res.redundantMatches.map { it.show() }
-                inferError(E.redundantMatches(unreacheable), expr.span, ProblemContext.PATTERN_MATCHING)
-            }
+    private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr) {
+        if (!res.exhaustive) {
+            warnings += mkWarn(E.NON_EXHAUSTIVE_PATTERN, expr.span, ProblemContext.PATTERN_MATCHING)
         }
+        if (res.redundantMatches.isNotEmpty()) {
+            val unreacheable = res.redundantMatches.map { it.show() }
+            warnings += mkWarn(E.redundantMatches(unreacheable), expr.span, ProblemContext.PATTERN_MATCHING)
+        }
+    }
+    
+    private fun mkWarn(msg: String, span: Span, ctx: ProblemContext): CompilerProblem =
+        CompilerProblem(
+            msg,
+            ctx,
+            span,
+            ast.sourceName,
+            ast.name,
+            null,
+            Severity.WARN
+        )
+
+    companion object {
 
         // TODO: use primitive types and implement autoboxing
         private fun getPrimitiveTypeName(tvar: TConst): String = when (tvar.name) {
