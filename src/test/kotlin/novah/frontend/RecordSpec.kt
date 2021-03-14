@@ -99,12 +99,15 @@ class RecordSpec : StringSpec({
             minus = { - "some 'label'" | rec }
             
             plus = { "😑": (5 : Byte) | rec }
+            
+            sel = rec."😃 emoticons"
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["rec"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int, "some 'label'" : Boolean, "😃 emoticons" : Long }"""
         ds["minus"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int, "😃 emoticons" : Long }"""
         ds["plus"]?.type?.simpleName() shouldBe """{ "😑" : Byte, "Uppercase" : Int, "some 'label'" : Boolean, "😃 emoticons" : Long }"""
+        ds["sel"]?.type?.simpleName() shouldBe "Long"
     }
 
     "polymorphic rows" {

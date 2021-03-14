@@ -261,9 +261,9 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
                 }
                 foreigVars[name] = ForeignRef.FieldRef(field, false)
                 val ctxType = if (imp.static) {
-                    TConst(javaToNovah(field.type.canonicalName))
+                    toNovahType(javaToNovah(field.type.canonicalName))
                 } else {
-                    TArrow(listOf(TConst(type)), TConst(javaToNovah(field.type.canonicalName)))
+                    TArrow(listOf(toNovahType(type)), toNovahType(javaToNovah(field.type.canonicalName)))
                 }
                 env.extend(name, ctxType)
             }
@@ -290,11 +290,11 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
                     errors += error(Errors.duplicatedImport(imp.alias))
                 }
                 foreigVars[imp.alias] = ForeignRef.FieldRef(field, true)
-                val parType = TConst(javaToNovah(field.type.canonicalName))
+                val parType = toNovahType(javaToNovah(field.type.canonicalName))
                 val ctxType = if (imp.static) {
                     TArrow(listOf(parType), tUnit)
                 } else {
-                    TArrow(listOf(TConst(type), parType), tUnit)
+                    TArrow(listOf(toNovahType(type), parType), tUnit)
                 }
                 env.extend(imp.alias, ctxType)
             }
@@ -316,7 +316,7 @@ private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars
 
     mpars += if (m.returnType.canonicalName == "void") primUnit else m.returnType.canonicalName
     val pars = mpars.map { javaToNovah(it) }
-    val tpars = pars.map { TConst(it) } as List<Type>
+    val tpars = pars.map { toNovahType(it) } as List<Type>
 
     return tpars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
 }
@@ -324,9 +324,14 @@ private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars
 private fun ctorToFunction(c: Constructor<*>, type: String, novahPars: List<String>): Type {
     val mpars = if (c.parameterTypes.isEmpty()) listOf(primUnit) else novahPars.map { Reflection.novahToJava(it) }
     val pars = (mpars + type).map { javaToNovah(it) }
-    val tpars = pars.map { TConst(it) } as List<Type>
+    val tpars = pars.map { toNovahType(it) } as List<Type>
 
     return tpars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
+}
+
+private fun toNovahType(ty: String): Type = when (ty) {
+    primArray, primVector, primSet -> TApp(TConst(ty), listOf(tObject))
+    else -> TConst(ty)
 }
 
 /**
