@@ -30,6 +30,8 @@ class Compiler(private val sources: Sequence<Source>, verbose: Boolean) {
         env.generateCode(output, dryRun)
         return env.getWarnings()
     }
+    
+    fun getWarnings() = env.getWarnings()
 
     companion object {
         fun new(sources: Sequence<Path>, verbose: Boolean): Compiler {
