@@ -23,6 +23,7 @@ import novah.data.Reflection
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
+import novah.frontend.error.Severity
 import novah.frontend.hmftypechecker.*
 import novah.frontend.hmftypechecker.Type
 import novah.main.DeclRef
@@ -41,6 +42,9 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
         CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name)
     }
+    fun makeWarn(span: Span): (String) -> CompilerProblem = { msg ->
+        CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name, null, Severity.WARN)
+    }
 
     val env = Typechecker.env
     val resolved = mutableMapOf<VarRef, ModuleName>()
@@ -50,7 +54,8 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
     val imports = mod.imports + primImport
     for (imp in imports) {
         val mkError = makeError(imp.span())
-        val m = if (imp.module == "prim") primModuleEnv else modules[imp.module]?.env
+        val mkWarn = makeWarn(imp.span())
+        val m = if (imp.module == PRIM) primModuleEnv else modules[imp.module]?.env
         if (m == null) {
             errors += mkError(Errors.moduleNotFound(imp.module))
             continue
@@ -60,6 +65,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
         when (imp) {
             // Import all declarations, types and type aliases from this module
             is Import.Raw -> {
+                if (warnOnRawImport(imp)) errors += mkWarn(Errors.IMPORT_RAW)
                 val alias = if (imp.alias != null) "${imp.alias}." else ""
                 m.types.filter(visibleType).forEach { name, (type, _) ->
                     resolved["$alias$name"] = mname
@@ -364,3 +370,5 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
     }
     return errors
 }
+
+private fun warnOnRawImport(imp: Import.Raw): Boolean = imp.module != PRIM && imp.alias == null

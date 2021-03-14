@@ -1,6 +1,7 @@
 # Roadmap
 
 - [ ] Rewrite the compiler in novah itself
+- [ ] Add JSON support to the error reporter
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [ ] IDE support
 - [ ] LSP implemented in the compiler
@@ -8,6 +9,8 @@
 - [ ] Syntax for record update/set (probably with type-level strings or macros?)
 - [ ] Standard library
 - [ ] Opaque/newtypes
+- [ ] Full pattern destructuring for function and let parameters
+- [ ] Full support for pattern matching (records, vectors, etc)
 - [X] Generic programming with instance arguments (implicits)
 - [X] Literal syntax for basic data structures
 - [X] Persistent data structures

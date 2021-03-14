@@ -1,5 +1,6 @@
 module test
 
+f : Int -> String
 f x = case x of
   0 -> "zero"
   1 -> "one"

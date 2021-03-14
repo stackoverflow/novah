@@ -1,0 +1,7 @@
+module [33mtest[0m
+at src/test/resources/warning/pattern match unreacheable cases.novah:7:7 - 12:14
+
+  A case expression contains redundant cases:
+  
+      5, 10
+

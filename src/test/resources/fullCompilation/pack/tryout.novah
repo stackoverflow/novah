@@ -1,25 +1,11 @@
 module pack.tryout
 
-foreign import Vector.toArray() as vecToArray
-foreign import Vector.addLast(Object)
-foreign import java.util.Arrays:toString(Array) as arrToString
-foreign import type java.lang.reflect.Array as RArray
-foreign import RArray:getLength(Array)
-foreign import RArray:set(Array, Int, Int) as setArray
-foreign import RArray:get(Array, Int) as getArray
+type Option a = Some a | None
 
-x : Array Object
-x = do
-  let oarr : Vector Object
-      oarr = unsafeCast [1, 2, 3, 4]
-  vecToArray oarr
+fun x = case x of
+  Some a -> a
 
-printshow : forall a. a -> Unit
-printshow x = println (toString x)
-
-main () = do
-  printshow (getLength x)
-  setArray x 0 99
-  printshow (getArray x 0)
-  println (arrToString x)
-  ()
+fun2 x = case x of
+  None -> "a"
+  None -> "b"
+  _ -> "c"

@@ -1,0 +1,6 @@
+module [33mtest[0m
+at src/test/resources/warning/no type annotation.novah:3:1 - 3:8
+
+  No type annotation given for top-level declaration f.
+  Consider adding a type annotation.
+

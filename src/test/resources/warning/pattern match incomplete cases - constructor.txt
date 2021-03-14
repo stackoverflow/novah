@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/warning/pattern match incomplete cases - constructor.novah:6:7 - 9:17
+
+  A case expression could not be determined to cover all inputs.
+

@@ -1,7 +1,8 @@
 module test
 
 type Maybe a = Just a | Nothing
-            
+
+f : forall a. Maybe a -> String
 f x = case x of
   Just v -> toString v
   Nothing -> "bla"

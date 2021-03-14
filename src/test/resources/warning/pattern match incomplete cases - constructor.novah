@@ -1,7 +1,8 @@
 module test
 
 type Maybe a = Just a | Nothing
-            
+
+f : Maybe (Maybe Boolean) -> String
 f x = case x of
   Just (Just true) -> "a"
   Just Nothing -> "c"

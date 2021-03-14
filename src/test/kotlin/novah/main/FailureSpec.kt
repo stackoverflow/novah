@@ -44,6 +44,22 @@ class FailureSpec : StringSpec({
         }
     }
 
+    "run all warning tests" {
+        File("src/test/resources/warning").walkTopDown().filter { it.extension == "novah" }.forEach { file ->
+            Typechecker.resetId()
+            val path = file.toPath()
+            val testName = file.nameWithoutExtension
+            val output = File("${file.parent}/$testName.txt")
+
+            val compiler = Compiler.new(sequenceOf(path), false)
+            val warns = compiler.run(File("."), true)
+            if (warns.isEmpty()) throw failure("Expected test `$testName` to return warnings.")
+
+            val warn = warns.joinToString("\n") { it.formatToConsole() }
+            warn shouldBe output.readText()
+        }
+    }
+
     "duplicate modules fail" {
         val compiler = TestUtil.compilerFor("multimodulefail/duplicatedmodules")
 
@@ -55,7 +71,7 @@ class FailureSpec : StringSpec({
             
 
         """.trimIndent()
-        
+
         withError(error) {
             compiler.compile()
         }
@@ -89,7 +105,7 @@ class FailureSpec : StringSpec({
             
 
         """.trimIndent()
-        
+
         withError(error) {
             compiler.compile()
         }
@@ -106,7 +122,7 @@ class FailureSpec : StringSpec({
             
 
         """.trimIndent()
-        
+
         withError(error) {
             compiler.compile()
         }
