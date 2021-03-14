@@ -66,7 +66,7 @@ class CompileCommand : CliktCommand() {
             if (warns.isNotEmpty()) {
                 val label = if (warns.size > 1) "Warnings" else "Warning"
                 echo("$YELLOW$label:$RESET\n")
-                warns.forEach { echo(it.formatToConsole(), err = true) }
+                warns.forEach { echo(it.formatToConsole()) }
             }
             echo("Success")
         } catch (ce: CompilationError) {
@@ -75,7 +75,7 @@ class CompileCommand : CliktCommand() {
             if (warns.isNotEmpty()) {
                 val label = if (warns.size > 1) "Warnings" else "Warning"
                 echo("$YELLOW$label:$RESET\n")
-                warns.forEach { echo(it.formatToConsole(), err = true) }
+                warns.forEach { echo(it.formatToConsole()) }
             }
             if (errors.isNotEmpty()) {
                 val label = if (errors.size > 1) "Errors" else "Error"
