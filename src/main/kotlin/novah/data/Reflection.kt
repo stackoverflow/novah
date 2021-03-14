@@ -33,6 +33,17 @@ object Reflection {
         "Float" -> "java.lang.Float"
         "Double" -> "java.lang.Double"
         "Char" -> "java.lang.Character"
+        "Array" -> "java.lang.Object[]"
+        "ByteArray" -> "byte[]"
+        "ShortArray" -> "short[]"
+        "IntArray" -> "int[]"
+        "LongArray" -> "long[]"
+        "FloatArray" -> "float[]"
+        "DoubleArray" -> "double[]"
+        "CharArray" -> "char[]"
+        "BooleanArray" -> "boolean[]"
+        "Vector" -> "io.lacuna.bifurcan.List"
+        "Set" -> "io.lacuna.bifurcan.Set"
         else -> type
     }
     
@@ -47,7 +58,11 @@ object Reflection {
         "char" -> "java.lang.Character" == par
         // better check if this is really safe
         "java.lang.Object" -> true
-        else -> javaType == par
+        else -> {
+            if (javaType.endsWith("[]") && javaType.contains(".")) {
+                "java.lang.Object[]" == par
+            } else javaType == par
+        }
     }
     
     fun findMethod(clazz: Class<*>, name: String, pars: List<String>): Method? {

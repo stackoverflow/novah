@@ -45,7 +45,7 @@ object TypeUtil {
     fun toInternalClass(type: Type): String = when (type) {
         is Type.TVar -> if (type.isForall) OBJECT_CLASS else type.name
         is Type.TConstructor -> {
-            if (type.name == "JArray") "[" + toInternalClass(type.types[0])
+            if (type.name == "Array") "[" + toInternalClass(type.types[0])
             else type.name
         }
         is Type.TFun -> FUNCTION_CLASS
@@ -54,7 +54,7 @@ object TypeUtil {
     fun toInternalType(type: Type): String = when (type) {
         is Type.TVar -> if (type.isForall) OBJECT_TYPE else descriptor(type.name)
         is Type.TConstructor -> {
-            if (type.name == "JArray") "[" + toInternalType(type.types[0])
+            if (type.name == "Array") "[" + toInternalType(type.types[0])
             else descriptor(type.name)
         }
         is Type.TFun -> FUNCTION_TYPE
@@ -86,7 +86,7 @@ object TypeUtil {
 
     fun maybeBuildFieldSignature(type: Type): String? {
         return if (!type.isGeneric()) null
-        else if (type is Type.TConstructor && type.name == "JArray") null
+        else if (type is Type.TConstructor && type.name == "Array") null
         else buildFieldSignature(type)
     }
 

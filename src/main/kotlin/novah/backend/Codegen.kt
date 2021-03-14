@@ -331,7 +331,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 val desc = getMethodDescriptor(m)
                 mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, false)
-                if (m.returnType.isPrimitive) box(m.returnType, mv)
+                
+                if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
+                else if (m.returnType.isPrimitive) box(m.returnType, mv)
             }
             is Expr.NativeMethod -> {
                 val m = e.method
@@ -341,7 +343,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 val (op, isInterface) = if (m.declaringClass.isInterface) INVOKEINTERFACE to true else INVOKEVIRTUAL to false
                 mv.visitMethodInsn(op, getInternalName(m.declaringClass), m.name, getMethodDescriptor(m), isInterface)
-                if (m.returnType.isPrimitive) box(m.returnType, mv)
+
+                if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
+                else if (m.returnType.isPrimitive) box(m.returnType, mv)
             }
             is Expr.NativeCtor -> {
                 val c = e.ctor
@@ -640,6 +644,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             genExpr(e.arg, mv, ctx)
             mv.visitMethodInsn(INVOKEVIRTUAL, toInternalClass(e.arg.type), "hashCode", "()I", false)
             mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
+        } else if (fn is Expr.Var && fn.fullname() == "prim/Module.unsafeCast") {
+            genExpr(e.arg, mv, ctx)
+            //mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
         } else {
             genExpr(fn, mv, ctx)
             genExpr(e.arg, mv, ctx)
@@ -791,7 +798,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         main.visitCode()
 
         val startL = Label()
-        ctx.putParameter("args", Type.TConstructor("JArray", listOf(Type.TVar(STRING_CLASS))), startL)
+        ctx.putParameter("args", Type.TConstructor("Array", listOf(Type.TVar(STRING_CLASS))), startL)
         main.visitLineNumber(d.span.startLine, startL)
 
         val exp = (e as Expr.Lambda).body

@@ -59,7 +59,7 @@ class SignatureSpec : StringSpec({
         forAll(
             row(tvar("java/lang/Integer"), null),
             row(tvar("java/lang/String"), null),
-            row(tcons("JArray", tvar("java/lang/String")), null),
+            row(tcons("Array", tvar("java/lang/String")), null),
             row(tcons("java/util/List", tfvar("A")), "Ljava/util/List<TA;>;"),
             row(
                 funListString,

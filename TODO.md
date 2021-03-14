@@ -12,5 +12,6 @@
 - [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
 - [ ] Add spans to individual imports with error reporting
 - [ ] Properly handle records in check mode in the typechecker (not trivial!)
-- [ ] Primitives to create java arrays
 - [ ] Store and report type aliases in types
+- [ ] Warning on raw import
+- [ ] Check unsafeCast works at runtime

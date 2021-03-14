@@ -68,8 +68,18 @@ const val primBoolean = "prim.Boolean"
 const val primChar = "prim.Char"
 const val primString = "prim.String"
 const val primUnit = "prim.Unit"
+const val primObject = "prim.Object"
 const val primVector = "prim.Vector"
 const val primSet = "prim.Set"
+const val primArray = "prim.Array"
+const val primByteArray = "prim.ByteArray"
+const val primShortArray = "prim.ShortArray"
+const val primIntArray = "prim.IntArray"
+const val primLongArray = "prim.LongArray"
+const val primFloatArray = "prim.FloatArray"
+const val primDoubleArray = "prim.DoubleArray"
+const val primBooleanArray = "prim.BooleanArray"
+const val primCharArray = "prim.CharArray"
 
 val tByte = TConst(primByte)
 val tShort = TConst(primShort)
@@ -80,9 +90,19 @@ val tDouble = TConst(primDouble)
 val tBoolean = TConst(primBoolean)
 val tChar = TConst(primChar)
 val tString = TConst(primString)
+val tObject = TConst(primObject)
 val tUnit = TConst(primUnit)
 val tVector = TForall(listOf(-10), TApp(TConst(primVector, Kind.Constructor(1)), listOf(tbound(-10))))
 val tSet = TForall(listOf(-11), TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-11))))
+val tArray = TForall(listOf(-12), TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-12))))
+val tByteArray = TConst(primByteArray)
+val tShortArray = TConst(primShortArray)
+val tIntArray = TConst(primIntArray)
+val tLongArray = TConst(primLongArray)
+val tFloatArray = TConst(primFloatArray)
+val tDoubleArray = TConst(primDoubleArray)
+val tBooleanArray = TConst(primBooleanArray)
+val tCharArray = TConst(primCharArray)
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -94,9 +114,18 @@ val primTypes = mapOf(
     primBoolean to tBoolean,
     primChar to tChar,
     primString to tString,
+    primObject to tObject,
     primUnit to tUnit,
     primVector to tVector,
-    primSet to tSet
+    primSet to tSet,
+    primArray to tArray,
+    primByteArray to tByteArray,
+    primIntArray to tIntArray,
+    primLongArray to tLongArray,
+    primFloatArray to tFloatArray,
+    primDoubleArray to tDoubleArray,
+    primBooleanArray to tBooleanArray,
+    primCharArray to tCharArray
 )
 
 fun javaToNovah(jname: String): String = when (jname) {
@@ -116,7 +145,24 @@ fun javaToNovah(jname: String): String = when (jname) {
     "java.lang.Float" -> primFloat
     "java.lang.Double" -> primDouble
     "java.lang.Character" -> primChar
-    else -> jname
+    "java.lang.Object" -> primObject
+    "io.lacuna.bifurcan.List" -> primVector
+    "io.lacuna.bifurcan.Set" -> primSet
+    else -> {
+        if (jname.endsWith("[]")) {
+            when (javaToNovah(jname.replace("[]", ""))) {
+                "byte" -> primByteArray
+                "short" -> primShortArray
+                "int" -> primIntArray
+                "long" -> primLongArray
+                "float" -> primFloatArray
+                "double" -> primDoubleArray
+                "char" -> primCharArray
+                "boolean" -> primBooleanArray
+                else -> primArray
+            }
+        } else jname
+    }
 }
 
 val primImport = Import.Raw("prim", Span.empty())
@@ -127,6 +173,7 @@ private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList()
 private fun tfun(a: Type, b: Type) = TArrow(listOf(a), b)
 private fun tfall(v: Id, t: Type) = TForall(listOf(v), t)
 private fun tbound(x: Id) = TVar(TypeVar.Bound(x))
+private fun tapp(const: Type, arg: Type) = TApp(const, listOf(arg))
 
 val primModuleEnv = ModuleEnv(
     mapOf(
@@ -150,7 +197,17 @@ val primModuleEnv = ModuleEnv(
         "Char" to tdecl(tChar),
         "Boolean" to tdecl(tBoolean),
         "Unit" to tdecl(tUnit),
+        "Object" to tdecl(tObject),
         "Vector" to tdecl(tVector),
-        "Set" to tdecl(tSet)
+        "Set" to tdecl(tSet),
+        "Array" to tdecl(tArray),
+        "ByteArray" to tdecl(tByteArray),
+        "ShortArray" to tdecl(tShortArray),
+        "IntArray" to tdecl(tIntArray),
+        "LongArray" to tdecl(tLongArray),
+        "FloatArray" to tdecl(tFloatArray),
+        "DoubleArray" to tdecl(tDoubleArray),
+        "CharArray" to tdecl(tCharArray),
+        "BooleanArray" to tdecl(tBooleanArray),
     )
 )

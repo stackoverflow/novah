@@ -135,9 +135,15 @@ object Optimization {
             is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
             is Expr.OperatorApp -> f(e.copy(operands = e.operands.map(::go)))
             is Expr.InstanceOf -> f(e.copy(exp = go(e.exp)))
+            is Expr.NativeFieldGet -> f(e.copy(thisPar = go(e.thisPar)))
+            is Expr.NativeFieldSet -> f(e.copy(thisPar = go(e.thisPar), par = go(e.par)))
+            is Expr.NativeStaticFieldSet -> f(e.copy(par = go(e.par)))
+            is Expr.NativeMethod -> f(e.copy(thisPar = go(e.thisPar), pars = e.pars.map(::go)))
+            is Expr.NativeStaticMethod -> f(e.copy(pars = e.pars.map(::go)))
+            is Expr.NativeCtor -> f(e.copy(pars = e.pars.map(::go)))
             is Expr.Throw -> f(e.copy(expr = go(e.expr)))
             is Expr.Cast -> f(e.copy(expr = go(e.expr)))
-            is Expr.RecordExtend -> f(e.copy(labels = e.labels.mapList { go(it) }, expr = go(e.expr)))
+            is Expr.RecordExtend -> f(e.copy(labels = e.labels.mapList(::go), expr = go(e.expr)))
             is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
             is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
             is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
@@ -168,6 +174,12 @@ object Optimization {
             is Expr.Do -> e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
             is Expr.OperatorApp -> e.operands.fold(f(e, acc)) { accu, op -> go(op, accu) }
             is Expr.InstanceOf -> go(e.exp, f(e, acc))
+            is Expr.NativeFieldGet -> go(e.thisPar, f(e, acc))
+            is Expr.NativeFieldSet -> go(e.thisPar, go(e.par, f(e, acc)))
+            is Expr.NativeStaticFieldSet -> go(e.par, f(e, acc))
+            is Expr.NativeMethod -> e.pars.fold(go(e.thisPar, f(e, acc))) { accu, exp -> go(exp, accu) }
+            is Expr.NativeStaticMethod -> e.pars.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
+            is Expr.NativeCtor -> e.pars.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
             is Expr.Throw -> go(e.expr, f(e, acc))
             is Expr.Cast -> go(e.expr, f(e, acc))
             is Expr.RecordExtend -> {
