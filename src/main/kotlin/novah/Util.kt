@@ -57,6 +57,16 @@ object Util {
         return substring(0, index) to substring(index + 1)
     }
 
+    /**
+     * Divide this list into elements of type V and other elements.
+     */
+    inline fun <reified V, T> List<T>.partitionIsInstance(): Pair<List<V>, List<T>> {
+        val ts = mutableListOf<T>()
+        val vs = mutableListOf<V>()
+        forEach { if (it is V) vs += it else ts += it }
+        return vs to ts
+    }
+
     fun <V, R> LinkedList<V>.map(fn: (V) -> R): LinkedList<R> {
         val new = LinkedList<R>()
         forEach { new.add(fn(it)) }

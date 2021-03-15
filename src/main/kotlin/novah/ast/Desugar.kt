@@ -16,6 +16,7 @@
 package novah.ast
 
 import novah.Util.internalError
+import novah.Util.partitionIsInstance
 import novah.ast.canonical.*
 import novah.ast.source.Decl.TypealiasDecl
 import novah.ast.source.ForeignRef
@@ -384,13 +385,22 @@ class Desugar(private val smod: SModule) {
      * and order them by dependency
      */
     private fun validateTopLevelValues(desugared: List<Decl>): List<Decl> {
+        tailrec fun isVariable(e: Expr): Boolean = when (e) {
+            is Expr.Lambda -> false
+            is Expr.Ann -> isVariable(e.exp)
+            else -> true
+        }
+        
         fun reportCycle(cycle: Set<DagNode<String, Decl.ValDecl>>) {
             val first = cycle.iterator().next()
             val vars = cycle.map { it.value }
-            if (cycle.size == 1)
-                parserError(E.cycleInValues(vars), first.data.span)
-            else
-                desugarErrors(cycle.map { makeError(E.cycleInValues(vars), it.data.span) })
+            if (cycle.size == 1) parserError(E.cycleInValues(vars), first.data.span)
+            else {
+                if (cycle.any { isVariable(it.data.exp) })
+                    desugarErrors(cycle.map { makeError(E.cycleInValues(vars), it.data.span) })
+                else
+                    desugarErrors(cycle.map { makeError(E.cycleInFunctions(vars), it.data.span) })
+            }
         }
 
         fun collectDependencies(exp: Expr): Set<String> {
@@ -408,30 +418,34 @@ class Desugar(private val smod: SModule) {
             return deps
         }
 
-        tailrec fun isVariable(e: Expr): Boolean = when (e) {
-            is Expr.Lambda -> false
-            is Expr.Ann -> isVariable(e.exp)
-            else -> true
-        }
-
-        val (decls, lambdas) = desugared.filterIsInstance<Decl.ValDecl>().partition { isVariable(it.exp) }
-        //val decls = desugared.filterIsInstance<Decl.ValDecl>()
+        val (decls, types) = desugared.partitionIsInstance<Decl.ValDecl, Decl>()
         val deps = decls.map { it.name to collectDependencies(it.exp) }.toMap()
 
-        // TODO: order functions also, not only variables
         val dag = DAG<String, Decl.ValDecl>()
         val nodes = decls.map { it.name to DagNode(it.name, it) }.toMap()
         dag.addNodes(nodes.values)
 
         nodes.values.forEach { node ->
-            val depset = deps[node.value]
-            depset?.forEach { name -> nodes[name]?.link(node) }
+            deps[node.value]?.forEach { name ->
+                nodes[name]?.let { dep ->
+                    val (d1, d2) = dep.data to node.data
+                    when {
+                        // variables cannot have cycles
+                        isVariable(d1.exp) || isVariable(d2.exp) -> dep.link(node)
+                        // functions can be recursive
+                        d1.name == d2.name -> {
+                        }
+                        // functions can only be mutually recursive if they have type annotations
+                        d1.type == null || d2.type == null -> dep.link(node)
+                    }
+                }
+            }
         }
         dag.findCycle()?.let { reportCycle(it) }
 
-        val orderedDecl = dag.topoSort().map { it.data }
+        val orderedDecls = dag.topoSort().map { it.data }
 
-        return desugared.filterIsInstance<Decl.TypeDecl>() + orderedDecl + lambdas
+        return types + orderedDecls
     }
 
     /**
