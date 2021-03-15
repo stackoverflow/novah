@@ -6,7 +6,6 @@
 - [ ] IDE support
 - [ ] LSP implemented in the compiler
 - [ ] Syntatic sugar for lambdas
-- [ ] Syntax for record update/set (probably with type-level strings or macros?)
 - [ ] Standard library
 - [ ] Full pattern destructuring for function and let parameters
 - [ ] Full support for pattern matching (records, vectors, etc)

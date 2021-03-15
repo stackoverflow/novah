@@ -1,9 +1,6 @@
 # TODO
 
 - [ ] Implement a kind checker for types
-- [ ] Order declarations by topology taking recursive functions in consideration and allowing mutually recursive
-      functions in case they have type annotations (or maybe just use a fix operator?)
-- [ ] Some better way to type check mutually recursive functions (fixpoint?)
 - [ ] Report that an imported type is private instead of not found
 - [ ] Desugar types to Class<?> before codegen (what to do with user defined types?)
 - [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
@@ -12,3 +9,4 @@
 - [ ] Store and report type aliases in types
 - [ ] Check unsafeCast works at runtime
 - [ ] 0-cost opaque types
+- [ ] Syntax for record update/set (probably with type-level strings or macros?)

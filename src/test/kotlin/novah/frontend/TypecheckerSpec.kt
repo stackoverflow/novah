@@ -209,25 +209,30 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck mutually recursive functions" {
-        // TODO: uncomment when we have stdlib
-        val codeCommented = """
-            //f1 : Int -> Int
+        val code = """
+            (>) : Int -> Int -> Boolean
+            (>) _ _ = true
+            
+            (<=) : Int -> Int -> Boolean
+            (<=) _ _ = true
+            
+            (+) : Int -> Int -> Int
+            (+) x _ = x
+            
+            (-) : Int -> Int -> Int
+            (-) x _ = x
+            
+            f1 : Int -> Int
             f1 x =
               if x > 0
               then f2 x
               else x - 1
             
-            //f2 : Int -> Int
+            f2 : Int -> Int
             f2 x =
               if x <= 0
               then f1 x
               else x + 1
-        """.module()
-
-        val code = """
-            f1 x = f2 x
-            
-            f2 x = f1 x
         """.module()
 
         shouldNotThrowAny {

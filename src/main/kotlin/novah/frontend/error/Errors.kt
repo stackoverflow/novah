@@ -218,10 +218,13 @@ object Errors {
     fun duplicateModule(name: String) = "Found duplicate module $name."
 
     fun cycleFound(nodes: List<String>) =
-        nodes.joinToString(", ", prefix = "Found cycle between modules ", postfix = ".")
+        nodes.joinToString(prefix = "Found cycle between modules ", postfix = ".")
 
     fun cycleInValues(nodes: List<String>) =
-        nodes.joinToString(", ", prefix = "Found cycle between values ", postfix = ".")
+        nodes.joinToString(prefix = "Found cycle between values ", postfix = ".")
+    
+    fun cycleInFunctions(nodes: List<String>) =
+        nodes.joinToString(prefix = "Mutually recursive functions ", postfix = " need type annotations.")
 
     fun moduleNotFound(name: String) = "Could not find module $name."
 
