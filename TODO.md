@@ -11,3 +11,4 @@
 - [ ] Properly handle records in check mode in the typechecker (not trivial!)
 - [ ] Store and report type aliases in types
 - [ ] Check unsafeCast works at runtime
+- [ ] 0-cost opaque types

@@ -36,7 +36,7 @@ object GenUtil {
 
     const val NOVAH_GENCLASS_VERSION = Opcodes.V1_8
 
-    fun visibility(decl: Decl.DataDecl): Int =
+    fun visibility(decl: Decl.TypeDecl): Int =
         if (decl.visibility == Visibility.PUBLIC) Opcodes.ACC_PUBLIC else 0
 
     fun visibility(ctor: DataConstructor): Int =

@@ -81,11 +81,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             )
 
         var main: Decl.ValDecl? = null
-        val datas = mutableListOf<Decl.DataDecl>()
+        val datas = mutableListOf<Decl.TypeDecl>()
         val values = mutableListOf<Decl.ValDecl>()
         for (decl in ast.decls) {
             when (decl) {
-                is Decl.DataDecl -> {
+                is Decl.TypeDecl -> {
                     for (ctor in decl.dataCtors) {
                         ctorCache["${ast.name}/${ctor.name}"] = ctor
                     }

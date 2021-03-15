@@ -1,35 +1,8 @@
 module pack.tryout
 
-foreign import novah.Core:mult(Int, Int) as multInt
-foreign import novah.Core:sum(Int, Int) as sumInt
-foreign import novah.Core:sum(Long, Long) as sumLong
-foreign import novah.Core:sum(Float, Float) as sumFloat
-foreign import novah.Core:sum(Double, Double) as sumDouble
+opaque type Id = Int
 
-type Plus a = Plus { plus : a -> a -> a }
-
-(+) : forall a. {{ Plus a }} -> a -> a -> a
-(+) {{p}} x y = case p of Plus pl -> pl.plus x y
-
-instance
-plusInt : Plus Int
-plusInt = Plus { plus: \x y -> sumInt x y }
-
-instance
-plusLong : Plus Long
-plusLong = Plus { plus: \x y -> sumLong x y }
-
-instance
-plusFloat : Plus Float
-plusFloat = Plus { plus: \x y -> sumFloat x y }
-
-instance
-plusDouble : Plus Double
-plusDouble = Plus { plus: \x y -> sumDouble x y }
-
-(*) : Int -> Int -> Int
-(*) x y = multInt x y
-
-main () = do
-  println (5.0 + 10.0)
-  ()
+main : Unit -> Unit
+main () =
+  case Id 6 of
+    Id i -> println i

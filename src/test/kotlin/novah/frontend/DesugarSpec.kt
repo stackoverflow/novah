@@ -22,11 +22,10 @@ import novah.ast.canonical.DataConstructor
 import novah.ast.canonical.Decl
 import novah.ast.source.Visibility
 import novah.frontend.TestUtil.parseString
-import novah.frontend.hmftypechecker.Typechecker
 
 class DesugarSpec : StringSpec({
 
-    fun List<Decl.DataDecl>.byName(n: String) = find { it.name == n }!!
+    fun List<Decl.TypeDecl>.byName(n: String) = find { it.name == n }!!
     fun List<Decl.ValDecl>.byName(n: String) = find { it.name == n }!!
     fun List<DataConstructor>.byName(n: String) = find { it.name == n }!!
 
@@ -51,7 +50,7 @@ class DesugarSpec : StringSpec({
         val ast = parseString(code)
         val dast = Desugar(ast).desugar().unwrap()
 
-        val tds = dast.decls.filterIsInstance<Decl.DataDecl>()
+        val tds = dast.decls.filterIsInstance<Decl.TypeDecl>()
 
         val allVis = tds.byName("AllVis")
         allVis.visibility shouldBe Visibility.PUBLIC

@@ -142,6 +142,8 @@ object Errors {
     
     const val INVALID_OPERATOR_DECL = "Operator declarations have to be defined between parentheses."
 
+    const val INVALID_OPAQUE = "Opaque types should be in the form: opaque type <Name> = <type>."
+    
     val IMPORT_RAW = """Raw imports should only be used for core namespaces.
         |Use an alias or explicit import instead.""".trimMargin()
     

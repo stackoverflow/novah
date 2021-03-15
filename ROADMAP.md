@@ -8,9 +8,9 @@
 - [ ] Syntatic sugar for lambdas
 - [ ] Syntax for record update/set (probably with type-level strings or macros?)
 - [ ] Standard library
-- [ ] Opaque/newtypes
 - [ ] Full pattern destructuring for function and let parameters
 - [ ] Full support for pattern matching (records, vectors, etc)
+- [X] Opaque/newtypes
 - [X] Generic programming with instance arguments (implicits)
 - [X] Literal syntax for basic data structures
 - [X] Persistent data structures
