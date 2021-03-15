@@ -49,7 +49,7 @@ import org.objectweb.asm.Type as ASMType
  * Each ADT and constructor is a separate class
  */
 class ADTGen(
-    private val adt: Decl.DataDecl,
+    private val adt: Decl.TypeDecl,
     private val ast: Module,
     private val onGenClass: (String, String, ByteArray) -> Unit
 ) {

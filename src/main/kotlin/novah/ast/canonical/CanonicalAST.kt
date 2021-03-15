@@ -38,7 +38,7 @@ data class Module(
 )
 
 sealed class Decl {
-    data class DataDecl(
+    data class TypeDecl(
         val name: String,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,

@@ -122,11 +122,12 @@ sealed class ForeignImport(val type: String, val span: Span) {
 }
 
 sealed class Decl(val name: String, val visibility: Visibility) {
-    class DataDecl(
+    class TypeDecl(
         name: String,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
-        visibility: Visibility
+        visibility: Visibility,
+        val isOpaque: Boolean
     ) : Decl(name, visibility)
 
     class ValDecl(

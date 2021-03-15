@@ -56,7 +56,7 @@ object Inference {
         val (id, vvar) = newBoundVar()
         env.extend("\$fix", TForall(listOf(id), TArrow(listOf(TArrow(listOf(vvar), vvar)), vvar)))
 
-        val datas = ast.decls.filterIsInstance<Decl.DataDecl>()
+        val datas = ast.decls.filterIsInstance<Decl.TypeDecl>()
         datas.forEach { d ->
             val (ty, map) = getDataType(d, ast.name)
             checkShadowType(env, d.name, d.span)
@@ -557,7 +557,7 @@ object Inference {
         if (arity != 2) inferError(Errors.wrongOperatorArity(decl.name, arity), decl.span)
     }
 
-    private fun getDataType(d: Decl.DataDecl, moduleName: String): Pair<Type, Map<String, TVar>> {
+    private fun getDataType(d: Decl.TypeDecl, moduleName: String): Pair<Type, Map<String, TVar>> {
         val kind = if (d.tyVars.isEmpty()) Kind.Star else Kind.Constructor(d.tyVars.size)
         val raw = TConst("$moduleName.${d.name}", kind).span(d.span)
 

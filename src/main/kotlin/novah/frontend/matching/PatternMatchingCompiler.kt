@@ -201,7 +201,7 @@ class PatternMatchingCompiler<R> {
         private val ctorCache = mutableMapOf<String, Ctor>()
 
         fun addConsToCache(mod: Module) {
-            for (dd in mod.decls.filterIsInstance<Decl.DataDecl>()) {
+            for (dd in mod.decls.filterIsInstance<Decl.TypeDecl>()) {
                 val span = dd.dataCtors.size
                 for (c in dd.dataCtors) {
                     val name = "${mod.name}.${c.name}"

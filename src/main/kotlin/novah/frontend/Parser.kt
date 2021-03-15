@@ -237,7 +237,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val decl = when (tk.value) {
             is TypeT -> {
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
-                parseDataDecl(visibility)
+                parseTypeDecl(visibility)
+            }
+            is Opaque -> {
+                if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
+                parseOpaqueDecl(visibility)
             }
             is Ident -> parseVarDecl(visibility, isInstance)
             is LParen -> parseVarDecl(visibility, isInstance, true)
@@ -251,7 +255,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return decl
     }
 
-    private fun parseDataDecl(visibility: Token?): Decl {
+    private fun parseTypeDecl(visibility: Token?): Decl {
         val vis = if (visibility != null) Visibility.PUBLIC else Visibility.PRIVATE
         val typ = expect<TypeT>(noErr())
         return withOffside(typ.offside() + 1, false) {
@@ -268,8 +272,26 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 if (iter.peekIsOffside() || iter.peek().value is EOF) break
                 expect<Pipe>(withError(E.pipeExpected("constructor")))
             }
-            Decl.DataDecl(name, tyVars, ctors, vis)
+            Decl.TypeDecl(name, tyVars, ctors, vis, false)
                 .withSpan(typ.span, iter.current().span)
+        }
+    }
+    
+    private fun parseOpaqueDecl(visibility: Token?): Decl {
+        val vis = if (visibility != null) Visibility.PUBLIC else Visibility.PRIVATE
+        val tk = expect<Opaque>(noErr())
+        expect<TypeT>(withError(E.INVALID_OPAQUE))
+        return withOffside(tk.offside() + 1, false) {
+            val name = expect<UpperIdent>(withError(E.DATA_NAME)).value.v
+
+            val tyVars = emptyList<String>()
+            expect<Equals>(withError(E.DATA_EQUALS))
+
+            val ctorvis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
+            val type = parseType(true)
+            val ctors = listOf(DataConstructor(name, listOf(type), ctorvis, type.span))
+            Decl.TypeDecl(name, tyVars, ctors, vis, true)
+                .withSpan(tk.span, iter.current().span)
         }
     }
 

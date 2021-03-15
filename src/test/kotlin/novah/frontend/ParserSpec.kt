@@ -17,8 +17,6 @@ package novah.frontend
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.data.blocking.forAll
-import io.kotest.data.row
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
@@ -33,7 +31,6 @@ import novah.frontend.TestUtil.abs
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.parseResource
 import novah.frontend.TestUtil.parseString
-import novah.frontend.hmftypechecker.Typechecker
 
 class ParserSpec : StringSpec({
 
@@ -131,7 +128,7 @@ class ParserSpec : StringSpec({
     "Lexer and Parser correctly parse comments" {
         val ast = parseResource("Comments.novah")
 
-        val data = ast.decls[0] as Decl.DataDecl
+        val data = ast.decls[0] as Decl.TypeDecl
         val type = ast.decls[1] as Decl.ValDecl
         val vard = ast.decls[2] as Decl.ValDecl
 

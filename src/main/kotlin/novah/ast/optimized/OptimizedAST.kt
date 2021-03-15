@@ -29,7 +29,7 @@ import java.lang.reflect.Constructor as JConstructor
 data class Module(val name: String, val sourceName: String, val hasLambda: Boolean, val decls: List<Decl>)
 
 sealed class Decl(open val span: Span) {
-    data class DataDecl(
+    data class TypeDecl(
         val name: String,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,

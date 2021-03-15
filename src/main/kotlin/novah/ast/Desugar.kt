@@ -71,12 +71,12 @@ class Desugar(private val smod: SModule) {
     private val declVars = mutableSetOf<String>()
 
     private fun SDecl.desugar(): Decl? = when (this) {
-        is SDecl.DataDecl -> {
+        is SDecl.TypeDecl -> {
             validateDataConstructorNames(this)
             if (smod.foreignTypes[name] != null || imports[name] != null) {
                 parserError(E.duplicatedType(name), span)
             }
-            Decl.DataDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility)
+            Decl.TypeDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility)
         }
         is SDecl.ValDecl -> {
             declVars.clear()
@@ -431,14 +431,14 @@ class Desugar(private val smod: SModule) {
 
         val orderedDecl = dag.topoSort().map { it.data }
 
-        return desugared.filterIsInstance<Decl.DataDecl>() + orderedDecl + lambdas
+        return desugared.filterIsInstance<Decl.TypeDecl>() + orderedDecl + lambdas
     }
 
     /**
      * To avoid confusion, constructors can't have the same name as
      * their type unless there's only one constructor for the type.
      */
-    private fun validateDataConstructorNames(dd: SDecl.DataDecl) {
+    private fun validateDataConstructorNames(dd: SDecl.TypeDecl) {
         if (dd.dataCtors.size > 1) {
             val typeName = dd.name
             dd.dataCtors.forEach { dc ->

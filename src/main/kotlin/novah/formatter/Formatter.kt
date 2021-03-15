@@ -94,7 +94,7 @@ class Formatter {
         val cmt = if (d.comment != null) show(d.comment!!, true) else ""
         val vis = if (d.visibility == Visibility.PUBLIC) "pub\n" else ""
         return cmt + when (d) {
-            is Decl.DataDecl -> {
+            is Decl.TypeDecl -> {
                 val visi = if (d.dataCtors[0].visibility == Visibility.PUBLIC) "pub+\n" else vis
                 visi + show(d)
             }
@@ -107,7 +107,7 @@ class Formatter {
         return "typealias ${ta.name} " + ta.tyVars.joinToStr(" ", postfix = " ") + "= ${show(ta.type)}"
     }
 
-    fun show(d: Decl.DataDecl): String {
+    fun show(d: Decl.TypeDecl): String {
         val dd = "type ${d.name}" + d.tyVars.joinToStr(" ", prefix = " ")
         return if (d.dataCtors.size == 1) "$dd = ${show(d.dataCtors[0])}"
         else {

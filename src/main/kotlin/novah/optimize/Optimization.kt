@@ -35,7 +35,7 @@ object Optimization {
         val decls = ArrayList<Decl>(ast.decls.size)
         for (d in ast.decls) {
             decls += when (d) {
-                is Decl.DataDecl -> d
+                is Decl.TypeDecl -> d
                 is Decl.ValDecl -> {
                     reportUnusedVars(d.exp, d.span, ast)
                     Decl.ValDecl(d.name, f(d.exp), d.visibility, d.span)

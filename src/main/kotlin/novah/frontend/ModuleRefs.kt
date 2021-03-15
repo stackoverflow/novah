@@ -354,7 +354,7 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
             }
         }
 
-        val types = ast.decls.filterIsInstance<Decl.DataDecl>().map { it.name to it }.toMap()
+        val types = ast.decls.filterIsInstance<Decl.TypeDecl>().map { it.name to it }.toMap()
         consts.forEach { name ->
             val ty = types[name]
             if (ty != null && ty.visibility == Visibility.PRIVATE) {

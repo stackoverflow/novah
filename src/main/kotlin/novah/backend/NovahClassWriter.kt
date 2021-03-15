@@ -35,7 +35,7 @@ class NovahClassWriter(flags: Int) : ClassWriter(flags) {
         // caches all ctor -> type relations for later
         private val superClassCache = mutableMapOf<String, String>()
 
-        fun addADTs(moduleName: String, adts: List<Decl.DataDecl>) {
+        fun addADTs(moduleName: String, adts: List<Decl.TypeDecl>) {
             for (adt in adts) {
                 val superClass = "$moduleName/${adt.name}"
                 for (ctor in adt.dataCtors) {

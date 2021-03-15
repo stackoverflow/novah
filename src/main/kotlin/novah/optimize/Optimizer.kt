@@ -29,7 +29,7 @@ import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
-import novah.ast.canonical.Decl.DataDecl as CDataDecl
+import novah.ast.canonical.Decl.TypeDecl as CDataDecl
 import novah.ast.canonical.Decl.ValDecl as CValDecl
 import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
@@ -44,7 +44,7 @@ class Optimizer(private val ast: CModule) {
 
     private var haslambda = false
     private val warnings = mutableListOf<CompilerProblem>()
-    
+
     fun getWarnings(): List<CompilerProblem> = warnings
 
     fun convert(): Result<Module, CompilerProblem> {
@@ -67,8 +67,8 @@ class Optimizer(private val ast: CModule) {
 
     private fun CValDecl.convert(): Decl.ValDecl = Decl.ValDecl(name, exp.convert(), visibility, span)
 
-    private fun CDataDecl.convert(): Decl.DataDecl =
-        Decl.DataDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span)
+    private fun CDataDecl.convert(): Decl.TypeDecl =
+        Decl.TypeDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span)
 
     private fun CDataConstructor.convert(): DataConstructor =
         DataConstructor(name, args.map { it.convert() }, visibility)
@@ -257,11 +257,11 @@ class Optimizer(private val ast: CModule) {
             ctorExpr: Expr,
             ctorType: Type,
             fieldType: Type,
-            expectedFieldType: Type
+            expectedFieldType: Type?
         ): Expr {
             val castedExpr = Expr.Cast(ctorExpr, ctorType)
             val field = Expr.ConstructorAccess(name, fieldIndex, castedExpr, fieldType)
-            return if (fieldType == expectedFieldType || fieldType.isMono()) field
+            return if (expectedFieldType == null || fieldType == expectedFieldType || fieldType.isMono()) field
             else Expr.Cast(field, expectedFieldType)
         }
 
@@ -274,8 +274,7 @@ class Optimizer(private val ast: CModule) {
                 val vars = mutableListOf<VarDef>()
 
                 val (fieldTypes, _) = peelArgs(p.ctor.type!!)
-                val expectedFieldTypes = exp.type as? Type.TConstructor
-                    ?: internalError("Got wrong type for constructor pattern: ${exp.type}")
+                val expectedFieldTypes = (exp.type as? Type.TConstructor)?.types ?: emptyList()
 
                 val ctor = p.ctor.convert(locals) as Expr.Constructor
                 val name = p.ctor.fullname(ast.name)
@@ -283,8 +282,9 @@ class Optimizer(private val ast: CModule) {
                 conds += Expr.InstanceOf(exp, ctorType)
 
                 p.fields.forEachIndexed { i, pat ->
+                    val idx = i + 1
                     val field =
-                        mkCtorField(ctor.fullName, i + 1, exp, ctorType, fieldTypes[i], expectedFieldTypes.types[i])
+                        mkCtorField(ctor.fullName, idx, exp, ctorType, fieldTypes[i], expectedFieldTypes.getOrNull(i))
                     val (cond, vs) = desugarPattern(pat, field)
                     conds += cond
                     vars += vs
@@ -366,7 +366,7 @@ class Optimizer(private val ast: CModule) {
             warnings += mkWarn(E.redundantMatches(unreacheable), expr.span, ProblemContext.PATTERN_MATCHING)
         }
     }
-    
+
     private fun mkWarn(msg: String, span: Span, ctx: ProblemContext): CompilerProblem =
         CompilerProblem(
             msg,
