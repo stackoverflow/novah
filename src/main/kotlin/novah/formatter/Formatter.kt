@@ -216,6 +216,7 @@ class Formatter {
         is Pattern.Ctor -> show(p.ctor) + p.fields.joinToStr(" ", prefix = " ") { show(it) }
         is Pattern.LiteralP -> show(p.lit)
         is Pattern.Parens -> "(${show(p.pattern)})"
+        is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }}"
     }
 
     private fun show(p: LiteralPattern): String = when (p) {

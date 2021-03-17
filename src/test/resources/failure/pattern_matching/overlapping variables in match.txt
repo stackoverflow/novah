@@ -1,9 +1,7 @@
 module [33mtest[0m
-at src/test/resources/failure/pattern_matching/overlapping variables in match.novah:6:3 - 6:12
+at src/test/resources/failure/pattern_matching/overlapping variables in match.novah:6:11 - 6:12
 
-  Overlapping names in binder:
-  
-      v, v
+  Value v is shadowing another value with the same name.
 
 while checking expression case x of
   Tuple v v -> v

@@ -223,9 +223,9 @@ class Optimizer(private val ast: CModule) {
             }
         }
         // records always have the same type
+        is TRecord -> row.convert()
         is TRowEmpty -> Type.TVar(RECORD_TYPE)
-        is TRecord -> Type.TVar(RECORD_TYPE)
-        is TRowExtend -> Type.TVar(RECORD_TYPE)
+        is TRowExtend -> Type.TVar(RECORD_TYPE, labels = labels.mapList { it.convert() })
         is TImplicit -> type.convert()
     }
 
@@ -264,6 +264,15 @@ class Optimizer(private val ast: CModule) {
             return if (expectedFieldType == null || fieldType == expectedFieldType || fieldType.isMono()) field
             else Expr.Cast(field, expectedFieldType)
         }
+        
+        fun simplifyConds(conds: List<Expr>): Expr {
+            val simplified = conds.filter { it != tru }
+            return when {
+                simplified.isEmpty() -> tru
+                simplified.size == 1 -> simplified[0]
+                else -> Expr.OperatorApp("&&", simplified, boolType)
+            }
+        }
 
         fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<VarDef>> = when (p) {
             is Pattern.Wildcard -> tru to emptyList()
@@ -290,13 +299,22 @@ class Optimizer(private val ast: CModule) {
                     vars += vs
                 }
 
-                // remove redundant checks
-                val simplified = conds.filter { it != tru }
-                when {
-                    simplified.isEmpty() -> tru
-                    simplified.size == 1 -> simplified[0]
-                    else -> Expr.OperatorApp("&&", conds, boolType)
-                } to vars
+                simplifyConds(conds) to vars
+            }
+            is Pattern.Record -> {
+                val conds = mutableListOf<Expr>()
+                val vars = mutableListOf<VarDef>()
+                
+                val rows = (exp.type as? Type.TVar)?.labels ?: internalError("Got wrong type for record: ${exp.type}")
+                
+                p.labels.forEachKeyList { label, pat ->
+                    val field = Expr.RecordSelect(exp, label, rows.get(label, null).first())
+                    val (cond, vs) = desugarPattern(pat, field)
+                    conds += cond
+                    vars += vs
+                }
+                
+                simplifyConds(conds) to vars
             }
         }
 

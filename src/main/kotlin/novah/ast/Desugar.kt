@@ -179,6 +179,7 @@ class Desugar(private val smod: SModule) {
             span
         )
         is SPattern.Parens -> pattern.desugar(locals)
+        is SPattern.Record -> Pattern.Record(labels.mapList { it.desugar(locals) }, span)
     }
 
     private fun SLiteralPattern.desugar(locals: List<String>): LiteralPattern = when (this) {

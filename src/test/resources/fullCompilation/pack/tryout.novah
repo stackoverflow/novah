@@ -1,8 +1,9 @@
 module pack.tryout
 
-opaque type Id = Int
+rec = { x: 1, y: { z: 'a' } }
 
-main : Unit -> Unit
-main () =
-  case Id 6 of
-    Id i -> println i
+fun r =
+  case r of
+    { y: { z } } -> println z
+
+main () = fun rec

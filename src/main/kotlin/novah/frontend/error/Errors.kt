@@ -306,12 +306,6 @@ object Errors {
 
     fun undefinedVar(name: String) = "Undefined variable $name."
 
-    fun overlappingNamesInBinder(names: List<String>) = """
-        Overlapping names in binder:
-        
-            ${names.joinToString()}
-    """.trimIndent()
-
     fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
 
     fun duplicatedType(name: String) = "Type $name is already defined or imported."

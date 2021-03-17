@@ -197,6 +197,7 @@ class PatternMatchingCompiler<R> {
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
+        private fun mkRecordCtor(arity: Int) = Ctor("record", arity, 1)
 
         private val ctorCache = mutableMapOf<String, Ctor>()
 
@@ -218,7 +219,7 @@ class PatternMatchingCompiler<R> {
 
         private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {
             is Pattern.Wildcard -> Pat.PVar("_")
-            is Pattern.Var -> Pat.PVar(p.name.toString())
+            is Pattern.Var -> Pat.PVar(p.name)
             is Pattern.Ctor -> {
                 val name = p.ctor.fullname(modName)
                 Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
@@ -234,6 +235,10 @@ class PatternMatchingCompiler<R> {
                     is LiteralPattern.DoubleLiteral -> mkPrimCtor(l.e.v.toString())
                 }
                 Pat.PCon(con, emptyList())
+            }
+            is Pattern.Record -> {
+                val pats = p.labels.values().flatten().map { convertPattern(it, modName) }
+                Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
             }
         }
     }

@@ -20,9 +20,7 @@ import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
 import novah.ast.canonical.*
-import novah.data.forEachList
-import novah.data.mapList
-import novah.data.singletonPMap
+import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.frontend.hmftypechecker.InstanceSearch.instanceSearch
@@ -212,14 +210,18 @@ object Inference {
                 exp.withType(ty!!)
             }
             is Expr.Match -> {
-                val expTy = infer(env, level, exp.exp)
+                val expTy = instantiate(level, infer(env, level, exp.exp))
+                val isCheck = !expTy.isUnbound()
                 val resType = newVar(level)
 
                 exp.cases.forEach { case ->
-                    val vars = inferpattern(env, level, case.pattern, expTy)
+                    val vars = inferpattern(env, level, case.pattern, expTy, isCheck)
                     val newEnv = if (vars.isNotEmpty()) {
                         val theEnv = env.fork()
-                        vars.forEach { theEnv.extend(it.first, it.second) }
+                        vars.forEach {
+                            checkShadow(theEnv, it.name, it.span)
+                            theEnv.extend(it.name, it.type)
+                        }
                         theEnv
                     } else env
 
@@ -383,25 +385,16 @@ object Inference {
         else subsume(level, paramType, argType, arg.span)
     }
 
-    private fun inferpattern(env: Env, level: Level, pat: Pattern, ty: Type): List<Pair<String, Type>> {
-        tailrec fun peelArgs(args: List<Type>, t: Type): Pair<List<Type>, Type> = when (t) {
-            is TArrow -> {
-                if (t.ret is TArrow) peelArgs(args + t.args, t.ret)
-                else args + t.args to t.ret
-            }
-            else -> args to t
-        }
+    data class PatternVar(val name: String, val type: Type, val span: Span)
+
+    private fun inferpattern(env: Env, level: Level, pat: Pattern, ty: Type, isCheck: Boolean): List<PatternVar> {
         return when (pat) {
             is Pattern.LiteralP -> {
-                val type = infer(env, level, pat.lit.e)
-                unify(ty, type, pat.lit.e.span)
+                check(env, level, ty, pat.lit.e)
                 emptyList()
             }
             is Pattern.Wildcard -> emptyList()
-            is Pattern.Var -> {
-                checkShadow(env, pat.name, pat.span)
-                listOf(pat.name to ty)
-            }
+            is Pattern.Var -> listOf(PatternVar(pat.name, ty, pat.span))
             is Pattern.Ctor -> {
                 val cty = infer(env, level, pat.ctor)
 
@@ -413,16 +406,47 @@ object Inference {
 
                 if (ctorTypes.isEmpty()) emptyList()
                 else {
-                    val vars = mutableListOf<Pair<String, Type>>()
+                    val vars = mutableListOf<PatternVar>()
                     ctorTypes.zip(pat.fields).forEach { (type, pattern) ->
-                        vars.addAll(inferpattern(env, level, pattern, type))
+                        vars.addAll(inferpattern(env, level, pattern, type, isCheck))
                     }
-                    val varNames = vars.map { it.first }
-                    if (varNames.hasDuplicates()) inferError(Errors.overlappingNamesInBinder(varNames), pat.span)
                     vars
                 }
             }
+            is Pattern.Record -> {
+                if (pat.labels.isEmpty()) {
+                    unify(TRecord(newVar(level)), ty, pat.span)
+                    return emptyList()
+                }
+
+                val vars = mutableListOf<PatternVar>()
+                if (isCheck) {
+                    val (rows, _) = collectRows(if (ty is TRecord) ty.row else ty)
+                    pat.labels.forEachKeyList { label, p ->
+                        val rowTy = rows.find { it.key() == label }?.value()?.first()
+                            ?: inferError(Errors.recordMissingLabels(listOf(label)), pat.span)
+                        vars.addAll(inferpattern(env, level, p, rowTy, isCheck))
+                    }
+                } else {
+                    // we are in infer mode so we can't make any assumptions about rows
+                    val tys: LabelMap<Type> = pat.labels.mapList { p ->
+                        val rowTy = newVar(level)
+                        vars.addAll(inferpattern(env, level, p, rowTy, isCheck))
+                        rowTy
+                    }
+                    unify(TRecord(TRowExtend(tys, newVar(level))), ty, pat.span)
+                }
+                vars
+            }
         }
+    }
+
+    private tailrec fun peelArgs(args: List<Type>, t: Type): Pair<List<Type>, Type> = when (t) {
+        is TArrow -> {
+            if (t.ret is TArrow) peelArgs(args + t.args, t.ret)
+            else args + t.args to t.ret
+        }
+        else -> args to t
     }
 
     private fun matchFunType(numParams: Int, t: Type, span: Span): Pair<List<Type>, Type> = when {
@@ -538,6 +562,22 @@ object Inference {
         if (env.lookupType(type) != null) inferError(Errors.duplicatedType(type), span)
     }
 
+    private fun collectRows(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
+        is TRowEmpty -> LabelMap<Type>() to TRowEmpty().span(ty.span)
+        is TVar -> {
+            when (val tv = ty.tvar) {
+                is TypeVar.Link -> collectRows(tv.type)
+                else -> LabelMap<Type>() to ty
+            }
+        }
+        is TRowExtend -> {
+            val (restLabels, restTy) = collectRows(ty.row)
+            if (restLabels.isEmpty()) ty.labels to restTy
+            else ty.labels.merge(restLabels) to restTy
+        }
+        else -> LabelMap<Type>() to ty
+    }
+
     /**
      * Makes sure the operator receives only 2 non-instance parameters.
      */
@@ -553,6 +593,7 @@ object Inference {
             }
             else -> 0
         }
+
         val arity = numPars(decl.exp.type!!)
         if (arity != 2) inferError(Errors.wrongOperatorArity(decl.name, arity), decl.span)
     }

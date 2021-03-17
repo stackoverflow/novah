@@ -21,6 +21,7 @@ import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.frontend.matching.Pat
 import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
@@ -699,8 +700,24 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val fields = tryParseListOf { tryParsePattern() }
                 Pattern.Ctor(ctor, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
             }
+            is LBracket -> {
+                iter.next()
+                val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
+                val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span
+                Pattern.Record(labelMapWith(rows), span(tk.span, end))
+            }
             else -> null
         }
+    }
+
+    private fun parsePatternRow(): Pair<String, Pattern> {
+        val (label, tk) = parseLabel()
+        if (iter.peek().value !is Colon && tk.value is Ident) {
+            return label to Pattern.Var(label, tk.span)
+        }
+        expect<Colon>(withError(E.RECORD_COLON))
+        val pat = parsePattern()
+        return label to pat
     }
 
     private fun parseLabel(): Pair<String, Spanned<Token>> {
