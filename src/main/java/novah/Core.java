@@ -109,7 +109,35 @@ public class Core {
         return e1 == e2;
     }
 
+    public static boolean equivalent(byte e1, byte e2) {
+        return e1 == e2;
+    }
+
+    public static boolean equivalent(short e1, short e2) {
+        return e1 == e2;
+    }
+
+    public static boolean equivalent(int e1, int e2) {
+        return e1 == e2;
+    }
+
     public static boolean equivalent(long e1, long e2) {
+        return e1 == e2;
+    }
+
+    public static boolean equivalent(float e1, float e2) {
+        return e1 == e2;
+    }
+
+    public static boolean equivalent(double e1, double e2) {
+        return e1 == e2;
+    }
+
+    public static boolean equivalent(char e1, char e2) {
+        return e1 == e2;
+    }
+
+    public static boolean equivalent(boolean e1, boolean e2) {
         return e1 == e2;
     }
 }

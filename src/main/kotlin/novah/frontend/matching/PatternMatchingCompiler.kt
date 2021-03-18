@@ -242,6 +242,7 @@ class PatternMatchingCompiler<R> {
                 Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
             }
             is Pattern.Vector -> Pat.PCon(mkVectorCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
+            is Pattern.As -> convertPattern(p.pat, modName)
         }
     }
 }

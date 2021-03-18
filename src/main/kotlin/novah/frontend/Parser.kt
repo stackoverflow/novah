@@ -652,7 +652,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun tryParsePattern(): Pattern? {
         val tk = iter.peek()
-        return when (tk.value) {
+        val pat = when (tk.value) {
             is Underline -> {
                 iter.next()
                 Pattern.Wildcard(tk.span)
@@ -714,6 +714,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             else -> null
         }
+        return if (pat != null && iter.peek().value is As) {
+            iter.next()
+            val name = expect<Ident>(withError(E.VARIABLE))
+            Pattern.As(pat, name.value.v, span(pat.span, name.span))
+        } else pat
     }
 
     private fun parsePatternRow(): Pair<String, Pattern> {

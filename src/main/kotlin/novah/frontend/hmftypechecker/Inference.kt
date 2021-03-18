@@ -15,7 +15,6 @@
  */
 package novah.frontend.hmftypechecker
 
-import novah.Util.hasDuplicates
 import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
@@ -451,6 +450,12 @@ object Inference {
                 pat.elems.forEach { p ->
                     vars += inferpattern(env, level, p, elemTy, isCheck)
                 }
+                vars
+            }
+            is Pattern.As -> {
+                val vars = mutableListOf<PatternVar>()
+                vars += inferpattern(env, level, pat.pat, ty, isCheck)
+                vars += PatternVar(pat.name, ty, pat.span)
                 vars
             }
         }

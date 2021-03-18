@@ -237,8 +237,26 @@ class Optimizer(private val ast: CModule) {
     
     private val vectorSize = PList::class.java.methods.find { it.name == "size" }!!
     private val vectorAccess = PList::class.java.methods.find { it.name == "nth" }!!
+    private val equivalentInt = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
+    }!!
     private val equivalentLong = Core::class.java.methods.find { 
         it.name == "equivalent" && it.parameterTypes[0] == Long::class.java 
+    }!!
+    private val equivalentFloat = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Float::class.java
+    }!!
+    private val equivalentDouble = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Double::class.java
+    }!!
+    private val equivalentChar = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Char::class.java
+    }!!
+    private val equivalentBoolean = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
+    }!!
+    private val equivalent = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Object::class.java
     }!!
 
     private val stringType = tString.convert()
@@ -294,7 +312,18 @@ class Optimizer(private val ast: CModule) {
         fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<VarDef>> = when (p) {
             is Pattern.Wildcard -> tru to emptyList()
             is Pattern.Var -> tru to listOf(VarDef(p.name, exp))
-            is Pattern.LiteralP -> Expr.OperatorApp("==", listOf(exp, p.lit.e.convert(locals)), boolType) to emptyList()
+            is Pattern.LiteralP -> {
+                val method = when (p.lit) {
+                    is LiteralPattern.IntLiteral -> equivalentInt
+                    is LiteralPattern.LongLiteral -> equivalentLong
+                    is LiteralPattern.FloatLiteral -> equivalentFloat
+                    is LiteralPattern.DoubleLiteral -> equivalentDouble
+                    is LiteralPattern.CharLiteral -> equivalentChar
+                    is LiteralPattern.BoolLiteral -> equivalentBoolean
+                    is LiteralPattern.StringLiteral -> equivalent
+                }
+                Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType) to emptyList()
+            }
             is Pattern.Ctor -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
@@ -347,6 +376,17 @@ class Optimizer(private val ast: CModule) {
                     vars += vs
                 }
 
+                simplifyConds(conds) to vars
+            }
+            is Pattern.As -> {
+                val conds = mutableListOf<Expr>()
+                val vars = mutableListOf<VarDef>()
+                
+                val (cond, vs) = desugarPattern(p.pat, exp)
+                conds += cond
+                vars += vs
+                vars += VarDef(p.name, exp)
+                
                 simplifyConds(conds) to vars
             }
         }

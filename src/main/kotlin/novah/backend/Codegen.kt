@@ -583,7 +583,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val fail = Label()
         val success = Label()
         val end = Label()
-        val last = e.operands.size - 1
+        val last = e.operands.lastIndex
         e.operands.forEachIndexed { i, op ->
             genExprForPrimitiveBool(op, mv, ctx)
 

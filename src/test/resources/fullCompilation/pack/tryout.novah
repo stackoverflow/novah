@@ -13,7 +13,12 @@ fun r =
 fun2 v =
   case v of
     [x] -> println x
-    [x, y] -> println (sum x y)
+    [_, _] as ve -> println ve
     _ -> println -1
 
-main () = fun2 vec
+fun3 () = case "a" of
+  "" -> println "empty"
+  "a" as x -> println x
+  _ -> println -1
+
+main () = fun3 ()
