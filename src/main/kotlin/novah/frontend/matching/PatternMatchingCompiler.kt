@@ -198,6 +198,7 @@ class PatternMatchingCompiler<R> {
         private val falseCtor = Ctor("false", 0, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkRecordCtor(arity: Int) = Ctor("record", arity, 1)
+        private fun mkVectorCtor(arity: Int) = Ctor("vector", arity, Integer.MAX_VALUE)
 
         private val ctorCache = mutableMapOf<String, Ctor>()
 
@@ -240,6 +241,7 @@ class PatternMatchingCompiler<R> {
                 val pats = p.labels.values().flatten().map { convertPattern(it, modName) }
                 Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
             }
+            is Pattern.Vector -> Pat.PCon(mkVectorCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
         }
     }
 }

@@ -217,6 +217,7 @@ class Formatter {
         is Pattern.LiteralP -> show(p.lit)
         is Pattern.Parens -> "(${show(p.pattern)})"
         is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }}"
+        is Pattern.Vector -> "[${p.elems.joinToString { show(it) }}]"
     }
 
     private fun show(p: LiteralPattern): String = when (p) {

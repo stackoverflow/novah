@@ -104,4 +104,12 @@ public class Core {
     public static <T> void println(T arg) {
         System.out.println(arg);
     }
+    
+    public static <T> boolean equivalent(T e1, T e2) {
+        return e1 == e2;
+    }
+
+    public static boolean equivalent(long e1, long e2) {
+        return e1 == e2;
+    }
 }

@@ -67,6 +67,8 @@ object Errors {
         |Literal pattern: 3, 'a', "a string", false etc
         |Variable pattern: x, y, myVar, etc
         |Constructor pattern: Just "ok", Result res, Nothing, etc
+        |Record pattern: { x, y: 3 }
+        |Vector pattern: [x, y, _]
     """.trimMargin()
 
     val LAMBDA_VAR = """Expected identifier after start of lambda definition:

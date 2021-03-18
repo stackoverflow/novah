@@ -706,6 +706,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span
                 Pattern.Record(labelMapWith(rows), span(tk.span, end))
             }
+            is LSBracket -> {
+                iter.next()
+                val elems = between<Comma, Pattern>(::parsePattern)
+                val end = expect<RSBracket>(withError(E.rsbracketExpected("vector pattern"))).span
+                Pattern.Vector(elems, span(tk.span, end))
+            }
             else -> null
         }
     }

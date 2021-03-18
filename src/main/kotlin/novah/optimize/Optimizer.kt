@@ -15,6 +15,7 @@
  */
 package novah.optimize
 
+import novah.Core
 import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.ast.optimized.*
@@ -35,6 +36,7 @@ import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
 import novah.frontend.error.Errors as E
 import novah.frontend.hmftypechecker.Type as TType
+import io.lacuna.bifurcan.List as PList
 
 /**
  * Converts the canonical AST to the
@@ -232,9 +234,16 @@ class Optimizer(private val ast: CModule) {
     private val rteCtor = RuntimeException::class.java.constructors.find {
         it.parameterCount == 1 && it.parameterTypes[0].canonicalName == "java.lang.String"
     }!!
+    
+    private val vectorSize = PList::class.java.methods.find { it.name == "size" }!!
+    private val vectorAccess = PList::class.java.methods.find { it.name == "nth" }!!
+    private val equivalentLong = Core::class.java.methods.find { 
+        it.name == "equivalent" && it.parameterTypes[0] == Long::class.java 
+    }!!
 
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
+    private val longType = tLong.convert()
 
     private fun makeThrow(msg: String): Expr {
         return Expr.Throw(
@@ -264,7 +273,7 @@ class Optimizer(private val ast: CModule) {
             return if (expectedFieldType == null || fieldType == expectedFieldType || fieldType.isMono()) field
             else Expr.Cast(field, expectedFieldType)
         }
-        
+
         fun simplifyConds(conds: List<Expr>): Expr {
             val simplified = conds.filter { it != tru }
             return when {
@@ -273,6 +282,14 @@ class Optimizer(private val ast: CModule) {
                 else -> Expr.OperatorApp("&&", simplified, boolType)
             }
         }
+        
+        fun mkVectorSizeCheck(exp: Expr, size: Long): Expr {
+            val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
+            val longe = Expr.LongE(size, longType)
+            return Expr.NativeStaticMethod(equivalentLong, listOf(sizeExp, longe), boolType)
+        }
+        fun mkVectorAccessor(exp: Expr, index: Long, type: Type): Expr =
+            Expr.NativeMethod(vectorAccess, exp, listOf(Expr.LongE(index, longType)), type)
 
         fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<VarDef>> = when (p) {
             is Pattern.Wildcard -> tru to emptyList()
@@ -304,16 +321,32 @@ class Optimizer(private val ast: CModule) {
             is Pattern.Record -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
-                
+
                 val rows = (exp.type as? Type.TVar)?.labels ?: internalError("Got wrong type for record: ${exp.type}")
-                
+
                 p.labels.forEachKeyList { label, pat ->
                     val field = Expr.RecordSelect(exp, label, rows.get(label, null).first())
                     val (cond, vs) = desugarPattern(pat, field)
                     conds += cond
                     vars += vs
                 }
-                
+
+                simplifyConds(conds) to vars
+            }
+            is Pattern.Vector -> {
+                val conds = mutableListOf<Expr>()
+                val vars = mutableListOf<VarDef>()
+
+                conds += mkVectorSizeCheck(exp, p.elems.size.toLong())
+                val fieltTy = (exp.type as? Type.TConstructor)?.types?.first()
+                    ?: internalError("Got wrong type for vector: ${exp.type}")
+                p.elems.forEachIndexed { i, pat ->
+                    val field = mkVectorAccessor(exp, i.toLong(), fieltTy)
+                    val (cond, vs) = desugarPattern(pat, field)
+                    conds += cond
+                    vars += vs
+                }
+
                 simplifyConds(conds) to vars
             }
         }
@@ -420,8 +453,8 @@ class Optimizer(private val ast: CModule) {
             "prim.DoubleArray" -> "double[]"
             "prim.CharArray" -> "char[]"
             "prim.BooleanArray" -> "boolean[]"
-            "prim.Vector" -> "io/lacuna/bifurcan/IList"
-            "prim.Set" -> "io/lacuna/bifurcan/ISet"
+            "prim.Vector" -> "io/lacuna/bifurcan/List"
+            "prim.Set" -> "io/lacuna/bifurcan/Set"
             else -> internalize(tvar.name)
         }
 

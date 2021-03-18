@@ -425,16 +425,31 @@ object Inference {
                     pat.labels.forEachKeyList { label, p ->
                         val rowTy = rows.find { it.key() == label }?.value()?.first()
                             ?: inferError(Errors.recordMissingLabels(listOf(label)), pat.span)
-                        vars.addAll(inferpattern(env, level, p, rowTy, isCheck))
+                        vars += inferpattern(env, level, p, rowTy, isCheck)
                     }
                 } else {
                     // we are in infer mode so we can't make any assumptions about rows
                     val tys: LabelMap<Type> = pat.labels.mapList { p ->
                         val rowTy = newVar(level)
-                        vars.addAll(inferpattern(env, level, p, rowTy, isCheck))
+                        vars += inferpattern(env, level, p, rowTy, isCheck)
                         rowTy
                     }
                     unify(TRecord(TRowExtend(tys, newVar(level))), ty, pat.span)
+                }
+                vars
+            }
+            is Pattern.Vector -> {
+                if (pat.elems.isEmpty()) {
+                    unify(TApp(TConst(primVector), listOf(newVar(level))), ty, pat.span)
+                    return emptyList()
+                }
+                
+                val vars = mutableListOf<PatternVar>()
+                val elemTy = newVar(level)
+                unify(TApp(TConst(primVector), listOf(elemTy)), ty, pat.span)
+                
+                pat.elems.forEach { p ->
+                    vars += inferpattern(env, level, p, elemTy, isCheck)
                 }
                 vars
             }

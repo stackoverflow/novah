@@ -304,12 +304,18 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val f = e.field
                 mv.visitFieldInsn(GETSTATIC, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
                 if (f.type.isPrimitive) box(f.type, mv)
+                val type = toInternalClass(e.type)
+                if (type != OBJECT_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, type)
             }
             is Expr.NativeFieldGet -> {
                 val f = e.field
                 genExpr(e.thisPar, mv, ctx)
                 mv.visitFieldInsn(GETFIELD, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
                 if (f.type.isPrimitive) box(f.type, mv)
+                val type = toInternalClass(e.type)
+                if (type != OBJECT_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, type)
             }
             is Expr.NativeStaticFieldSet -> {
                 val f = e.field
@@ -333,7 +339,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, false)
                 
                 if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
-                else if (m.returnType.isPrimitive) box(m.returnType, mv)
+                else {
+                    if (m.returnType.isPrimitive) box(m.returnType, mv)
+                    val type = toInternalClass(e.type)
+                    if (type != OBJECT_CLASS)
+                        mv.visitTypeInsn(CHECKCAST, type)
+                }
             }
             is Expr.NativeMethod -> {
                 val m = e.method
@@ -345,7 +356,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(op, getInternalName(m.declaringClass), m.name, getMethodDescriptor(m), isInterface)
 
                 if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
-                else if (m.returnType.isPrimitive) box(m.returnType, mv)
+                else {
+                    if (m.returnType.isPrimitive) box(m.returnType, mv)
+                    val type = toInternalClass(e.type)
+                    if (type != OBJECT_CLASS)
+                        mv.visitTypeInsn(CHECKCAST, type)
+                }
             }
             is Expr.NativeCtor -> {
                 val c = e.ctor
@@ -380,7 +396,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "unsafeGet", desc, false)
                 val type = toInternalClass(e.type)
                 if (type != OBJECT_CLASS)
-                    mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
+                    mv.visitTypeInsn(CHECKCAST, type)
             }
             is Expr.RecordRestrict -> {
                 genExpr(e.expr, mv, ctx)
@@ -827,8 +843,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             "boolean" to Boolean::class.javaObjectType
         )
 
-        private fun intExp(n: Int): Expr.IntE {
-            return Expr.IntE(n, Type.TVar("prim.Int"))
-        }
+        private fun intExp(n: Int): Expr.IntE = Expr.IntE(n, Type.TVar("prim.Int"))
     }
 }

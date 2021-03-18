@@ -1,9 +1,19 @@
 module pack.tryout
 
+foreign import novah.Core:sum(Int, Int)
+
 rec = { x: 1, y: { z: 'a' } }
+
+vec = [1, 2]
 
 fun r =
   case r of
     { y: { z } } -> println z
 
-main () = fun rec
+fun2 v =
+  case v of
+    [x] -> println x
+    [x, y] -> println (sum x y)
+    _ -> println -1
+
+main () = fun2 vec
