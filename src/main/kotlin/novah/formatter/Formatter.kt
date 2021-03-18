@@ -219,6 +219,7 @@ class Formatter {
         is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }}"
         is Pattern.Vector -> "[${p.elems.joinToString { show(it) }}]"
         is Pattern.As -> "${show(p.pat)} as ${p.name}"
+        is Pattern.Unit -> "()"
     }
 
     private fun show(p: LiteralPattern): String = when (p) {

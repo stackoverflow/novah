@@ -182,6 +182,7 @@ class Desugar(private val smod: SModule) {
         is SPattern.Record -> Pattern.Record(labels.mapList { it.desugar(locals) }, span)
         is SPattern.Vector -> Pattern.Vector(elems.map { it.desugar(locals) }, span)
         is SPattern.As -> Pattern.As(pat.desugar(locals), name, span)
+        is SPattern.Unit -> Pattern.Unit(span)
     }
 
     private fun SLiteralPattern.desugar(locals: List<String>): LiteralPattern = when (this) {

@@ -196,6 +196,7 @@ class PatternMatchingCompiler<R> {
     companion object {
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
+        private val unitCtor = Ctor("unit", 0, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkRecordCtor(arity: Int) = Ctor("record", arity, 1)
         private fun mkVectorCtor(arity: Int) = Ctor("vector", arity, Integer.MAX_VALUE)
@@ -243,6 +244,7 @@ class PatternMatchingCompiler<R> {
             }
             is Pattern.Vector -> Pat.PCon(mkVectorCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
             is Pattern.As -> convertPattern(p.pat, modName)
+            is Pattern.Unit -> Pat.PCon(unitCtor, emptyList())
         }
     }
 }

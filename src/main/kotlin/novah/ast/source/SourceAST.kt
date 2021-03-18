@@ -276,6 +276,7 @@ sealed class Pattern(open val span: Span) {
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
     data class Vector(val elems: List<Pattern>, override val span: Span) : Pattern(span)
     data class As(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
+    data class Unit(override val span: Span) : Pattern(span)
 }
 
 sealed class LiteralPattern {

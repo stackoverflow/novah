@@ -393,6 +393,10 @@ object Inference {
                 emptyList()
             }
             is Pattern.Wildcard -> emptyList()
+            is Pattern.Unit -> {
+                unify(ty, tUnit, pat.span)
+                emptyList()
+            }
             is Pattern.Var -> listOf(PatternVar(pat.name, ty, pat.span))
             is Pattern.Ctor -> {
                 val cty = infer(env, level, pat.ctor)
@@ -635,10 +639,10 @@ object Inference {
 
     private fun getCtorType(dc: DataConstructor, dataType: Type, map: Map<String, TVar>): Type {
         return when (dataType) {
-            is TConst -> if (dc.args.isEmpty()) dataType else Type.nestArrows(dc.args, dataType).span(dc.span)
+            is TConst -> if (dc.args.isEmpty()) dataType else nestArrows(dc.args, dataType).span(dc.span)
             is TForall -> {
                 val args = dc.args.map { it.substConst(map) }
-                TForall(dataType.ids, Type.nestArrows(args, dataType.type)).span(dc.span)
+                TForall(dataType.ids, nestArrows(args, dataType.type)).span(dc.span)
             }
             else -> internalError("Got absurd type for data constructor: $dataType")
         }

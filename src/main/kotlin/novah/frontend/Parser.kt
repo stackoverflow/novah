@@ -691,9 +691,14 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is LParen -> {
                 iter.next()
-                val pat = parsePattern()
-                val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
-                Pattern.Parens(pat, span(tk.span, tkEnd.span))
+                if (iter.peek().value is RParen) {
+                    val end = iter.next()
+                    Pattern.Unit(span(tk.span, end.span))
+                } else {
+                    val pat = parsePattern()
+                    val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
+                    Pattern.Parens(pat, span(tk.span, tkEnd.span))
+                }
             }
             is UpperIdent -> {
                 val ctor = parseConstructor()

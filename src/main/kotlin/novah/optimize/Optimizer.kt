@@ -262,6 +262,7 @@ class Optimizer(private val ast: CModule) {
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
     private val longType = tLong.convert()
+    private val objectType = tObject.convert()
 
     private fun makeThrow(msg: String): Expr {
         return Expr.Throw(
@@ -312,6 +313,10 @@ class Optimizer(private val ast: CModule) {
         fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<VarDef>> = when (p) {
             is Pattern.Wildcard -> tru to emptyList()
             is Pattern.Var -> tru to listOf(VarDef(p.name, exp))
+            is Pattern.Unit -> {
+                val cond = Expr.NativeStaticMethod(equivalent, listOf(exp, Expr.Unit(objectType)), boolType)
+                cond to emptyList()
+            }
             is Pattern.LiteralP -> {
                 val method = when (p.lit) {
                     is LiteralPattern.IntLiteral -> equivalentInt

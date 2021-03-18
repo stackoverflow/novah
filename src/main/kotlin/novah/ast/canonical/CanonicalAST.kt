@@ -152,6 +152,7 @@ sealed class Pattern(open val span: Span) {
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
     data class Vector(val elems: List<Pattern>, override val span: Span) : Pattern(span)
     data class As(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
+    data class Unit(override val span: Span) : Pattern(span)
 }
 
 sealed class LiteralPattern(open val e: Expr) {
@@ -172,6 +173,7 @@ fun Pattern.show(): String = when (this) {
     is Pattern.Record -> "{ " + labels.show { l, e -> "$l: ${e.show()}" } + " }"
     is Pattern.Vector -> "[${elems.joinToString { it.show() }}]"
     is Pattern.As -> "${pat.show()} as $name"
+    is Pattern.Unit -> "()"
 }
 
 fun LiteralPattern.show(): String = when (this) {
