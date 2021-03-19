@@ -12,3 +12,4 @@
 - [ ] Syntax for record update/set (probably with type-level strings or macros?)
 - [ ] Disallow duplicate labels in pattern matching
 - [ ] Report on duplicate top level variables
+- [ ] Rename operators and java keywords to be more java-friendly

@@ -21,7 +21,6 @@ import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.matching.Pat
 import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
@@ -652,7 +651,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun tryParsePattern(): Pattern? {
         val tk = iter.peek()
-        val pat = when (tk.value) {
+        var pat = when (tk.value) {
             is Underline -> {
                 iter.next()
                 Pattern.Wildcard(tk.span)
@@ -719,11 +718,19 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             else -> null
         }
-        return if (pat != null && iter.peek().value is As) {
+        // named patterns
+        if (pat != null && iter.peek().value is As) {
             iter.next()
             val name = expect<Ident>(withError(E.VARIABLE))
-            Pattern.As(pat, name.value.v, span(pat.span, name.span))
-        } else pat
+            pat = Pattern.Named(pat, name.value.v, span(pat.span, name.span))
+        }
+        // pattern guards
+        if (pat != null && iter.peek().value is IfT) {
+            iter.next()
+            val exp = parseExpression()
+            pat = Pattern.Guard(pat, exp, span(pat.span, exp.span))
+        }
+        return pat
     }
 
     private fun parsePatternRow(): Pair<String, Pattern> {

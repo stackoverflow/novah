@@ -7,6 +7,9 @@
 - [ ] LSP implemented in the compiler
 - [ ] Syntatic sugar for lambdas
 - [ ] Standard library
+- [ ] Some compiler help for lenses?
+- [ ] Computational expressions
+- [ ] List/Vector/etc comprehension
 - [ ] Full pattern destructuring for function and let parameters
 - [ ] Full support for pattern matching (records, vectors, etc)
 - [X] Opaque/newtypes

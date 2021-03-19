@@ -275,6 +275,7 @@ class Optimizer(private val ast: CModule) {
     }
 
     private class VarDef(val name: String, val exp: Expr)
+    private data class PatternResult(val expr: Expr, val vars: List<VarDef> = emptyList(), val guard: CExpr? = null)
 
     private fun desugarMatch(m: CExpr.Match, type: Type, locals: List<String>): Expr {
         val tru = Expr.Bool(true, boolType)
@@ -310,12 +311,12 @@ class Optimizer(private val ast: CModule) {
         fun mkVectorAccessor(exp: Expr, index: Long, type: Type): Expr =
             Expr.NativeMethod(vectorAccess, exp, listOf(Expr.LongE(index, longType)), type)
 
-        fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<VarDef>> = when (p) {
-            is Pattern.Wildcard -> tru to emptyList()
-            is Pattern.Var -> tru to listOf(VarDef(p.name, exp))
+        fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
+            is Pattern.Wildcard -> PatternResult(tru)
+            is Pattern.Var -> PatternResult(tru, listOf(VarDef(p.name, exp)))
             is Pattern.Unit -> {
                 val cond = Expr.NativeStaticMethod(equivalent, listOf(exp, Expr.Unit(objectType)), boolType)
-                cond to emptyList()
+                PatternResult(cond)
             }
             is Pattern.LiteralP -> {
                 val method = when (p.lit) {
@@ -327,7 +328,7 @@ class Optimizer(private val ast: CModule) {
                     is LiteralPattern.BoolLiteral -> equivalentBoolean
                     is LiteralPattern.StringLiteral -> equivalent
                 }
-                Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType) to emptyList()
+                PatternResult(Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType))
             }
             is Pattern.Ctor -> {
                 val conds = mutableListOf<Expr>()
@@ -350,7 +351,7 @@ class Optimizer(private val ast: CModule) {
                     vars += vs
                 }
 
-                simplifyConds(conds) to vars
+                PatternResult(simplifyConds(conds), vars)
             }
             is Pattern.Record -> {
                 val conds = mutableListOf<Expr>()
@@ -365,7 +366,7 @@ class Optimizer(private val ast: CModule) {
                     vars += vs
                 }
 
-                simplifyConds(conds) to vars
+                PatternResult(simplifyConds(conds), vars)
             }
             is Pattern.Vector -> {
                 val conds = mutableListOf<Expr>()
@@ -381,18 +382,15 @@ class Optimizer(private val ast: CModule) {
                     vars += vs
                 }
 
-                simplifyConds(conds) to vars
+                PatternResult(simplifyConds(conds), vars)
             }
-            is Pattern.As -> {
-                val conds = mutableListOf<Expr>()
-                val vars = mutableListOf<VarDef>()
-                
-                val (cond, vs) = desugarPattern(p.pat, exp)
-                conds += cond
-                vars += vs
-                vars += VarDef(p.name, exp)
-                
-                simplifyConds(conds) to vars
+            is Pattern.Named -> {
+                val (cond, vars) = desugarPattern(p.pat, exp)
+                PatternResult(cond, vars + VarDef(p.name, exp))
+            }
+            is Pattern.Guard -> {
+                val (cond, vars) = desugarPattern(p.pat, exp)
+                PatternResult(cond, vars, p.guard)
             }
         }
 
@@ -406,11 +404,22 @@ class Optimizer(private val ast: CModule) {
 
         val exp = m.exp.convert(locals)
         val pats = m.cases.map { case ->
-            val (cond, vars) = desugarPattern(case.pattern, exp)
+            val (cond, vars, guard) = desugarPattern(case.pattern, exp)
             val introducedVariables = vars.map { it.name }
             val caseExp = case.exp.convert(locals + introducedVariables)
-            val expr = if (vars.isEmpty()) caseExp else varToLet(vars, caseExp)
-            cond to expr
+            if (guard != null) {
+                val guarded = varToLet(vars, guard.convert(locals + introducedVariables))
+                val guardCond = if (cond == tru) {
+                    guarded
+                } else {
+                    Expr.OperatorApp("&&", listOf(cond, guarded), boolType)
+                }
+                // not sure the variables are visible in `caseExpr` better test
+                guardCond to caseExp
+            } else {
+                val expr = if (vars.isEmpty()) caseExp else varToLet(vars, caseExp)
+                cond to expr
+            }
         }
         return Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
     }

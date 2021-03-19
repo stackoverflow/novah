@@ -1,6 +1,7 @@
 module pack.tryout
 
 foreign import novah.Core:sum(Int, Int)
+foreign import novah.Core:equivalent(Int, Int) as eqInt
 
 rec = { x: 1, y: { z: 'a' } }
 
@@ -27,4 +28,14 @@ fun4 n =
     () -> println "null"
     _ -> println "not null"
 
-main () = fun4 ()
+(===) : Int -> Int -> Boolean
+(===) x y = eqInt x y
+
+fun5 () =
+  case 5 of
+    1 -> println 1
+    x if x === 2 -> println 2
+    x if x === 5 -> println x
+    _ -> println -1
+
+main () = fun5 ()

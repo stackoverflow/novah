@@ -70,6 +70,8 @@ object Errors {
         |Record pattern: { x, y: 3 }
         |Vector pattern: [x, y, _]
     """.trimMargin()
+    
+    const val PATTERN_GUARD = "Pattern guards cannot be nested."
 
     val LAMBDA_VAR = """Expected identifier after start of lambda definition:
         |Example: \x -> x + 3

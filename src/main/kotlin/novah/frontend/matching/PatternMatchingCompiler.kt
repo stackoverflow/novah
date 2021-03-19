@@ -197,6 +197,7 @@ class PatternMatchingCompiler<R> {
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
         private val unitCtor = Ctor("unit", 0, 2)
+        private val guardCtor = Ctor("guard", 1, Integer.MAX_VALUE)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkRecordCtor(arity: Int) = Ctor("record", arity, 1)
         private fun mkVectorCtor(arity: Int) = Ctor("vector", arity, Integer.MAX_VALUE)
@@ -243,8 +244,9 @@ class PatternMatchingCompiler<R> {
                 Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
             }
             is Pattern.Vector -> Pat.PCon(mkVectorCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
-            is Pattern.As -> convertPattern(p.pat, modName)
+            is Pattern.Named -> convertPattern(p.pat, modName)
             is Pattern.Unit -> Pat.PCon(unitCtor, emptyList())
+            is Pattern.Guard -> Pat.PCon(guardCtor, listOf(convertPattern(p.pat, modName)))
         }
     }
 }
