@@ -204,6 +204,7 @@ class PatternMatchingCompiler<R> {
         private fun mkRecordCtor(arity: Int) = Ctor("record", arity, 1)
         private fun mkVectorCtor(arity: Int) = Ctor("vector$arity", arity, Integer.MAX_VALUE)
         private fun mkGuardCtor() = Ctor("guard${guardCount++}", 1, Integer.MAX_VALUE)
+        private fun mkTypeTestCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
 
         private val ctorCache = mutableMapOf<String, Ctor>()
 
@@ -256,6 +257,7 @@ class PatternMatchingCompiler<R> {
             is Pattern.Named -> convertPattern(p.pat, modName)
             is Pattern.Unit -> Pat.PCon(unitCtor, emptyList())
             is Pattern.Guard -> Pat.PCon(mkGuardCtor(), listOf(convertPattern(p.pat, modName)))
+            is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.type.show()), emptyList())
         }
     }
 }

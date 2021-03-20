@@ -155,6 +155,7 @@ sealed class Pattern(open val span: Span) {
     data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
     data class Guard(val pat: Pattern, val guard: Expr, override val span: Span) : Pattern(span)
+    data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
 }
 
 sealed class LiteralPattern(open val e: Expr) {
@@ -178,6 +179,7 @@ fun Pattern.show(): String = when (this) {
     is Pattern.Named -> "${pat.show()} as $name"
     is Pattern.Unit -> "()"
     is Pattern.Guard -> "${pat.show()} if ${guard.show()}"
+    is Pattern.TypeTest -> ":? ${type.show()}" + if (alias != null) " $alias" else ""
 }
 
 fun LiteralPattern.show(): String = when (this) {

@@ -488,6 +488,17 @@ object Inference {
                 vars += inferpattern(env, level, pat.pat, ty, isCheck).vars
                 PatternResult(vars, pat.guard)
             }
+            is Pattern.TypeTest -> {
+                if (pat.alias != null) {
+                    // we need special handling for Vectors and Sets
+                    val type = when {
+                        pat.type is TConst && pat.type.name == primVector -> TApp(TConst(primVector), listOf(tObject))
+                        pat.type is TConst && pat.type.name == primSet -> TApp(TConst(primSet), listOf(tObject))
+                        else -> pat.type
+                    }
+                    PatternResult(listOf(PatternVar(pat.alias, type, pat.span)))
+                } else PatternResult()
+            }
         }
     }
 

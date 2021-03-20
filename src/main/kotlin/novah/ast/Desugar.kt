@@ -185,6 +185,7 @@ class Desugar(private val smod: SModule) {
         is SPattern.Named -> Pattern.Named(pat.desugar(locals), name, span)
         is SPattern.Unit -> Pattern.Unit(span)
         is SPattern.Guard -> Pattern.Guard(pat.desugar(locals), guard.desugar(locals), span)
+        is SPattern.TypeTest -> Pattern.TypeTest(type.desugar(), alias, span)
     }
 
     private fun SLiteralPattern.desugar(locals: List<String>): LiteralPattern = when (this) {

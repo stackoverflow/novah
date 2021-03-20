@@ -222,6 +222,7 @@ class Formatter {
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"
         is Pattern.Unit -> "()"
         is Pattern.Guard -> "${show(p.pat)} if ${show(p.guard)}"
+        is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " ${p.alias}" else ""
     }
 
     private fun show(p: LiteralPattern): String = when (p) {

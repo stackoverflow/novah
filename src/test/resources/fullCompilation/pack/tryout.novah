@@ -51,4 +51,9 @@ fun7 () =
     true -> println "3 = 7"
     false -> println "3 != 7"
 
-main () = fun6 [5, 6, 7, 8, 9, 10]
+fun8 x = case x of
+  :? Int as i -> println (sum i 10)
+  :? Vector as v -> println v
+  _ -> println "not int or object"
+
+main () = fun8 45

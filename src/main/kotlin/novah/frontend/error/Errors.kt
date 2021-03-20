@@ -66,9 +66,11 @@ object Errors {
         |Wildcard pattern: _
         |Literal pattern: 3, 'a', "a string", false etc
         |Variable pattern: x, y, myVar, etc
-        |Constructor pattern: Just "ok", Result res, Nothing, etc
+        |Constructor pattern: Some "ok", Result res, None, etc
         |Record pattern: { x, y: 3 }
-        |Vector pattern: [x, y, _]
+        |Vector pattern: [x, y, _], [x :: xs]
+        |Named pattern: 10 as number
+        |Type test: :? Int as i
     """.trimMargin()
     
     const val PATTERN_GUARD = "Pattern guards cannot be nested."
@@ -150,6 +152,8 @@ object Errors {
     
     val IMPORT_RAW = """Raw imports should only be used for core namespaces.
         |Use an alias or explicit import instead.""".trimMargin()
+    
+    const val TYPE_TEST_TYPE = "Expected type in type test."
     
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field

@@ -142,7 +142,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
     private val iter = CharPositionIterator(input)
 
-    private val operators = "$=<>|&+-:*/%^."
+    private val operators = "$=<>|&+-:*/%^.?"
 
     override fun hasNext(): Boolean = iter.hasNext()
 

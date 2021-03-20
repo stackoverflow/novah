@@ -415,6 +415,12 @@ class Optimizer(private val ast: CModule) {
                 val (cond, vars) = desugarPattern(p.pat, exp)
                 PatternResult(cond, vars, p.guard)
             }
+            is Pattern.TypeTest -> {
+                val castType = p.type.convert()
+                val cond = Expr.InstanceOf(exp, castType)
+                val vs = if (p.alias != null) listOf(VarDef(p.alias, Expr.Cast(exp, castType))) else emptyList()
+                PatternResult(cond, vs)
+            }
         }
 
         tailrec fun varToLet(vdefs: List<VarDef>, exp: Expr): Expr {

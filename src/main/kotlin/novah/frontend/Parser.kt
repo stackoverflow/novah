@@ -728,6 +728,30 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     }
                 }
             }
+            is Op -> {
+                if (tk.value.op == ":?") {
+                    iter.next()
+                    val tk2 = expect<UpperIdent>(withError(E.TYPE_TEST_TYPE))
+                    var ty = tk2.value.v
+                    var alias: String? = null
+                    if (iter.peek().value is Dot) {
+                        iter.next()
+                        alias = ty
+                        ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
+                    }
+                    val type = Type.TConst(ty, alias, span(tk2.span, iter.current().span))
+                    
+                    var name: String? = null
+                    var end = type.span
+                    if (iter.peek().value is As) {
+                        iter.next()
+                        val ident = expect<Ident>(withError(E.VARIABLE))
+                        name = ident.value.v
+                        end = ident.span
+                    }
+                    Pattern.TypeTest(type, name, span(tk.span, end))
+                } else null
+            }
             else -> null
         }
         // named patterns
