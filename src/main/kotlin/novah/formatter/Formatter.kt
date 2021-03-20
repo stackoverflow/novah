@@ -218,6 +218,7 @@ class Formatter {
         is Pattern.Parens -> "(${show(p.pattern)})"
         is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }}"
         is Pattern.Vector -> "[${p.elems.joinToString { show(it) }}]"
+        is Pattern.VectorHT -> "[${show(p.head)} :: ${show(p.tail)}]"
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"
         is Pattern.Unit -> "()"
         is Pattern.Guard -> "${show(p.pat)} if ${show(p.guard)}"

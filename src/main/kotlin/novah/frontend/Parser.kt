@@ -712,9 +712,21 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is LSBracket -> {
                 iter.next()
-                val elems = between<Comma, Pattern>(::parsePattern)
-                val end = expect<RSBracket>(withError(E.rsbracketExpected("vector pattern"))).span
-                Pattern.Vector(elems, span(tk.span, end))
+                if (iter.peek().value is RSBracket) {
+                    val end = iter.next().span
+                    Pattern.Vector(emptyList(), span(tk.span, end))
+                } else {
+                    val elems = between<Comma, Pattern>(::parsePattern)
+                    if (elems.size == 1 && iter.peek().value.isDoubleColon()) {
+                        iter.next()
+                        val tail = parsePattern()
+                        val end = expect<RSBracket>(withError(E.rsbracketExpected("vector pattern"))).span
+                        Pattern.VectorHT(elems[0], tail, span(tk.span, end))
+                    } else {
+                        val end = expect<RSBracket>(withError(E.rsbracketExpected("vector pattern"))).span
+                        Pattern.Vector(elems, span(tk.span, end))
+                    }
+                }
             }
             else -> null
         }

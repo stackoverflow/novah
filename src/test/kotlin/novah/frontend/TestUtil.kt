@@ -96,7 +96,11 @@ object TestUtil {
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
         val ast = compileCode(code, verbose).ast
         val opt = Optimizer(ast)
-        return opt.convert().map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
+        val conv = opt.convert()
+        if (opt.getWarnings().isNotEmpty()) {
+            opt.getWarnings().forEach { println(it.formatToConsole()) }
+        }
+        return conv.map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
     }
 
     fun _i(i: Int) = Expr.IntE(i, "$i")

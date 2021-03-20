@@ -69,6 +69,8 @@ sealed class Token {
     data class UpperIdent(val v: String) : Token()
     data class Op(val op: String) : Token()
 
+    fun isDoubleColon() = this is Op && op == "::"
+    
     override fun toString(): String = this.javaClass.simpleName
 }
 

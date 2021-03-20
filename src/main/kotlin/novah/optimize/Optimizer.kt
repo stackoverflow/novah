@@ -234,14 +234,15 @@ class Optimizer(private val ast: CModule) {
     private val rteCtor = RuntimeException::class.java.constructors.find {
         it.parameterCount == 1 && it.parameterTypes[0].canonicalName == "java.lang.String"
     }!!
-    
+
     private val vectorSize = PList::class.java.methods.find { it.name == "size" }!!
     private val vectorAccess = PList::class.java.methods.find { it.name == "nth" }!!
+    private val vectorSlice = PList::class.java.methods.find { it.name == "slice" }!!
     private val equivalentInt = Core::class.java.methods.find {
         it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
     }!!
-    private val equivalentLong = Core::class.java.methods.find { 
-        it.name == "equivalent" && it.parameterTypes[0] == Long::class.java 
+    private val equivalentLong = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Long::class.java
     }!!
     private val equivalentFloat = Core::class.java.methods.find {
         it.name == "equivalent" && it.parameterTypes[0] == Float::class.java
@@ -302,12 +303,13 @@ class Optimizer(private val ast: CModule) {
                 else -> Expr.OperatorApp("&&", simplified, boolType)
             }
         }
-        
+
         fun mkVectorSizeCheck(exp: Expr, size: Long): Expr {
             val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
             val longe = Expr.LongE(size, longType)
             return Expr.NativeStaticMethod(equivalentLong, listOf(sizeExp, longe), boolType)
         }
+
         fun mkVectorAccessor(exp: Expr, index: Long, type: Type): Expr =
             Expr.NativeMethod(vectorAccess, exp, listOf(Expr.LongE(index, longType)), type)
 
@@ -381,6 +383,25 @@ class Optimizer(private val ast: CModule) {
                     conds += cond
                     vars += vs
                 }
+
+                PatternResult(simplifyConds(conds), vars)
+            }
+            is Pattern.VectorHT -> {
+                val conds = mutableListOf<Expr>()
+                val vars = mutableListOf<VarDef>()
+
+                val fieltTy = (exp.type as? Type.TConstructor)?.types?.first()
+                    ?: internalError("Got wrong type for vector: ${exp.type}")
+                val headExp = mkVectorAccessor(exp, 0, fieltTy)
+                val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
+                val tailExp = Expr.NativeMethod(vectorSlice, exp, listOf(Expr.LongE(1, longType), sizeExp), type)
+                
+                val (hCond, hVs) = desugarPattern(p.head, headExp)
+                val (tCond, tVs) = desugarPattern(p.tail, tailExp)
+                conds += hCond
+                conds += tCond
+                vars += hVs
+                vars += tVs
 
                 PatternResult(simplifyConds(conds), vars)
             }

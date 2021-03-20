@@ -181,6 +181,7 @@ class Desugar(private val smod: SModule) {
         is SPattern.Parens -> pattern.desugar(locals)
         is SPattern.Record -> Pattern.Record(labels.mapList { it.desugar(locals) }, span)
         is SPattern.Vector -> Pattern.Vector(elems.map { it.desugar(locals) }, span)
+        is SPattern.VectorHT -> Pattern.VectorHT(head.desugar(locals), tail.desugar(locals), span)
         is SPattern.Named -> Pattern.Named(pat.desugar(locals), name, span)
         is SPattern.Unit -> Pattern.Unit(span)
         is SPattern.Guard -> Pattern.Guard(pat.desugar(locals), guard.desugar(locals), span)

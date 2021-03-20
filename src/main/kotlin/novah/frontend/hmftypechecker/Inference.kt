@@ -256,8 +256,8 @@ object Inference {
             }
             is Expr.VectorLiteral -> {
                 if (exp.exps.isEmpty()) {
-                    val type = newVar(level)
-                    exp.withType(TApp(TConst(primVector), listOf(type)))
+                    val (id, type) = newBoundVar()
+                    exp.withType(TForall(listOf(id), TApp(TConst(primVector), listOf(type))))
                 } else {
                     val ty = newVar(level + 1)
                     exp.exps.forEach { e ->
@@ -270,8 +270,8 @@ object Inference {
             }
             is Expr.SetLiteral -> {
                 if (exp.exps.isEmpty()) {
-                    val type = newVar(level)
-                    exp.withType(TApp(TConst(primSet), listOf(type)))
+                    val (id, type) = newBoundVar()
+                    exp.withType(TForall(listOf(id), TApp(TConst(primSet), listOf(type))))
                 } else {
                     val ty = newVar(level + 1)
                     exp.exps.forEach { e ->
@@ -463,6 +463,16 @@ object Inference {
                 pat.elems.forEach { p ->
                     vars += inferpattern(env, level, p, elemTy, isCheck).vars
                 }
+                PatternResult(vars)
+            }
+            is Pattern.VectorHT -> {
+                val vars = mutableListOf<PatternVar>()
+                val elemTy = newVar(level)
+                val vecTy = TApp(TConst(primVector), listOf(elemTy))
+                unify(vecTy, ty, pat.span)
+
+                vars += inferpattern(env, level, pat.head, elemTy, isCheck).vars
+                vars += inferpattern(env, level, pat.tail, vecTy, isCheck).vars
                 PatternResult(vars)
             }
             is Pattern.Named -> {

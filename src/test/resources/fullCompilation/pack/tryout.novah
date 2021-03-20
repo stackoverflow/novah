@@ -13,6 +13,7 @@ fun r =
 
 fun2 v =
   case v of
+    [] -> println "empty"
     [x] -> println x
     [_, _] as ve -> println ve
     _ -> println -1
@@ -38,4 +39,11 @@ fun5 () =
     x if x === 5 -> println x
     _ -> println -1
 
-main () = fun5 ()
+fun6 v =
+  case v of
+    [] -> println "empty"
+    [x :: xs] -> do
+      println x
+      println xs
+
+main () = fun6 [5, 6, 7, 8, 9, 10]

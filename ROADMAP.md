@@ -11,7 +11,7 @@
 - [ ] Computational expressions
 - [ ] List/Vector/etc comprehension
 - [ ] Full pattern destructuring for function and let parameters
-- [ ] Full support for pattern matching (records, vectors, etc)
+- [X] Full support for pattern matching (records, vectors, named, guards)
 - [X] Opaque/newtypes
 - [X] Generic programming with instance arguments (implicits)
 - [X] Literal syntax for basic data structures

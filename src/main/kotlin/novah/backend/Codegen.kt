@@ -337,7 +337,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 val desc = getMethodDescriptor(m)
                 mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, false)
-                
+
                 if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
                 else {
                     if (m.returnType.isPrimitive) box(m.returnType, mv)
@@ -425,26 +425,34 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
             }
             is Expr.VectorLiteral -> {
-                genInt(intExp(e.exps.size), mv)
-                mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
-                e.exps.forEachIndexed { i, exp ->
-                    mv.visitInsn(DUP)
-                    genInt(intExp(i), mv)
-                    genExpr(exp, mv, ctx)
-                    mv.visitInsn(AASTORE)
+                if (e.exps.isEmpty()) {
+                    mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "empty", "()$VECTOR_TYPE", false)
+                } else {
+                    genInt(intExp(e.exps.size), mv)
+                    mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
+                    e.exps.forEachIndexed { i, exp ->
+                        mv.visitInsn(DUP)
+                        genInt(intExp(i), mv)
+                        genExpr(exp, mv, ctx)
+                        mv.visitInsn(AASTORE)
+                    }
+                    mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "of", "([$OBJECT_TYPE)$VECTOR_TYPE", false)
                 }
-                mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "of", "([$OBJECT_TYPE)$VECTOR_TYPE", false)
             }
             is Expr.SetLiteral -> {
-                genInt(intExp(e.exps.size), mv)
-                mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
-                e.exps.forEachIndexed { i, exp ->
-                    mv.visitInsn(DUP)
-                    genInt(intExp(i), mv)
-                    genExpr(exp, mv, ctx)
-                    mv.visitInsn(AASTORE)
+                if (e.exps.isEmpty()) {
+                    mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "empty", "()$SET_TYPE", false)
+                } else {
+                    genInt(intExp(e.exps.size), mv)
+                    mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
+                    e.exps.forEachIndexed { i, exp ->
+                        mv.visitInsn(DUP)
+                        genInt(intExp(i), mv)
+                        genExpr(exp, mv, ctx)
+                        mv.visitInsn(AASTORE)
+                    }
+                    mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "of", "([$OBJECT_TYPE)$SET_TYPE", false)
                 }
-                mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "of", "([$OBJECT_TYPE)$SET_TYPE", false)
             }
         }
     }
@@ -829,7 +837,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     companion object {
         private const val MAP_LINEAR_THRESHOLD = 5
-        
+
         private val ctorCache = mutableMapOf<String, DataConstructor>()
 
         private val primitiveWrappers = mutableMapOf(
