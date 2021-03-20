@@ -14,4 +14,3 @@
 - [ ] Report on duplicate top level variables
 - [ ] Rename operators and java keywords to be more java-friendly
 - [ ] Fix pattern matching warnings (records)
-- [ ] Check expression in pattern match is not evaluated 2+

@@ -47,6 +47,8 @@ class Optimizer(private val ast: CModule) {
     private var haslambda = false
     private val warnings = mutableListOf<CompilerProblem>()
 
+    private var genVar = 0
+
     fun getWarnings(): List<CompilerProblem> = warnings
 
     fun convert(): Result<Module, CompilerProblem> {
@@ -395,7 +397,7 @@ class Optimizer(private val ast: CModule) {
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
                 val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
                 val tailExp = Expr.NativeMethod(vectorSlice, exp, listOf(Expr.LongE(1, longType), sizeExp), type)
-                
+
                 val (hCond, hVs) = desugarPattern(p.head, headExp)
                 val (tCond, tVs) = desugarPattern(p.tail, tailExp)
                 conds += hCond
@@ -424,17 +426,19 @@ class Optimizer(private val ast: CModule) {
         }
 
         val exp = m.exp.convert(locals)
+        var varName: String? = null
+        val pexp = if (needVar(exp)) {
+            varName = "case$${genVar++}"
+            Expr.LocalVar(varName, exp.type)
+        } else exp
         val pats = m.cases.map { case ->
-            val (cond, vars, guard) = desugarPattern(case.pattern, exp)
+            val (cond, vars, guard) = desugarPattern(case.pattern, pexp)
             val introducedVariables = vars.map { it.name }
             val caseExp = case.exp.convert(locals + introducedVariables)
             if (guard != null) {
                 val guarded = varToLet(vars, guard.convert(locals + introducedVariables))
-                val guardCond = if (cond == tru) {
-                    guarded
-                } else {
-                    Expr.OperatorApp("&&", listOf(cond, guarded), boolType)
-                }
+                val guardCond = if (cond == tru) guarded
+                else Expr.OperatorApp("&&", listOf(cond, guarded), boolType)
                 // not sure the variables are visible in `caseExpr` better test
                 guardCond to caseExp
             } else {
@@ -442,7 +446,15 @@ class Optimizer(private val ast: CModule) {
                 cond to expr
             }
         }
-        return Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
+        val ifExp = Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
+        return if (varName != null) Expr.Let(varName, exp, ifExp, type) else ifExp
+    }
+
+    private fun needVar(exp: Expr): Boolean = when (exp) {
+        is Expr.Var, is Expr.LocalVar, is Expr.ByteE, is Expr.ShortE,
+        is Expr.IntE, is Expr.LongE, is Expr.FloatE, is Expr.DoubleE,
+        is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor -> false
+        else -> true
     }
 
     /**
