@@ -3,4 +3,4 @@ module test
 type Maybe a = Just a | Nope
             
 f : Int -> Maybe
-f x = Nope
+f _ = Nope

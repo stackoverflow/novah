@@ -70,6 +70,7 @@ class Desugar(private val smod: SModule) {
     }
 
     private val declVars = mutableSetOf<String>()
+    private val unusedVars = mutableMapOf<String, Span>()
 
     private fun SDecl.desugar(): Decl? = when (this) {
         is SDecl.TypeDecl -> {
@@ -81,6 +82,11 @@ class Desugar(private val smod: SModule) {
         }
         is SDecl.ValDecl -> {
             declVars.clear()
+            unusedVars.clear()
+            patterns.forEach {
+                if (it is SFunparPattern.Bind && !it.binder.isImplicit)
+                    unusedVars[it.binder.name] = it.binder.span
+            }
             var expr = nestLambdas(patterns.map { it.desugar() }, exp.desugar())
 
             // if the declaration has a type annotation, annotate it, else warn
@@ -93,6 +99,7 @@ class Desugar(private val smod: SModule) {
                 warnings += makeWarn(E.noTypeAnnDecl(name), span)
                 expr
             }
+            if (unusedVars.isNotEmpty()) reportUnusedVars(unusedVars)
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
         }
         else -> null
@@ -111,6 +118,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.Var -> {
             declVars += name
+            unusedVars.remove(name)
             if (name in locals) Expr.Var(name, span)
             else {
                 val foreign = smod.foreignVars[name]
@@ -139,13 +147,20 @@ class Desugar(private val smod: SModule) {
         is SExpr.Operator -> Expr.Var(name, span, imports[fullname()])
         is SExpr.Constructor -> Expr.Constructor(name, span, imports[fullname()])
         is SExpr.Lambda -> {
-            val names = patterns.filterIsInstance<SFunparPattern.Bind>().map { it.binder.name }
+            val binders = patterns.filterIsInstance<SFunparPattern.Bind>()
+            val names = binders.map { it.binder.name }
+            binders.filter { !it.binder.isImplicit }.forEach { unusedVars[it.binder.name] = it.binder.span }
             nestLambdas(patterns.map { it.desugar() }, body.desugar(locals + names))
         }
         is SExpr.App -> Expr.App(fn.desugar(locals, appFnDepth + 1), arg.desugar(locals), span)
         is SExpr.Parens -> exp.desugar(locals)
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
-        is SExpr.Let -> nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }), locals)
+        is SExpr.Let -> {
+            letDefs.forEach {
+                if (!it.isInstance && !it.name.isImplicit) unusedVars[it.name.name] = it.name.span
+            }
+            nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }), locals)
+        }
         is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar(locals) }, span)
         is SExpr.Ann -> {
             val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
@@ -397,7 +412,7 @@ class Desugar(private val smod: SModule) {
             is Expr.Ann -> isVariable(e.exp)
             else -> true
         }
-        
+
         fun reportCycle(cycle: Set<DagNode<String, Decl.ValDecl>>) {
             val first = cycle.iterator().next()
             val vars = cycle.map { it.value }
@@ -527,6 +542,17 @@ class Desugar(private val smod: SModule) {
             else -> {
             }
         }
+    }
+
+    private fun reportUnusedVars(unusedVars: Map<String, Span>) {
+        val err = CompilerProblem(
+            E.unusedVariables(unusedVars.keys.toList()),
+            ProblemContext.DESUGAR,
+            unusedVars.values.first(),
+            smod.sourceName,
+            smod.name
+        )
+        desugarErrors(listOf(err))
     }
 
     private fun desugarErrors(errs: List<CompilerProblem>): Nothing {

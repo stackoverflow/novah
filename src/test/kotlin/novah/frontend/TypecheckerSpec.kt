@@ -31,7 +31,7 @@ class TypecheckerSpec : StringSpec({
     }
 
     fun inferFX(expr: String): Type {
-        return TestUtil.compileCode("f x = $expr".module()).env.decls["f"]!!.type
+        return TestUtil.compileCode("f _ = $expr".module()).env.decls["f"]!!.type
     }
 
     "typecheck primitive expressions" {
@@ -115,7 +115,7 @@ class TypecheckerSpec : StringSpec({
         val code = """
             id x = x
             
-            f a = if true then 10 else id 0
+            f _ = if true then 10 else id 0
             f2 a = if true then 10 else id a
         """.module()
 
@@ -143,19 +143,19 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck let" {
         val code = """
-            f x = let a = "bla"
-                      y = a
-                  in y
+            f () = let a = "bla"
+                       y = a
+                   in y
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]
 
-        ty?.type?.simpleName() shouldBe "forall t1. t1 -> String"
+        ty?.type?.simpleName() shouldBe "Unit -> String"
     }
 
     "typecheck polymorphic let bindings" {
         val code = """
-            f x = let identity a = a
+            f _ = let identity a = a
                   in identity 10
         """.module()
 
@@ -166,7 +166,7 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck do statements" {
         val code = """
-            f x = do
+            f _ = do
               println "hello world"
               toString 10
               println (toString 100)

@@ -27,15 +27,15 @@ class TypecheckerADTSpec : StringSpec({
             type Day = Week | Weekend
             
             x : Int -> Day
-            x a = Week
+            x _ = Week
             
-            y a = Weekend
+            y = Weekend
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
 
         tys["x"]?.type?.simpleName() shouldBe "Int -> Day"
-        tys["y"]?.type?.simpleName() shouldBe "forall t1. t1 -> Day"
+        tys["y"]?.type?.simpleName() shouldBe "Day"
     }
     
     "test rigid type variables" {
@@ -83,13 +83,13 @@ class TypecheckerADTSpec : StringSpec({
               | None
             
             x : Int -> Maybe String
-            x a = None
+            x _ = None
             
             y : forall a. a -> Maybe a
-            y a = None
+            y _ = None
             
             w : Int -> Maybe Int
-            w a = Some 5
+            w _ = Some 5
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
@@ -106,10 +106,10 @@ class TypecheckerADTSpec : StringSpec({
               | Err e
             
             x : Int -> Result Int String
-            x a = Ok 1
+            x _ = Ok 1
             
             //y : Int -> Result Int String
-            y a = Err "oops"
+            y _ = Err "oops"
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
@@ -123,15 +123,15 @@ class TypecheckerADTSpec : StringSpec({
             type List a = Nil | Cons a (List a)
             
             x : Int -> List String
-            x a = Nil : List String
+            x _ = Nil : List String
             
-            y a = Cons 1 (Cons 2 (Cons 3 Nil))
+            y = Cons 1 (Cons 2 (Cons 3 Nil))
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
 
         tys["x"]?.type?.simpleName() shouldBe "Int -> List String"
-        tys["y"]?.type?.simpleName() shouldBe "forall t1. t1 -> List Int"
+        tys["y"]?.type?.simpleName() shouldBe "List Int"
     }
 
     "typecheck complex type" {
@@ -146,7 +146,7 @@ class TypecheckerADTSpec : StringSpec({
             x : forall a. Unit -> Comp a (forall b. b -> b)
             x () = Cfor id
             
-            y a = Cfun str
+            y _ = Cfun str
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls

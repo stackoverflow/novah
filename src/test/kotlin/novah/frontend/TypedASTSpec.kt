@@ -62,7 +62,7 @@ class TypedASTSpec : StringSpec({
         val code = """
             id x = x
             
-            f1 = \y -> "asd"
+            f1 = \_ -> "asd"
             
             f2 a = if true then 6 else a
             
@@ -106,11 +106,11 @@ class TypedASTSpec : StringSpec({
                 true
             
             lamb : Int -> String -> Unit
-            lamb x y = do
+            lamb _ _ = do
               Just "a"
               ()
             
-            main args = do
+            main _ = do
               lamb 4 "hello"
             
         """.module()
