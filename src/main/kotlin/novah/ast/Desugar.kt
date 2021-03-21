@@ -56,8 +56,12 @@ class Desugar(private val smod: SModule) {
     private val warnings = mutableListOf<CompilerProblem>()
 
     fun getWarnings(): List<CompilerProblem> = warnings
+    
+    private val declNames = mutableSetOf<String>()
 
     fun desugar(): Result<Module, List<CompilerProblem>> {
+        declNames.clear()
+        declNames += imports.keys
         return try {
             synonyms = validateTypealiases()
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
@@ -81,6 +85,8 @@ class Desugar(private val smod: SModule) {
             Decl.TypeDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility)
         }
         is SDecl.ValDecl -> {
+            if (declNames.contains(name)) parserError(E.duplicatedDecl(name), span)
+            declNames += name
             declVars.clear()
             unusedVars.clear()
             patterns.forEach {

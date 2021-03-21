@@ -334,6 +334,29 @@ object Inference {
                 exp.withType(generalize(level, instantiate(level + 1, type)))
             }
             exp is Expr.App -> inferApp(env, level, exp, type)
+            exp is Expr.RecordExtend && type is TForall -> {
+                val ty = instantiate(level, type)
+                check(env, level, ty, exp)
+            }
+            exp is Expr.RecordExtend && type is TRecord -> {
+                val (rows, restRow) = type.row.collectRows()
+                val allRows = rows.forked().linear()
+                exp.labels.forEach { kv ->
+                    val (label, exps) = kv.key() to kv.value()
+                    allRows.remove(label)
+                    // if the annotation has missing rows: throw error
+                    val given = rows.get(label, null)
+                        ?: inferError(Errors.recordMissingLabels(listOf(label)), exp.span)
+                    // if the annotation has less duplicates then the actual type: throw error
+                    if (given.size() != exps.size()) inferError(Errors.recordMissingLabels(listOf(label)), exp.span)
+                    exps.zip(given).forEach { (expr, ty) -> check(env, level, ty, expr) }
+                }
+                // if there are rows left in the annotated type: throw error
+                if (!allRows.isEmpty()) inferError(Errors.recordMissingLabels(allRows.keys().toList()), exp.span)
+                check(env, level, TRecord(restRow), exp.exp)
+                val ty = TRecord(TRowExtend(rows, restRow))
+                exp.withType(ty)
+            }
             exp is Expr.VectorLiteral && type is TApp && type.type.isConst(primVector) && type.types.size == 1 -> {
                 val innerTy = type.types[0]
                 exp.exps.forEach { check(env, level + 1, innerTy, it) }
@@ -370,7 +393,7 @@ object Inference {
         if (type != null && !type.isUnbound()) {
             unify(instantiate(nextLevel, type), instReturnTy, exp.span)
         }
-        inferArg(env, nextLevel, params.last(), exp.arg)
+        inferArg(env, nextLevel, params.last(), exp.arg, type != null)
         val ty = generalize(level, instReturnTy)
 
         if (params.size > 1) {
@@ -381,10 +404,13 @@ object Inference {
         return exp.withType(ty)
     }
 
-    private fun inferArg(env: Env, level: Level, paramType: Type, arg: Expr) {
-        val argType = infer(env, level, arg)
-        if (isAnnotated(arg)) unify(paramType, argType, arg.span)
-        else subsume(level, paramType, argType, arg.span)
+    private fun inferArg(env: Env, level: Level, paramType: Type, arg: Expr, checkMode: Boolean) {
+        if (checkMode) check(env, level, paramType, arg)
+        else {
+            val argType = infer(env, level, arg)
+            if (isAnnotated(arg)) unify(paramType, argType, arg.span)
+            else subsume(level, paramType, argType, arg.span)
+        }
     }
 
     data class PatternVar(val name: String, val type: Type, val span: Span)

@@ -1,0 +1,4 @@
+module test
+
+rec : { fun : String -> String, notfun : Int }
+rec = { fun: \x -> x }
