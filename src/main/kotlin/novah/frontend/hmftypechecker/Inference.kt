@@ -435,7 +435,7 @@ object Inference {
 
                 val vars = mutableListOf<PatternVar>()
                 if (isCheck) {
-                    val (rows, _) = collectRows(if (ty is TRecord) ty.row else ty)
+                    val (rows, _) = if (ty is TRecord) ty.row.collectRows() else ty.collectRows()
                     pat.labels.forEachKeyList { label, p ->
                         val rowTy = rows.find { it.key() == label }?.value()?.first()
                             ?: inferError(Errors.recordMissingLabels(listOf(label)), pat.span)
@@ -624,22 +624,6 @@ object Inference {
      */
     private fun checkShadowType(env: Env, type: String, span: Span) {
         if (env.lookupType(type) != null) inferError(Errors.duplicatedType(type), span)
-    }
-
-    private fun collectRows(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
-        is TRowEmpty -> LabelMap<Type>() to TRowEmpty().span(ty.span)
-        is TVar -> {
-            when (val tv = ty.tvar) {
-                is TypeVar.Link -> collectRows(tv.type)
-                else -> LabelMap<Type>() to ty
-            }
-        }
-        is TRowExtend -> {
-            val (restLabels, restTy) = collectRows(ty.row)
-            if (restLabels.isEmpty()) ty.labels to restTy
-            else ty.labels.merge(restLabels) to restTy
-        }
-        else -> LabelMap<Type>() to ty
     }
 
     /**

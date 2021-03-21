@@ -229,7 +229,10 @@ class Optimizer(private val ast: CModule) {
         // records always have the same type
         is TRecord -> row.convert()
         is TRowEmpty -> Type.TVar(RECORD_TYPE)
-        is TRowExtend -> Type.TVar(RECORD_TYPE, labels = labels.mapList { it.convert() })
+        is TRowExtend -> {
+            val (rows, _) = collectRows()
+            Type.TVar(RECORD_TYPE, labels = rows.mapList { it.convert() })
+        }
         is TImplicit -> type.convert()
     }
 

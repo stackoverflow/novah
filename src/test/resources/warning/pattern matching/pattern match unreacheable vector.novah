@@ -1,0 +1,8 @@
+module test
+
+fun : Vector Int -> Int
+fun v =
+  case v of
+    [x, _] -> x
+    [x, 0] -> x
+    _ -> -1

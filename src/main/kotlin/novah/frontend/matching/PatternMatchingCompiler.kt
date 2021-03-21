@@ -201,7 +201,7 @@ class PatternMatchingCompiler<R> {
         private val vectorEmptyCtor = Ctor("vector", 0, 2)
         private val vectorHTCtor = Ctor("vector", 2, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
-        private fun mkRecordCtor(arity: Int) = Ctor("record", arity, 1)
+        private fun mkRecordCtor(arity: Int) = Ctor("record$arity", arity, 1)
         private fun mkVectorCtor(arity: Int) = Ctor("vector$arity", arity, Integer.MAX_VALUE)
         private fun mkGuardCtor() = Ctor("guard${guardCount++}", 1, Integer.MAX_VALUE)
         private fun mkTypeTestCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)

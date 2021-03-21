@@ -178,6 +178,26 @@ sealed class Type {
     }
 
     /**
+     * Collects all the rows from this type.
+     * Does nothing if called on a non-row type.
+     */
+    fun collectRows(): Pair<LabelMap<Type>, Type> = when (this) {
+        is TRowEmpty -> LabelMap<Type>() to this
+        is TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> tv.type.collectRows()
+                else -> LabelMap<Type>() to this
+            }
+        }
+        is TRowExtend -> {
+            val (restLabels, restTy) = row.collectRows()
+            if (restLabels.isEmpty()) labels to restTy
+            else labels.merge(restLabels) to restTy
+        }
+        else -> LabelMap<Type>() to this
+    }
+
+    /**
      * Pretty print version of [toString]
      */
     fun show(qualified: Boolean = true): String {
