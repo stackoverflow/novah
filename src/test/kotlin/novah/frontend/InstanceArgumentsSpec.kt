@@ -30,12 +30,12 @@ class InstanceArgumentsSpec : StringSpec({
             show {{s}} x = case s of Show ss -> ss.show x
             
             instance
-            //showInt : Show Int
-            showInt = Show { show: (\x -> toString x) : Int -> String }
+            showInt : Show Int
+            showInt = Show { show: \x -> toString x }
             
             instance
-            //showBool : Show Boolean
-            showBool = Show { show: (\x -> toString x) : Boolean -> String }
+            showBool : Show Boolean
+            showBool = Show { show: \x -> toString x }
             
             type Option a = Some a | None
             
@@ -71,11 +71,11 @@ class InstanceArgumentsSpec : StringSpec({
             
             instance
             showInt : Show Int
-            showInt = Show { show: (\x -> toString x) : Int -> String }
+            showInt = Show { show: \x -> toString x }
             
             instance
             showBool : Show Boolean
-            showBool = Show { show: (\x -> toString x) : Boolean -> String }
+            showBool = Show { show: \x -> toString x }
             
             type Option a = Some a | None
             

@@ -393,7 +393,7 @@ object Inference {
         if (type != null && !type.isUnbound()) {
             unify(instantiate(nextLevel, type), instReturnTy, exp.span)
         }
-        inferArg(env, nextLevel, params.last(), exp.arg)
+        inferArg(env, nextLevel, params.last(), exp.arg, type != null)
         val ty = generalize(level, instReturnTy)
 
         if (params.size > 1) {
@@ -404,10 +404,13 @@ object Inference {
         return exp.withType(ty)
     }
 
-    private fun inferArg(env: Env, level: Level, paramType: Type, arg: Expr) {
-        val argType = infer(env, level, arg)
-        if (isAnnotated(arg)) unify(paramType, argType, arg.span)
-        else subsume(level, paramType, argType, arg.span)
+    private fun inferArg(env: Env, level: Level, paramType: Type, arg: Expr, checkMode: Boolean) {
+        if (checkMode) check(env, level, paramType, arg)
+        else {
+            val argType = infer(env, level, arg)
+            if (isAnnotated(arg)) unify(paramType, argType, arg.span)
+            else subsume(level, paramType, argType, arg.span)
+        }
     }
 
     data class PatternVar(val name: String, val type: Type, val span: Span)
