@@ -316,6 +316,8 @@ object Errors {
 
     fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
 
+    fun duplicatedDecl(name: String) = "Declaration $name is already defined or imported."
+    
     fun duplicatedType(name: String) = "Type $name is already defined or imported."
 
     fun unusedVariables(vars: List<String>): String {
