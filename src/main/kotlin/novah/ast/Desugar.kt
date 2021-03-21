@@ -56,7 +56,7 @@ class Desugar(private val smod: SModule) {
     private val warnings = mutableListOf<CompilerProblem>()
 
     fun getWarnings(): List<CompilerProblem> = warnings
-    
+
     private val declNames = mutableSetOf<String>()
 
     fun desugar(): Result<Module, List<CompilerProblem>> {
@@ -167,7 +167,7 @@ class Desugar(private val smod: SModule) {
             }
             nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }), locals)
         }
-        is SExpr.Match -> Expr.Match(exp.desugar(locals), cases.map { it.desugar(locals) }, span)
+        is SExpr.Match -> Expr.Match(exps.map { it.desugar(locals) }, cases.map { it.desugar(locals) }, span)
         is SExpr.Ann -> {
             val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
             else emptyList<Id>() to type.desugar()
@@ -188,7 +188,8 @@ class Desugar(private val smod: SModule) {
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
     }
 
-    private fun SCase.desugar(locals: List<String>): Case = Case(pattern.desugar(locals), exp.desugar())
+    private fun SCase.desugar(locals: List<String>): Case =
+        Case(patterns.map { it.desugar(locals) }, exp.desugar(), guard?.desugar(locals))
 
     private fun SPattern.desugar(locals: List<String>): Pattern = when (this) {
         is SPattern.Wildcard -> Pattern.Wildcard(span)
@@ -205,7 +206,6 @@ class Desugar(private val smod: SModule) {
         is SPattern.VectorHT -> Pattern.VectorHT(head.desugar(locals), tail.desugar(locals), span)
         is SPattern.Named -> Pattern.Named(pat.desugar(locals), name, span)
         is SPattern.Unit -> Pattern.Unit(span)
-        is SPattern.Guard -> Pattern.Guard(pat.desugar(locals), guard.desugar(locals), span)
         is SPattern.TypeTest -> Pattern.TypeTest(type.desugar(), alias, span)
     }
 

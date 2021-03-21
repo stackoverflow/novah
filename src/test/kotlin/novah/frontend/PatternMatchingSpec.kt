@@ -201,4 +201,23 @@ class PatternMatchingSpec : StringSpec({
         val ds = TestUtil.compileCode(code).env.decls
         ds["fun"]?.type?.simpleName() shouldBe "Unit -> Int"
     }
+    
+    "multi pattern test" {
+        val code = """
+            fun i s b =
+              case i, s, b of
+                0, "", [] -> 0
+                1, "a", [x] -> x
+                _, _, _ -> -1
+            
+            fun2 a b =
+              case a, b of
+                x, y if x == 0 -> y
+                _, _ -> "a"
+        """.module()
+
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["fun"]?.type?.simpleName() shouldBe "Int -> String -> Vector Int -> Int"
+        ds["fun2"]?.type?.simpleName() shouldBe "Int -> String -> String"
+    }
 })

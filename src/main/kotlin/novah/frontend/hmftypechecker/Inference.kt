@@ -211,12 +211,17 @@ object Inference {
                 exp.withType(ty!!)
             }
             is Expr.Match -> {
-                val expTy = instantiate(level, infer(env, level, exp.exp))
-                val isCheck = !expTy.isUnbound()
+                val expTys = exp.exps.map {
+                    val ty = instantiate(level, infer(env, level, it))
+                    ty to !ty.isUnbound()
+                }
                 val resType = newVar(level)
 
                 exp.cases.forEach { case ->
-                    val (vars, guard) = inferpattern(env, level, case.pattern, expTy, isCheck, true)
+                    val vars = case.patterns.flatMapIndexed { i, pat ->
+                        val (expTy, isCheck) = expTys[i]
+                        inferpattern(env, level, pat, expTy, isCheck)
+                    }
                     val newEnv = if (vars.isNotEmpty()) {
                         val theEnv = env.fork()
                         vars.forEach {
@@ -225,7 +230,8 @@ object Inference {
                         }
                         theEnv
                     } else env
-                    if (guard != null) check(newEnv, level, tBoolean, guard)
+
+                    if (case.guard != null) check(newEnv, level, tBoolean, case.guard)
 
                     val ty = infer(newEnv, level, case.exp)
                     unify(resType, ty, case.exp.span)
@@ -414,27 +420,19 @@ object Inference {
     }
 
     data class PatternVar(val name: String, val type: Type, val span: Span)
-    data class PatternResult(val vars: List<PatternVar> = emptyList(), val guard: Expr? = null)
 
-    private fun inferpattern(
-        env: Env,
-        level: Level,
-        pat: Pattern,
-        ty: Type,
-        isCheck: Boolean,
-        topLevel: Boolean = false
-    ): PatternResult {
+    private fun inferpattern(env: Env, level: Level, pat: Pattern, ty: Type, isCheck: Boolean): List<PatternVar> {
         return when (pat) {
             is Pattern.LiteralP -> {
                 check(env, level, ty, pat.lit.e)
-                PatternResult()
+                emptyList()
             }
-            is Pattern.Wildcard -> PatternResult()
+            is Pattern.Wildcard -> emptyList()
             is Pattern.Unit -> {
                 unify(ty, tUnit, pat.span)
-                PatternResult()
+                emptyList()
             }
-            is Pattern.Var -> PatternResult(listOf(PatternVar(pat.name, ty, pat.span)))
+            is Pattern.Var -> listOf(PatternVar(pat.name, ty, pat.span))
             is Pattern.Ctor -> {
                 val cty = infer(env, level, pat.ctor)
 
@@ -444,19 +442,19 @@ object Inference {
                 if (ctorTypes.size - pat.fields.size != 0)
                     internalError("unified two constructors with wrong kinds: $pat")
 
-                if (ctorTypes.isEmpty()) PatternResult()
+                if (ctorTypes.isEmpty()) emptyList()
                 else {
                     val vars = mutableListOf<PatternVar>()
                     ctorTypes.zip(pat.fields).forEach { (type, pattern) ->
-                        vars += inferpattern(env, level, pattern, type, isCheck).vars
+                        vars += inferpattern(env, level, pattern, type, isCheck)
                     }
-                    PatternResult(vars)
+                    vars
                 }
             }
             is Pattern.Record -> {
                 if (pat.labels.isEmpty()) {
                     unify(TRecord(newVar(level)), ty, pat.span)
-                    return PatternResult()
+                    return emptyList()
                 }
 
                 val vars = mutableListOf<PatternVar>()
@@ -465,23 +463,23 @@ object Inference {
                     pat.labels.forEachKeyList { label, p ->
                         val rowTy = rows.find { it.key() == label }?.value()?.first()
                             ?: inferError(Errors.recordMissingLabels(listOf(label)), pat.span)
-                        vars += inferpattern(env, level, p, rowTy, isCheck).vars
+                        vars += inferpattern(env, level, p, rowTy, isCheck)
                     }
                 } else {
                     // we are in infer mode so we can't make any assumptions about rows
                     val tys: LabelMap<Type> = pat.labels.mapList { p ->
                         val rowTy = newVar(level)
-                        vars += inferpattern(env, level, p, rowTy, isCheck).vars
+                        vars += inferpattern(env, level, p, rowTy, isCheck)
                         rowTy
                     }
                     unify(TRecord(TRowExtend(tys, newVar(level))), ty, pat.span)
                 }
-                PatternResult(vars)
+                vars
             }
             is Pattern.Vector -> {
                 if (pat.elems.isEmpty()) {
                     unify(TApp(TConst(primVector), listOf(newVar(level))), ty, pat.span)
-                    return PatternResult()
+                    return emptyList()
                 }
 
                 val vars = mutableListOf<PatternVar>()
@@ -489,9 +487,9 @@ object Inference {
                 unify(TApp(TConst(primVector), listOf(elemTy)), ty, pat.span)
 
                 pat.elems.forEach { p ->
-                    vars += inferpattern(env, level, p, elemTy, isCheck).vars
+                    vars += inferpattern(env, level, p, elemTy, isCheck)
                 }
-                PatternResult(vars)
+                vars
             }
             is Pattern.VectorHT -> {
                 val vars = mutableListOf<PatternVar>()
@@ -499,22 +497,15 @@ object Inference {
                 val vecTy = TApp(TConst(primVector), listOf(elemTy))
                 unify(vecTy, ty, pat.span)
 
-                vars += inferpattern(env, level, pat.head, elemTy, isCheck).vars
-                vars += inferpattern(env, level, pat.tail, vecTy, isCheck).vars
-                PatternResult(vars)
+                vars += inferpattern(env, level, pat.head, elemTy, isCheck)
+                vars += inferpattern(env, level, pat.tail, vecTy, isCheck)
+                vars
             }
             is Pattern.Named -> {
                 val vars = mutableListOf<PatternVar>()
-                vars += inferpattern(env, level, pat.pat, ty, isCheck).vars
+                vars += inferpattern(env, level, pat.pat, ty, isCheck)
                 vars += PatternVar(pat.name, ty, pat.span)
-                PatternResult(vars)
-            }
-            is Pattern.Guard -> {
-                if (!topLevel) inferError(Errors.PATTERN_GUARD, pat.guard.span)
-
-                val vars = mutableListOf<PatternVar>()
-                vars += inferpattern(env, level, pat.pat, ty, isCheck).vars
-                PatternResult(vars, pat.guard)
+                vars
             }
             is Pattern.TypeTest -> {
                 if (pat.alias != null) {
@@ -525,8 +516,8 @@ object Inference {
                         pat.type is TConst && pat.type.name == primArray -> TApp(TConst(primArray), listOf(tObject))
                         else -> pat.type
                     }
-                    PatternResult(listOf(PatternVar(pat.alias, type, pat.span)))
-                } else PatternResult()
+                    listOf(PatternVar(pat.alias, type, pat.span))
+                } else emptyList()
             }
         }
     }

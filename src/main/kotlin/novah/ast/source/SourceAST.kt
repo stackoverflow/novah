@@ -212,7 +212,7 @@ sealed class Expr {
 
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr) : Expr()
     data class Let(val letDefs: List<LetDef>, val body: Expr) : Expr()
-    data class Match(val exp: Expr, val cases: List<Case>) : Expr()
+    data class Match(val exps: List<Expr>, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
     data class DoLet(val letDefs: List<LetDef>) : Expr()
@@ -265,7 +265,9 @@ data class LetDef(
     val type: Type? = null
 )
 
-data class Case(val pattern: Pattern, val exp: Expr)
+data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null) {
+    fun patternSpan() = Span.new(patterns[0].span, patterns.last().span)
+}
 
 sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
@@ -278,7 +280,6 @@ sealed class Pattern(open val span: Span) {
     data class VectorHT(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
     data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
-    data class Guard(val pat: Pattern, val guard: Expr, override val span: Span) : Pattern(span)
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
 }
 

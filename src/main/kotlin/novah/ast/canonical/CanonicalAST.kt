@@ -88,7 +88,7 @@ sealed class Expr(open val span: Span) {
 
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
-    data class Match(val exp: Expr, val cases: List<Case>, override val span: Span) : Expr(span)
+    data class Match(val exps: List<Expr>, val cases: List<Case>, override val span: Span) : Expr(span)
     data class Ann(val exp: Expr, val annType: Pair<List<Id>, Type>, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class NativeFieldGet(val name: String, val field: Field, val isStatic: Boolean, override val span: Span) :
@@ -142,7 +142,7 @@ data class LetDef(
     val type: Type? = null
 )
 
-data class Case(val pattern: Pattern, val exp: Expr)
+data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null)
 
 sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
@@ -154,7 +154,6 @@ sealed class Pattern(open val span: Span) {
     data class VectorHT(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
     data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
-    data class Guard(val pat: Pattern, val guard: Expr, override val span: Span) : Pattern(span)
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
 }
 
@@ -178,7 +177,6 @@ fun Pattern.show(): String = when (this) {
     is Pattern.VectorHT -> "[${head.show()} :: ${tail.show()}]"
     is Pattern.Named -> "${pat.show()} as $name"
     is Pattern.Unit -> "()"
-    is Pattern.Guard -> "${pat.show()} if ${guard.show()}"
     is Pattern.TypeTest -> ":? ${type.show()}" + if (alias != null) " $alias" else ""
 }
 
@@ -203,7 +201,9 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.App -> f(e.copy(fn = go(e.fn), arg = go(e.arg)))
         is Expr.If -> f(e.copy(cond = go(e.cond), thenCase = go(e.thenCase), elseCase = go(e.elseCase)))
         is Expr.Let -> f(e.copy(letDef = e.letDef.copy(expr = go(e.letDef.expr)), body = go(e.body)))
-        is Expr.Match -> f(e.copy(exp = go(e.exp), cases = e.cases.map { it.copy(exp = go(it.exp)) }))
+        is Expr.Match -> f(e.copy(exps = e.exps.map(::go), cases = e.cases.map {
+            it.copy(exp = go(it.exp), guard = it.guard?.let { g -> go(g) })
+        }))
         is Expr.Ann -> f(e.copy(exp = go(e.exp)))
         is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.RecordSelect -> f(e.copy(exp = go(e.exp)))
@@ -212,10 +212,6 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         else -> f(e)
     }
     return go(this)
-}
-
-fun Expr.substVar(from: String, to: String): Expr = everywhere { e ->
-    if (e is Expr.Var && e.name == from) e.copy(name = to) else e
 }
 
 fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
@@ -252,8 +248,11 @@ fun Expr.show(): String = when (this) {
     is Expr.If -> "if ${cond.show()} then ${thenCase.show()} else ${elseCase.show()}"
     is Expr.Let -> "let ${letDef.binder} = ${letDef.expr.show()} in ${body.show()}"
     is Expr.Match -> {
-        val cs = cases.joinToString("\n  ") { it.pattern.show() + " -> " + it.exp.show() }
-        "case ${exp.show()} of\n  $cs"
+        val cs = cases.joinToString("\n  ") { cs ->
+            val guard = if (cs.guard != null) " if " + cs.guard.show() else ""
+            cs.patterns.joinToString { it.show() } + guard + " -> " + cs.exp.show()
+        }
+        "case ${exps.joinToString { it.show() }} of\n  $cs"
     }
     is Expr.Ann -> "${exp.show()} : ${annType.second.show()}"
     is Expr.Do -> "do\n  " + exps.joinToString("\n  ") { it.show() }
