@@ -37,7 +37,7 @@ class ForeignSpec : StringSpec({
             f : String -> File
             f x = newFile x
             
-            main args = do
+            main _ = do
               println "running novah"
               let arr = newArrayList ()
               add arr "asd"

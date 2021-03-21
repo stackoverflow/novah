@@ -132,7 +132,7 @@ class RecordSpec : StringSpec({
         // so we could generically update a record
         val code = """
             same : forall a. a -> a -> a
-            same x y = y
+            same _ y = y
             
             update newName named = { name: same named.name newName | { - name | named } }
         """.module()
@@ -154,7 +154,7 @@ class RecordSpec : StringSpec({
             prelude : Prelude
             prelude =
               { id: id
-              , const: \x y -> x
+              , const: \x _ -> x
               }
         """.module()
 

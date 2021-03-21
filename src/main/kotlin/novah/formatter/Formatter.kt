@@ -216,6 +216,13 @@ class Formatter {
         is Pattern.Ctor -> show(p.ctor) + p.fields.joinToStr(" ", prefix = " ") { show(it) }
         is Pattern.LiteralP -> show(p.lit)
         is Pattern.Parens -> "(${show(p.pattern)})"
+        is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }}"
+        is Pattern.Vector -> "[${p.elems.joinToString { show(it) }}]"
+        is Pattern.VectorHT -> "[${show(p.head)} :: ${show(p.tail)}]"
+        is Pattern.Named -> "${show(p.pat)} as ${p.name}"
+        is Pattern.Unit -> "()"
+        is Pattern.Guard -> "${show(p.pat)} if ${show(p.guard)}"
+        is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " ${p.alias}" else ""
     }
 
     private fun show(p: LiteralPattern): String = when (p) {

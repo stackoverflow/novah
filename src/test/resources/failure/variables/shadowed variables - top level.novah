@@ -2,4 +2,4 @@ module test
 
 x = 12
             
-f x = "abc"
+f x = x

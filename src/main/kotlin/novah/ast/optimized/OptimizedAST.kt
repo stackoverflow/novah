@@ -95,7 +95,7 @@ sealed class Expr(open val type: Type) {
 }
 
 sealed class Type {
-    data class TVar(val name: String, val isForall: Boolean = false) : Type()
+    data class TVar(val name: String, val isForall: Boolean = false, val labels: LabelMap<Type> = LabelMap()) : Type()
     data class TFun(val arg: Type, val ret: Type) : Type()
     data class TConstructor(val name: String, val types: List<Type>) : Type()
 
@@ -104,7 +104,7 @@ sealed class Type {
         is TFun -> true
         is TConstructor -> types.isNotEmpty()
     }
-    
+
     fun isMono(): Boolean = if (this is TVar) !isForall else true
 }
 

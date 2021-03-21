@@ -60,6 +60,12 @@ fun <V, R> LabelMap<V>.mapList(fn: (V) -> R): LabelMap<R> {
     return mapValues { _, l -> l.map(fn) }
 }
 
+fun <V, R> LabelMap<V>.forEachKeyList(fn: (String, V) -> R) {
+    forEach { kv ->
+        kv.value().forEach { fn(kv.key(), it) }
+    }
+}
+
 fun <V> LabelMap<V>.forEachList(fn: (V) -> Unit) {
     forEach { kv ->
         kv.value().forEach(fn)

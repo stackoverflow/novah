@@ -1,8 +1,59 @@
 module pack.tryout
 
-opaque type Id = Int
+foreign import novah.Core:sum(Int, Int)
+foreign import novah.Core:equivalent(Int, Int) as eqInt
 
-main : Unit -> Unit
-main () =
-  case Id 6 of
-    Id i -> println i
+rec = { x: 1, y: { z: 'a' } }
+
+vec = [1, 2]
+
+fun r =
+  case r of
+    { y: { z } } -> println z
+
+fun2 v =
+  case v of
+    [] -> println "empty"
+    [x] -> println x
+    [_, _] as ve -> println ve
+    _ -> println -1
+
+fun3 () =
+  case "a" of
+    "" -> println "empty"
+    "a" as x -> println x
+    _ -> println -1
+
+fun4 n =
+  case n of
+    () -> println "null"
+    _ -> println "not null"
+
+(===) : Int -> Int -> Boolean
+(===) x y = eqInt x y
+
+fun5 () =
+  case 5 of
+    1 -> println 1
+    x if x === 2 -> println 2
+    x if x === 5 -> println x
+    _ -> println -1
+
+fun6 v =
+  case v of
+    [] -> println "empty"
+    [x :: xs] -> do
+      println x
+      println xs
+
+fun7 () =
+  case (3 === 7) of
+    true -> println "3 = 7"
+    false -> println "3 != 7"
+
+fun8 x = case x of
+  :? Int as i -> println (sum i 10)
+  :? Vector as v -> println v
+  _ -> println "not int or object"
+
+main () = fun8 45

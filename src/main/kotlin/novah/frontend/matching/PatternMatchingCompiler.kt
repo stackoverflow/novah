@@ -194,9 +194,17 @@ class PatternMatchingCompiler<R> {
     }
 
     companion object {
+        private var guardCount = 0
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
+        private val unitCtor = Ctor("unit", 0, 1)
+        private val vectorEmptyCtor = Ctor("vector", 0, 2)
+        private val vectorHTCtor = Ctor("vector", 2, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
+        private fun mkRecordCtor(arity: Int) = Ctor("record$arity", arity, 1)
+        private fun mkVectorCtor(arity: Int) = Ctor("vector$arity", arity, Integer.MAX_VALUE)
+        private fun mkGuardCtor() = Ctor("guard${guardCount++}", 1, Integer.MAX_VALUE)
+        private fun mkTypeTestCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
 
         private val ctorCache = mutableMapOf<String, Ctor>()
 
@@ -218,7 +226,7 @@ class PatternMatchingCompiler<R> {
 
         private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {
             is Pattern.Wildcard -> Pat.PVar("_")
-            is Pattern.Var -> Pat.PVar(p.name.toString())
+            is Pattern.Var -> Pat.PVar(p.name)
             is Pattern.Ctor -> {
                 val name = p.ctor.fullname(modName)
                 Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
@@ -235,6 +243,21 @@ class PatternMatchingCompiler<R> {
                 }
                 Pat.PCon(con, emptyList())
             }
+            is Pattern.Record -> {
+                val pats = p.labels.values().flatten().map { convertPattern(it, modName) }
+                Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
+            }
+            is Pattern.Vector -> {
+                if (p.elems.isEmpty()) Pat.PCon(vectorEmptyCtor, emptyList())
+                else Pat.PCon(mkVectorCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
+            }
+            is Pattern.VectorHT -> {
+                Pat.PCon(vectorHTCtor, listOf(convertPattern(p.head, modName), convertPattern(p.tail, modName)))
+            }
+            is Pattern.Named -> convertPattern(p.pat, modName)
+            is Pattern.Unit -> Pat.PCon(unitCtor, emptyList())
+            is Pattern.Guard -> Pat.PCon(mkGuardCtor(), listOf(convertPattern(p.pat, modName)))
+            is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.type.show()), emptyList())
         }
     }
 }

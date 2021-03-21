@@ -69,6 +69,8 @@ sealed class Token {
     data class UpperIdent(val v: String) : Token()
     data class Op(val op: String) : Token()
 
+    fun isDoubleColon() = this is Op && op == "::"
+    
     override fun toString(): String = this.javaClass.simpleName
 }
 
@@ -140,7 +142,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
     private val iter = CharPositionIterator(input)
 
-    private val operators = "$=<>|&+-:*/%^."
+    private val operators = "$=<>|&+-:*/%^.?"
 
     override fun hasNext(): Boolean = iter.hasNext()
 

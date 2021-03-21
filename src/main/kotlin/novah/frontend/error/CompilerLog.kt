@@ -87,6 +87,5 @@ enum class ProblemContext {
     SUBSUMPTION,
     PATTERN_MATCHING,
     FOREIGN,
-    OPTIMIZATION,
     UNIFICATION;
 }

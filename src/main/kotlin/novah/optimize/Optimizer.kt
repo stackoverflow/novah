@@ -15,6 +15,7 @@
  */
 package novah.optimize
 
+import novah.Core
 import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.ast.optimized.*
@@ -35,6 +36,7 @@ import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
 import novah.frontend.error.Errors as E
 import novah.frontend.hmftypechecker.Type as TType
+import io.lacuna.bifurcan.List as PList
 
 /**
  * Converts the canonical AST to the
@@ -44,6 +46,8 @@ class Optimizer(private val ast: CModule) {
 
     private var haslambda = false
     private val warnings = mutableListOf<CompilerProblem>()
+
+    private var genVar = 0
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
@@ -223,9 +227,12 @@ class Optimizer(private val ast: CModule) {
             }
         }
         // records always have the same type
+        is TRecord -> row.convert()
         is TRowEmpty -> Type.TVar(RECORD_TYPE)
-        is TRecord -> Type.TVar(RECORD_TYPE)
-        is TRowExtend -> Type.TVar(RECORD_TYPE)
+        is TRowExtend -> {
+            val (rows, _) = collectRows()
+            Type.TVar(RECORD_TYPE, labels = rows.mapList { it.convert() })
+        }
         is TImplicit -> type.convert()
     }
 
@@ -233,8 +240,35 @@ class Optimizer(private val ast: CModule) {
         it.parameterCount == 1 && it.parameterTypes[0].canonicalName == "java.lang.String"
     }!!
 
+    private val vectorSize = PList::class.java.methods.find { it.name == "size" }!!
+    private val vectorAccess = PList::class.java.methods.find { it.name == "nth" }!!
+    private val vectorSlice = PList::class.java.methods.find { it.name == "slice" }!!
+    private val equivalentInt = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
+    }!!
+    private val equivalentLong = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Long::class.java
+    }!!
+    private val equivalentFloat = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Float::class.java
+    }!!
+    private val equivalentDouble = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Double::class.java
+    }!!
+    private val equivalentChar = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Char::class.java
+    }!!
+    private val equivalentBoolean = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
+    }!!
+    private val equivalent = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == Object::class.java
+    }!!
+
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
+    private val longType = tLong.convert()
+    private val objectType = tObject.convert()
 
     private fun makeThrow(msg: String): Expr {
         return Expr.Throw(
@@ -247,6 +281,7 @@ class Optimizer(private val ast: CModule) {
     }
 
     private class VarDef(val name: String, val exp: Expr)
+    private data class PatternResult(val expr: Expr, val vars: List<VarDef> = emptyList(), val guard: CExpr? = null)
 
     private fun desugarMatch(m: CExpr.Match, type: Type, locals: List<String>): Expr {
         val tru = Expr.Bool(true, boolType)
@@ -265,10 +300,43 @@ class Optimizer(private val ast: CModule) {
             else Expr.Cast(field, expectedFieldType)
         }
 
-        fun desugarPattern(p: Pattern, exp: Expr): Pair<Expr, List<VarDef>> = when (p) {
-            is Pattern.Wildcard -> tru to emptyList()
-            is Pattern.Var -> tru to listOf(VarDef(p.name, exp))
-            is Pattern.LiteralP -> Expr.OperatorApp("==", listOf(exp, p.lit.e.convert(locals)), boolType) to emptyList()
+        fun simplifyConds(conds: List<Expr>): Expr {
+            val simplified = conds.filter { it != tru }
+            return when {
+                simplified.isEmpty() -> tru
+                simplified.size == 1 -> simplified[0]
+                else -> Expr.OperatorApp("&&", simplified, boolType)
+            }
+        }
+
+        fun mkVectorSizeCheck(exp: Expr, size: Long): Expr {
+            val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
+            val longe = Expr.LongE(size, longType)
+            return Expr.NativeStaticMethod(equivalentLong, listOf(sizeExp, longe), boolType)
+        }
+
+        fun mkVectorAccessor(exp: Expr, index: Long, type: Type): Expr =
+            Expr.NativeMethod(vectorAccess, exp, listOf(Expr.LongE(index, longType)), type)
+
+        fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
+            is Pattern.Wildcard -> PatternResult(tru)
+            is Pattern.Var -> PatternResult(tru, listOf(VarDef(p.name, exp)))
+            is Pattern.Unit -> {
+                val cond = Expr.NativeStaticMethod(equivalent, listOf(exp, Expr.Unit(objectType)), boolType)
+                PatternResult(cond)
+            }
+            is Pattern.LiteralP -> {
+                val method = when (p.lit) {
+                    is LiteralPattern.IntLiteral -> equivalentInt
+                    is LiteralPattern.LongLiteral -> equivalentLong
+                    is LiteralPattern.FloatLiteral -> equivalentFloat
+                    is LiteralPattern.DoubleLiteral -> equivalentDouble
+                    is LiteralPattern.CharLiteral -> equivalentChar
+                    is LiteralPattern.BoolLiteral -> equivalentBoolean
+                    is LiteralPattern.StringLiteral -> equivalent
+                }
+                PatternResult(Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType))
+            }
             is Pattern.Ctor -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
@@ -290,13 +358,71 @@ class Optimizer(private val ast: CModule) {
                     vars += vs
                 }
 
-                // remove redundant checks
-                val simplified = conds.filter { it != tru }
-                when {
-                    simplified.isEmpty() -> tru
-                    simplified.size == 1 -> simplified[0]
-                    else -> Expr.OperatorApp("&&", conds, boolType)
-                } to vars
+                PatternResult(simplifyConds(conds), vars)
+            }
+            is Pattern.Record -> {
+                val conds = mutableListOf<Expr>()
+                val vars = mutableListOf<VarDef>()
+
+                val rows = (exp.type as? Type.TVar)?.labels ?: internalError("Got wrong type for record: ${exp.type}")
+
+                p.labels.forEachKeyList { label, pat ->
+                    val field = Expr.RecordSelect(exp, label, rows.get(label, null).first())
+                    val (cond, vs) = desugarPattern(pat, field)
+                    conds += cond
+                    vars += vs
+                }
+
+                PatternResult(simplifyConds(conds), vars)
+            }
+            is Pattern.Vector -> {
+                val conds = mutableListOf<Expr>()
+                val vars = mutableListOf<VarDef>()
+
+                conds += mkVectorSizeCheck(exp, p.elems.size.toLong())
+                val fieltTy = (exp.type as? Type.TConstructor)?.types?.first()
+                    ?: internalError("Got wrong type for vector: ${exp.type}")
+                p.elems.forEachIndexed { i, pat ->
+                    val field = mkVectorAccessor(exp, i.toLong(), fieltTy)
+                    val (cond, vs) = desugarPattern(pat, field)
+                    conds += cond
+                    vars += vs
+                }
+
+                PatternResult(simplifyConds(conds), vars)
+            }
+            is Pattern.VectorHT -> {
+                val conds = mutableListOf<Expr>()
+                val vars = mutableListOf<VarDef>()
+
+                val fieltTy = (exp.type as? Type.TConstructor)?.types?.first()
+                    ?: internalError("Got wrong type for vector: ${exp.type}")
+                val headExp = mkVectorAccessor(exp, 0, fieltTy)
+                val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
+                val tailExp = Expr.NativeMethod(vectorSlice, exp, listOf(Expr.LongE(1, longType), sizeExp), type)
+
+                val (hCond, hVs) = desugarPattern(p.head, headExp)
+                val (tCond, tVs) = desugarPattern(p.tail, tailExp)
+                conds += hCond
+                conds += tCond
+                vars += hVs
+                vars += tVs
+
+                PatternResult(simplifyConds(conds), vars)
+            }
+            is Pattern.Named -> {
+                val (cond, vars) = desugarPattern(p.pat, exp)
+                PatternResult(cond, vars + VarDef(p.name, exp))
+            }
+            is Pattern.Guard -> {
+                val (cond, vars) = desugarPattern(p.pat, exp)
+                PatternResult(cond, vars, p.guard)
+            }
+            is Pattern.TypeTest -> {
+                val castType = p.type.convert()
+                val cond = Expr.InstanceOf(exp, castType)
+                val vs = if (p.alias != null) listOf(VarDef(p.alias, Expr.Cast(exp, castType))) else emptyList()
+                PatternResult(cond, vs)
             }
         }
 
@@ -309,14 +435,35 @@ class Optimizer(private val ast: CModule) {
         }
 
         val exp = m.exp.convert(locals)
+        var varName: String? = null
+        val pexp = if (needVar(exp)) {
+            varName = "case$${genVar++}"
+            Expr.LocalVar(varName, exp.type)
+        } else exp
         val pats = m.cases.map { case ->
-            val (cond, vars) = desugarPattern(case.pattern, exp)
+            val (cond, vars, guard) = desugarPattern(case.pattern, pexp)
             val introducedVariables = vars.map { it.name }
             val caseExp = case.exp.convert(locals + introducedVariables)
-            val expr = if (vars.isEmpty()) caseExp else varToLet(vars, caseExp)
-            cond to expr
+            if (guard != null) {
+                val guarded = varToLet(vars, guard.convert(locals + introducedVariables))
+                val guardCond = if (cond == tru) guarded
+                else Expr.OperatorApp("&&", listOf(cond, guarded), boolType)
+                // not sure the variables are visible in `caseExpr` better test
+                guardCond to caseExp
+            } else {
+                val expr = if (vars.isEmpty()) caseExp else varToLet(vars, caseExp)
+                cond to expr
+            }
         }
-        return Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
+        val ifExp = Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
+        return if (varName != null) Expr.Let(varName, exp, ifExp, type) else ifExp
+    }
+
+    private fun needVar(exp: Expr): Boolean = when (exp) {
+        is Expr.Var, is Expr.LocalVar, is Expr.ByteE, is Expr.ShortE,
+        is Expr.IntE, is Expr.LongE, is Expr.FloatE, is Expr.DoubleE,
+        is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor -> false
+        else -> true
     }
 
     /**
@@ -402,8 +549,8 @@ class Optimizer(private val ast: CModule) {
             "prim.DoubleArray" -> "double[]"
             "prim.CharArray" -> "char[]"
             "prim.BooleanArray" -> "boolean[]"
-            "prim.Vector" -> "io/lacuna/bifurcan/IList"
-            "prim.Set" -> "io/lacuna/bifurcan/ISet"
+            "prim.Vector" -> "io/lacuna/bifurcan/List"
+            "prim.Set" -> "io/lacuna/bifurcan/Set"
             else -> internalize(tvar.name)
         }
 

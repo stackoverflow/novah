@@ -1,0 +1,9 @@
+module test
+
+rec = { x: 1, s: "abc" }
+
+fun () =
+  case rec of
+    { x } -> x
+    { s } -> s
+    _ -> 0

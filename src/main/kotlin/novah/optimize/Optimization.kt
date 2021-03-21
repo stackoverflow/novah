@@ -36,36 +36,10 @@ object Optimization {
         for (d in ast.decls) {
             decls += when (d) {
                 is Decl.TypeDecl -> d
-                is Decl.ValDecl -> {
-                    reportUnusedVars(d.exp, d.span, ast)
-                    Decl.ValDecl(d.name, f(d.exp), d.visibility, d.span)
-                }
+                is Decl.ValDecl -> Decl.ValDecl(d.name, f(d.exp), d.visibility, d.span)
             }
         }
         return Module(ast.name, ast.sourceName, ast.hasLambda, decls)
-    }
-
-    // TODO: report the span of the specific lambda/let with
-    //       unused variables instead of the whole declaration
-    private fun reportUnusedVars(expr: Expr, span: Span, ast: Module) {
-        val unused = everywhereAccumulating(expr, emptyList<String>()) { e, l ->
-            when (e) {
-                is Expr.Lambda -> if (e.binder != null) l + e.binder else l
-                is Expr.Let -> l + e.binder
-                is Expr.LocalVar -> if (e.name in l) l - e.name else l
-                else -> l
-            }
-        }
-        if (unused.isNotEmpty()) {
-            val err = CompilerProblem(
-                Errors.unusedVariables(unused),
-                ProblemContext.OPTIMIZATION,
-                span,
-                ast.sourceName,
-                ast.name
-            )
-            throw CompilationError(listOf(err))
-        }
     }
 
     /**
@@ -151,48 +125,6 @@ object Optimization {
             else -> f(e)
         }
         return go(expr)
-    }
-
-    /**
-     * Visit every expression top->bottom accumulating a value.
-     */
-    private fun <T> everywhereAccumulating(expr: Expr, init: List<T>, f: (Expr, List<T>) -> List<T>): List<T> {
-        fun go(e: Expr, acc: List<T>): List<T> = when (e) {
-            is Expr.Lambda -> go(e.body, f(e, acc))
-            is Expr.App -> {
-                go(e.arg, go(e.fn, f(e, acc)))
-            }
-            is Expr.CtorApp -> {
-                val ac = go(e.ctor, f(e, acc))
-                e.args.fold(ac) { accu, arg -> go(arg, accu) }
-            }
-            is Expr.If -> {
-                val ac = e.conds.fold(f(e, acc)) { accu, (c, t) -> go(c, go(t, accu)) }
-                go(e.elseCase, ac)
-            }
-            is Expr.Let -> go(e.body, go(e.bindExpr, f(e, acc)))
-            is Expr.Do -> e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
-            is Expr.OperatorApp -> e.operands.fold(f(e, acc)) { accu, op -> go(op, accu) }
-            is Expr.InstanceOf -> go(e.exp, f(e, acc))
-            is Expr.NativeFieldGet -> go(e.thisPar, f(e, acc))
-            is Expr.NativeFieldSet -> go(e.thisPar, go(e.par, f(e, acc)))
-            is Expr.NativeStaticFieldSet -> go(e.par, f(e, acc))
-            is Expr.NativeMethod -> e.pars.fold(go(e.thisPar, f(e, acc))) { accu, exp -> go(exp, accu) }
-            is Expr.NativeStaticMethod -> e.pars.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
-            is Expr.NativeCtor -> e.pars.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
-            is Expr.Throw -> go(e.expr, f(e, acc))
-            is Expr.Cast -> go(e.expr, f(e, acc))
-            is Expr.RecordExtend -> {
-                val vals = e.labels.values().flatten()
-                (vals + e.expr).fold(f(e, acc)) { accu, exp -> go(exp, accu) }
-            }
-            is Expr.RecordSelect -> go(e.expr, f(e, acc))
-            is Expr.RecordRestrict -> go(e.expr, f(e, acc))
-            is Expr.VectorLiteral -> e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
-            is Expr.SetLiteral -> e.exps.fold(f(e, acc)) { accu, exp -> go(exp, accu) }
-            else -> f(e, acc)
-        }
-        return go(expr, init)
     }
 
     private fun comp(vararg fs: (Expr) -> Expr): (Expr) -> Expr = { e ->

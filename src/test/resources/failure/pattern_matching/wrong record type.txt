@@ -1,0 +1,17 @@
+module [33mtest[0m
+at src/test/resources/failure/pattern_matching/wrong record type.novah:8:14 - 8:15
+
+  Cannot match type
+  
+      Int
+  
+  with type
+  
+      String
+
+while checking expression case rec of
+  { x: x } -> x
+  { s: s } -> s
+  _ -> ...
+in declaration fun
+

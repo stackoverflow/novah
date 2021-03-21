@@ -15,14 +15,12 @@
  */
 package novah.frontend
 
-import novah.Util.joinToStr
 import novah.ast.source.Binder
 import novah.ast.source.Expr
 import novah.ast.source.FunparPattern
 import novah.ast.source.Module
 import novah.data.flatMapList
 import novah.data.map
-import novah.data.show
 import novah.data.unwrapOrElse
 import novah.frontend.hmftypechecker.*
 import novah.main.CompilationError
@@ -90,13 +88,25 @@ object TestUtil {
 
     fun compileCode(code: String, verbose: Boolean = true): FullModuleEnv {
         val compiler = compilerForCode(code, verbose)
-        return compiler.compile().values.first()
+        val menv = compiler.compile().values.first()
+        val opt = Optimizer(menv.ast)
+        val conv = opt.convert()
+        if (opt.getWarnings().isNotEmpty()) {
+            opt.getWarnings().forEach { println(it.formatToConsole()) }
+        }
+        conv.map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
+        return menv
     }
 
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
-        val ast = compileCode(code, verbose).ast
+        val compiler = compilerForCode(code, verbose)
+        val ast = compiler.compile().values.first().ast
         val opt = Optimizer(ast)
-        return opt.convert().map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
+        val conv = opt.convert()
+        if (opt.getWarnings().isNotEmpty()) {
+            opt.getWarnings().forEach { println(it.formatToConsole()) }
+        }
+        return conv.map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
     }
 
     fun _i(i: Int) = Expr.IntE(i, "$i")

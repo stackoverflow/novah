@@ -304,12 +304,18 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val f = e.field
                 mv.visitFieldInsn(GETSTATIC, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
                 if (f.type.isPrimitive) box(f.type, mv)
+                val type = toInternalClass(e.type)
+                if (type != OBJECT_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, type)
             }
             is Expr.NativeFieldGet -> {
                 val f = e.field
                 genExpr(e.thisPar, mv, ctx)
                 mv.visitFieldInsn(GETFIELD, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
                 if (f.type.isPrimitive) box(f.type, mv)
+                val type = toInternalClass(e.type)
+                if (type != OBJECT_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, type)
             }
             is Expr.NativeStaticFieldSet -> {
                 val f = e.field
@@ -331,9 +337,14 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
                 val desc = getMethodDescriptor(m)
                 mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, false)
-                
+
                 if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
-                else if (m.returnType.isPrimitive) box(m.returnType, mv)
+                else {
+                    if (m.returnType.isPrimitive) box(m.returnType, mv)
+                    val type = toInternalClass(e.type)
+                    if (type != OBJECT_CLASS)
+                        mv.visitTypeInsn(CHECKCAST, type)
+                }
             }
             is Expr.NativeMethod -> {
                 val m = e.method
@@ -345,7 +356,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(op, getInternalName(m.declaringClass), m.name, getMethodDescriptor(m), isInterface)
 
                 if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
-                else if (m.returnType.isPrimitive) box(m.returnType, mv)
+                else {
+                    if (m.returnType.isPrimitive) box(m.returnType, mv)
+                    val type = toInternalClass(e.type)
+                    if (type != OBJECT_CLASS)
+                        mv.visitTypeInsn(CHECKCAST, type)
+                }
             }
             is Expr.NativeCtor -> {
                 val c = e.ctor
@@ -380,7 +396,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "unsafeGet", desc, false)
                 val type = toInternalClass(e.type)
                 if (type != OBJECT_CLASS)
-                    mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
+                    mv.visitTypeInsn(CHECKCAST, type)
             }
             is Expr.RecordRestrict -> {
                 genExpr(e.expr, mv, ctx)
@@ -409,26 +425,34 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
             }
             is Expr.VectorLiteral -> {
-                genInt(intExp(e.exps.size), mv)
-                mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
-                e.exps.forEachIndexed { i, exp ->
-                    mv.visitInsn(DUP)
-                    genInt(intExp(i), mv)
-                    genExpr(exp, mv, ctx)
-                    mv.visitInsn(AASTORE)
+                if (e.exps.isEmpty()) {
+                    mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "empty", "()$VECTOR_TYPE", false)
+                } else {
+                    genInt(intExp(e.exps.size), mv)
+                    mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
+                    e.exps.forEachIndexed { i, exp ->
+                        mv.visitInsn(DUP)
+                        genInt(intExp(i), mv)
+                        genExpr(exp, mv, ctx)
+                        mv.visitInsn(AASTORE)
+                    }
+                    mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "of", "([$OBJECT_TYPE)$VECTOR_TYPE", false)
                 }
-                mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "of", "([$OBJECT_TYPE)$VECTOR_TYPE", false)
             }
             is Expr.SetLiteral -> {
-                genInt(intExp(e.exps.size), mv)
-                mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
-                e.exps.forEachIndexed { i, exp ->
-                    mv.visitInsn(DUP)
-                    genInt(intExp(i), mv)
-                    genExpr(exp, mv, ctx)
-                    mv.visitInsn(AASTORE)
+                if (e.exps.isEmpty()) {
+                    mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "empty", "()$SET_TYPE", false)
+                } else {
+                    genInt(intExp(e.exps.size), mv)
+                    mv.visitTypeInsn(ANEWARRAY, toInternalClass(e.exps[0].type))
+                    e.exps.forEachIndexed { i, exp ->
+                        mv.visitInsn(DUP)
+                        genInt(intExp(i), mv)
+                        genExpr(exp, mv, ctx)
+                        mv.visitInsn(AASTORE)
+                    }
+                    mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "of", "([$OBJECT_TYPE)$SET_TYPE", false)
                 }
-                mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "of", "([$OBJECT_TYPE)$SET_TYPE", false)
             }
         }
     }
@@ -567,7 +591,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val fail = Label()
         val success = Label()
         val end = Label()
-        val last = e.operands.size - 1
+        val last = e.operands.lastIndex
         e.operands.forEachIndexed { i, op ->
             genExprForPrimitiveBool(op, mv, ctx)
 
@@ -813,7 +837,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     companion object {
         private const val MAP_LINEAR_THRESHOLD = 5
-        
+
         private val ctorCache = mutableMapOf<String, DataConstructor>()
 
         private val primitiveWrappers = mutableMapOf(
@@ -827,8 +851,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             "boolean" to Boolean::class.javaObjectType
         )
 
-        private fun intExp(n: Int): Expr.IntE {
-            return Expr.IntE(n, Type.TVar("prim.Int"))
-        }
+        private fun intExp(n: Int): Expr.IntE = Expr.IntE(n, Type.TVar("prim.Int"))
     }
 }

@@ -651,7 +651,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun tryParsePattern(): Pattern? {
         val tk = iter.peek()
-        return when (tk.value) {
+        var pat = when (tk.value) {
             is Underline -> {
                 iter.next()
                 Pattern.Wildcard(tk.span)
@@ -690,17 +690,93 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is LParen -> {
                 iter.next()
-                val pat = parsePattern()
-                val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
-                Pattern.Parens(pat, span(tk.span, tkEnd.span))
+                if (iter.peek().value is RParen) {
+                    val end = iter.next()
+                    Pattern.Unit(span(tk.span, end.span))
+                } else {
+                    val pat = parsePattern()
+                    val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
+                    Pattern.Parens(pat, span(tk.span, tkEnd.span))
+                }
             }
             is UpperIdent -> {
                 val ctor = parseConstructor()
                 val fields = tryParseListOf { tryParsePattern() }
                 Pattern.Ctor(ctor, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
             }
+            is LBracket -> {
+                iter.next()
+                val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
+                val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span
+                Pattern.Record(labelMapWith(rows), span(tk.span, end))
+            }
+            is LSBracket -> {
+                iter.next()
+                if (iter.peek().value is RSBracket) {
+                    val end = iter.next().span
+                    Pattern.Vector(emptyList(), span(tk.span, end))
+                } else {
+                    val elems = between<Comma, Pattern>(::parsePattern)
+                    if (elems.size == 1 && iter.peek().value.isDoubleColon()) {
+                        iter.next()
+                        val tail = parsePattern()
+                        val end = expect<RSBracket>(withError(E.rsbracketExpected("vector pattern"))).span
+                        Pattern.VectorHT(elems[0], tail, span(tk.span, end))
+                    } else {
+                        val end = expect<RSBracket>(withError(E.rsbracketExpected("vector pattern"))).span
+                        Pattern.Vector(elems, span(tk.span, end))
+                    }
+                }
+            }
+            is Op -> {
+                if (tk.value.op == ":?") {
+                    iter.next()
+                    val tk2 = expect<UpperIdent>(withError(E.TYPE_TEST_TYPE))
+                    var ty = tk2.value.v
+                    var alias: String? = null
+                    if (iter.peek().value is Dot) {
+                        iter.next()
+                        alias = ty
+                        ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
+                    }
+                    val type = Type.TConst(ty, alias, span(tk2.span, iter.current().span))
+                    
+                    var name: String? = null
+                    var end = type.span
+                    if (iter.peek().value is As) {
+                        iter.next()
+                        val ident = expect<Ident>(withError(E.VARIABLE))
+                        name = ident.value.v
+                        end = ident.span
+                    }
+                    Pattern.TypeTest(type, name, span(tk.span, end))
+                } else null
+            }
             else -> null
         }
+        // named patterns
+        if (pat != null && iter.peek().value is As) {
+            iter.next()
+            val name = expect<Ident>(withError(E.VARIABLE))
+            pat = Pattern.Named(pat, name.value.v, span(pat.span, name.span))
+        }
+        // pattern guards
+        if (pat != null && iter.peek().value is IfT) {
+            iter.next()
+            val exp = parseExpression()
+            pat = Pattern.Guard(pat, exp, span(pat.span, exp.span))
+        }
+        return pat
+    }
+
+    private fun parsePatternRow(): Pair<String, Pattern> {
+        val (label, tk) = parseLabel()
+        if (iter.peek().value !is Colon && tk.value is Ident) {
+            return label to Pattern.Var(label, tk.span)
+        }
+        expect<Colon>(withError(E.RECORD_COLON))
+        val pat = parsePattern()
+        return label to pat
     }
 
     private fun parseLabel(): Pair<String, Spanned<Token>> {

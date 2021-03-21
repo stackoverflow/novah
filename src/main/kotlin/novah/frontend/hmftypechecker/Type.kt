@@ -178,9 +178,31 @@ sealed class Type {
     }
 
     /**
+     * Collects all the rows from this type.
+     * Does nothing if called on a non-row type.
+     */
+    fun collectRows(): Pair<LabelMap<Type>, Type> = when (this) {
+        is TRowEmpty -> LabelMap<Type>() to this
+        is TVar -> {
+            when (val tv = tvar) {
+                is TypeVar.Link -> tv.type.collectRows()
+                else -> LabelMap<Type>() to this
+            }
+        }
+        is TRowExtend -> {
+            val (restLabels, restTy) = row.collectRows()
+            if (restLabels.isEmpty()) labels to restTy
+            else labels.merge(restLabels) to restTy
+        }
+        else -> LabelMap<Type>() to this
+    }
+
+    /**
      * Pretty print version of [toString]
      */
     fun show(qualified: Boolean = true): String {
+        fun showId(id: Id) = if (id >= 0) "t$id" else "u${-id}"
+        
         fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
             is TConst -> {
                 val isCurrent = Typechecker.context?.mod?.name?.let { t.name.startsWith(it) } ?: false
@@ -203,15 +225,15 @@ sealed class Type {
                 else "$args -> ${go(t.ret, nested)}"
             }
             is TForall -> {
-                val str = "forall ${t.ids.joinToStr(" ") { "t$it" }}. ${go(t.type, false)}"
+                val str = "forall ${t.ids.joinToStr(" ") { showId(it) }}. ${go(t.type, false)}"
                 if (nested || !topLevel) "($str)" else str
             }
             is TVar -> {
                 when (val tv = t.tvar) {
                     is TypeVar.Link -> go(tv.type, nested, topLevel)
-                    is TypeVar.Unbound -> "t${tv.id}"
-                    is TypeVar.Bound -> "t${tv.id}"
-                    is TypeVar.Generic -> "t${tv.id}"
+                    is TypeVar.Unbound -> showId(tv.id)
+                    is TypeVar.Bound -> showId(tv.id)
+                    is TypeVar.Generic -> showId(tv.id)
                 }
             }
             is TRowEmpty -> "{}"
