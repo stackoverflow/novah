@@ -53,7 +53,7 @@ typealias Context = List<ContextElem>
 
 data class Work(val pats: List<Pat>, val objs: List<Access>, val dscs: List<Term>)
 
-data class MatchRule<R>(val pat: Pat, val rhs: List<R>)
+data class MatchRule<R>(val pat: Pat, val rhs: List<R>, val isGuarded: Boolean)
 
 typealias Match<R> = List<MatchRule<R>>
 
@@ -226,7 +226,7 @@ class PatternMatchingCompiler<R> {
                 val ctor = mkMultiCtor(c.patterns.size)
                 Pat.PCon(ctor, c.patterns.map { convertPattern(it, modName) })
             }
-            return MatchRule(pat, c.patterns)
+            return MatchRule(pat, c.patterns, c.guard != null)
         }
 
         private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {

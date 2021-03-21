@@ -168,7 +168,9 @@ class Optimizer(private val ast: CModule) {
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ)
             is CExpr.Match -> {
                 val match = cases.map { PatternMatchingCompiler.convert(it, ast.name) }
-                val compRes = PatternMatchingCompiler<Pattern>().compile(match)
+                // guarded matches are ignored
+                val matches = match.filter { !it.isGuarded }
+                val compRes = PatternMatchingCompiler<Pattern>().compile(matches)
                 reportPatternMatch(compRes, this)
                 desugarMatch(this, typ, locals)
             }
