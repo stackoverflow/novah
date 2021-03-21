@@ -93,8 +93,10 @@ object Inference {
             context?.apply { this.decl = decl }
             val name = decl.name
             val newEnv = env.fork()
-            val ty = if (decl.recursive) inferRecursive(name, decl.exp, newEnv, 0)
-            else infer(newEnv, 0, decl.exp)
+            val ty = if (decl.recursive) {
+                newEnv.remove(name)
+                inferRecursive(name, decl.exp, newEnv, 0)
+            } else infer(newEnv, 0, decl.exp)
 
             if (decl.isOperator) validateOperator(decl)
             if (implicitsToCheck.isNotEmpty()) instanceSearch(implicitsToCheck)
@@ -534,7 +536,8 @@ object Inference {
         val recTy = infer(env, level, newExp)
         env.extend(newName, recTy)
         val fix = Expr.App(Expr.Var("\$fix", exp.span), Expr.Var(newName, exp.span), exp.span)
-        return infer(env, level, fix)
+        val ty = infer(env, level, fix)
+        return exp.withType(ty)
     }
 
     private fun generalize(level: Level, type: Type): Type {
@@ -600,9 +603,9 @@ object Inference {
     private fun funToFixpoint(name: String, expr: Expr): Pair<String, Expr> {
         val binder = "${name}\$rec"
         return binder to Expr.Lambda(
-            lambdaBinder("\$$name", expr.span),
+            lambdaBinder(name, expr.span),
             null,
-            expr.substVar(name, "\$$name"),
+            expr,
             expr.span
         )
     }

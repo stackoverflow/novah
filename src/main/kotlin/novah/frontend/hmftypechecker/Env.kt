@@ -34,6 +34,10 @@ class Env private constructor(
     }
 
     fun lookup(name: String): Type? = env.get(name, null)
+    
+    fun remove(name: String) {
+        env.remove(name)
+    }
 
     fun fork() = Env(env.forked().linear(), types.forked().linear(), instances.forked().linear())
 
