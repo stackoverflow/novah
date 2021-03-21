@@ -284,7 +284,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return withOffside(tk.offside() + 1, false) {
             val name = expect<UpperIdent>(withError(E.DATA_NAME)).value.v
 
-            val tyVars = emptyList<String>()
+            val tyVars = parseListOf(::parseTypeVar) { it is Ident }
             expect<Equals>(withError(E.DATA_EQUALS))
 
             val ctorvis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE

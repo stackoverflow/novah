@@ -20,11 +20,11 @@ import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
 
-class InstanceSpec : StringSpec({
+class InstanceArgumentsSpec : StringSpec({
 
     "constrained types" {
         val code = """
-            type Show a = Show { show : a -> String }
+            opaque type Show a = { show : a -> String }
             
             show : forall a. {{ Show a }} -> a -> String
             show {{s}} x = case s of Show ss -> ss.show x
@@ -64,7 +64,7 @@ class InstanceSpec : StringSpec({
     
     "recursive search" {
         val code = """
-            type Show a = Show { show : a -> String }
+            opaque type Show a = { show : a -> String }
             
             show : forall a. {{ Show a }} -> a -> String
             show {{s}} x = case s of Show m -> m.show x

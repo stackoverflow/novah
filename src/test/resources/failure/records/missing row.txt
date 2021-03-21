@@ -1,0 +1,9 @@
+module [33mtest[0m
+at src/test/resources/failure/records/missing row.novah:4:7 - 4:23
+
+  Record is missing label notfun.
+
+while checking type { fun : String -> String, notfun : Int }
+while checking expression { fun: \x -> x }
+in declaration rec
+

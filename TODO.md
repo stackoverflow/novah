@@ -5,7 +5,6 @@
 - [ ] Desugar types to Class<?> before codegen (what to do with user defined types?)
 - [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
 - [ ] Add spans to individual imports with error reporting
-- [ ] Properly handle records in check mode in the typechecker (not trivial!)
 - [ ] Store and report type aliases in types
 - [ ] Check unsafeCast works at runtime
 - [ ] 0-cost opaque types

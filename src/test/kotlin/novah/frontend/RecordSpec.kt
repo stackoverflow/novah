@@ -163,7 +163,6 @@ class RecordSpec : StringSpec({
     }
     
     "proper type checking for records" {
-        // TODO: proper type checking for records so `rec` also works
         val code = """
             
             select : { fun : forall a. a -> a } -> String
@@ -171,8 +170,8 @@ class RecordSpec : StringSpec({
             
             id x = x
             
-            //rec : { fun : String -> String }
-            //rec = { fun: \x -> x }
+            rec : { fun : String -> String }
+            rec = { fun: \x -> x }
             
             rec2 : Char -> { fun : Char }
             rec2 c = { fun: id c }
@@ -180,7 +179,7 @@ class RecordSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["select"]?.type?.simpleName() shouldBe "{ fun : forall t1. t1 -> t1 } -> String"
-        //ds["rec"]?.type?.simpleName() shouldBe "{ fun : String -> String }"
+        ds["rec"]?.type?.simpleName() shouldBe "{ fun : String -> String }"
         ds["rec2"]?.type?.simpleName() shouldBe "Char -> { fun : Char }"
     }
 })
