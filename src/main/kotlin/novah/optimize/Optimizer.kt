@@ -281,7 +281,8 @@ class Optimizer(private val ast: CModule) {
     }
 
     private class VarDef(val name: String, val exp: Expr)
-    private data class PatternResult(val expr: Expr, val vars: List<VarDef> = emptyList(), val guard: CExpr? = null)
+    private data class PatternResult(val exp: Expr, val vars: List<VarDef> = emptyList())
+    private data class PatternExp(val exp: Expr, val varName: String?, val original: Expr)
 
     private fun desugarMatch(m: CExpr.Match, type: Type, locals: List<String>): Expr {
         val tru = Expr.Bool(true, boolType)
@@ -414,10 +415,6 @@ class Optimizer(private val ast: CModule) {
                 val (cond, vars) = desugarPattern(p.pat, exp)
                 PatternResult(cond, vars + VarDef(p.name, exp))
             }
-            is Pattern.Guard -> {
-                val (cond, vars) = desugarPattern(p.pat, exp)
-                PatternResult(cond, vars, p.guard)
-            }
             is Pattern.TypeTest -> {
                 val castType = p.type.convert()
                 val cond = Expr.InstanceOf(exp, castType)
@@ -434,29 +431,37 @@ class Optimizer(private val ast: CModule) {
             }
         }
 
-        val exp = m.exp.convert(locals)
-        var varName: String? = null
-        val pexp = if (needVar(exp)) {
-            varName = "case$${genVar++}"
-            Expr.LocalVar(varName, exp.type)
-        } else exp
+        val exps = m.exps.map {
+            val exp = it.convert(locals)
+            if (needVar(exp)) {
+                val name = "case$${genVar++}"
+                PatternExp(Expr.LocalVar(name, exp.type), name, exp)
+            } else PatternExp(exp, null, exp)
+        }
         val pats = m.cases.map { case ->
-            val (cond, vars, guard) = desugarPattern(case.pattern, pexp)
+            val (cond, vars) = if (case.patterns.size == 1) {
+                desugarPattern(case.patterns[0], exps[0].exp)
+            } else {
+                val results = case.patterns.mapIndexed { i, pat -> desugarPattern(pat, exps[i].exp) }
+                val cond = simplifyConds(results.map { it.exp })
+                PatternResult(cond, results.flatMap { it.vars })
+            }
             val introducedVariables = vars.map { it.name }
             val caseExp = case.exp.convert(locals + introducedVariables)
-            if (guard != null) {
-                val guarded = varToLet(vars, guard.convert(locals + introducedVariables))
+            if (case.guard != null) {
+                val guarded = varToLet(vars, case.guard.convert(locals + introducedVariables))
                 val guardCond = if (cond == tru) guarded
                 else Expr.OperatorApp("&&", listOf(cond, guarded), boolType)
                 // not sure the variables are visible in `caseExpr` better test
                 guardCond to caseExp
             } else {
-                val expr = if (vars.isEmpty()) caseExp else varToLet(vars, caseExp)
+                val expr = varToLet(vars, caseExp)
                 cond to expr
             }
         }
         val ifExp = Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
-        return if (varName != null) Expr.Let(varName, exp, ifExp, type) else ifExp
+        val vars = exps.filter { it.varName != null }.map { it.varName!! to it.original }
+        return nestLets(vars, ifExp, type)
     }
 
     private fun needVar(exp: Expr): Boolean = when (exp) {
@@ -509,7 +514,7 @@ class Optimizer(private val ast: CModule) {
             warnings += mkWarn(E.NON_EXHAUSTIVE_PATTERN, expr.span, ProblemContext.PATTERN_MATCHING)
         }
         if (res.redundantMatches.isNotEmpty()) {
-            val unreacheable = res.redundantMatches.map { it.show() }
+            val unreacheable = res.redundantMatches.map { it.joinToString { p -> p.show() } }
             warnings += mkWarn(E.redundantMatches(unreacheable), expr.span, ProblemContext.PATTERN_MATCHING)
         }
     }

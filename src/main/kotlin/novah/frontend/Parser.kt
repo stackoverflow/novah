@@ -276,7 +276,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 .withSpan(typ.span, iter.current().span)
         }
     }
-    
+
     private fun parseOpaqueDecl(visibility: Token?): Decl {
         val vis = if (visibility != null) Visibility.PUBLIC else Visibility.PRIVATE
         val tk = expect<Opaque>(noErr())
@@ -307,7 +307,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 id to id.value.v
             }
         }
-        
+
         var vis = Visibility.PRIVATE
         if (visibility != null) {
             if (visibility is PublicPlus) throwError(E.PUB_PLUS to iter.current().span)
@@ -605,13 +605,14 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseMatch(): Expr {
-        val case = expect<CaseT>(noErr())
+        val caseTk = expect<CaseT>(noErr())
 
-        val exp = withIgnoreOffside {
-            val exp = parseExpression()
+        val exps = withIgnoreOffside {
+            val exps = between<Comma, Expr>(::parseExpression)
             expect<Of>(withError(E.CASE_OF))
-            exp
+            exps
         }
+        val arity = exps.size
 
         val firstTk = iter.peek()
         val align = firstTk.offside()
@@ -622,27 +623,37 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             withOffside(align) {
                 val cases = mutableListOf<Case>()
                 val first = parseCase()
+                if (first.patterns.size != arity)
+                    throwError(E.wrongArityToCase(first.patterns.size, arity) to first.patternSpan())
                 cases += first
 
                 var tk = iter.peek()
                 while (!iter.peekIsOffside() && tk.value !in statementEnding) {
-                    cases += parseCase()
+                    val case = parseCase()
+                    if (case.patterns.size != arity)
+                        throwError(E.wrongArityToCase(case.patterns.size, arity) to case.patternSpan())
+                    cases += case
                     tk = iter.peek()
                 }
-                Expr.Match(exp, cases)
-                    .withSpan(case.span, iter.current().span)
-                    .withComment(case.comment)
+                Expr.Match(exps, cases)
+                    .withSpan(caseTk.span, iter.current().span)
+                    .withComment(caseTk.comment)
             }
         }
     }
 
     private fun parseCase(): Case {
-        val pat = withIgnoreOffside {
-            val pat = parsePattern()
+        var guard: Expr? = null
+        val pats = withIgnoreOffside {
+            val pats = between<Comma, Pattern>(::parsePattern)
+            if (iter.peek().value is IfT) {
+                iter.next()
+                guard = parseExpression()
+            }
             expect<Arrow>(withError(E.CASE_ARROW))
-            pat
+            pats
         }
-        return withOffside { Case(pat, parseExpression()) }
+        return withOffside { Case(pats, parseExpression(), guard) }
     }
 
     private fun parsePattern(): Pattern {
@@ -651,7 +662,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun tryParsePattern(): Pattern? {
         val tk = iter.peek()
-        var pat = when (tk.value) {
+        val pat = when (tk.value) {
             is Underline -> {
                 iter.next()
                 Pattern.Wildcard(tk.span)
@@ -740,7 +751,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                         ty = expect<UpperIdent>(withError(E.TYPEALIAS_DOT)).value.v
                     }
                     val type = Type.TConst(ty, alias, span(tk2.span, iter.current().span))
-                    
+
                     var name: String? = null
                     var end = type.span
                     if (iter.peek().value is As) {
@@ -755,18 +766,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             else -> null
         }
         // named patterns
-        if (pat != null && iter.peek().value is As) {
+        return if (pat != null && iter.peek().value is As) {
             iter.next()
             val name = expect<Ident>(withError(E.VARIABLE))
-            pat = Pattern.Named(pat, name.value.v, span(pat.span, name.span))
-        }
-        // pattern guards
-        if (pat != null && iter.peek().value is IfT) {
-            iter.next()
-            val exp = parseExpression()
-            pat = Pattern.Guard(pat, exp, span(pat.span, exp.span))
-        }
-        return pat
+            Pattern.Named(pat, name.value.v, span(pat.span, name.span))
+        } else pat
     }
 
     private fun parsePatternRow(): Pair<String, Pattern> {
@@ -1160,7 +1164,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
          */
         private fun noErr() = { tk: Spanned<Token> -> "Cannot happen, token: $tk" to tk.span }
 
-        private fun span(s: Span, e: Span) = Span(s.startLine, s.startColumn, e.endLine, e.endColumn)
+        private fun span(s: Span, e: Span) = Span.new(s, e)
 
         private val statementEnding = listOf(RParen, RSBracket, RBracket, EOF)
     }

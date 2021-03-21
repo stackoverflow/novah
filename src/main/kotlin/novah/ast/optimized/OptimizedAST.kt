@@ -94,6 +94,14 @@ sealed class Expr(open val type: Type) {
     data class SetLiteral(val exps: List<Expr>, override val type: Type) : Expr(type)
 }
 
+fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Type): Expr = when {
+    binds.isEmpty() -> body
+    else -> {
+        val (name, exp) = binds[0]
+        Expr.Let(name, exp, nestLets(binds.drop(1), body, type), type)
+    }
+}
+
 sealed class Type {
     data class TVar(val name: String, val isForall: Boolean = false, val labels: LabelMap<Type> = LabelMap()) : Type()
     data class TFun(val arg: Type, val ret: Type) : Type()

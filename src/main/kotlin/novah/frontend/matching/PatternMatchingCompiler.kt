@@ -38,7 +38,7 @@ sealed class Access {
  */
 sealed class Decision<out T> {
     object Failure : Decision<Nothing>()
-    data class Success<T>(val rhs: T) : Decision<T>()
+    data class Success<T>(val rhs: List<T>) : Decision<T>()
     data class IfEq<T>(val acc: Access, val con: Ctor, val dt: Decision<T>, val df: Decision<T>) : Decision<T>()
 }
 
@@ -53,16 +53,16 @@ typealias Context = List<ContextElem>
 
 data class Work(val pats: List<Pat>, val objs: List<Access>, val dscs: List<Term>)
 
-data class MatchRule<R>(val pat: Pat, val rhs: R)
+data class MatchRule<R>(val pat: Pat, val rhs: List<R>)
 
 typealias Match<R> = List<MatchRule<R>>
 
-data class PatternCompilationResult<R>(val exhaustive: Boolean, val redundantMatches: List<R>)
+data class PatternCompilationResult<R>(val exhaustive: Boolean, val redundantMatches: List<List<R>>)
 
 class PatternMatchingCompiler<R> {
 
     private var inexhaustive = false
-    private val redundantMatches = mutableListOf<R>()
+    private val redundantMatches = mutableListOf<List<R>>()
 
     fun compile(match: Match<R>): PatternCompilationResult<R> {
         for (m in match) {
@@ -88,7 +88,7 @@ class PatternMatchingCompiler<R> {
         is ListMatch.HT -> match(m.head.pat, Access.Obj, dsc, listOf(), listOf(), m.head.rhs, m.tail)
     }
 
-    private fun succeed(ctx: Context, work: List<Work>, rhs: R, rules: Match<R>): Decision<R> {
+    private fun succeed(ctx: Context, work: List<Work>, rhs: List<R>, rules: Match<R>): Decision<R> {
         return when (val wo = work.match()) {
             is ListMatch.Nil -> {
                 redundantMatches.remove(rhs)
@@ -115,7 +115,7 @@ class PatternMatchingCompiler<R> {
         dsc: Term,
         ctx: Context,
         work: List<Work>,
-        rhs: R,
+        rhs: List<R>,
         rules: Match<R>
     ): Decision<R> {
         return when (pat) {
@@ -194,7 +194,6 @@ class PatternMatchingCompiler<R> {
     }
 
     companion object {
-        private var guardCount = 0
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
         private val unitCtor = Ctor("unit", 0, 1)
@@ -203,8 +202,8 @@ class PatternMatchingCompiler<R> {
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkRecordCtor(arity: Int) = Ctor("record$arity", arity, 1)
         private fun mkVectorCtor(arity: Int) = Ctor("vector$arity", arity, Integer.MAX_VALUE)
-        private fun mkGuardCtor() = Ctor("guard${guardCount++}", 1, Integer.MAX_VALUE)
         private fun mkTypeTestCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
+        private fun mkMultiCtor(arity: Int) = Ctor("multi$arity", arity, 1)
 
         private val ctorCache = mutableMapOf<String, Ctor>()
 
@@ -221,8 +220,14 @@ class PatternMatchingCompiler<R> {
 
         fun getFromCache(name: String): Ctor? = ctorCache[name]
 
-        fun convert(c: Case, modName: String): MatchRule<Pattern> =
-            MatchRule(convertPattern(c.pattern, modName), c.pattern)
+        fun convert(c: Case, modName: String): MatchRule<Pattern> {
+            val pat = if (c.patterns.size == 1) convertPattern(c.patterns[0], modName)
+            else {
+                val ctor = mkMultiCtor(c.patterns.size)
+                Pat.PCon(ctor, c.patterns.map { convertPattern(it, modName) })
+            }
+            return MatchRule(pat, c.patterns)
+        }
 
         private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {
             is Pattern.Wildcard -> Pat.PVar("_")
@@ -256,7 +261,6 @@ class PatternMatchingCompiler<R> {
             }
             is Pattern.Named -> convertPattern(p.pat, modName)
             is Pattern.Unit -> Pat.PCon(unitCtor, emptyList())
-            is Pattern.Guard -> Pat.PCon(mkGuardCtor(), listOf(convertPattern(p.pat, modName)))
             is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.type.show()), emptyList())
         }
     }

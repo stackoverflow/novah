@@ -180,6 +180,8 @@ object Errors {
     """.trimMargin()
     }
     
+    fun wrongArityToCase(got: Int, expected: Int) = "Case expression expected $expected patterns but got $got."
+    
     fun noTypeAnnDecl(name: String) = """
         No type annotation given for top-level declaration $name.
         Consider adding a type annotation.

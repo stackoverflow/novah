@@ -25,16 +25,16 @@ import novah.frontend.hmftypechecker.Type
  * and visits every type in the ast.
  */
 class TypeTraverser<T>(private val ast: Module, private val action: (String, Type?) -> T) {
-    
+
     fun run() {
         ast.decls.filterIsInstance<Decl.ValDecl>().forEach { visitValDecl(it) }
     }
-    
+
     fun visitValDecl(d: Decl.ValDecl) {
         action(d.name, d.exp.type)
         visitExpr(d.exp)
     }
-    
+
     fun visitExpr(e: Expr) {
         when (e) {
             is Expr.Lambda -> {
@@ -59,8 +59,11 @@ class TypeTraverser<T>(private val ast: Module, private val action: (String, Typ
             }
             is Expr.Match -> {
                 action("Match at ${e.span}", e.type)
-                visitExpr(e.exp)
-                e.cases.forEach { visitExpr(it.exp) }
+                e.exps.forEach { visitExpr(it) }
+                e.cases.forEach {
+                    if (it.guard != null) visitExpr(it.guard!!)
+                    visitExpr(it.exp)
+                }
             }
             is Expr.Ann -> {
                 action("Ann at ${e.span}", e.type)

@@ -143,7 +143,8 @@ class Formatter {
                 "do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
             is Expr.Match -> {
-                "case ${show(e.exp)} of" + withIndent { e.cases.joinToString("\n$tab", prefix = tab) { show(it) } }
+                val expsStr = e.exps.joinToString { show(it) }
+                "case $expsStr of" + withIndent { e.cases.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
             is Expr.Let -> {
                 val str = if (shouldNewline(e.body)) withIndent { "$tab${show(e.body)}" } else show(e.body)
@@ -201,7 +202,8 @@ class Formatter {
     private fun showLabel(l: String, e: Expr): String = "$l: ${show(e)}"
 
     private fun show(c: Case): String {
-        return show(c.pattern) + " -> " + show(c.exp)
+        val guard = if (c.guard != null) " if ${show(c.guard)}" else ""
+        return c.patterns.joinToString { show(it) } + "$guard -> " + show(c.exp)
     }
 
     private fun show(fp: FunparPattern): String = when (fp) {
@@ -221,7 +223,6 @@ class Formatter {
         is Pattern.VectorHT -> "[${show(p.head)} :: ${show(p.tail)}]"
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"
         is Pattern.Unit -> "()"
-        is Pattern.Guard -> "${show(p.pat)} if ${show(p.guard)}"
         is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " ${p.alias}" else ""
     }
 
