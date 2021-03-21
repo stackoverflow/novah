@@ -492,10 +492,11 @@ object Inference {
             }
             is Pattern.TypeTest -> {
                 if (pat.alias != null) {
-                    // we need special handling for Vectors and Sets
+                    // we need special handling for Vectors, Sets and Arrays
                     val type = when {
                         pat.type is TConst && pat.type.name == primVector -> TApp(TConst(primVector), listOf(tObject))
                         pat.type is TConst && pat.type.name == primSet -> TApp(TConst(primSet), listOf(tObject))
+                        pat.type is TConst && pat.type.name == primArray -> TApp(TConst(primArray), listOf(tObject))
                         else -> pat.type
                     }
                     PatternResult(listOf(PatternVar(pat.alias, type, pat.span)))
