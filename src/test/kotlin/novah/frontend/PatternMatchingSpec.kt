@@ -104,6 +104,17 @@ class PatternMatchingSpec : StringSpec({
         ty.simpleName() shouldBe "forall t1. t1 -> Int"
     }
     
+    "pattern match unit" {
+        val code = """
+            fun u =
+              case u of
+                () -> 10
+        """.module()
+
+        val ty = TestUtil.compileCode(code).env.decls["fun"]!!.type
+        ty.simpleName() shouldBe "Unit -> Int"
+    }
+    
     "pattern match records" {
         val code = """
             foreign import novah.Core:sum(Int, Int)

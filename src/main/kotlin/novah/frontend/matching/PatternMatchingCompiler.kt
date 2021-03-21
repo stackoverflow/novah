@@ -197,7 +197,7 @@ class PatternMatchingCompiler<R> {
         private var guardCount = 0
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
-        private val unitCtor = Ctor("unit", 0, 2)
+        private val unitCtor = Ctor("unit", 0, 1)
         private val vectorEmptyCtor = Ctor("vector", 0, 2)
         private val vectorHTCtor = Ctor("vector", 2, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
