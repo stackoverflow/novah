@@ -155,7 +155,8 @@ object Errors {
     
     const val TYPE_TEST_TYPE = "Expected type in type test."
     
-    const val IMPLICIT_PATTERN = "Implicit patterns can only be used in function parameters."
+    const val IMPLICIT_PATTERN =
+        "Implicit patterns can only be used in function parameters before any destructuring happens."
     
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field

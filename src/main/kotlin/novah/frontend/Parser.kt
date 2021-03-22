@@ -323,7 +323,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     if (name != name2) throwError(withError(E.expectedDefinition(name))(nameTk2))
                 }
             }
-            val vars = tryParseListOf { tryParsePattern() }
+            val vars = tryParseListOf { tryParsePattern(true) }
 
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
@@ -512,7 +512,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val begin = iter.peek()
         expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
 
-        val vars = tryParseListOf { tryParsePattern() }
+        val vars = tryParseListOf { tryParsePattern(true) }
         if (vars.isEmpty()) throwError(withError(E.LAMBDA_VAR)(iter.current()))
 
         expect<Arrow>(withError(E.LAMBDA_ARROW))
@@ -595,7 +595,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             if (newIdent.value.v != name) throwError(withError(E.expectedLetDefinition(name))(newIdent))
         }
         return withOffside {
-            val vars = tryParseListOf { tryParsePattern() }
+            val vars = tryParseListOf { tryParsePattern(true) }
             expect<Equals>(withError(E.LET_EQUALS))
             val exp = parseExpression()
             val span = span(ident.span, exp.span)
@@ -656,11 +656,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return withOffside { Case(pats, parseExpression(), guard) }
     }
 
-    private fun parsePattern(): Pattern {
-        return tryParsePattern() ?: throwError(withError(E.PATTERN)(iter.peek()))
+    private fun parsePattern(isDestructuring: Boolean = false): Pattern {
+        return tryParsePattern(isDestructuring) ?: throwError(withError(E.PATTERN)(iter.peek()))
     }
 
-    private fun tryParsePattern(): Pattern? {
+    private fun tryParsePattern(isDestructuring: Boolean = false): Pattern? {
         val tk = iter.peek()
         val pat = when (tk.value) {
             is Underline -> {
@@ -712,8 +712,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is UpperIdent -> {
                 val ctor = parseConstructor()
-                val fields = tryParseListOf { tryParsePattern() }
-                Pattern.Ctor(ctor, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
+                if (isDestructuring) Pattern.Ctor(ctor, emptyList(), span(tk.span, ctor.span))
+                else {
+                    val fields = tryParseListOf { tryParsePattern() }
+                    Pattern.Ctor(ctor, fields, span(tk.span, fields.lastOrNull()?.span ?: ctor.span))
+                }
             }
             is LBracket -> {
                 iter.next()
