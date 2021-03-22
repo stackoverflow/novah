@@ -1,0 +1,4 @@
+module test
+
+f x = case x of
+  {{a}} -> a

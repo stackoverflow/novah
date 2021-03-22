@@ -56,4 +56,4 @@ fun8 x = case x of
   :? Vector as v -> println v
   _ -> println "not int or object"
 
-main () = fun8 45
+main _ = fun8 45

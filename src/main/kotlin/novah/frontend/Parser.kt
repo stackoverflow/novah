@@ -323,7 +323,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     if (name != name2) throwError(withError(E.expectedDefinition(name))(nameTk2))
                 }
             }
-            val vars = tryParseListOf { tryParseFunparPattern() }
+            val vars = tryParseListOf { tryParsePattern(true) }
 
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
@@ -357,6 +357,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseExpression(inDo: Boolean = false): Expr {
         val tk = iter.peek()
         val exps = tryParseListOf(true) { tryParseAtom(inDo) }
+        // sanity check
+        if (exps.size > 1) {
+            val doLets = exps.filterIsInstance<Expr.DoLet>()
+            if (doLets.isNotEmpty()) throwError(E.APPLIED_DO_LET to doLets[0].span)
+        }
 
         val unrolled = Application.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
 
@@ -512,7 +517,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val begin = iter.peek()
         expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
 
-        val vars = tryParseListOf { tryParseFunparPattern() }
+        val vars = tryParseListOf { tryParsePattern(true) }
         if (vars.isEmpty()) throwError(withError(E.LAMBDA_VAR)(iter.current()))
 
         expect<Arrow>(withError(E.LAMBDA_ARROW))
@@ -560,11 +565,15 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         withOffside(align) {
             if (inDo) {
                 while (!iter.peekIsOffside() && iter.peek().value !in statementEnding) {
-                    defs += parseLetDef(isInstance)
+                    defs += if (isInstance || iter.peek().value is Ident) {
+                        parseLetDefBind(isInstance)
+                    } else parseLetDefPattern()
                 }
             } else {
                 while (iter.peek().value != In) {
-                    defs += parseLetDef(isInstance)
+                    defs += if (isInstance || iter.peek().value is Ident) {
+                        parseLetDefBind(isInstance)
+                    } else parseLetDefPattern()
                 }
             }
         }
@@ -581,7 +590,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return Expr.Let(defs, exp).withSpan(span).withComment(let.comment)
     }
 
-    private fun parseLetDef(isInstance: Boolean): LetDef {
+    private fun parseLetDefBind(isInstance: Boolean): LetDef {
         val ident = expect<Ident>(withError(E.LET_DECL))
         val name = ident.value.v
 
@@ -595,12 +604,20 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             if (newIdent.value.v != name) throwError(withError(E.expectedLetDefinition(name))(newIdent))
         }
         return withOffside {
-            val vars = tryParseListOf { tryParseFunparPattern() }
+            val vars = tryParseListOf { tryParsePattern(true) }
             expect<Equals>(withError(E.LET_EQUALS))
             val exp = parseExpression()
             val span = span(ident.span, exp.span)
-            val def = LetDef(Binder(ident.value.v, span), vars, exp, isInstance, type)
-            def
+            LetDef.DefBind(Binder(ident.value.v, span), vars, exp, isInstance, type)
+        }
+    }
+
+    private fun parseLetDefPattern(): LetDef {
+        val pat = parsePattern(true)
+        return withOffside {
+            expect<Equals>(withError(E.LET_EQUALS))
+            val exp = parseExpression()
+            LetDef.DefPattern(pat, exp)
         }
     }
 
@@ -656,11 +673,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return withOffside { Case(pats, parseExpression(), guard) }
     }
 
-    private fun parsePattern(): Pattern {
-        return tryParsePattern() ?: throwError(withError(E.PATTERN)(iter.peek()))
+    private fun parsePattern(isDestructuring: Boolean = false): Pattern {
+        return tryParsePattern(isDestructuring) ?: throwError(withError(E.PATTERN)(iter.peek()))
     }
 
-    private fun tryParsePattern(): Pattern? {
+    private fun tryParsePattern(isDestructuring: Boolean = false): Pattern? {
         val tk = iter.peek()
         val pat = when (tk.value) {
             is Underline -> {
@@ -712,14 +729,25 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is UpperIdent -> {
                 val ctor = parseConstructor()
-                val fields = tryParseListOf { tryParsePattern() }
-                Pattern.Ctor(ctor, fields, span(tk.span, fields.lastOrNull()?.span ?: tk.span))
+                if (isDestructuring) Pattern.Ctor(ctor, emptyList(), span(tk.span, ctor.span))
+                else {
+                    val fields = tryParseListOf { tryParsePattern() }
+                    Pattern.Ctor(ctor, fields, span(tk.span, fields.lastOrNull()?.span ?: ctor.span))
+                }
             }
             is LBracket -> {
                 iter.next()
-                val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
-                val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span
-                Pattern.Record(labelMapWith(rows), span(tk.span, end))
+                if (iter.peek().value is LBracket) {
+                    iter.next()
+                    val id = expect<Ident>(withError(E.INSTANCE_VAR)).value.v
+                    expect<RBracket>(withError(E.INSTANCE_VAR))
+                    val end = expect<RBracket>(withError(E.INSTANCE_VAR))
+                    Pattern.ImplicitVar(id, span(tk.span, end.span))
+                } else {
+                    val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
+                    val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span
+                    Pattern.Record(labelMapWith(rows), span(tk.span, end))
+                }
             }
             is LSBracket -> {
                 iter.next()
@@ -842,34 +870,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val record = parseExpression()
         val end = expect<RBracket>(withError(E.rbracketExpected("record restriction")))
         return Expr.RecordRestrict(record, label).withSpan(begin.span, end.span).withComment(begin.comment)
-    }
-
-    private fun tryParseFunparPattern(): FunparPattern? {
-        val tk = iter.peek()
-        return when (tk.value) {
-            is Underline -> {
-                iter.next()
-                FunparPattern.Ignored(tk.span)
-            }
-            is LParen -> {
-                iter.next()
-                val end = expect<RParen>(withError(E.rparensExpected("function parameter")))
-                FunparPattern.Unit(span(tk.span, end.span))
-            }
-            is Ident -> {
-                iter.next()
-                FunparPattern.Bind(Binder(tk.value.v, tk.span))
-            }
-            is LBracket -> {
-                iter.next()
-                expect<LBracket>(withError(E.INSTANCE_VAR))
-                val id = expect<Ident>(withError(E.INSTANCE_VAR))
-                expect<RBracket>(withError(E.INSTANCE_VAR))
-                val end = expect<RBracket>(withError(E.INSTANCE_VAR))
-                FunparPattern.Bind(Binder(id.value.v, span(tk.span, end.span), true))
-            }
-            else -> null
-        }
     }
 
     private fun parseConstructor(): Expr.Constructor {

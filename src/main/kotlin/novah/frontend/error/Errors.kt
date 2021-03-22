@@ -73,8 +73,6 @@ object Errors {
         |Type test: :? Int as i
     """.trimMargin()
     
-    const val PATTERN_GUARD = "Pattern guards cannot be nested."
-
     val LAMBDA_VAR = """Expected identifier after start of lambda definition:
         |Example: \x -> x + 3
     """.trimMargin()
@@ -111,8 +109,6 @@ object Errors {
         |
         |ex: import namespace (fun1, SomeType(..), fun2)
     """.trimMargin()
-
-    const val EMPTY_MATCH = "Pattern match needs at least 1 case."
 
     const val NON_EXHAUSTIVE_PATTERN = "A case expression could not be determined to cover all inputs."
 
@@ -154,6 +150,11 @@ object Errors {
         |Use an alias or explicit import instead.""".trimMargin()
     
     const val TYPE_TEST_TYPE = "Expected type in type test."
+    
+    const val IMPLICIT_PATTERN =
+        "Implicit patterns can only be used in function parameters before any destructuring happens."
+    
+    const val APPLIED_DO_LET = "Cannot apply let statement as a function."
     
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
@@ -369,10 +370,8 @@ object Errors {
     fun lparensExpected(ctx: String) = "Expected `(` after $ctx."
     fun rparensExpected(ctx: String) = "Expected `)` after $ctx."
 
-    fun lbracketExpected(ctx: String) = "Expected `{` after $ctx."
     fun rbracketExpected(ctx: String) = "Expected `}` after $ctx."
 
-    fun lsbracketExpected(ctx: String) = "Expected `[` after $ctx."
     fun rsbracketExpected(ctx: String) = "Expected `]` after $ctx."
 
     fun pipeExpected(ctx: String) = "Expected `|` after $ctx."

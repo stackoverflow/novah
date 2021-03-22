@@ -28,6 +28,7 @@ import novah.frontend.error.Severity
 import novah.frontend.hmftypechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
+import io.lacuna.bifurcan.List as PList
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.TypeDecl as CDataDecl
@@ -36,7 +37,6 @@ import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
 import novah.frontend.error.Errors as E
 import novah.frontend.hmftypechecker.Type as TType
-import io.lacuna.bifurcan.List as PList
 
 /**
  * Converts the canonical AST to the
@@ -118,9 +118,8 @@ class Optimizer(private val ast: CModule) {
             }
             is CExpr.Lambda -> {
                 haslambda = true
-                val bind = pattern.convert()
-                val ls = if (bind != null) locals + bind else locals
-                Expr.Lambda(bind, body.convert(ls), type = typ)
+                val bind = binder.convert()
+                Expr.Lambda(bind, body.convert(locals + bind), type = typ)
             }
             is CExpr.App -> {
                 val pair = unrollForeignApp(this)
@@ -198,12 +197,6 @@ class Optimizer(private val ast: CModule) {
 
     private fun CBinder.convert(): String = name
 
-    private fun FunparPattern.convert(): String? = when (this) {
-        is FunparPattern.Ignored -> null
-        is FunparPattern.Unit -> null
-        is FunparPattern.Bind -> binder.convert()
-    }
-
     private fun TType.convert(): Type = when (this) {
         is TConst -> {
             if (show(false)[0].isLowerCase()) Type.TVar(name.toUpperCase(), true)
@@ -245,6 +238,7 @@ class Optimizer(private val ast: CModule) {
     private val vectorSize = PList::class.java.methods.find { it.name == "size" }!!
     private val vectorAccess = PList::class.java.methods.find { it.name == "nth" }!!
     private val vectorSlice = PList::class.java.methods.find { it.name == "slice" }!!
+    private val vectorNotEmpty = Core::class.java.methods.find { it.name == "vectorNotEmpty" }!!
     private val equivalentInt = Core::class.java.methods.find {
         it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
     }!!
@@ -397,7 +391,8 @@ class Optimizer(private val ast: CModule) {
             is Pattern.VectorHT -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
-
+                
+                conds += Expr.NativeStaticMethod(vectorNotEmpty, listOf(exp), boolType)
                 val fieltTy = (exp.type as? Type.TConstructor)?.types?.first()
                     ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
@@ -461,7 +456,9 @@ class Optimizer(private val ast: CModule) {
                 cond to expr
             }
         }
-        val ifExp = Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
+        val ifExp = if (pats.size == 1 && pats[0].first == tru) {
+            pats[0].second
+        } else Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
         val vars = exps.filter { it.varName != null }.map { it.varName!! to it.original }
         return nestLets(vars, ifExp, type)
     }
@@ -511,20 +508,21 @@ class Optimizer(private val ast: CModule) {
         return pars.map { it.convert() } to ret.convert()
     }
 
-    private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr) {
+    private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr.Match) {
         if (!res.exhaustive) {
-            warnings += mkWarn(E.NON_EXHAUSTIVE_PATTERN, expr.span, ProblemContext.PATTERN_MATCHING)
+            val span = if (expr.cases.size == 1) expr.cases[0].patternSpan() else expr.span
+            warnings += mkWarn(E.NON_EXHAUSTIVE_PATTERN, span)
         }
         if (res.redundantMatches.isNotEmpty()) {
             val unreacheable = res.redundantMatches.map { it.joinToString { p -> p.show() } }
-            warnings += mkWarn(E.redundantMatches(unreacheable), expr.span, ProblemContext.PATTERN_MATCHING)
+            warnings += mkWarn(E.redundantMatches(unreacheable), expr.span)
         }
     }
 
-    private fun mkWarn(msg: String, span: Span, ctx: ProblemContext): CompilerProblem =
+    private fun mkWarn(msg: String, span: Span): CompilerProblem =
         CompilerProblem(
             msg,
-            ctx,
+            ProblemContext.PATTERN_MATCHING,
             span,
             ast.sourceName,
             ast.name,

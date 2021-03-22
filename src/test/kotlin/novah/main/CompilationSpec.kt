@@ -35,4 +35,10 @@ class CompilationSpec : StringSpec({
             compiler.run(cleanAndGetOutDir())
         }
     }
+
+    "test" {
+        val compiler = TestUtil.compilerFor("test")
+        val warns = compiler.run(cleanAndGetOutDir())
+        warns.forEach { println(it.formatToConsole()) }
+    }
 })

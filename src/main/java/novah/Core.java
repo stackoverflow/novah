@@ -1,5 +1,7 @@
 package novah;
 
+import io.lacuna.bifurcan.List;
+
 /**
  * Core language functions
  */
@@ -139,5 +141,13 @@ public class Core {
 
     public static boolean equivalent(boolean e1, boolean e2) {
         return e1 == e2;
+    }
+    
+    public static boolean not(boolean b) {
+        return !b;
+    }
+    
+    public static boolean vectorNotEmpty(List<?> vec) {
+        return vec.size() != 0;
     }
 }

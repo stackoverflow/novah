@@ -687,11 +687,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         fun go(exp: Expr): Unit = when (exp) {
             is Expr.Lambda -> {
                 val binder = exp.binder
-                if (binder != null)
-                    for (l in lambdas) l.ignores += binder
+                for (l in lambdas) l.ignores += binder
 
                 exp.internalName = mkName()
-                val ignores = if (binder != null) listOf(binder) else emptyList()
+                val ignores = listOf(binder)
                 lambdas += LambdaContext(exp, ignores, emptyList())
                 go(exp.body)
             }
@@ -772,7 +771,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val ftype = l.type as Type.TFun
         val args = mutableListOf<Expr.LocalVar>()
         args.addAll(l.locals)
-        if (l.binder != null) args += Expr.LocalVar(l.binder, ftype.arg)
+        args += Expr.LocalVar(l.binder, ftype.arg)
 
         val argTypes = l.locals.map { it.type } + ftype.arg
         val lam = cw.visitMethod(
@@ -809,18 +808,19 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val main = cw.visitMethod(ACC_PUBLIC + ACC_STATIC, "main", "([Ljava/lang/String;)V", null, emptyArray())
         main.visitCode()
 
+        val lam = e as Expr.Lambda
         val startL = Label()
-        ctx.putParameter("args", Type.TConstructor("Array", listOf(Type.TVar(STRING_CLASS))), startL)
+        ctx.putParameter(lam.binder, Type.TConstructor("Array", listOf(Type.TVar(STRING_CLASS))), startL)
         main.visitLineNumber(d.span.startLine, startL)
 
-        val exp = (e as Expr.Lambda).body
+        val exp = lam.body
         genExpr(exp, main, ctx)
         main.visitInsn(POP)
         main.visitInsn(RETURN)
 
         val endL = Label()
         main.visitLabel(endL)
-        ctx.setEndLabel("args", endL)
+        ctx.setEndLabel(lam.binder, endL)
         ctx.visitLocalVariables(main)
 
         main.visitMaxs(0, 0)

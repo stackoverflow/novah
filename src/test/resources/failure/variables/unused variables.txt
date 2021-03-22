@@ -1,5 +1,11 @@
 module [33mtest[0m
-at src/test/resources/failure/variables/unused variables.novah:3:6 - 3:10
+at src/test/resources/failure/variables/unused variables.novah:3:8 - 3:9
+
+  Variable x is unused in declaration.
+
+
+module [33mtest[0m
+at src/test/resources/failure/variables/unused variables.novah:5:6 - 5:10
 
   Variable args is unused in declaration.
 

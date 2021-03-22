@@ -76,7 +76,7 @@ sealed class Expr(open val span: Span) {
     data class Constructor(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class ImplicitVar(val name: String, override val span: Span, val moduleName: String?) : Expr(span)
     data class Lambda(
-        val pattern: FunparPattern,
+        val binder: Binder,
         val ann: Pair<List<Id>, Type>?,
         val body: Expr,
         override val span: Span
@@ -128,12 +128,6 @@ data class Binder(val name: String, val span: Span, val isImplicit: Boolean = fa
     override fun toString(): String = if (isImplicit) "{{$name}}" else name
 }
 
-sealed class FunparPattern(val span: Span) {
-    class Ignored(span: Span) : FunparPattern(span)
-    class Unit(span: Span) : FunparPattern(span)
-    class Bind(val binder: Binder) : FunparPattern(binder.span)
-}
-
 data class LetDef(
     val binder: Binder,
     val expr: Expr,
@@ -142,7 +136,9 @@ data class LetDef(
     val type: Type? = null
 )
 
-data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null)
+data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null) {
+    fun patternSpan() = Span.new(patterns[0].span, patterns.last().span)
+}
 
 sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
@@ -190,8 +186,6 @@ fun LiteralPattern.show(): String = when (this) {
     is LiteralPattern.DoubleLiteral -> e.v.toString()
 }
 
-fun lambdaBinder(name: String, span: Span) = FunparPattern.Bind(Binder(name, span))
-
 /**
  * Walks this expression bottom->up
  */
@@ -236,14 +230,7 @@ fun Expr.show(): String = when (this) {
     is Expr.Var -> fullname()
     is Expr.Constructor -> fullname()
     is Expr.ImplicitVar -> fullname()
-    is Expr.Lambda -> {
-        val arg = when (pattern) {
-            is FunparPattern.Unit -> "()"
-            is FunparPattern.Ignored -> "_"
-            is FunparPattern.Bind -> pattern.binder.toString()
-        }
-        "\\$arg -> ${body.show()}"
-    }
+    is Expr.Lambda -> "\\${binder} -> ${body.show()}"
     is Expr.App -> "(${fn.show()} ${arg.show()})"
     is Expr.If -> "if ${cond.show()} then ${thenCase.show()} else ${elseCase.show()}"
     is Expr.Let -> "let ${letDef.binder} = ${letDef.expr.show()} in ${body.show()}"
