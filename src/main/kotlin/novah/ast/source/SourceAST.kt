@@ -227,6 +227,7 @@ sealed class Expr {
     data class RecordRestrict(val exp: Expr, val label: String) : Expr()
     data class VectorLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
+    class Underscore : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null
@@ -309,7 +310,7 @@ sealed class Type(open val span: Span) {
     /**
      * Walks this type bottom->up
      */
-    fun everywhere(f: (Type) -> Type): Type {
+    private fun everywhere(f: (Type) -> Type): Type {
         fun go(t: Type): Type = when (t) {
             is TConst -> f(t)
             is TApp -> f(t.copy(type = go(t.type), types = t.types.map(::go)))

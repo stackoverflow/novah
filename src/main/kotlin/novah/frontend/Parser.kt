@@ -532,17 +532,17 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val ifTk = expect<IfT>(noErr())
 
         val (cond, thens) = withIgnoreOffside {
-            val cond = parseExpression()
+            val cond = parseUnderscoreOrExpression()
 
             expect<Then>(withError(E.THEN))
 
-            val thens = parseExpression()
+            val thens = parseUnderscoreOrExpression()
 
             expect<Else>(withError(E.ELSE))
             cond to thens
         }
 
-        val elses = parseExpression()
+        val elses = parseUnderscoreOrExpression()
 
         return Expr.If(cond, thens, elses)
             .withSpan(ifTk.span, elses.span)
@@ -625,7 +625,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val caseTk = expect<CaseT>(noErr())
 
         val exps = withIgnoreOffside {
-            val exps = between<Comma, Expr>(::parseExpression)
+            val exps = between<Comma, Expr>(::parseUnderscoreOrExpression)
             expect<Of>(withError(E.CASE_OF))
             exps
         }
@@ -927,6 +927,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 }
             }
         }
+    }
+    
+    private fun parseUnderscoreOrExpression(): Expr {
+        return if (iter.peek().value is Underline) {
+            iter.next()
+            Expr.Underscore()
+        } else parseExpression()
     }
 
     private fun parsePolytype(inConstructor: Boolean = false): Type {

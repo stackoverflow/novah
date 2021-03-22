@@ -21,7 +21,9 @@ import novah.ast.Desugar
 import novah.ast.canonical.DataConstructor
 import novah.ast.canonical.Decl
 import novah.ast.source.Visibility
+import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.parseString
+import novah.frontend.TestUtil.simpleName
 
 class DesugarSpec : StringSpec({
 
@@ -70,5 +72,36 @@ class DesugarSpec : StringSpec({
 
         dds.byName("x").visibility shouldBe Visibility.PUBLIC
         dds.byName("y").visibility shouldBe Visibility.PRIVATE
+    }
+    
+    "anonymous function arguments" {
+        val code = """
+            foreign import novah.Core:sum(Int, Int)
+            
+            f1 = if _ then 1 else -1
+            
+            f2 cond = if cond == 0 then _ else _
+            
+            type Option a = Some a | None
+            
+            f3 = case _ of
+              [] -> 0
+              [_ :: xs] -> sum 1 (f3 xs)
+            
+            f4 = case _, _ of
+              Some x, Some y -> sum x y
+              Some x, None -> x
+              None, Some y -> y
+              None, None -> -1
+        """.module()
+        
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["f1"]?.type?.simpleName() shouldBe "Boolean -> Int"
+        ds["f2"]?.type?.simpleName() shouldBe "forall t1. Int -> t1 -> t1 -> t1"
+        ds["f3"]?.type?.simpleName() shouldBe "forall t1. Vector t1 -> Int"
+        ds["f4"]?.type?.simpleName() shouldBe "Option Int -> Option Int -> Int"
+        ds.forEach { (t, u) -> 
+            println("$t: ${u.type.simpleName()}")
+        }
     }
 })

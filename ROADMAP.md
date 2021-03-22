@@ -5,11 +5,11 @@
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [ ] IDE support
 - [ ] LSP implemented in the compiler
-- [ ] Syntatic sugar for lambdas
 - [ ] Standard library
 - [ ] Some compiler help for lenses?
 - [ ] Computational expressions
 - [ ] List/Vector/etc comprehension
+- [ ] Anonymous function arguments
 - [X] Full pattern destructuring for function and let parameters
 - [X] Multi-expression pattern matching
 - [X] Full support for pattern matching (records, vectors, named, guards)

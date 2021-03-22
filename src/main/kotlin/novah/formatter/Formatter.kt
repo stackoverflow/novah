@@ -196,6 +196,7 @@ class Formatter {
             is Expr.RecordExtend -> "{ ${e.labels.show(::showLabel)} | ${show(e.exp)} }"
             is Expr.VectorLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
+            is Expr.Underscore -> "_"
         }
     }
 

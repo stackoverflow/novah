@@ -161,13 +161,32 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.App -> Expr.App(fn.desugar(locals, appFnDepth + 1), arg.desugar(locals), span)
         is SExpr.Parens -> exp.desugar(locals)
-        is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
+        is SExpr.If -> {
+            val args = listOf(cond, thenCase, elseCase).map {
+                if (it is SExpr.Underscore) {
+                    val v = "var$${varCount++}"
+                    Binder(v, it.span) to Expr.Var(v, it.span)
+                } else null to it.desugar(locals)
+            }
+            
+            val ifExp = Expr.If(args[0].second, args[1].second, args[2].second, span)
+            nestLambdas(args.mapNotNull { it.first }, ifExp)
+        }
         is SExpr.Let -> {
             val vars = letDefs.map { collectVars(it) }.flatten()
             vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
             nestLets(letDefs, body.desugar(locals + vars.map { it.name }), locals)
         }
-        is SExpr.Match -> Expr.Match(exps.map { it.desugar(locals) }, cases.map { it.desugar(locals) }, span)
+        is SExpr.Match -> {
+            val args = exps.map { 
+                if (it is SExpr.Underscore) {
+                    val v = "var$${varCount++}"
+                    Binder(v, it.span) to Expr.Var(v, it.span)
+                } else null to it.desugar(locals)
+            }
+            val match = Expr.Match(args.map { it.second }, cases.map { it.desugar(locals) }, span)
+            nestLambdas(args.mapNotNull { it.first }, match)
+        }
         is SExpr.Ann -> {
             val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
             else emptyList<Id>() to type.desugar()
@@ -186,10 +205,14 @@ class Desugar(private val smod: SModule) {
         is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
+        is SExpr.Underscore -> internalError("got undesugared underscore")
     }
 
-    private fun SCase.desugar(locals: List<String>): Case =
-        Case(patterns.map { it.desugar(locals) }, exp.desugar(), guard?.desugar(locals))
+    private fun SCase.desugar(locals: List<String>): Case {
+        val vars = patterns.map { collectVars(it) }.flatten()
+        vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
+        return Case(patterns.map { it.desugar(locals) }, exp.desugar(), guard?.desugar(locals))
+    }
 
     private fun SPattern.desugar(locals: List<String>): Pattern = when (this) {
         is SPattern.Wildcard -> Pattern.Wildcard(span)
