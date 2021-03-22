@@ -454,7 +454,9 @@ class Optimizer(private val ast: CModule) {
                 cond to expr
             }
         }
-        val ifExp = Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
+        val ifExp = if (pats.size == 1 && pats[0].first == tru) {
+            pats[0].second
+        } else Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
         val vars = exps.filter { it.varName != null }.map { it.varName!! to it.original }
         return nestLets(vars, ifExp, type)
     }
