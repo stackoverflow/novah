@@ -210,8 +210,17 @@ class Desugar(private val smod: SModule) {
             } else nestRecordSelects(exp.desugar(locals), labels)
         }
         is SExpr.RecordExtend -> {
-            val sorted = labelMapWith(labels)
-            Expr.RecordExtend(sorted.mapList { it.desugar(locals) }, exp.desugar(locals), span)
+            val lvars = mutableListOf<Binder>()
+            val plabels = labels.map { (label, e) ->
+                label to if (e is SExpr.Underscore) {
+                    val v = newVar()
+                    lvars += Binder(v, span)
+                    Expr.Var(v, span)
+                } else e.desugar(locals)
+            }
+            
+            val rec = Expr.RecordExtend(labelMapWith(plabels), exp.desugar(locals), span)
+            nestLambdas(lvars, rec)
         }
         is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)

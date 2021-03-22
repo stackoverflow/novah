@@ -97,6 +97,8 @@ class DesugarSpec : StringSpec({
             f5 = _.name
             
             f6 = _.address.street
+            
+            f7 = {name: _, age: _, id: _}
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
@@ -106,6 +108,7 @@ class DesugarSpec : StringSpec({
         ds["f4"]?.type?.simpleName() shouldBe "Option Int -> Option Int -> Int"
         ds["f5"]?.type?.simpleName() shouldBe "forall t1 t2. { name : t1 | t2 } -> t1"
         ds["f6"]?.type?.simpleName() shouldBe "forall t1 t2 t3. { address : { street : t1 | t2 } | t3 } -> t1"
+        ds["f7"]?.type?.simpleName() shouldBe "forall t1 t2 t3. t1 -> t2 -> t3 -> { age : t2, id : t3, name : t1 }"
         ds.forEach { (t, u) -> 
             println("$t: ${u.type.simpleName()}")
         }
