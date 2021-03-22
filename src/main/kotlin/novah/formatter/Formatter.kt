@@ -191,7 +191,7 @@ class Formatter {
             is Expr.Parens -> "(${show(e.exp)})"
             is Expr.Unit -> "()"
             is Expr.RecordEmpty -> "{}"
-            is Expr.RecordSelect -> "${show(e.exp)}.${e.label}"
+            is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".")}"
             is Expr.RecordRestrict -> "{ - ${show(e.exp)} | ${e.label} }"
             is Expr.RecordExtend -> "{ ${e.labels.show(::showLabel)} | ${show(e.exp)} }"
             is Expr.VectorLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")

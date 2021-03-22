@@ -222,7 +222,7 @@ sealed class Expr {
 
     class Unit : Expr()
     class RecordEmpty : Expr()
-    data class RecordSelect(val exp: Expr, val label: String) : Expr()
+    data class RecordSelect(val exp: Expr, val labels: List<String>) : Expr()
     data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val label: String) : Expr()
     data class VectorLiteral(val exps: List<Expr>) : Expr()

@@ -193,8 +193,8 @@ class PatternMatchingSpec : StringSpec({
         val code = """
             fun () =
               case ['a', 'b'] of
-                :? Int -> 0
-                :? Vector as v -> 1
+                :? Int as i -> i
+                :? Vector-> 1
                 _ -> -1
         """.module()
 

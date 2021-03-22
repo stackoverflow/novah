@@ -57,6 +57,9 @@ class Desugar(private val smod: SModule) {
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
+    private var varCount = 0
+    private fun newVar() = "var$${varCount++}"
+
     private val declNames = mutableSetOf<String>()
 
     fun desugar(): Result<Module, List<CompilerProblem>> {
@@ -164,7 +167,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.If -> {
             val args = listOf(cond, thenCase, elseCase).map {
                 if (it is SExpr.Underscore) {
-                    val v = "var$${varCount++}"
+                    val v = newVar()
                     Binder(v, it.span) to Expr.Var(v, it.span)
                 } else null to it.desugar(locals)
             }
@@ -180,7 +183,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.Match -> {
             val args = exps.map { 
                 if (it is SExpr.Underscore) {
-                    val v = "var$${varCount++}"
+                    val v = newVar()
                     Binder(v, it.span) to Expr.Var(v, it.span)
                 } else null to it.desugar(locals)
             }
@@ -200,12 +203,19 @@ class Desugar(private val smod: SModule) {
         is SExpr.Unit -> Expr.Unit(span)
         is SExpr.DoLet -> internalError("got `do-let` outside of do statement: $this")
         is SExpr.RecordEmpty -> Expr.RecordEmpty(span)
-        is SExpr.RecordSelect -> Expr.RecordSelect(exp.desugar(locals), label, span)
+        is SExpr.RecordSelect -> {
+            if (exp is SExpr.Underscore) {
+                val v = newVar()
+                Expr.Lambda(Binder(v, span), null, nestRecordSelects(Expr.Var(v, span), labels), span)
+            } else nestRecordSelects(exp.desugar(locals), labels)
+        }
         is SExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.desugar(locals) }, exp.desugar(locals), span)
         is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
-        is SExpr.Underscore -> internalError("got undesugared underscore")
+        is SExpr.Underscore -> {
+            internalError("got undesugared underscore")
+        }
     }
 
     private fun SCase.desugar(locals: List<String>): Case {
@@ -361,9 +371,7 @@ class Desugar(private val smod: SModule) {
         return if (binders.isEmpty()) exp
         else Expr.Lambda(binders[0], null, nestLambdas(binders.drop(1), exp), exp.span)
     }
-
-    private var varCount = 0
-
+    
     private fun nestLambdaPatterns(pats: List<SPattern>, exp: Expr, locals: List<String>): Expr {
         return if (pats.isEmpty()) exp
         else {
@@ -381,7 +389,7 @@ class Desugar(private val smod: SModule) {
                     exp.span
                 )
                 else -> {
-                    val vars = pats.map { Expr.Var("var$${varCount++}", it.span) }
+                    val vars = pats.map { Expr.Var(newVar(), it.span) }
                     val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals) }, exp)), exp.span)
                     nestLambdas(vars.map { Binder(it.name, it.span) }, expr)
                 }
@@ -402,6 +410,11 @@ class Desugar(private val smod: SModule) {
                 }
             }
         }
+    }
+    
+    private fun nestRecordSelects(exp: Expr, labels: List<String>): Expr {
+        return if (labels.isEmpty()) exp
+        else nestRecordSelects(Expr.RecordSelect(exp, labels[0], exp.span), labels.drop(1))
     }
 
     private fun collectVars(exp: Expr): List<String> =
