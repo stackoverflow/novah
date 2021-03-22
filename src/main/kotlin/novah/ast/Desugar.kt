@@ -53,6 +53,7 @@ class Desugar(private val smod: SModule) {
     private val moduleName = smod.name
     private var synonyms = emptyMap<String, TypealiasDecl>()
     private val warnings = mutableListOf<CompilerProblem>()
+    private val errors = mutableListOf<CompilerProblem>()
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
@@ -64,6 +65,7 @@ class Desugar(private val smod: SModule) {
         return try {
             synonyms = validateTypealiases()
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
+            if (errors.isNotEmpty()) desugarErrors(errors)
             Ok(Module(moduleName, smod.sourceName, decls))
         } catch (pe: ParserError) {
             Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name)))
@@ -87,10 +89,12 @@ class Desugar(private val smod: SModule) {
             if (declNames.contains(name)) parserError(E.duplicatedDecl(name), span)
             declNames += name
             declVars.clear()
+            
             unusedVars.clear()
-            patterns.forEach {
-                if (it is SPattern.Var) unusedVars[it.name] = it.span
+            patterns.map { collectVars(it) }.flatten().forEach { 
+                if (!it.instance && !it.implicit) unusedVars[it.name] = it.span
             }
+            
             var expr = nestLambdaPatterns(patterns, exp.desugar(), emptyList())
 
             // if the declaration has a type annotation, annotate it, else warn
@@ -103,7 +107,7 @@ class Desugar(private val smod: SModule) {
                 warnings += makeWarn(E.noTypeAnnDecl(name), span)
                 expr
             }
-            if (unusedVars.isNotEmpty()) reportUnusedVars(unusedVars)
+            if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
         }
         else -> null
@@ -151,11 +155,12 @@ class Desugar(private val smod: SModule) {
         is SExpr.Operator -> Expr.Var(name, span, imports[fullname()])
         is SExpr.Constructor -> Expr.Constructor(name, span, imports[fullname()])
         is SExpr.Lambda -> {
-            val names = patterns.mapNotNull {
-                if (it is SPattern.Var) it.name else if (it is SPattern.ImplicitVar) it.name else null
+            val vars = patterns.map { collectVars(it) }.flatten()
+            vars.forEach {
+                if (!it.implicit && !it.instance)
+                    unusedVars[it.name] = it.span
             }
-            patterns.forEach { if (it is SPattern.Var) unusedVars[it.name] = it.span }
-            nestLambdaPatterns(patterns, body.desugar(locals + names), locals)
+            nestLambdaPatterns(patterns, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.App -> Expr.App(fn.desugar(locals, appFnDepth + 1), arg.desugar(locals), span)
         is SExpr.Parens -> exp.desugar(locals)
@@ -606,7 +611,7 @@ class Desugar(private val smod: SModule) {
         }
     }
 
-    private fun reportUnusedVars(unusedVars: Map<String, Span>) {
+    private fun addUnusedVars(unusedVars: Map<String, Span>) {
         val err = CompilerProblem(
             E.unusedVariables(unusedVars.keys.toList()),
             ProblemContext.DESUGAR,
@@ -614,7 +619,7 @@ class Desugar(private val smod: SModule) {
             smod.sourceName,
             smod.name
         )
-        desugarErrors(listOf(err))
+        errors += err
     }
 
     private fun desugarErrors(errs: List<CompilerProblem>): Nothing {
