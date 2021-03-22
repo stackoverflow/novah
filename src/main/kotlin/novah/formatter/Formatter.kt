@@ -218,7 +218,7 @@ class Formatter {
         is Pattern.VectorHT -> "[${show(p.head)} :: ${show(p.tail)}]"
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"
         is Pattern.Unit -> "()"
-        is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " ${p.alias}" else ""
+        is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " as ${p.alias}" else ""
         is Pattern.ImplicitVar -> "{{${p.name}}}"
     }
 

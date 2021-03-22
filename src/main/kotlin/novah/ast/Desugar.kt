@@ -209,7 +209,10 @@ class Desugar(private val smod: SModule) {
                 Expr.Lambda(Binder(v, span), null, nestRecordSelects(Expr.Var(v, span), labels), span)
             } else nestRecordSelects(exp.desugar(locals), labels)
         }
-        is SExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.desugar(locals) }, exp.desugar(locals), span)
+        is SExpr.RecordExtend -> {
+            val sorted = labelMapWith(labels)
+            Expr.RecordExtend(sorted.mapList { it.desugar(locals) }, exp.desugar(locals), span)
+        }
         is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
@@ -291,7 +294,10 @@ class Desugar(private val smod: SModule) {
         is SType.TApp -> TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
         is SType.TRecord -> TRecord(row.goDesugar()).span(span)
         is SType.TRowEmpty -> TRowEmpty().span(span)
-        is SType.TRowExtend -> TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
+        is SType.TRowExtend -> {
+            val sorted = labelMapWith(labels)
+            TRowExtend(sorted.mapList { it.goDesugar() }, row.goDesugar()).span(span)
+        }
         is SType.TImplicit -> TImplicit(type.goDesugar()).span(span)
     }
 
@@ -458,7 +464,7 @@ class Desugar(private val smod: SModule) {
             is SType.TRowEmpty -> ty
             is SType.TRowExtend -> ty.copy(
                 row = expandAndcheck(name, ty.row, span),
-                labels = ty.labels.mapList { expandAndcheck(name, it, span) }
+                labels = ty.labels.map { (k, v) -> k to expandAndcheck(name, v, span) }
             )
             is SType.TImplicit -> ty.copy(expandAndcheck(name, ty.type, span))
         }
@@ -493,7 +499,7 @@ class Desugar(private val smod: SModule) {
             is SType.TRowEmpty -> ty
             is SType.TRowExtend -> ty.copy(
                 row = resolveAliases(ty.row),
-                labels = ty.labels.mapList { resolveAliases(it) }
+                labels = ty.labels.map { (k, v) -> k to resolveAliases(v) }
             )
             is SType.TImplicit -> ty.copy(resolveAliases(ty.type))
         }

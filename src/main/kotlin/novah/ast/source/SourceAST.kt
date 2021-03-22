@@ -16,8 +16,7 @@
 package novah.ast.source
 
 import novah.data.LabelMap
-import novah.data.flatMapList
-import novah.data.mapList
+import novah.data.Labels
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -223,7 +222,7 @@ sealed class Expr {
     class Unit : Expr()
     class RecordEmpty : Expr()
     data class RecordSelect(val exp: Expr, val labels: List<String>) : Expr()
-    data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr) : Expr()
+    data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val label: String) : Expr()
     data class VectorLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
@@ -260,7 +259,7 @@ sealed class LetDef(open val expr: Expr) {
         val isInstance: Boolean,
         val type: Type? = null
     ) : LetDef(expr)
-    
+
     data class DefPattern(val pat: Pattern, override val expr: Expr) : LetDef(expr)
 }
 
@@ -304,7 +303,7 @@ sealed class Type(open val span: Span) {
     data class TParens(val type: Type, override val span: Span) : Type(span)
     data class TRecord(val row: Row, override val span: Span) : Type(span)
     data class TRowEmpty(override val span: Span) : Type(span)
-    data class TRowExtend(val labels: LabelMap<Type>, val row: Row, override val span: Span) : Type(span)
+    data class TRowExtend(val labels: Labels<Type>, val row: Row, override val span: Span) : Type(span)
     data class TImplicit(val type: Type, override val span: Span) : Type(span)
 
     /**
@@ -319,7 +318,7 @@ sealed class Type(open val span: Span) {
             is TParens -> f(t.copy(go(t.type)))
             is TRecord -> f(t.copy(go(t.row)))
             is TRowEmpty -> f(t)
-            is TRowExtend -> f(t.copy(row = go(t.row), labels = t.labels.mapList { go(it) }))
+            is TRowExtend -> f(t.copy(row = go(t.row), labels = t.labels.map { (k, v) -> k to go(v) }))
             is TImplicit -> f(t.copy(go(t.type)))
         }
         return go(this)
@@ -343,7 +342,7 @@ sealed class Type(open val span: Span) {
         is TParens -> type.findFreeVars(bound)
         is TRecord -> row.findFreeVars(bound)
         is TRowEmpty -> emptyList()
-        is TRowExtend -> row.findFreeVars(bound) + labels.flatMapList { it.findFreeVars(bound) }
+        is TRowExtend -> row.findFreeVars(bound) + labels.flatMap { (_, v) -> v.findFreeVars(bound) }
         is TImplicit -> type.findFreeVars(bound)
     }
 

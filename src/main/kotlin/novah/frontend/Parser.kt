@@ -858,8 +858,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 } else Expr.RecordEmpty()
                 val end = expect<RBracket>(withError(E.rbracketExpected("record")))
 
-                val labels = labelMapWith(rows)
-                Expr.RecordExtend(labels, exp).withSpan(begin.span, end.span).withComment(begin.comment)
+                Expr.RecordExtend(rows, exp).withSpan(begin.span, end.span).withComment(begin.comment)
             }
         }
     }
@@ -961,7 +960,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 iter.next()
                 parseType()
             } else Type.TRowEmpty(span(tk, iter.current().span))
-            return Type.TRowExtend(labelMapWith(labels), rowInner, span(tk, iter.current().span))
+            return Type.TRowExtend(labels, rowInner, span(tk, iter.current().span))
         }
 
         val tk = iter.peek()
@@ -1027,7 +1026,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                             val ty = parseType()
                             val end = expect<RBracket>(withError(E.rbracketExpected("record type")))
                             val span = span(tk.span, end.span)
-                            Type.TRecord(Type.TRowExtend(LabelMap(), ty, span), span)
+                            Type.TRecord(Type.TRowExtend(emptyList(), ty, span), span)
                         }
                         else -> {
                             val rextend = parseRowExtend()
