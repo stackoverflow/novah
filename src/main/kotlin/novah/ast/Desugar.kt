@@ -164,10 +164,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
         is SExpr.Let -> {
             val vars = letDefs.map { collectVars(it) }.flatten()
-            vars.forEach {
-                if (!it.implicit && !it.instance)
-                    unusedVars[it.name] = it.span
-            }
+            vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
             nestLets(letDefs, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.Match -> Expr.Match(exps.map { it.desugar(locals) }, cases.map { it.desugar(locals) }, span)
