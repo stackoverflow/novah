@@ -156,10 +156,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.Constructor -> Expr.Constructor(name, span, imports[fullname()])
         is SExpr.Lambda -> {
             val vars = patterns.map { collectVars(it) }.flatten()
-            vars.forEach {
-                if (!it.implicit && !it.instance)
-                    unusedVars[it.name] = it.span
-            }
+            vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
             nestLambdaPatterns(patterns, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.App -> Expr.App(fn.desugar(locals, appFnDepth + 1), arg.desugar(locals), span)
