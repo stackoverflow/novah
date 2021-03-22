@@ -1,5 +1,5 @@
 module [33mtest[0m
 at src/test/resources/failure/pattern_matching/implicit case.novah:4:3 - 4:8
 
-  Implicit patterns can only be used in function parameters.
+  Implicit patterns can only be used in function parameters before any destructuring happens.
 
