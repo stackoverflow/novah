@@ -323,7 +323,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     if (name != name2) throwError(withError(E.expectedDefinition(name))(nameTk2))
                 }
             }
-            val vars = tryParseListOf { tryParseFunparPattern() }
+            val vars = tryParseListOf { tryParsePattern() }
 
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
@@ -512,7 +512,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val begin = iter.peek()
         expect<Backslash>(withError(E.LAMBDA_BACKSLASH))
 
-        val vars = tryParseListOf { tryParseFunparPattern() }
+        val vars = tryParseListOf { tryParsePattern() }
         if (vars.isEmpty()) throwError(withError(E.LAMBDA_VAR)(iter.current()))
 
         expect<Arrow>(withError(E.LAMBDA_ARROW))
@@ -595,7 +595,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             if (newIdent.value.v != name) throwError(withError(E.expectedLetDefinition(name))(newIdent))
         }
         return withOffside {
-            val vars = tryParseListOf { tryParseFunparPattern() }
+            val vars = tryParseListOf { tryParsePattern() }
             expect<Equals>(withError(E.LET_EQUALS))
             val exp = parseExpression()
             val span = span(ident.span, exp.span)
@@ -717,9 +717,17 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is LBracket -> {
                 iter.next()
-                val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
-                val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span
-                Pattern.Record(labelMapWith(rows), span(tk.span, end))
+                if (iter.peek().value is LBracket) {
+                    iter.next()
+                    val id = expect<Ident>(withError(E.INSTANCE_VAR)).value.v
+                    expect<RBracket>(withError(E.INSTANCE_VAR))
+                    val end = expect<RBracket>(withError(E.INSTANCE_VAR))
+                    Pattern.ImplicitVar(id, span(tk.span, end.span))
+                } else {
+                    val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
+                    val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span
+                    Pattern.Record(labelMapWith(rows), span(tk.span, end))
+                }
             }
             is LSBracket -> {
                 iter.next()
@@ -842,34 +850,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val record = parseExpression()
         val end = expect<RBracket>(withError(E.rbracketExpected("record restriction")))
         return Expr.RecordRestrict(record, label).withSpan(begin.span, end.span).withComment(begin.comment)
-    }
-
-    private fun tryParseFunparPattern(): FunparPattern? {
-        val tk = iter.peek()
-        return when (tk.value) {
-            is Underline -> {
-                iter.next()
-                FunparPattern.Ignored(tk.span)
-            }
-            is LParen -> {
-                iter.next()
-                val end = expect<RParen>(withError(E.rparensExpected("function parameter")))
-                FunparPattern.Unit(span(tk.span, end.span))
-            }
-            is Ident -> {
-                iter.next()
-                FunparPattern.Bind(Binder(tk.value.v, tk.span))
-            }
-            is LBracket -> {
-                iter.next()
-                expect<LBracket>(withError(E.INSTANCE_VAR))
-                val id = expect<Ident>(withError(E.INSTANCE_VAR))
-                expect<RBracket>(withError(E.INSTANCE_VAR))
-                val end = expect<RBracket>(withError(E.INSTANCE_VAR))
-                FunparPattern.Bind(Binder(id.value.v, span(tk.span, end.span), true))
-            }
-            else -> null
-        }
     }
 
     private fun parseConstructor(): Expr.Constructor {

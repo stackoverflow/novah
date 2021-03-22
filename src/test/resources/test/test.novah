@@ -1,0 +1,3 @@
+module test
+
+main () = println 12

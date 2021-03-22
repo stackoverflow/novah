@@ -29,12 +29,12 @@ class OptimizerSpec : StringSpec({
         val code = """
             type Multi a b = M a b Int String | Not
             
-            f () = M 'a' 2.3F 5 "d"
+            f = M 'a' 2.3F 5 "d"
         """.module()
 
         val res = TestUtil.compileAndOptimizeCode(code)
         val f = res.decls.find { it is Decl.ValDecl && it.name == "f" }!! as Decl.ValDecl
-        val app = (f.exp as Expr.Lambda).body
+        val app = f.exp
         app.shouldBeInstanceOf<Expr.CtorApp>()
         app.args.size shouldBe 4
 

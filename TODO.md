@@ -12,3 +12,4 @@
 - [ ] Disallow duplicate labels in pattern matching
 - [ ] Rename operators and java keywords to be more java-friendly
 - [ ] Fix pattern matching warnings (records)
+- [ ] Simplify single case pattern match where the expression is always true

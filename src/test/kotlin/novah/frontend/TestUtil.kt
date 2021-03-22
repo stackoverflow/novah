@@ -15,14 +15,12 @@
  */
 package novah.frontend
 
-import novah.ast.source.Binder
-import novah.ast.source.Expr
-import novah.ast.source.FunparPattern
-import novah.ast.source.Module
+import novah.ast.source.*
 import novah.data.flatMapList
 import novah.data.map
 import novah.data.unwrapOrElse
 import novah.frontend.hmftypechecker.*
+import novah.frontend.hmftypechecker.Type
 import novah.main.CompilationError
 import novah.main.Compiler
 import novah.main.FullModuleEnv
@@ -111,8 +109,8 @@ object TestUtil {
 
     fun _i(i: Int) = Expr.IntE(i, "$i")
     fun _v(n: String) = Expr.Var(n)
-    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { FunparPattern.Bind(Binder(it, Span.empty())) }, e)
-    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(FunparPattern.Bind(Binder(n, Span.empty()))), e)
+    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { Pattern.Var(it, Span.empty()) }, e)
+    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(Pattern.Var(n, Span.empty())), e)
 
     fun String.module() = "module test\n\n${this.trimIndent()}"
 

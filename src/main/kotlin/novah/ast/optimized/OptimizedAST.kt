@@ -57,7 +57,7 @@ sealed class Expr(open val type: Type) {
     data class Constructor(val fullName: String, val arity: Int, override val type: Type) : Expr(type)
     data class LocalVar(val name: String, override val type: Type) : Expr(type)
     data class Lambda(
-        val binder: String?,
+        val binder: String,
         val body: Expr,
         var internalName: String = "",
         var locals: List<LocalVar> = listOf(),

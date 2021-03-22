@@ -28,6 +28,7 @@ import novah.frontend.error.Severity
 import novah.frontend.hmftypechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
+import io.lacuna.bifurcan.List as PList
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
 import novah.ast.canonical.Decl.TypeDecl as CDataDecl
@@ -36,7 +37,6 @@ import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
 import novah.frontend.error.Errors as E
 import novah.frontend.hmftypechecker.Type as TType
-import io.lacuna.bifurcan.List as PList
 
 /**
  * Converts the canonical AST to the
@@ -118,9 +118,8 @@ class Optimizer(private val ast: CModule) {
             }
             is CExpr.Lambda -> {
                 haslambda = true
-                val bind = pattern.convert()
-                val ls = if (bind != null) locals + bind else locals
-                Expr.Lambda(bind, body.convert(ls), type = typ)
+                val bind = binder.convert()
+                Expr.Lambda(bind, body.convert(locals + bind), type = typ)
             }
             is CExpr.App -> {
                 val pair = unrollForeignApp(this)
@@ -197,12 +196,6 @@ class Optimizer(private val ast: CModule) {
     }
 
     private fun CBinder.convert(): String = name
-
-    private fun FunparPattern.convert(): String? = when (this) {
-        is FunparPattern.Ignored -> null
-        is FunparPattern.Unit -> null
-        is FunparPattern.Bind -> binder.convert()
-    }
 
     private fun TType.convert(): Type = when (this) {
         is TConst -> {

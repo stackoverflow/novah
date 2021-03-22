@@ -151,17 +151,10 @@ object Inference {
             }
             is Expr.Lambda -> {
                 val newEnv = env.fork()
-                val param = when (val pat = exp.pattern) {
-                    is FunparPattern.Bind -> {
-                        val binder = pat.binder
-                        checkShadow(newEnv, binder.name, binder.span)
-                        val param = if (binder.isImplicit) TImplicit(newVar(level + 1)) else newVar(level + 1)
-                        newEnv.extend(binder.name, param)
-                        param
-                    }
-                    is FunparPattern.Unit -> tUnit
-                    is FunparPattern.Ignored -> newVar(level + 1)
-                }
+                val binder = exp.binder
+                checkShadow(newEnv, binder.name, binder.span)
+                val param = if (binder.isImplicit) TImplicit(newVar(level + 1)) else newVar(level + 1)
+                newEnv.extend(binder.name, param)
 
                 val infRetType = infer(newEnv, level + 1, exp.body)
                 val retType = if (isAnnotated(exp.body)) infRetType else instantiate(level + 1, infRetType)
@@ -210,34 +203,7 @@ object Inference {
                 }
                 exp.withType(ty!!)
             }
-            is Expr.Match -> {
-                val expTys = exp.exps.map {
-                    val ty = instantiate(level, infer(env, level, it))
-                    ty to !ty.isUnbound()
-                }
-                val resType = newVar(level)
-
-                exp.cases.forEach { case ->
-                    val vars = case.patterns.flatMapIndexed { i, pat ->
-                        val (expTy, isCheck) = expTys[i]
-                        inferpattern(env, level, pat, expTy, isCheck)
-                    }
-                    val newEnv = if (vars.isNotEmpty()) {
-                        val theEnv = env.fork()
-                        vars.forEach {
-                            checkShadow(theEnv, it.name, it.span)
-                            theEnv.extend(it.name, it.type)
-                        }
-                        theEnv
-                    } else env
-
-                    if (case.guard != null) check(newEnv, level, tBoolean, case.guard)
-
-                    val ty = infer(newEnv, level, case.exp)
-                    unify(resType, ty, case.exp.span)
-                }
-                exp.withType(resType)
-            }
+            is Expr.Match -> inferMatch(env, level, exp)
             is Expr.RecordEmpty -> exp.withType(TRecord(TRowEmpty()))
             is Expr.RecordSelect -> {
                 val restRow = newVar(level)
@@ -316,27 +282,16 @@ object Inference {
                 check(env, level, ty, exp)
             }
             exp is Expr.Lambda && type is TArrow -> {
-                when (val pat = exp.pattern) {
-                    is FunparPattern.Ignored -> {
-                        check(env, level + 1, type.ret, exp.body)
-                    }
-                    is FunparPattern.Unit -> {
-                        subsume(level + 1, type.args[0], tUnit, exp.span)
-                        check(env, level + 1, type.ret, exp.body)
-                    }
-                    is FunparPattern.Bind -> {
-                        val bind = pat.binder
-                        val newEnv = env.fork()
-                        val ty = type.args[0]
-                        if (bind.isImplicit) {
-                            if (ty !is TImplicit)
-                                inferError(Errors.implicitTypesDontMatch(bind.toString(), ty.show()), bind.span)
-                            newEnv.extendInstance(bind.name, ty)
-                        }
-                        newEnv.extend(bind.name, ty)
-                        check(newEnv, level + 1, type.ret, exp.body)
-                    }
+                val bind = exp.binder
+                val newEnv = env.fork()
+                val ty = type.args[0]
+                if (bind.isImplicit) {
+                    if (ty !is TImplicit)
+                        inferError(Errors.implicitTypesDontMatch(bind.toString(), ty.show()), bind.span)
+                    newEnv.extendInstance(bind.name, ty)
                 }
+                newEnv.extend(bind.name, ty)
+                check(newEnv, level + 1, type.ret, exp.body)
                 exp.withType(generalize(level, instantiate(level + 1, type)))
             }
             exp is Expr.App -> inferApp(env, level, exp, type)
@@ -373,6 +328,7 @@ object Inference {
                 exp.exps.forEach { check(env, level + 1, innerTy, it) }
                 exp.withType(type)
             }
+            exp is Expr.Match -> inferMatch(env, level, exp, type)
             else -> {
                 validateType(type, env, exp.span)
                 subsume(level, type, infer(env, level, exp), exp.span)
@@ -417,6 +373,39 @@ object Inference {
             if (isAnnotated(arg)) unify(paramType, argType, arg.span)
             else subsume(level, paramType, argType, arg.span)
         }
+    }
+    
+    private fun inferMatch(env: Env, level: Level, exp: Expr.Match, type: Type? = null): Type {
+        val expTys = exp.exps.map {
+            val ty = instantiate(level, infer(env, level, it))
+            ty to !ty.isUnbound()
+        }
+        val resType = type ?: newVar(level)
+
+        exp.cases.forEach { case ->
+            val vars = case.patterns.flatMapIndexed { i, pat ->
+                val (expTy, isCheck) = expTys[i]
+                inferpattern(env, level, pat, expTy, isCheck)
+            }
+            val newEnv = if (vars.isNotEmpty()) {
+                val theEnv = env.fork()
+                vars.forEach {
+                    checkShadow(theEnv, it.name, it.span)
+                    theEnv.extend(it.name, it.type)
+                }
+                theEnv
+            } else env
+
+            if (case.guard != null) check(newEnv, level, tBoolean, case.guard)
+
+            if (type != null) {
+                check(newEnv, level, type, case.exp)
+            } else {
+                val ty = infer(newEnv, level, case.exp)
+                unify(resType, ty, case.exp.span)
+            }
+        }
+        return exp.withType(resType)
     }
 
     data class PatternVar(val name: String, val type: Type, val span: Span)
@@ -620,12 +609,7 @@ object Inference {
      */
     private fun funToFixpoint(name: String, expr: Expr): Pair<String, Expr> {
         val binder = "${name}\$rec"
-        return binder to Expr.Lambda(
-            lambdaBinder(name, expr.span),
-            null,
-            expr,
-            expr.span
-        )
+        return binder to Expr.Lambda(Binder(name, expr.span), null, expr, expr.span)
     }
 
     /**

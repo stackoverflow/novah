@@ -206,12 +206,6 @@ class Formatter {
         return c.patterns.joinToString { show(it) } + "$guard -> " + show(c.exp)
     }
 
-    private fun show(fp: FunparPattern): String = when (fp) {
-        is FunparPattern.Ignored -> "_"
-        is FunparPattern.Unit -> "()"
-        is FunparPattern.Bind -> fp.binder.name
-    }
-
     private fun show(p: Pattern): String = when (p) {
         is Pattern.Wildcard -> "_"
         is Pattern.Var -> p.name
@@ -224,6 +218,7 @@ class Formatter {
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"
         is Pattern.Unit -> "()"
         is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " ${p.alias}" else ""
+        is Pattern.ImplicitVar -> "{{${p.name}}}"
     }
 
     private fun show(p: LiteralPattern): String = when (p) {

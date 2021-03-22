@@ -132,7 +132,7 @@ sealed class Decl(val name: String, val visibility: Visibility) {
 
     class ValDecl(
         name: String,
-        val patterns: List<FunparPattern>,
+        val patterns: List<Pattern>,
         val exp: Expr,
         val type: Type?,
         visibility: Visibility,
@@ -202,7 +202,7 @@ sealed class Expr {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
-    data class Lambda(val patterns: List<FunparPattern>, val body: Expr) : Expr() {
+    data class Lambda(val patterns: List<Pattern>, val body: Expr) : Expr() {
         override fun toString(): String = "\\" + patterns.joinToString(" ") + " -> $body"
     }
 
@@ -251,15 +251,9 @@ data class Binder(val name: String, val span: Span, val isImplicit: Boolean = fa
     override fun toString(): String = name
 }
 
-sealed class FunparPattern(open val span: Span) {
-    data class Ignored(override val span: Span) : FunparPattern(span)
-    data class Unit(override val span: Span) : FunparPattern(span)
-    data class Bind(val binder: Binder) : FunparPattern(binder.span)
-}
-
 data class LetDef(
     val name: Binder,
-    val patterns: List<FunparPattern>,
+    val patterns: List<Pattern>,
     val expr: Expr,
     val isInstance: Boolean,
     val type: Type? = null
@@ -281,6 +275,7 @@ sealed class Pattern(open val span: Span) {
     data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
+    data class ImplicitVar(val name: String, override val span: Span) : Pattern(span)
 }
 
 sealed class LiteralPattern {
