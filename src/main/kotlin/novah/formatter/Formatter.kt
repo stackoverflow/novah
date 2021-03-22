@@ -231,9 +231,14 @@ class Formatter {
         is LiteralPattern.DoubleLiteral -> show(p.e)
     }
 
-    private fun show(l: LetDef): String {
-        val typ = if (l.type != null) "${l.name} : ${show(l.type)}\n$tab" else ""
-        return "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " = ${show(l.expr)}"
+    private fun show(l: LetDef): String = when (l) {
+        is LetDef.DefBind -> {
+            val typ = if (l.type != null) "${l.name} : ${show(l.type)}\n$tab" else ""
+            "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " = ${show(l.expr)}"
+        }
+        is LetDef.DefPattern -> {
+            "${show(l.pat)} = ${show(l.expr)}"
+        }
     }
 
     fun show(t: Type): String = when (t) {

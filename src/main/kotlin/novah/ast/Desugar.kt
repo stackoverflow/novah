@@ -161,10 +161,12 @@ class Desugar(private val smod: SModule) {
         is SExpr.Parens -> exp.desugar(locals)
         is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
         is SExpr.Let -> {
-            letDefs.forEach {
-                if (!it.isInstance && !it.name.isImplicit) unusedVars[it.name.name] = it.name.span
+            val vars = letDefs.map { collectVars(it) }.flatten()
+            vars.forEach {
+                if (!it.implicit && !it.instance)
+                    unusedVars[it.name] = it.span
             }
-            nestLets(letDefs, body.desugar(locals + letDefs.map { it.name.name }), locals)
+            nestLets(letDefs, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.Match -> Expr.Match(exps.map { it.desugar(locals) }, cases.map { it.desugar(locals) }, span)
         is SExpr.Ann -> {
@@ -219,7 +221,7 @@ class Desugar(private val smod: SModule) {
         is SLiteralPattern.DoubleLiteral -> LiteralPattern.DoubleLiteral(e.desugar(locals) as Expr.DoubleE)
     }
 
-    private fun SLetDef.desugar(locals: List<String>): LetDef {
+    private fun SLetDef.DefBind.desugar(locals: List<String>): LetDef {
         return if (patterns.isEmpty()) {
             LetDef(name.desugar(), expr.desugar(locals), false, isInstance, type?.desugar())
         } else {
@@ -259,6 +261,34 @@ class Desugar(private val smod: SModule) {
         is SType.TRowEmpty -> TRowEmpty().span(span)
         is SType.TRowExtend -> TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
         is SType.TImplicit -> TImplicit(type.goDesugar()).span(span)
+    }
+
+    private data class CollectedVar(
+        val name: String,
+        val span: Span,
+        val implicit: Boolean = false,
+        val instance: Boolean = false
+    )
+
+    private fun collectVars(ldef: SLetDef): List<CollectedVar> = when (ldef) {
+        is SLetDef.DefBind ->
+            listOf(CollectedVar(ldef.name.name, ldef.name.span, ldef.name.isImplicit, ldef.isInstance))
+        is SLetDef.DefPattern -> collectVars(ldef.pat)
+    }
+
+    private fun collectVars(pat: SPattern): List<CollectedVar> = when (pat) {
+        is SPattern.Var -> listOf(CollectedVar(pat.name, pat.span))
+        is SPattern.Parens -> collectVars(pat.pattern)
+        is SPattern.Ctor -> pat.fields.flatMap { collectVars(it) }
+        is SPattern.Record -> pat.labels.flatMapList { collectVars(it) }.toList()
+        is SPattern.Vector -> pat.elems.flatMap { collectVars(it) }
+        is SPattern.VectorHT -> collectVars(pat.head) + collectVars(pat.tail)
+        is SPattern.Named -> collectVars(pat.pat)
+        is SPattern.ImplicitVar -> listOf(CollectedVar(pat.name, pat.span, true))
+        is SPattern.Wildcard -> emptyList()
+        is SPattern.LiteralP -> emptyList()
+        is SPattern.Unit -> emptyList()
+        is SPattern.TypeTest -> if (pat.alias != null) listOf(CollectedVar(pat.alias, pat.span)) else emptyList()
     }
 
     /**
@@ -339,7 +369,17 @@ class Desugar(private val smod: SModule) {
 
     private fun nestLets(defs: List<SLetDef>, exp: Expr, locals: List<String>): Expr {
         return if (defs.isEmpty()) exp
-        else Expr.Let(defs[0].desugar(locals), nestLets(defs.drop(1), exp, locals), exp.span)
+        else {
+            when (val ld = defs[0]) {
+                is SLetDef.DefBind -> {
+                    Expr.Let(ld.desugar(locals), nestLets(defs.drop(1), exp, locals), exp.span)
+                }
+                is SLetDef.DefPattern -> {
+                    val case = Case(listOf(ld.pat.desugar(locals)), nestLets(defs.drop(1), exp, locals))
+                    Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), Span.new(ld.pat.span, exp.span))
+                }
+            }
+        }
     }
 
     private fun collectVars(exp: Expr): List<String> =

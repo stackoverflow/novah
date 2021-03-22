@@ -251,13 +251,18 @@ data class Binder(val name: String, val span: Span, val isImplicit: Boolean = fa
     override fun toString(): String = name
 }
 
-data class LetDef(
-    val name: Binder,
-    val patterns: List<Pattern>,
-    val expr: Expr,
-    val isInstance: Boolean,
-    val type: Type? = null
-)
+sealed class LetDef(open val expr: Expr) {
+    data class DefBind(
+        val name: Binder,
+        val patterns: List<Pattern>,
+        override val expr: Expr,
+        val isInstance: Boolean,
+        val type: Type? = null
+    ) : LetDef(expr)
+    
+    data class DefPattern(val pat: Pattern, override val expr: Expr) : LetDef(expr)
+}
+
 
 data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null) {
     fun patternSpan() = Span.new(patterns[0].span, patterns.last().span)

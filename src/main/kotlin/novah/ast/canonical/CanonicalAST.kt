@@ -136,7 +136,9 @@ data class LetDef(
     val type: Type? = null
 )
 
-data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null)
+data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null) {
+    fun patternSpan() = Span.new(patterns[0].span, patterns.last().span)
+}
 
 sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)

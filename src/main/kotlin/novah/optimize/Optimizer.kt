@@ -238,6 +238,7 @@ class Optimizer(private val ast: CModule) {
     private val vectorSize = PList::class.java.methods.find { it.name == "size" }!!
     private val vectorAccess = PList::class.java.methods.find { it.name == "nth" }!!
     private val vectorSlice = PList::class.java.methods.find { it.name == "slice" }!!
+    private val vectorNotEmpty = Core::class.java.methods.find { it.name == "vectorNotEmpty" }!!
     private val equivalentInt = Core::class.java.methods.find {
         it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
     }!!
@@ -390,7 +391,8 @@ class Optimizer(private val ast: CModule) {
             is Pattern.VectorHT -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
-
+                
+                conds += Expr.NativeStaticMethod(vectorNotEmpty, listOf(exp), boolType)
                 val fieltTy = (exp.type as? Type.TConstructor)?.types?.first()
                     ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
@@ -506,20 +508,21 @@ class Optimizer(private val ast: CModule) {
         return pars.map { it.convert() } to ret.convert()
     }
 
-    private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr) {
+    private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr.Match) {
         if (!res.exhaustive) {
-            warnings += mkWarn(E.NON_EXHAUSTIVE_PATTERN, expr.span, ProblemContext.PATTERN_MATCHING)
+            val span = if (expr.cases.size == 1) expr.cases[0].patternSpan() else expr.span
+            warnings += mkWarn(E.NON_EXHAUSTIVE_PATTERN, span)
         }
         if (res.redundantMatches.isNotEmpty()) {
             val unreacheable = res.redundantMatches.map { it.joinToString { p -> p.show() } }
-            warnings += mkWarn(E.redundantMatches(unreacheable), expr.span, ProblemContext.PATTERN_MATCHING)
+            warnings += mkWarn(E.redundantMatches(unreacheable), expr.span)
         }
     }
 
-    private fun mkWarn(msg: String, span: Span, ctx: ProblemContext): CompilerProblem =
+    private fun mkWarn(msg: String, span: Span): CompilerProblem =
         CompilerProblem(
             msg,
-            ctx,
+            ProblemContext.PATTERN_MATCHING,
             span,
             ast.sourceName,
             ast.name,

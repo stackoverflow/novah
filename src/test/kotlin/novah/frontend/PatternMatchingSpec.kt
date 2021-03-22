@@ -221,7 +221,7 @@ class PatternMatchingSpec : StringSpec({
         ds["fun2"]?.type?.simpleName() shouldBe "Int -> String -> String"
     }
     
-    "destructuring" {
+    "function parameter destructuring" {
         val code = """
             foreign import novah.Core:sum(Int, Int)
             
@@ -251,5 +251,20 @@ class PatternMatchingSpec : StringSpec({
         ds["f5"]?.type?.simpleName() shouldBe "forall t1. Option t1 -> t1"
         ds["f6"]?.type?.simpleName() shouldBe "forall t1 t2. Option t1 -> Unit -> Vector t2 -> Int"
         ds["f7"]?.type?.simpleName() shouldBe "Int"
+    }
+    
+    "let destructuring" {
+        val code = """
+            foreign import novah.Core:sum(Int, Int)
+            
+            f1 () = do
+              let [x, y] = [5, 10]
+              let {z} = {x: 2, y: 0, z: 33}
+              let [h :: _] = [3, 4, 5, 6]
+              sum (sum (sum x y) z) h
+        """.module()
+
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["f1"]?.type?.simpleName() shouldBe "Unit -> Int"
     }
 })
