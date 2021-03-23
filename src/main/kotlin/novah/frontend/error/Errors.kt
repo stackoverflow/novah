@@ -161,11 +161,11 @@ object Errors {
         
         Valid ones are:
         Operator sections: (_ + 1)
-        Record access: _.user.name
-        Record values: { name: _ | _ }
+        Record access: _.name
+        Record values: { name: _ }, { age: 10 | _ }
         Record restrictions: { - name | _ }
-        Ifs: if _ then _ else _
-        Cases: case _, _ of ...
+        Ifs: if _ then 1 else 0, if check then _ else _
+        Cases: case _ of ...
     """.trimIndent()
 
     private val foreignExamples = mapOf(
