@@ -443,13 +443,10 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
 
         // record selection has the highest precedence
-        val labels = mutableListOf<Pair<String, Spanned<Token>>>()
-        while (exp != null && iter.peek().value is Dot) {
+        return if (exp != null && iter.peek().value is Dot) {
             iter.next()
-            labels += parseLabel()
-        }
-        return if (labels.isNotEmpty()) {
-            Expr.RecordSelect(exp!!, labels.map { it.first }).withSpan(exp.span, labels.last().second.span)
+            val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
+            Expr.RecordSelect(exp, labels.map { it.first }).withSpan(exp.span, labels.last().second.span)
         } else exp
     }
 
