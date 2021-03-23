@@ -57,6 +57,9 @@ class Desugar(private val smod: SModule) {
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
+    private var varCount = 0
+    private fun newVar() = "var$${varCount++}"
+
     private val declNames = mutableSetOf<String>()
 
     fun desugar(): Result<Module, List<CompilerProblem>> {
@@ -161,13 +164,32 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.App -> Expr.App(fn.desugar(locals, appFnDepth + 1), arg.desugar(locals), span)
         is SExpr.Parens -> exp.desugar(locals)
-        is SExpr.If -> Expr.If(cond.desugar(locals), thenCase.desugar(locals), elseCase.desugar(locals), span)
+        is SExpr.If -> {
+            val args = listOf(cond, thenCase, elseCase).map {
+                if (it is SExpr.Underscore) {
+                    val v = newVar()
+                    Binder(v, it.span) to Expr.Var(v, it.span)
+                } else null to it.desugar(locals)
+            }
+            
+            val ifExp = Expr.If(args[0].second, args[1].second, args[2].second, span)
+            nestLambdas(args.mapNotNull { it.first }, ifExp)
+        }
         is SExpr.Let -> {
             val vars = letDefs.map { collectVars(it) }.flatten()
             vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
             nestLets(letDefs, body.desugar(locals + vars.map { it.name }), locals)
         }
-        is SExpr.Match -> Expr.Match(exps.map { it.desugar(locals) }, cases.map { it.desugar(locals) }, span)
+        is SExpr.Match -> {
+            val args = exps.map { 
+                if (it is SExpr.Underscore) {
+                    val v = newVar()
+                    Binder(v, it.span) to Expr.Var(v, it.span)
+                } else null to it.desugar(locals)
+            }
+            val match = Expr.Match(args.map { it.second }, cases.map { it.desugar(locals) }, span)
+            nestLambdas(args.mapNotNull { it.first }, match)
+        }
         is SExpr.Ann -> {
             val ann = if (type is SType.TForall) replaceConstantsWithVars(type.names, type.type.desugar())
             else emptyList<Id>() to type.desugar()
@@ -181,15 +203,57 @@ class Desugar(private val smod: SModule) {
         is SExpr.Unit -> Expr.Unit(span)
         is SExpr.DoLet -> internalError("got `do-let` outside of do statement: $this")
         is SExpr.RecordEmpty -> Expr.RecordEmpty(span)
-        is SExpr.RecordSelect -> Expr.RecordSelect(exp.desugar(locals), label, span)
-        is SExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.desugar(locals) }, exp.desugar(locals), span)
-        is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
+        is SExpr.RecordSelect -> {
+            if (exp is SExpr.Underscore) {
+                val v = newVar()
+                Expr.Lambda(Binder(v, span), null, nestRecordSelects(Expr.Var(v, span), labels), span)
+            } else nestRecordSelects(exp.desugar(locals), labels)
+        }
+        is SExpr.RecordExtend -> {
+            val lvars = mutableListOf<Binder>()
+            val plabels = labels.map { (label, e) ->
+                label to if (e is SExpr.Underscore) {
+                    val v = newVar()
+                    lvars += Binder(v, span)
+                    Expr.Var(v, span)
+                } else e.desugar(locals)
+            }
+            val expr = if (exp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp.desugar(locals)
+            
+            val rec = Expr.RecordExtend(labelMapWith(plabels), expr, span)
+            nestLambdas(lvars, rec)
+        }
+        is SExpr.RecordRestrict -> {
+            if (exp is SExpr.Underscore) {
+                val v = newVar()
+                nestLambdas(listOf(Binder(v, span)), nestRecordRestrictions(Expr.Var(v, span), labels))
+            } else nestRecordRestrictions(exp.desugar(locals), labels)
+        }
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
+        is SExpr.BinApp -> {
+            val args = listOf(left, right).map {
+                if (it is SExpr.Underscore) {
+                    val v = newVar()
+                    Binder(v, it.span) to Expr.Var(v, it.span)
+                } else null to it.desugar(locals)
+            }
+            val inner = Expr.App(op.desugar(locals), args[0].second, Span.new(op.span, left.span))
+            val app = Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
+            nestLambdas(args.mapNotNull { it.first }, app)
+        }
+        is SExpr.Underscore -> parserError(E.ANONYMOUS_FUNCTION_ARGUMENT, span)
     }
 
-    private fun SCase.desugar(locals: List<String>): Case =
-        Case(patterns.map { it.desugar(locals) }, exp.desugar(), guard?.desugar(locals))
+    private fun SCase.desugar(locals: List<String>): Case {
+        val vars = patterns.map { collectVars(it) }.flatten()
+        vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
+        return Case(patterns.map { it.desugar(locals) }, exp.desugar(), guard?.desugar(locals))
+    }
 
     private fun SPattern.desugar(locals: List<String>): Pattern = when (this) {
         is SPattern.Wildcard -> Pattern.Wildcard(span)
@@ -258,7 +322,10 @@ class Desugar(private val smod: SModule) {
         is SType.TApp -> TApp(type.goDesugar(types.size), types.map { it.goDesugar() }).span(span)
         is SType.TRecord -> TRecord(row.goDesugar()).span(span)
         is SType.TRowEmpty -> TRowEmpty().span(span)
-        is SType.TRowExtend -> TRowExtend(labels.mapList { it.goDesugar() }, row.goDesugar()).span(span)
+        is SType.TRowExtend -> {
+            val sorted = labelMapWith(labels)
+            TRowExtend(sorted.mapList { it.goDesugar() }, row.goDesugar()).span(span)
+        }
         is SType.TImplicit -> TImplicit(type.goDesugar()).span(span)
     }
 
@@ -338,9 +405,7 @@ class Desugar(private val smod: SModule) {
         return if (binders.isEmpty()) exp
         else Expr.Lambda(binders[0], null, nestLambdas(binders.drop(1), exp), exp.span)
     }
-
-    private var varCount = 0
-
+    
     private fun nestLambdaPatterns(pats: List<SPattern>, exp: Expr, locals: List<String>): Expr {
         return if (pats.isEmpty()) exp
         else {
@@ -358,7 +423,7 @@ class Desugar(private val smod: SModule) {
                     exp.span
                 )
                 else -> {
-                    val vars = pats.map { Expr.Var("var$${varCount++}", it.span) }
+                    val vars = pats.map { Expr.Var(newVar(), it.span) }
                     val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals) }, exp)), exp.span)
                     nestLambdas(vars.map { Binder(it.name, it.span) }, expr)
                 }
@@ -379,6 +444,16 @@ class Desugar(private val smod: SModule) {
                 }
             }
         }
+    }
+    
+    private tailrec fun nestRecordSelects(exp: Expr, labels: List<String>): Expr {
+        return if (labels.isEmpty()) exp
+        else nestRecordSelects(Expr.RecordSelect(exp, labels[0], exp.span), labels.drop(1))
+    }
+    
+    private tailrec fun nestRecordRestrictions(exp: Expr, labels: List<String>): Expr {
+        return if (labels.isEmpty()) exp
+        else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], exp.span), labels.drop(1))
     }
 
     private fun collectVars(exp: Expr): List<String> =
@@ -422,7 +497,7 @@ class Desugar(private val smod: SModule) {
             is SType.TRowEmpty -> ty
             is SType.TRowExtend -> ty.copy(
                 row = expandAndcheck(name, ty.row, span),
-                labels = ty.labels.mapList { expandAndcheck(name, it, span) }
+                labels = ty.labels.map { (k, v) -> k to expandAndcheck(name, v, span) }
             )
             is SType.TImplicit -> ty.copy(expandAndcheck(name, ty.type, span))
         }
@@ -457,7 +532,7 @@ class Desugar(private val smod: SModule) {
             is SType.TRowEmpty -> ty
             is SType.TRowExtend -> ty.copy(
                 row = resolveAliases(ty.row),
-                labels = ty.labels.mapList { resolveAliases(it) }
+                labels = ty.labels.map { (k, v) -> k to resolveAliases(v) }
             )
             is SType.TImplicit -> ty.copy(resolveAliases(ty.type))
         }

@@ -1,0 +1,13 @@
+module [33mtest[0m
+at src/test/resources/failure/anonymous function arguments.novah:3:13 - 3:14
+
+  Invalid context for anonymous function argument.
+  
+  Valid ones are:
+  Operator sections: (_ + 1)
+  Record access: _.name
+  Record values: { name: _ }, { age: 10 | _ }
+  Record restrictions: { - name | _ }
+  Ifs: if _ then 1 else 0, if check then _ else _
+  Cases: case _ of ...
+

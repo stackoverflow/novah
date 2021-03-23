@@ -18,7 +18,7 @@ package novah.formatter
 import novah.Util.joinToStr
 import novah.ast.source.*
 import novah.data.show
-import novah.frontend.Application
+import novah.data.showLabel
 import novah.frontend.Comment
 
 /**
@@ -167,8 +167,7 @@ class Formatter {
                 else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}\n${tab}else ${show(e.elseCase)}"
             }
             is Expr.App -> {
-                val exps = Application.unparseApplication(e)
-                exps.joinToString(" ") { show(it) }
+                "${show(e.fn)} ${show(e.arg)}"
             }
             is Expr.Ann -> {
                 "${show(e.exp)} : ${show(e.type)}"
@@ -191,15 +190,17 @@ class Formatter {
             is Expr.Parens -> "(${show(e.exp)})"
             is Expr.Unit -> "()"
             is Expr.RecordEmpty -> "{}"
-            is Expr.RecordSelect -> "${show(e.exp)}.${e.label}"
-            is Expr.RecordRestrict -> "{ - ${show(e.exp)} | ${e.label} }"
-            is Expr.RecordExtend -> "{ ${e.labels.show(::showLabel)} | ${show(e.exp)} }"
+            is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".")}"
+            is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
+            is Expr.RecordExtend -> "{ ${e.labels.show(::showLabelExpr)} | ${show(e.exp)} }"
             is Expr.VectorLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
+            is Expr.Underscore -> "_"
+            is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
         }
     }
 
-    private fun showLabel(l: String, e: Expr): String = "$l: ${show(e)}"
+    private fun showLabelExpr(l: String, e: Expr): String = "$l: ${show(e)}"
 
     private fun show(c: Case): String {
         val guard = if (c.guard != null) " if ${show(c.guard)}" else ""
@@ -217,7 +218,7 @@ class Formatter {
         is Pattern.VectorHT -> "[${show(p.head)} :: ${show(p.tail)}]"
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"
         is Pattern.Unit -> "()"
-        is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " ${p.alias}" else ""
+        is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " as ${p.alias}" else ""
         is Pattern.ImplicitVar -> "{{${p.name}}}"
     }
 

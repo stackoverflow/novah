@@ -17,8 +17,13 @@ package novah.data
 
 import io.lacuna.bifurcan.List
 import io.lacuna.bifurcan.SortedMap
+import novah.Util.joinToStr
 
 typealias PList<V> = List<V>
+
+typealias KList<T> = kotlin.collections.List<T>
+
+typealias Labels<V> = KList<Pair<String, V>>
 
 typealias LabelMap<V> = SortedMap<String, PList<V>>
 
@@ -28,6 +33,9 @@ fun isValidLabel(ident: String): Boolean = ident.matches(labelRegex)
 
 fun showLabel(label: String): String =
     if (isValidLabel(label)) label else "\"$label\""
+
+fun <V> Labels<V>.show(fn: (String, V) -> String): String =
+    joinToStr { (k, v) -> fn(showLabel(k), v)}
 
 fun <V> LabelMap<V>.show(fn: (String, V) -> String): String {
     val builder = StringBuilder()

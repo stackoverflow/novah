@@ -96,7 +96,7 @@ class RecordSpec : StringSpec({
         val code = """
             rec = { "Uppercase": 1, "some 'label'": true, "😃 emoticons": 3L }
             
-            minus = { - "some 'label'" | rec }
+            minus = { - "some 'label'", "😃 emoticons" | rec }
             
             plus = { "😑": (5 : Byte) | rec }
             
@@ -105,7 +105,7 @@ class RecordSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["rec"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int, "some 'label'" : Boolean, "😃 emoticons" : Long }"""
-        ds["minus"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int, "😃 emoticons" : Long }"""
+        ds["minus"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int }"""
         ds["plus"]?.type?.simpleName() shouldBe """{ "😑" : Byte, "Uppercase" : Int, "some 'label'" : Boolean, "😃 emoticons" : Long }"""
         ds["sel"]?.type?.simpleName() shouldBe "Long"
     }

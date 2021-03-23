@@ -7,10 +7,10 @@ show {{s}} x = case s of Show ss -> ss.show x
 
 instance
 showInt : Show Int
-showInt = Show { show: (\x -> toString x) : Int -> String }
+showInt = Show { show: \x -> toString x }
 
 instance
 showInt2 : Show Int
-showInt2 = Show { show: (\x -> toString x) : Int -> String }
+showInt2 = Show { show: \x -> toString x }
 
 main () = show 4
