@@ -1,0 +1,3 @@
+module test
+
+x = println _

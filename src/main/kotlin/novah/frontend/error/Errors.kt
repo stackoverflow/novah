@@ -72,7 +72,7 @@ object Errors {
         |Named pattern: 10 as number
         |Type test: :? Int as i
     """.trimMargin()
-    
+
     val LAMBDA_VAR = """Expected identifier after start of lambda definition:
         |Example: \x -> x + 3
     """.trimMargin()
@@ -141,21 +141,33 @@ object Errors {
     const val INSTANCE_ERROR = "Type and type alias declarations cannot be instances, only values."
 
     const val ALIAS_DOT = "Expected dot (.) after aliased variable."
-    
+
     const val INVALID_OPERATOR_DECL = "Operator declarations have to be defined between parentheses."
 
     const val INVALID_OPAQUE = "Opaque types should be in the form: opaque type <Name> = <type>."
-    
+
     val IMPORT_RAW = """Raw imports should only be used for core namespaces.
         |Use an alias or explicit import instead.""".trimMargin()
-    
+
     const val TYPE_TEST_TYPE = "Expected type in type test."
-    
+
     const val IMPLICIT_PATTERN =
         "Implicit patterns can only be used in function parameters before any destructuring happens."
-    
+
     const val APPLIED_DO_LET = "Cannot apply let statement as a function."
-    
+
+    val ANONYMOUS_FUNCTION_ARGUMENT = """
+        Invalid context for anonymous function argument.
+        
+        Valid ones are:
+        Operator sections: (_ + 1)
+        Record access: _.user.name
+        Record values: { name: _ | _ }
+        Record restrictions: { - name | _ }
+        Ifs: if _ then _ else _
+        Cases: case _, _ of ...
+    """.trimIndent()
+
     private val foreignExamples = mapOf(
         "getter" to """foreign import get my.java.SomeClass.field
             |// static field
@@ -180,14 +192,14 @@ object Errors {
         |$example
     """.trimMargin()
     }
-    
+
     fun wrongArityToCase(got: Int, expected: Int) = "Case expression expected $expected patterns but got $got."
-    
+
     fun noTypeAnnDecl(name: String) = """
         No type annotation given for top-level declaration $name.
         Consider adding a type annotation.
     """.trimIndent()
-    
+
     fun wrongOperatorArity(op: String, arity: Int) = """
         Binary operator $op has wrong arity: it should have 2 non-implicit parameters but got $arity.
     """.trimIndent()
@@ -233,7 +245,7 @@ object Errors {
 
     fun cycleInValues(nodes: List<String>) =
         nodes.joinToString(prefix = "Found cycle between values ", postfix = ".")
-    
+
     fun cycleInFunctions(nodes: List<String>) =
         nodes.joinToString(prefix = "Mutually recursive functions ", postfix = " need type annotations.")
 
@@ -320,7 +332,7 @@ object Errors {
     fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
 
     fun duplicatedDecl(name: String) = "Declaration $name is already defined or imported."
-    
+
     fun duplicatedType(name: String) = "Type $name is already defined or imported."
 
     fun unusedVariables(vars: List<String>): String {

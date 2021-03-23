@@ -246,9 +246,7 @@ class Desugar(private val smod: SModule) {
             val app = Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
             nestLambdas(args.mapNotNull { it.first }, app)
         }
-        is SExpr.Underscore -> {
-            internalError("got undesugared underscore")
-        }
+        is SExpr.Underscore -> parserError(E.ANONYMOUS_FUNCTION_ARGUMENT, span)
     }
 
     private fun SCase.desugar(locals: List<String>): Case {
