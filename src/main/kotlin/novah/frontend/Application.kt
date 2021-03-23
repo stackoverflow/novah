@@ -62,7 +62,7 @@ object Application {
         '|' -> 4
         '&' -> 5
         '+', '-', ':' -> 6
-        '*', '/', '%' -> 7
+        '*', '/', '%', '?' -> 7
         '^', '.' -> 8
         else -> 9 // backtick operator: `fun`
     }
@@ -113,9 +113,9 @@ object Application {
             val left = input[i - 1]
             val ope = input[i]
             val right = input[i + 1]
-            val innerSpan = Span(ope.span.startLine, ope.span.startColumn, left.span.endLine, left.span.endColumn)
-            val outerSpan = Span(ope.span.startLine, ope.span.startColumn, right.span.endLine, left.span.endColumn)
-            val app = Expr.App(Expr.App(ope, left).withSpan(innerSpan), right).withSpan(outerSpan)
+            val app = Expr.BinApp(ope, left, right)
+                .withSpan(Span.new(left.span, right.span))
+                .withComment(left.comment)
 
             input.removeAt(i - 1)
             input.removeAt(i - 1)
@@ -161,28 +161,5 @@ object Application {
         }
 
         return res[0]
-    }
-
-    /**
-     * Take an application and unnest it based on precedence.
-     * The oposite of [parseApplication]
-     *
-     * Ex:
-     * input: (((>> ((>> a) b)) c) 1)
-     * output: (a >> b >> c) 1
-     */
-    fun unparseApplication(app: Expr.App): List<Expr> {
-        fun go(exp: Expr): List<Expr> = when (exp) {
-            is Expr.App -> {
-                val fn = exp.fn
-                if (fn is Expr.App && fn.fn is Expr.Operator) {
-                    go(fn.arg) + listOf(fn.fn) + go(exp.arg)
-                } else {
-                    go(exp.fn) + go(exp.arg)
-                }
-            }
-            else -> listOf(exp)
-        }
-        return go(app)
     }
 }

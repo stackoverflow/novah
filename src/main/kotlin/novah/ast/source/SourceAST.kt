@@ -209,6 +209,10 @@ sealed class Expr {
         override fun toString(): String = "($fn $arg)"
     }
 
+    data class BinApp(val op: Expr, val left: Expr, val right: Expr) : Expr() {
+        override fun toString(): String = "($left $op $right)"
+    }
+
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr) : Expr()
     data class Let(val letDefs: List<LetDef>, val body: Expr) : Expr()
     data class Match(val exps: List<Expr>, val cases: List<Case>) : Expr()

@@ -18,7 +18,6 @@ package novah.formatter
 import novah.Util.joinToStr
 import novah.ast.source.*
 import novah.data.show
-import novah.frontend.Application
 import novah.frontend.Comment
 
 /**
@@ -167,8 +166,7 @@ class Formatter {
                 else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}\n${tab}else ${show(e.elseCase)}"
             }
             is Expr.App -> {
-                val exps = Application.unparseApplication(e)
-                exps.joinToString(" ") { show(it) }
+                "${show(e.fn)} ${show(e.arg)}"
             }
             is Expr.Ann -> {
                 "${show(e.exp)} : ${show(e.type)}"
@@ -197,6 +195,7 @@ class Formatter {
             is Expr.VectorLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
             is Expr.Underscore -> "_"
+            is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
         }
     }
 

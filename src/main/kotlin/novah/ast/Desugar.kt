@@ -225,6 +225,17 @@ class Desugar(private val smod: SModule) {
         is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
+        is SExpr.BinApp -> {
+            val args = listOf(left, right).map {
+                if (it is SExpr.Underscore) {
+                    val v = newVar()
+                    Binder(v, it.span) to Expr.Var(v, it.span)
+                } else null to it.desugar(locals)
+            }
+            val inner = Expr.App(op.desugar(locals), args[0].second, Span.new(op.span, left.span))
+            val app = Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
+            nestLambdas(args.mapNotNull { it.first }, app)
+        }
         is SExpr.Underscore -> {
             internalError("got undesugared underscore")
         }
