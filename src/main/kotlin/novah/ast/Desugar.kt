@@ -218,11 +218,21 @@ class Desugar(private val smod: SModule) {
                     Expr.Var(v, span)
                 } else e.desugar(locals)
             }
+            val expr = if (exp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp.desugar(locals)
             
-            val rec = Expr.RecordExtend(labelMapWith(plabels), exp.desugar(locals), span)
+            val rec = Expr.RecordExtend(labelMapWith(plabels), expr, span)
             nestLambdas(lvars, rec)
         }
-        is SExpr.RecordRestrict -> Expr.RecordRestrict(exp.desugar(locals), label, span)
+        is SExpr.RecordRestrict -> {
+            if (exp is SExpr.Underscore) {
+                val v = newVar()
+                nestLambdas(listOf(Binder(v, span)), Expr.RecordRestrict(Expr.Var(v, span), label, span))
+            } else Expr.RecordRestrict(exp.desugar(locals), label, span)
+        }
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.BinApp -> {
