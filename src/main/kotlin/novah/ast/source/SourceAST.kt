@@ -227,7 +227,7 @@ sealed class Expr {
     class RecordEmpty : Expr()
     data class RecordSelect(val exp: Expr, val labels: List<String>) : Expr()
     data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()
-    data class RecordRestrict(val exp: Expr, val label: String) : Expr()
+    data class RecordRestrict(val exp: Expr, val labels: List<String>) : Expr()
     data class VectorLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
     class Underscore : Expr()

@@ -230,8 +230,8 @@ class Desugar(private val smod: SModule) {
         is SExpr.RecordRestrict -> {
             if (exp is SExpr.Underscore) {
                 val v = newVar()
-                nestLambdas(listOf(Binder(v, span)), Expr.RecordRestrict(Expr.Var(v, span), label, span))
-            } else Expr.RecordRestrict(exp.desugar(locals), label, span)
+                nestLambdas(listOf(Binder(v, span)), nestRecordRestrictions(Expr.Var(v, span), labels))
+            } else nestRecordRestrictions(exp.desugar(locals), labels)
         }
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
@@ -448,9 +448,14 @@ class Desugar(private val smod: SModule) {
         }
     }
     
-    private fun nestRecordSelects(exp: Expr, labels: List<String>): Expr {
+    private tailrec fun nestRecordSelects(exp: Expr, labels: List<String>): Expr {
         return if (labels.isEmpty()) exp
         else nestRecordSelects(Expr.RecordSelect(exp, labels[0], exp.span), labels.drop(1))
+    }
+    
+    private tailrec fun nestRecordRestrictions(exp: Expr, labels: List<String>): Expr {
+        return if (labels.isEmpty()) exp
+        else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], exp.span), labels.drop(1))
     }
 
     private fun collectVars(exp: Expr): List<String> =

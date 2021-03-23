@@ -871,11 +871,12 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseRecordRestriction(begin: Spanned<Token>): Expr {
-        val label = parseLabel().first
+        val labels = between<Comma, Pair<String, Spanned<Token>>>(::parseLabel)
         expect<Pipe>(withError(E.pipeExpected("record restriction")))
         val record = parseExpression()
         val end = expect<RBracket>(withError(E.rbracketExpected("record restriction")))
-        return Expr.RecordRestrict(record, label).withSpan(begin.span, end.span).withComment(begin.comment)
+        return Expr.RecordRestrict(record, labels.map { it.first })
+            .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 
     private fun parseConstructor(): Expr.Constructor {

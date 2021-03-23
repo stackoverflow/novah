@@ -108,7 +108,7 @@ class DesugarSpec : StringSpec({
             
             f10 = (_ + _)
             
-            f11 = { - name | _ }
+            f11 = { - name, age, id | _ }
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
@@ -123,9 +123,7 @@ class DesugarSpec : StringSpec({
         ds["f8"]?.type?.simpleName() shouldBe "Int -> Int -> Int"
         ds["f9"]?.type?.simpleName() shouldBe "Int -> Int -> Int"
         ds["f10"]?.type?.simpleName() shouldBe "Int -> Int -> Int"
-        ds["f11"]?.type?.simpleName() shouldBe "forall t1 t2. { name : t1 | t2 } -> { | t2 }"
-        ds.forEach { (t, u) -> 
-            println("$t: ${u.type.simpleName()}")
-        }
+        ds["f11"]?.type?.simpleName() shouldBe
+                "forall t1 t2 t3 t4. { name : t1, age : t2, id : t3 | t4 } -> { | t4 }"
     }
 })

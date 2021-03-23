@@ -18,6 +18,7 @@ package novah.formatter
 import novah.Util.joinToStr
 import novah.ast.source.*
 import novah.data.show
+import novah.data.showLabel
 import novah.frontend.Comment
 
 /**
@@ -190,8 +191,8 @@ class Formatter {
             is Expr.Unit -> "()"
             is Expr.RecordEmpty -> "{}"
             is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".")}"
-            is Expr.RecordRestrict -> "{ - ${show(e.exp)} | ${e.label} }"
-            is Expr.RecordExtend -> "{ ${e.labels.show(::showLabel)} | ${show(e.exp)} }"
+            is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
+            is Expr.RecordExtend -> "{ ${e.labels.show(::showLabelExpr)} | ${show(e.exp)} }"
             is Expr.VectorLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
             is Expr.Underscore -> "_"
@@ -199,7 +200,7 @@ class Formatter {
         }
     }
 
-    private fun showLabel(l: String, e: Expr): String = "$l: ${show(e)}"
+    private fun showLabelExpr(l: String, e: Expr): String = "$l: ${show(e)}"
 
     private fun show(c: Case): String {
         val guard = if (c.guard != null) " if ${show(c.guard)}" else ""

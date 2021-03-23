@@ -12,4 +12,3 @@
 - [ ] Disallow duplicate labels in pattern matching
 - [ ] Rename operators and java keywords to be more java-friendly
 - [ ] Fix pattern matching warnings (records)
-- [ ] Syntatic sugar for deleting multiple labels: { - a, b, c | record }
