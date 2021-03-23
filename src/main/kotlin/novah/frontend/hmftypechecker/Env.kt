@@ -151,6 +151,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     "java.lang.Float" -> primFloat
     "java.lang.Double" -> primDouble
     "java.lang.Character" -> primChar
+    "java.lang.Boolean" -> primBoolean
     "java.lang.Object" -> primObject
     "io.lacuna.bifurcan.List" -> primVector
     "io.lacuna.bifurcan.Set" -> primSet

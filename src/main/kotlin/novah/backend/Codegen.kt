@@ -305,7 +305,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitFieldInsn(GETSTATIC, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
                 if (f.type.isPrimitive) box(f.type, mv)
                 val type = toInternalClass(e.type)
-                if (type != OBJECT_CLASS)
+                val ftype = getInternalName(f.type)
+                if (type != ftype)
                     mv.visitTypeInsn(CHECKCAST, type)
             }
             is Expr.NativeFieldGet -> {
@@ -314,7 +315,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitFieldInsn(GETFIELD, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
                 if (f.type.isPrimitive) box(f.type, mv)
                 val type = toInternalClass(e.type)
-                if (type != OBJECT_CLASS)
+                val ftype = getInternalName(f.type)
+                if (type != ftype)
                     mv.visitTypeInsn(CHECKCAST, type)
             }
             is Expr.NativeStaticFieldSet -> {
@@ -342,7 +344,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 else {
                     if (m.returnType.isPrimitive) box(m.returnType, mv)
                     val type = toInternalClass(e.type)
-                    if (type != OBJECT_CLASS)
+                    val mtype = getInternalName(m.returnType)
+                    if (type != mtype)
                         mv.visitTypeInsn(CHECKCAST, type)
                 }
             }
@@ -359,7 +362,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 else {
                     if (m.returnType.isPrimitive) box(m.returnType, mv)
                     val type = toInternalClass(e.type)
-                    if (type != OBJECT_CLASS)
+                    val mtype = getInternalName(m.returnType)
+                    if (type != mtype)
                         mv.visitTypeInsn(CHECKCAST, type)
                 }
             }

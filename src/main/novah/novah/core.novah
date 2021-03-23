@@ -1,0 +1,31 @@
+/**
+ * The core functions of the language.
+ * Imported automatically in every module.
+ */
+module novah.core
+
+foreign import get java.lang.System:out
+foreign import java.io.PrintStream.println(Object) as jprintln
+foreign import java.io.PrintStream.print(Object) as jprint
+
+foreign import novah.Core:not(Boolean) as negate
+
+/**
+ * Negates a boolean value
+ */
+not : Boolean -> Boolean
+not b = negate b
+
+/**
+ * Prints x to the stdout
+ * and appends a new line.
+ */
+println : forall a. a -> Unit
+println x = jprintln out (unsafeCast x)
+
+/**
+ * Prints x to the stdout.
+ */
+print : forall a. a -> Unit
+print x = jprint out (unsafeCast x)
+
