@@ -50,8 +50,12 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
     val resolved = mutableMapOf<VarRef, ModuleName>()
     val resolvedTypealiases = mutableListOf<Decl.TypealiasDecl>()
     val errors = mutableListOf<CompilerProblem>()
-    // add the primitive module as import to every module
-    val imports = mod.imports + primImport
+    // add the primitive and core module as import to every module
+    val imports = if (mod.name == CORE_MODULE) {
+        mod.imports + primImport
+    } else {
+        mod.imports + primImport + coreImport
+    }
     for (imp in imports) {
         val mkError = makeError(imp.span())
         val mkWarn = makeWarn(imp.span())
@@ -322,7 +326,7 @@ private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars
 
     mpars += if (m.returnType.canonicalName == "void") primUnit else m.returnType.canonicalName
     val pars = mpars.map { javaToNovah(it) }
-    val tpars = pars.map { toNovahType(it) } as List<Type>
+    val tpars = pars.map { toNovahType(it) }
 
     return tpars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
 }
@@ -330,7 +334,7 @@ private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars
 private fun ctorToFunction(c: Constructor<*>, type: String, novahPars: List<String>): Type {
     val mpars = if (c.parameterTypes.isEmpty()) listOf(primUnit) else novahPars.map { Reflection.novahToJava(it) }
     val pars = (mpars + type).map { javaToNovah(it) }
-    val tpars = pars.map { toNovahType(it) } as List<Type>
+    val tpars = pars.map { toNovahType(it) }
 
     return tpars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
 }
@@ -371,4 +375,5 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
     return errors
 }
 
-private fun warnOnRawImport(imp: Import.Raw): Boolean = imp.module != PRIM && imp.alias == null
+private fun warnOnRawImport(imp: Import.Raw): Boolean =
+    imp.alias == null && imp.module != PRIM && imp.module != CORE_MODULE

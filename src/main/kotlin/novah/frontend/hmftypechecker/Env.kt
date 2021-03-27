@@ -63,6 +63,7 @@ class Env private constructor(
 }
 
 const val PRIM = "prim"
+const val CORE_MODULE = "novah.core"
 
 const val primByte = "$PRIM.Byte"
 const val primShort = "$PRIM.Short"
@@ -157,7 +158,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     "io.lacuna.bifurcan.Set" -> primSet
     else -> {
         if (jname.endsWith("[]")) {
-            when (javaToNovah(jname.replace("[]", ""))) {
+            when (jname.replace("[]", "")) {
                 "byte" -> primByteArray
                 "short" -> primShortArray
                 "int" -> primIntArray
@@ -172,7 +173,9 @@ fun javaToNovah(jname: String): String = when (jname) {
     }
 }
 
-val primImport = Import.Raw("prim", Span.empty())
+val primImport = Import.Raw(PRIM, Span.empty())
+val coreImport = Import.Raw(CORE_MODULE, Span.empty())
+
 
 private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC, false)
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
@@ -185,12 +188,9 @@ val primModuleEnv = ModuleEnv(
     mapOf(
         // TODO: fix these negative numbers (probably by moving them to Core)
         "unsafeCast" to decl(TForall(listOf(-1, -2), tfun(tbound(-1), tbound(-2)))),
-        "toString" to decl(tfall(-3, tfun(tbound(-3), tString))),
-        "hashCode" to decl(tfall(-4, tfun(tbound(-4), tInt))),
         "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
         "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "==" to decl(tfall(-5, tfun(tbound(-5), tfun(tbound(-5), tBoolean)))),
-        "println" to decl(tfall(-6, tfun(tbound(-6), tUnit))),
+        "==" to decl(tfall(-3, tfun(tbound(-3), tfun(tbound(-3), tBoolean))))
     ),
     mapOf(
         "Byte" to tdecl(tByte),

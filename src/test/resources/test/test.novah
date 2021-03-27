@@ -1,12 +1,14 @@
 module test
 
+foreign import java.util.Arrays:toString(ByteArray) as baTos
+
 foreign import novah.Core:sum(Int, Int)
 
 fun s =
   case s of
     "hi" -> println "hey ho"
     "hello" as x -> println x
-    _ -> println -1
+    _ -> println (baTos (byteArray 5))
 
 pub
-main _ = println (fun "hello")
+main _ = fun "hellooo"

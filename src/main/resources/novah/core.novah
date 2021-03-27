@@ -1,0 +1,115 @@
+/**
+ * The core functions of the language.
+ * Imported automatically in every module.
+ */
+module novah.core
+
+foreign import get java.lang.System:out
+foreign import java.io.PrintStream.println(Object) as jprintln
+foreign import java.io.PrintStream.print(Object) as jprint
+foreign import Object.toString() as jToString
+foreign import Object.hashCode() as jHashCode
+
+foreign import type novah.Core
+foreign import Core:not(Boolean) as negate
+foreign import Core:mkByteArray(Int)
+foreign import Core:mkShortArray(Int)
+foreign import Core:mkIntArray(Int)
+foreign import Core:mkLongArray(Int)
+foreign import Core:mkFloatArray(Int)
+foreign import Core:mkDoubleArray(Int)
+foreign import Core:mkCharArray(Int)
+foreign import Core:mkBooleanArray(Int)
+
+/**
+ * Negates a boolean value.
+ */
+pub
+not : Boolean -> Boolean
+not b = negate b
+
+/**
+ * Prints x to the stdout and appends a new line.
+ */
+pub
+println : forall a. a -> Unit
+println x = jprintln out (unsafeCast x)
+
+/**
+ * Prints x to the stdout.
+ */
+pub
+print : forall a. a -> Unit
+print x = jprint out (unsafeCast x)
+
+/**
+ * Converts a value to String using the
+ * native Java toString method.
+ */
+pub
+toString : forall a. a -> String
+toString x = jToString (unsafeCast x)
+
+/**
+ * Returns the hash code for this value using
+ * the native Java hashCode method.
+ */
+pub
+hashCode : forall a. a -> Int
+hashCode x = jHashCode (unsafeCast x)
+
+/**
+ * Creates a byte array of size [size].
+ */
+pub
+byteArray : Int -> ByteArray
+byteArray size = mkByteArray size
+
+/**
+ * Creates a short array of size [size].
+ */
+pub
+shortArray : Int -> ShortArray
+shortArray size = mkShortArray size
+
+/**
+ * Creates a int array of size [size].
+ */
+pub
+intArray : Int -> IntArray
+intArray size = mkIntArray size
+
+/**
+ * Creates a long array of size [size].
+ */
+pub
+longArray : Int -> LongArray
+longArray size = mkLongArray size
+
+/**
+ * Creates a float array of size [size].
+ */
+pub
+floatArray : Int -> FloatArray
+floatArray size = mkFloatArray size
+
+/**
+ * Creates a double array of size [size].
+ */
+pub
+doubleArray : Int -> DoubleArray
+doubleArray size = mkDoubleArray size
+
+/**
+ * Creates a char array of size [size].
+ */
+pub
+charArray : Int -> CharArray
+charArray size = mkCharArray size
+
+/**
+ * Creates a boolean array of size [size].
+ */
+pub
+booleanArray : Int -> BooleanArray
+booleanArray size = mkBooleanArray size

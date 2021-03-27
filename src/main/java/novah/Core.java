@@ -142,6 +142,38 @@ public class Core {
     public static boolean equivalent(boolean e1, boolean e2) {
         return e1 == e2;
     }
+
+    public static byte[] mkByteArray(int size) {
+        return new byte[size];
+    }
+
+    public static short[] mkShortArray(int size) {
+        return new short[size];
+    }
+
+    public static int[] mkIntArray(int size) {
+        return new int[size];
+    }
+
+    public static long[] mkLongArray(int size) {
+        return new long[size];
+    }
+
+    public static float[] mkFloatArray(int size) {
+        return new float[size];
+    }
+
+    public static double[] mkDoubleArray(int size) {
+        return new double[size];
+    }
+
+    public static char[] mkCharArray(int size) {
+        return new char[size];
+    }
+
+    public static boolean[] mkBooleanArray(int size) {
+        return new boolean[size];
+    }
     
     public static boolean not(boolean b) {
         return !b;

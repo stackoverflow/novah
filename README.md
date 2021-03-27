@@ -14,8 +14,6 @@ See [TODO](https://github.com/stackoverflow/novah/blob/master/TODO.md).
 
 Unless stated otherwise this project is licensed under the Apache 2.0 license.
 
-[Clikt](https://github.com/ajalt/clikt/) is licensed under the Apache 2.0 license.
-
 [bifurcan](https://github.com/lacuna/bifurcan) is licensed under the MIT license.
 
     Copyright 2021 Islon Scherer

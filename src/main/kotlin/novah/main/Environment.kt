@@ -17,6 +17,7 @@ package novah.main
 
 import com.github.ajalt.clikt.output.TermUi.echo
 import novah.Util
+import novah.Util.internalError
 import novah.ast.Desugar
 import novah.ast.source.Decl
 import novah.ast.source.Module
@@ -39,9 +40,14 @@ import novah.frontend.resolveImports
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import novah.util.BufferedCharIterator
+import org.reflections.Reflections
+import org.reflections.scanners.ResourcesScanner
+import org.reflections.util.ClasspathHelper
+import org.reflections.util.ConfigurationBuilder
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.regex.Pattern
 import novah.ast.canonical.Module as TypedModule
 
 /**
@@ -55,11 +61,17 @@ class Environment(private val verbose: Boolean) {
     private val warnings = mutableListOf<CompilerProblem>()
 
     fun getWarnings(): List<CompilerProblem> = warnings
-    
+
     /**
      * Lex, parse and typecheck all modules and store them.
      */
     fun parseSources(sources: Sequence<Source>): Map<String, FullModuleEnv> {
+        // stdlib
+        modules.putAll(stdlib)
+        return innerParseSources(sources)
+    }
+
+    private fun innerParseSources(sources: Sequence<Source>): Map<String, FullModuleEnv> {
         val modMap = mutableMapOf<String, DagNode<String, Module>>()
         val modGraph = DAG<String, Module>()
 
@@ -128,7 +140,7 @@ class Environment(private val verbose: Boolean) {
         modules.values.forEach { menv ->
             val optimizer = Optimizer(menv.ast)
             val opt = optimizer.convert().unwrapOrElse { throwError(it) }
-            
+
             warnings.addAll(optimizer.getWarnings())
             val optAST = Optimization.run(opt)
 
@@ -151,6 +163,25 @@ class Environment(private val verbose: Boolean) {
     private fun copyNativeLibs(output: File) {
         val input = javaClass.classLoader.getResourceAsStream("nativeLibs.zip")
         Util.unzip(input!!, output)
+    }
+
+    /**
+     * The (compiled) standard library.
+     * Read from the jar itself.
+     */
+    private val stdlib by lazy {
+        val ref = Reflections(
+            ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("novah"))
+                .setScanners(ResourcesScanner())
+        )
+        val res = ref.getResources(Pattern.compile(".*\\.novah"))
+        val sources = res.map { path ->
+            val stream = javaClass.classLoader.getResourceAsStream(path)
+                ?: internalError("Could not find stdlib module $path")
+            val contents = stream.bufferedReader().use { it.readText() }
+            Source.SString(Path.of(path), contents)
+        }.asSequence()
+        innerParseSources(sources)
     }
 
     private fun reportCycle(nodes: Set<DagNode<String, Module>>) {

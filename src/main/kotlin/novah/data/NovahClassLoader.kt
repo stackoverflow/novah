@@ -37,6 +37,16 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
     }
 
     fun safeLoadClass(name: String): Class<*>? {
+        when (name) {
+            "byte[]" -> return ByteArray::class.java
+            "short[]" -> return ShortArray::class.java
+            "int[]" -> return IntArray::class.java
+            "long[]" -> return LongArray::class.java
+            "float[]" -> return FloatArray::class.java
+            "double[]" -> return DoubleArray::class.java
+            "char[]" -> return CharArray::class.java
+            "boolean[]" -> return BooleanArray::class.java
+        }
         return try {
             loadClass(name)
         } catch (_: ClassNotFoundException) {

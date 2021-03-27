@@ -628,19 +628,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private fun resolvePrimitiveModuleApp(mv: MethodVisitor, e: Expr.App, ctx: GenContext) {
         val fn = e.fn
-        if (fn is Expr.Var && fn.fullname() == "prim/Module.println") {
-            mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;")
-            genExpr(e.arg, mv, ctx)
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false)
-            mv.visitInsn(ACONST_NULL)
-        } else if (fn is Expr.Var && fn.fullname() == "prim/Module.toString") {
-            genExpr(e.arg, mv, ctx)
-            mv.visitMethodInsn(INVOKEVIRTUAL, OBJECT_CLASS, "toString", "()Ljava/lang/String;", false)
-        } else if (fn is Expr.Var && fn.fullname() == "prim/Module.hashCode") {
-            genExpr(e.arg, mv, ctx)
-            mv.visitMethodInsn(INVOKEVIRTUAL, e.arg.type.type.internalName, "hashCode", "()I", false)
-            mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
-        } else if (fn is Expr.Var && fn.fullname() == "prim/Module.unsafeCast") {
+        if (fn is Expr.Var && fn.fullname() == "prim/Module.unsafeCast") {
             genExpr(e.arg, mv, ctx)
             //mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
         } else {
