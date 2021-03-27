@@ -180,10 +180,10 @@ class Formatter {
             is Expr.Operator -> e.toString()
             is Expr.ImplicitVar -> "{{${e.name}}}"
             is Expr.Constructor -> e.toString()
-            is Expr.IntE -> e.text
-            is Expr.LongE -> e.text
-            is Expr.FloatE -> e.text
-            is Expr.DoubleE -> e.text
+            is Expr.Int32 -> e.text
+            is Expr.Int64 -> e.text
+            is Expr.Float32 -> e.text
+            is Expr.Float64 -> e.text
             is Expr.StringE -> "\"${e.v}\""
             is Expr.CharE -> "'${e.v}'"
             is Expr.Bool -> "${e.v}"
@@ -226,10 +226,10 @@ class Formatter {
         is LiteralPattern.BoolLiteral -> show(p.e)
         is LiteralPattern.CharLiteral -> show(p.e)
         is LiteralPattern.StringLiteral -> show(p.e)
-        is LiteralPattern.IntLiteral -> show(p.e)
-        is LiteralPattern.LongLiteral -> show(p.e)
-        is LiteralPattern.FloatLiteral -> show(p.e)
-        is LiteralPattern.DoubleLiteral -> show(p.e)
+        is LiteralPattern.Int32Literal -> show(p.e)
+        is LiteralPattern.Int64Literal -> show(p.e)
+        is LiteralPattern.Float32Literal -> show(p.e)
+        is LiteralPattern.Float64Literal -> show(p.e)
     }
 
     private fun show(l: LetDef): String = when (l) {
@@ -289,7 +289,8 @@ class Formatter {
     } else "// ${c.comment}\n"
 
     private fun Expr.isSimple(): Boolean = when (this) {
-        is Expr.IntE, is Expr.FloatE, is Expr.StringE, is Expr.CharE, is Expr.Bool -> true
+        is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
+        is Expr.StringE, is Expr.CharE, is Expr.Bool,
         is Expr.Var, is Expr.Operator -> true
         else -> false
     }

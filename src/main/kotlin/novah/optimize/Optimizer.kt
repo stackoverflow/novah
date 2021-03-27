@@ -86,15 +86,15 @@ class Optimizer(private val ast: CModule) {
             internalError("Received expression without type after type checking: $this")
         }
         return when (this) {
-            is CExpr.IntE -> when (type) {
+            is CExpr.Int32 -> when (type) {
                 tByte -> Expr.ByteE(v.toByte(), typ)
-                tShort -> Expr.ShortE(v.toShort(), typ)
-                tLong -> Expr.LongE(v.toLong(), typ)
-                else -> Expr.IntE(v, typ)
+                tInt16 -> Expr.Int16(v.toShort(), typ)
+                tInt64 -> Expr.Int64(v.toLong(), typ)
+                else -> Expr.Int32(v, typ)
             }
-            is CExpr.LongE -> Expr.LongE(v, typ)
-            is CExpr.FloatE -> Expr.FloatE(v, typ)
-            is CExpr.DoubleE -> Expr.DoubleE(v, typ)
+            is CExpr.Int64 -> Expr.Int64(v, typ)
+            is CExpr.Float32 -> Expr.Float32(v, typ)
+            is CExpr.Float64 -> Expr.Float64(v, typ)
             is CExpr.StringE -> Expr.StringE(v, typ)
             is CExpr.CharE -> Expr.CharE(v, typ)
             is CExpr.Bool -> Expr.Bool(v, typ)
@@ -262,7 +262,7 @@ class Optimizer(private val ast: CModule) {
 
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
-    private val longType = tLong.convert()
+    private val longType = tInt64.convert()
 
     private fun makeThrow(msg: String): Expr {
         return Expr.Throw(
@@ -307,12 +307,12 @@ class Optimizer(private val ast: CModule) {
 
         fun mkVectorSizeCheck(exp: Expr, size: Long): Expr {
             val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
-            val longe = Expr.LongE(size, longType)
+            val longe = Expr.Int64(size, longType)
             return Expr.NativeStaticMethod(equivalentLong, listOf(sizeExp, longe), boolType)
         }
 
         fun mkVectorAccessor(exp: Expr, index: Long, type: Clazz): Expr =
-            Expr.NativeMethod(vectorAccess, exp, listOf(Expr.LongE(index, longType)), type)
+            Expr.NativeMethod(vectorAccess, exp, listOf(Expr.Int64(index, longType)), type)
 
         fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
             is Pattern.Wildcard -> PatternResult(tru)
@@ -320,10 +320,10 @@ class Optimizer(private val ast: CModule) {
             is Pattern.Unit -> PatternResult(tru)
             is Pattern.LiteralP -> {
                 val method = when (p.lit) {
-                    is LiteralPattern.IntLiteral -> equivalentInt
-                    is LiteralPattern.LongLiteral -> equivalentLong
-                    is LiteralPattern.FloatLiteral -> equivalentFloat
-                    is LiteralPattern.DoubleLiteral -> equivalentDouble
+                    is LiteralPattern.Int32Literal -> equivalentInt
+                    is LiteralPattern.Int64Literal -> equivalentLong
+                    is LiteralPattern.Float32Literal -> equivalentFloat
+                    is LiteralPattern.Float64Literal -> equivalentDouble
                     is LiteralPattern.CharLiteral -> equivalentChar
                     is LiteralPattern.BoolLiteral -> equivalentBoolean
                     is LiteralPattern.StringLiteral -> equivalentString
@@ -391,7 +391,7 @@ class Optimizer(private val ast: CModule) {
                 val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
                 val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
-                val tailExp = Expr.NativeMethod(vectorSlice, exp, listOf(Expr.LongE(1, longType), sizeExp), type)
+                val tailExp = Expr.NativeMethod(vectorSlice, exp, listOf(Expr.Int64(1, longType), sizeExp), type)
 
                 val (hCond, hVs) = desugarPattern(p.head, headExp)
                 val (tCond, tVs) = desugarPattern(p.tail, tailExp)
@@ -458,8 +458,8 @@ class Optimizer(private val ast: CModule) {
     }
 
     private fun needVar(exp: Expr): Boolean = when (exp) {
-        is Expr.Var, is Expr.LocalVar, is Expr.ByteE, is Expr.ShortE,
-        is Expr.IntE, is Expr.LongE, is Expr.FloatE, is Expr.DoubleE,
+        is Expr.Var, is Expr.LocalVar, is Expr.ByteE, is Expr.Int16,
+        is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
         is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor -> false
         else -> true
     }
@@ -526,30 +526,29 @@ class Optimizer(private val ast: CModule) {
 
     companion object {
 
-        // TODO: use primitive types and implement autoboxing
         private fun getPrimitiveTypeName(tvar: TConst): Type = when (tvar.name) {
-            "prim.Byte" -> Type.getType(Byte::class.javaObjectType)
-            "prim.Short" -> Type.getType(Short::class.javaObjectType)
-            "prim.Int" -> Type.getType(Int::class.javaObjectType)
-            "prim.Long" -> Type.getType(Long::class.javaObjectType)
-            "prim.Float" -> Type.getType(Float::class.javaObjectType)
-            "prim.Double" -> Type.getType(Double::class.javaObjectType)
-            "prim.Boolean" -> Type.getType(Boolean::class.javaObjectType)
-            "prim.Char" -> Type.getType(Char::class.javaObjectType)
-            "prim.String" -> Type.getType(String::class.java)
-            "prim.Unit" -> OBJECT_TYPE
-            "prim.Object" -> OBJECT_TYPE
-            "prim.Array" -> Type.getType(Array::class.java)
-            "prim.ByteArray" -> Type.getType(ByteArray::class.java)
-            "prim.ShortArray" -> Type.getType(ShortArray::class.java)
-            "prim.IntArray" -> Type.getType(IntArray::class.java)
-            "prim.LongArray" -> Type.getType(LongArray::class.java)
-            "prim.FloatArray" -> Type.getType(FloatArray::class.java)
-            "prim.DoubleArray" -> Type.getType(DoubleArray::class.java)
-            "prim.CharArray" -> Type.getType(CharArray::class.java)
-            "prim.BooleanArray" -> Type.getType(BooleanArray::class.java)
-            "prim.Vector" -> Type.getType(io.lacuna.bifurcan.List::class.java)
-            "prim.Set" -> Type.getType(io.lacuna.bifurcan.Set::class.java)
+            primByte -> Type.getType(Byte::class.javaObjectType)
+            primInt16 -> Type.getType(Short::class.javaObjectType)
+            primInt32 -> Type.getType(Int::class.javaObjectType)
+            primInt64 -> Type.getType(Long::class.javaObjectType)
+            primFloat32 -> Type.getType(Float::class.javaObjectType)
+            primFloat64 -> Type.getType(Double::class.javaObjectType)
+            primBoolean -> Type.getType(Boolean::class.javaObjectType)
+            primChar -> Type.getType(Char::class.javaObjectType)
+            primString -> Type.getType(String::class.java)
+            primUnit -> OBJECT_TYPE
+            primObject -> OBJECT_TYPE
+            primArray -> Type.getType(Array::class.java)
+            primByteArray -> Type.getType(ByteArray::class.java)
+            primInt16Array -> Type.getType(ShortArray::class.java)
+            primInt32Array -> Type.getType(IntArray::class.java)
+            primInt64Array -> Type.getType(LongArray::class.java)
+            primFloat32Array -> Type.getType(FloatArray::class.java)
+            primFloat64Array -> Type.getType(DoubleArray::class.java)
+            primCharArray -> Type.getType(CharArray::class.java)
+            primBooleanArray -> Type.getType(BooleanArray::class.java)
+            primVector -> Type.getType(io.lacuna.bifurcan.List::class.java)
+            primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
         }
 

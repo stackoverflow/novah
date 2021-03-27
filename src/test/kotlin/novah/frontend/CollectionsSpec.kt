@@ -30,7 +30,7 @@ class CollectionsSpec : StringSpec({
             
             vec3 = ["a", "b", "c"]
             
-            tvec : Vector Long
+            tvec : Vector Int64
             tvec = []
             
             tvec2 : Vector String
@@ -42,9 +42,9 @@ class CollectionsSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["vec"]?.type?.simpleName() shouldBe "forall t1. Vector t1"
-        ds["vec2"]?.type?.simpleName() shouldBe "Vector Int"
+        ds["vec2"]?.type?.simpleName() shouldBe "Vector Int32"
         ds["vec3"]?.type?.simpleName() shouldBe "Vector String"
-        ds["tvec"]?.type?.simpleName() shouldBe "Vector Long"
+        ds["tvec"]?.type?.simpleName() shouldBe "Vector Int64"
         ds["tvec2"]?.type?.simpleName() shouldBe "Vector String"
         ds["tvec3"]?.type?.simpleName() shouldBe "Vector Byte"
     }
@@ -57,22 +57,22 @@ class CollectionsSpec : StringSpec({
             
             set3 = #{"a", "b", "c"}
             
-            tset : Set Long
+            tset : Set Int64
             tset = #{}
             
             tset2 : Set String
             tset2 = #{"a", "b", "c"}
             
-            tset3 : Set Short
+            tset3 : Set Int16
             tset3 = #{1, 2, 3}
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["set"]?.type?.simpleName() shouldBe "forall t1. Set t1"
-        ds["set2"]?.type?.simpleName() shouldBe "Set Int"
+        ds["set2"]?.type?.simpleName() shouldBe "Set Int32"
         ds["set3"]?.type?.simpleName() shouldBe "Set String"
-        ds["tset"]?.type?.simpleName() shouldBe "Set Long"
+        ds["tset"]?.type?.simpleName() shouldBe "Set Int64"
         ds["tset2"]?.type?.simpleName() shouldBe "Set String"
-        ds["tset3"]?.type?.simpleName() shouldBe "Set Short"
+        ds["tset3"]?.type?.simpleName() shouldBe "Set Int16"
     }
 })

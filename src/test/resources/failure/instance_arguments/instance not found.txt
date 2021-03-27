@@ -3,7 +3,7 @@ at src/test/resources/failure/instance_arguments/instance not found.novah:8:11 -
 
   Could not find instance for type
   
-      Show Int
+      Show Int32
   
   Make sure there's one instance in the context
   or pass the argument explicitly.

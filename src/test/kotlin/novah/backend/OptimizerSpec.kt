@@ -43,11 +43,11 @@ class OptimizerSpec : StringSpec({
         c.v shouldBe 'a'
 
         val fl = app.args[1]
-        fl.shouldBeInstanceOf<Expr.FloatE>()
+        fl.shouldBeInstanceOf<Expr.Float32>()
         fl.v shouldBe 2.3f
 
         val i = app.args[2]
-        i.shouldBeInstanceOf<Expr.IntE>()
+        i.shouldBeInstanceOf<Expr.Int32>()
         i.v shouldBe 5
 
         val s = app.args[3]

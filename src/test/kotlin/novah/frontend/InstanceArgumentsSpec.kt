@@ -47,8 +47,8 @@ class InstanceArgumentsSpec : StringSpec({
             showOption : forall a. {{ Show a }} -> Show (Option a)
             showOption {{s}} = Show { show: showOptionImpl {{s}} }
             
-            print : Option Int -> String
-            print o = do
+            printx : Option Int -> String
+            printx o = do
               let instance showOptInt = showOption {{showInt}}
               println (show o)
               show 3
@@ -57,7 +57,7 @@ class InstanceArgumentsSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["show"]?.type?.simpleName() shouldBe "forall t1. {{ Show t1 }} -> t1 -> String"
-        ds["showInt"]?.type?.simpleName() shouldBe "Show Int"
+        ds["showInt"]?.type?.simpleName() shouldBe "Show Int32"
         ds["showBool"]?.type?.simpleName() shouldBe "Show Boolean"
         ds["showOption"]?.type?.simpleName() shouldBe "forall t1. {{ Show t1 }} -> Show (Option t1)"
     }

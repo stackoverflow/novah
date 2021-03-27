@@ -201,6 +201,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
             typealiases[alias] = fqType
         }
     }
+    typealiases.putAll(resolveImportedTypealiases(mod.resolvedTypealiases))
 
     for (imp in foreigns) {
         val error = makeError(imp.span)
@@ -315,6 +316,16 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     mod.foreignTypes = typealiases
     mod.foreignVars = foreigVars
     return errors
+}
+
+private fun resolveImportedTypealiases(tas: List<Decl.TypealiasDecl>): Map<String, String> {
+    return tas.mapNotNull { ta ->
+        if (ta.expanded != null) {
+            val name = ta.expanded!!.simpleName()
+            if (name != null) ta.name to Reflection.novahToJava(name)
+            else null
+        } else null
+    }.toMap()
 }
 
 private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars: List<String>): Type {

@@ -120,10 +120,10 @@ class Desugar(private val smod: SModule) {
         DataConstructor(name, args.map { it.desugar() }, visibility, span)
 
     private fun SExpr.desugar(locals: List<String> = listOf(), appFnDepth: Int = 0): Expr = when (this) {
-        is SExpr.IntE -> Expr.IntE(v, span)
-        is SExpr.LongE -> Expr.LongE(v, span)
-        is SExpr.FloatE -> Expr.FloatE(v, span)
-        is SExpr.DoubleE -> Expr.DoubleE(v, span)
+        is SExpr.Int32 -> Expr.Int32(v, span)
+        is SExpr.Int64 -> Expr.Int64(v, span)
+        is SExpr.Float32 -> Expr.Float32(v, span)
+        is SExpr.Float64 -> Expr.Float64(v, span)
         is SExpr.StringE -> Expr.StringE(v, span)
         is SExpr.CharE -> Expr.CharE(v, span)
         is SExpr.Bool -> Expr.Bool(v, span)
@@ -278,10 +278,10 @@ class Desugar(private val smod: SModule) {
         is SLiteralPattern.BoolLiteral -> LiteralPattern.BoolLiteral(e.desugar(locals) as Expr.Bool)
         is SLiteralPattern.CharLiteral -> LiteralPattern.CharLiteral(e.desugar(locals) as Expr.CharE)
         is SLiteralPattern.StringLiteral -> LiteralPattern.StringLiteral(e.desugar(locals) as Expr.StringE)
-        is SLiteralPattern.IntLiteral -> LiteralPattern.IntLiteral(e.desugar(locals) as Expr.IntE)
-        is SLiteralPattern.LongLiteral -> LiteralPattern.LongLiteral(e.desugar(locals) as Expr.LongE)
-        is SLiteralPattern.FloatLiteral -> LiteralPattern.FloatLiteral(e.desugar(locals) as Expr.FloatE)
-        is SLiteralPattern.DoubleLiteral -> LiteralPattern.DoubleLiteral(e.desugar(locals) as Expr.DoubleE)
+        is SLiteralPattern.Int32Literal -> LiteralPattern.Int32Literal(e.desugar(locals) as Expr.Int32)
+        is SLiteralPattern.Int64Literal -> LiteralPattern.Int64Literal(e.desugar(locals) as Expr.Int64)
+        is SLiteralPattern.Float32Literal -> LiteralPattern.Float32Literal(e.desugar(locals) as Expr.Float32)
+        is SLiteralPattern.Float64Literal -> LiteralPattern.Float64Literal(e.desugar(locals) as Expr.Float64)
     }
 
     private fun SLetDef.DefBind.desugar(locals: List<String>): LetDef {

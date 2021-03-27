@@ -33,7 +33,7 @@ class PatternMatchingSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
 
-        ty.simpleName() shouldBe "Int -> String"
+        ty.simpleName() shouldBe "Int32 -> String"
     }
 
     "pattern matching with polymorphic types typechecks" {
@@ -47,7 +47,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty.simpleName() shouldBe "Int -> String"
+        ty.simpleName() shouldBe "Int32 -> String"
     }
 
     "pattern matching constructor typechecks" {
@@ -61,7 +61,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty.simpleName() shouldBe "Maybe Int -> Int"
+        ty.simpleName() shouldBe "Maybe Int32 -> Int32"
     }
 
     "pattern matching literals succeed" {
@@ -82,7 +82,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty.simpleName() shouldBe "Unit -> Int"
+        ty.simpleName() shouldBe "Unit -> Int32"
     }
 
     "pattern match let lambdas - unit pattern" {
@@ -92,7 +92,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty.simpleName() shouldBe "Unit -> Int"
+        ty.simpleName() shouldBe "Unit -> Int32"
     }
 
     "pattern match lambdas - ignore pattern" {
@@ -101,7 +101,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["const"]!!.type
-        ty.simpleName() shouldBe "forall t1. t1 -> Int"
+        ty.simpleName() shouldBe "forall t1. t1 -> Int32"
     }
     
     "pattern match unit" {
@@ -112,7 +112,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["fun"]!!.type
-        ty.simpleName() shouldBe "Unit -> Int"
+        ty.simpleName() shouldBe "Unit -> Int32"
     }
     
     "pattern match records" {
@@ -132,8 +132,8 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["f1"]?.type?.simpleName() shouldBe "Int"
-        ds["f2"]?.type?.simpleName() shouldBe "forall t1. { x : Int, z : Boolean, y : Int | t1 } -> Int"
+        ds["f1"]?.type?.simpleName() shouldBe "Int32"
+        ds["f2"]?.type?.simpleName() shouldBe "forall t1. { x : Int32, z : Boolean, y : Int32 | t1 } -> Int32"
     }
     
     "pattern match vectors" {
@@ -160,9 +160,9 @@ class PatternMatchingSpec : StringSpec({
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
-        ds["f1"]?.type?.simpleName() shouldBe "Int"
-        ds["f2"]?.type?.simpleName() shouldBe "Vector Int -> Int"
-        ds["len"]?.type?.simpleName() shouldBe "forall t1. Vector t1 -> Int"
+        ds["f1"]?.type?.simpleName() shouldBe "Int32"
+        ds["f2"]?.type?.simpleName() shouldBe "Vector Int32 -> Int32"
+        ds["len"]?.type?.simpleName() shouldBe "forall t1. Vector t1 -> Int32"
     }
     
     "pattern match named" {
@@ -174,7 +174,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
-        ds["f1"]?.type?.simpleName() shouldBe "Int"
+        ds["f1"]?.type?.simpleName() shouldBe "Int32"
     }
     
     "pattern match guards" {
@@ -186,7 +186,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
-        ds["f1"]?.type?.simpleName() shouldBe "Int"
+        ds["f1"]?.type?.simpleName() shouldBe "Int32"
     }
     
     "pattern match type test" {
@@ -199,7 +199,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["fun"]?.type?.simpleName() shouldBe "Unit -> Int"
+        ds["fun"]?.type?.simpleName() shouldBe "Unit -> Int32"
     }
     
     "multi pattern test" {
@@ -217,8 +217,8 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["fun"]?.type?.simpleName() shouldBe "Int -> String -> Vector Int -> Int"
-        ds["fun2"]?.type?.simpleName() shouldBe "Int -> String -> String"
+        ds["fun"]?.type?.simpleName() shouldBe "Int32 -> String -> Vector Int32 -> Int32"
+        ds["fun2"]?.type?.simpleName() shouldBe "Int32 -> String -> String"
     }
     
     "function parameter destructuring" {
@@ -245,12 +245,12 @@ class PatternMatchingSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "forall t1 t2. Unit -> t1 -> t2 -> t1"
-        ds["f2"]?.type?.simpleName() shouldBe "Vector Int -> Int"
-        ds["f3"]?.type?.simpleName() shouldBe "forall t1. { x : Int, y : Int | t1 } -> Int -> Int"
-        ds["f4"]?.type?.simpleName() shouldBe "forall t1. t1 -> Int"
+        ds["f2"]?.type?.simpleName() shouldBe "Vector Int32 -> Int32"
+        ds["f3"]?.type?.simpleName() shouldBe "forall t1. { x : Int32, y : Int32 | t1 } -> Int32 -> Int32"
+        ds["f4"]?.type?.simpleName() shouldBe "forall t1. t1 -> Int32"
         ds["f5"]?.type?.simpleName() shouldBe "forall t1. Option t1 -> t1"
-        ds["f6"]?.type?.simpleName() shouldBe "forall t1 t2. Option t1 -> Unit -> Vector t2 -> Int"
-        ds["f7"]?.type?.simpleName() shouldBe "Int"
+        ds["f6"]?.type?.simpleName() shouldBe "forall t1 t2. Option t1 -> Unit -> Vector t2 -> Int32"
+        ds["f7"]?.type?.simpleName() shouldBe "Int32"
     }
     
     "let destructuring" {
@@ -265,6 +265,6 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["f1"]?.type?.simpleName() shouldBe "Unit -> Int"
+        ds["f1"]?.type?.simpleName() shouldBe "Unit -> Int32"
     }
 })

@@ -155,23 +155,23 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 genByte(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, BYTE_CLASS, "valueOf", "(B)L$BYTE_CLASS;", false)
             }
-            is Expr.ShortE -> {
+            is Expr.Int16 -> {
                 genShort(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, SHORT_CLASS, "valueOf", "(S)L$SHORT_CLASS;", false)
             }
-            is Expr.IntE -> {
+            is Expr.Int32 -> {
                 genInt(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, INTEGER_CLASS, "valueOf", "(I)L$INTEGER_CLASS;", false)
             }
-            is Expr.LongE -> {
+            is Expr.Int64 -> {
                 genLong(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, LONG_CLASS, "valueOf", "(J)L$LONG_CLASS;", false)
             }
-            is Expr.FloatE -> {
+            is Expr.Float32 -> {
                 genFloat(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, FLOAT_CLASS, "valueOf", "(F)L$FLOAT_CLASS;", false)
             }
-            is Expr.DoubleE -> {
+            is Expr.Float64 -> {
                 genDouble(e, mv)
                 mv.visitMethodInsn(INVOKESTATIC, DOUBLE_CLASS, "valueOf", "(D)L$DOUBLE_CLASS;", false)
             }
@@ -483,11 +483,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val name = type.canonicalName
         when {
             name == "byte" && e is Expr.ByteE -> genByte(e, mv)
-            name == "short" && e is Expr.ShortE -> genShort(e, mv)
-            name == "int" && e is Expr.IntE -> genInt(e, mv)
-            name == "long" && e is Expr.LongE -> genLong(e, mv)
-            name == "float" && e is Expr.FloatE -> genFloat(e, mv)
-            name == "double" && e is Expr.DoubleE -> genDouble(e, mv)
+            name == "short" && e is Expr.Int16 -> genShort(e, mv)
+            name == "int" && e is Expr.Int32 -> genInt(e, mv)
+            name == "long" && e is Expr.Int64 -> genLong(e, mv)
+            name == "float" && e is Expr.Float32 -> genFloat(e, mv)
+            name == "double" && e is Expr.Float64 -> genDouble(e, mv)
             name == "char" && e is Expr.CharE -> genChar(e, mv)
             name == "boolean" && e is Expr.Bool -> genBool(e, mv)
             name == "boolean" && e is Expr.InstanceOf -> genInstanceOf(e, mv, ctx)
@@ -510,7 +510,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         }
     }
 
-    private fun genShort(e: Expr.ShortE, mv: MethodVisitor) {
+    private fun genShort(e: Expr.Int16, mv: MethodVisitor) {
         val i = e.v.toInt()
         when {
             i == 0 -> mv.visitInsn(ICONST_0)
@@ -524,7 +524,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         }
     }
 
-    private fun genInt(e: Expr.IntE, mv: MethodVisitor) {
+    private fun genInt(e: Expr.Int32, mv: MethodVisitor) {
         val i = e.v
         when {
             i == 0 -> mv.visitInsn(ICONST_0)
@@ -539,11 +539,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         }
     }
 
-    private fun genLong(e: Expr.LongE, mv: MethodVisitor) {
+    private fun genLong(e: Expr.Int64, mv: MethodVisitor) {
         mv.visitLdcInsn(e.v)
     }
 
-    private fun genFloat(e: Expr.FloatE, mv: MethodVisitor) {
+    private fun genFloat(e: Expr.Float32, mv: MethodVisitor) {
         when (e.v) {
             0.0F -> mv.visitInsn(FCONST_0)
             1.0F -> mv.visitInsn(FCONST_1)
@@ -552,7 +552,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         }
     }
 
-    private fun genDouble(e: Expr.DoubleE, mv: MethodVisitor) {
+    private fun genDouble(e: Expr.Float64, mv: MethodVisitor) {
         when (e.v) {
             0.0 -> mv.visitInsn(DCONST_0)
             1.0 -> mv.visitInsn(DCONST_1)
@@ -819,6 +819,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
         private val arrayOfStringClazz = Clazz(getType(Array<String>::class.java))
 
-        private fun intExp(n: Int): Expr.IntE = Expr.IntE(n, Clazz(INT_TYPE))
+        private fun intExp(n: Int): Expr.Int32 = Expr.Int32(n, Clazz(INT_TYPE))
     }
 }

@@ -67,7 +67,7 @@ class Environment(private val verbose: Boolean) {
      */
     fun parseSources(sources: Sequence<Source>): Map<String, FullModuleEnv> {
         // stdlib
-        modules.putAll(stdlib)
+        innerParseSources(stdlib)
         return innerParseSources(sources)
     }
 
@@ -144,14 +144,15 @@ class Environment(private val verbose: Boolean) {
             warnings.addAll(optimizer.getWarnings())
             val optAST = Optimization.run(opt)
 
-            if (dryRun) return
-            val codegen = Codegen(optAST) { dirName, fileName, bytes ->
-                val dir = output.resolve(dirName)
-                dir.mkdirs()
-                val file = dir.resolve("$fileName.class")
-                file.writeBytes(bytes)
+            if (!dryRun) {
+                val codegen = Codegen(optAST) { dirName, fileName, bytes ->
+                    val dir = output.resolve(dirName)
+                    dir.mkdirs()
+                    val file = dir.resolve("$fileName.class")
+                    file.writeBytes(bytes)
+                }
+                codegen.run()
             }
-            codegen.run()
         }
         if (!dryRun) copyNativeLibs(output)
     }
@@ -163,25 +164,6 @@ class Environment(private val verbose: Boolean) {
     private fun copyNativeLibs(output: File) {
         val input = javaClass.classLoader.getResourceAsStream("nativeLibs.zip")
         Util.unzip(input!!, output)
-    }
-
-    /**
-     * The (compiled) standard library.
-     * Read from the jar itself.
-     */
-    private val stdlib by lazy {
-        val ref = Reflections(
-            ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("novah"))
-                .setScanners(ResourcesScanner())
-        )
-        val res = ref.getResources(Pattern.compile(".*\\.novah"))
-        val sources = res.map { path ->
-            val stream = javaClass.classLoader.getResourceAsStream(path)
-                ?: internalError("Could not find stdlib module $path")
-            val contents = stream.bufferedReader().use { it.readText() }
-            Source.SString(Path.of(path), contents)
-        }.asSequence()
-        innerParseSources(sources)
     }
 
     private fun reportCycle(nodes: Set<DagNode<String, Module>>) {
@@ -205,6 +187,24 @@ class Environment(private val verbose: Boolean) {
 
     private fun throwErrors(errs: List<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
     private fun throwError(err: CompilerProblem): Nothing = throw CompilationError(listOf(err))
+}
+
+/**
+ * The (compiled) standard library.
+ * Read from the jar itself.
+ */
+private val stdlib by lazy {
+    val ref = Reflections(
+        ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("novah"))
+            .setScanners(ResourcesScanner())
+    )
+    val res = ref.getResources(Pattern.compile(".*\\.novah"))
+    res.map { path ->
+        val stream = Environment::class.java.classLoader.getResourceAsStream(path)
+            ?: internalError("Could not find stdlib module $path")
+        val contents = stream.bufferedReader().use { it.readText() }
+        Source.SString(Path.of(path), contents)
+    }.asSequence()
 }
 
 sealed class Source(val path: Path) {

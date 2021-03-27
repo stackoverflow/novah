@@ -65,10 +65,10 @@ data class DataConstructor(val name: String, val args: List<Type>, val visibilit
 }
 
 sealed class Expr(open val span: Span) {
-    data class IntE(val v: Int, override val span: Span) : Expr(span)
-    data class LongE(val v: Long, override val span: Span) : Expr(span)
-    data class FloatE(val v: Float, override val span: Span) : Expr(span)
-    data class DoubleE(val v: Double, override val span: Span) : Expr(span)
+    data class Int32(val v: Int, override val span: Span) : Expr(span)
+    data class Int64(val v: Long, override val span: Span) : Expr(span)
+    data class Float32(val v: Float, override val span: Span) : Expr(span)
+    data class Float64(val v: Double, override val span: Span) : Expr(span)
     data class StringE(val v: String, override val span: Span) : Expr(span)
     data class CharE(val v: Char, override val span: Span) : Expr(span)
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
@@ -157,10 +157,10 @@ sealed class LiteralPattern(open val e: Expr) {
     data class BoolLiteral(override val e: Expr.Bool) : LiteralPattern(e)
     data class CharLiteral(override val e: Expr.CharE) : LiteralPattern(e)
     data class StringLiteral(override val e: Expr.StringE) : LiteralPattern(e)
-    data class IntLiteral(override val e: Expr.IntE) : LiteralPattern(e)
-    data class LongLiteral(override val e: Expr.LongE) : LiteralPattern(e)
-    data class FloatLiteral(override val e: Expr.FloatE) : LiteralPattern(e)
-    data class DoubleLiteral(override val e: Expr.DoubleE) : LiteralPattern(e)
+    data class Int32Literal(override val e: Expr.Int32) : LiteralPattern(e)
+    data class Int64Literal(override val e: Expr.Int64) : LiteralPattern(e)
+    data class Float32Literal(override val e: Expr.Float32) : LiteralPattern(e)
+    data class Float64Literal(override val e: Expr.Float64) : LiteralPattern(e)
 }
 
 fun Pattern.show(): String = when (this) {
@@ -180,10 +180,10 @@ fun LiteralPattern.show(): String = when (this) {
     is LiteralPattern.BoolLiteral -> e.v.toString()
     is LiteralPattern.CharLiteral -> e.v.toString()
     is LiteralPattern.StringLiteral -> e.v
-    is LiteralPattern.IntLiteral -> e.v.toString()
-    is LiteralPattern.LongLiteral -> e.v.toString()
-    is LiteralPattern.FloatLiteral -> e.v.toString()
-    is LiteralPattern.DoubleLiteral -> e.v.toString()
+    is LiteralPattern.Int32Literal -> e.v.toString()
+    is LiteralPattern.Int64Literal -> e.v.toString()
+    is LiteralPattern.Float32Literal -> e.v.toString()
+    is LiteralPattern.Float64Literal -> e.v.toString()
 }
 
 /**
@@ -220,10 +220,10 @@ fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
 fun Expr.App.resolvedImplicits(): List<Expr> = implicitContext?.resolveds ?: emptyList()
 
 fun Expr.show(): String = when (this) {
-    is Expr.IntE -> "$v"
-    is Expr.LongE -> "$v"
-    is Expr.FloatE -> "$v"
-    is Expr.DoubleE -> "$v"
+    is Expr.Int32 -> "$v"
+    is Expr.Int64 -> "$v"
+    is Expr.Float32 -> "$v"
+    is Expr.Float64 -> "$v"
     is Expr.StringE -> "\"$v\""
     is Expr.CharE -> "'$v'"
     is Expr.Bool -> "$v"

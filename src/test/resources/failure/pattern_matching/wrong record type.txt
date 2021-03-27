@@ -3,7 +3,7 @@ at src/test/resources/failure/pattern_matching/wrong record type.novah:8:14 - 8:
 
   Cannot match type
   
-      Int
+      Int32
   
   with type
   

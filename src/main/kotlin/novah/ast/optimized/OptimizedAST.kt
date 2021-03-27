@@ -46,11 +46,11 @@ data class DataConstructor(val name: String, val args: List<Clazz>, val visibili
 
 sealed class Expr(open val type: Clazz) {
     data class ByteE(val v: Byte, override val type: Clazz) : Expr(type)
-    data class ShortE(val v: Short, override val type: Clazz) : Expr(type)
-    data class IntE(val v: Int, override val type: Clazz) : Expr(type)
-    data class LongE(val v: Long, override val type: Clazz) : Expr(type)
-    data class FloatE(val v: Float, override val type: Clazz) : Expr(type)
-    data class DoubleE(val v: Double, override val type: Clazz) : Expr(type)
+    data class Int16(val v: Short, override val type: Clazz) : Expr(type)
+    data class Int32(val v: Int, override val type: Clazz) : Expr(type)
+    data class Int64(val v: Long, override val type: Clazz) : Expr(type)
+    data class Float32(val v: Float, override val type: Clazz) : Expr(type)
+    data class Float64(val v: Double, override val type: Clazz) : Expr(type)
     data class StringE(val v: String, override val type: Clazz) : Expr(type)
     data class CharE(val v: Char, override val type: Clazz) : Expr(type)
     data class Bool(val v: Boolean, override val type: Clazz) : Expr(type)

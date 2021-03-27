@@ -118,7 +118,7 @@ sealed class Type {
     /**
      * Recursively walks this type up->bottom
      */
-    fun everywhere(f: (Type) -> Unit) {
+    fun everywhereUnit(f: (Type) -> Unit) {
         fun go(t: Type) {
             when (t) {
                 is TConst -> f(t)

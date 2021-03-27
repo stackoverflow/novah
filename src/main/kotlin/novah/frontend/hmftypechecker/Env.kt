@@ -66,11 +66,11 @@ const val PRIM = "prim"
 const val CORE_MODULE = "novah.core"
 
 const val primByte = "$PRIM.Byte"
-const val primShort = "$PRIM.Short"
-const val primInt = "$PRIM.Int"
-const val primLong = "$PRIM.Long"
-const val primFloat = "$PRIM.Float"
-const val primDouble = "$PRIM.Double"
+const val primInt16 = "$PRIM.Int16"
+const val primInt32 = "$PRIM.Int32"
+const val primInt64 = "$PRIM.Int64"
+const val primFloat32 = "$PRIM.Float32"
+const val primFloat64 = "$PRIM.Float64"
 const val primBoolean = "$PRIM.Boolean"
 const val primChar = "$PRIM.Char"
 const val primString = "$PRIM.String"
@@ -80,20 +80,20 @@ const val primVector = "$PRIM.Vector"
 const val primSet = "$PRIM.Set"
 const val primArray = "$PRIM.Array"
 const val primByteArray = "$PRIM.ByteArray"
-const val primShortArray = "$PRIM.ShortArray"
-const val primIntArray = "$PRIM.IntArray"
-const val primLongArray = "$PRIM.LongArray"
-const val primFloatArray = "$PRIM.FloatArray"
-const val primDoubleArray = "$PRIM.DoubleArray"
+const val primInt16Array = "$PRIM.Int16Array"
+const val primInt32Array = "$PRIM.Int32Array"
+const val primInt64Array = "$PRIM.Int64Array"
+const val primFloat32Array = "$PRIM.Float32Array"
+const val primFloat64Array = "$PRIM.Float64Array"
 const val primBooleanArray = "$PRIM.BooleanArray"
 const val primCharArray = "$PRIM.CharArray"
 
 val tByte = TConst(primByte)
-val tShort = TConst(primShort)
-val tInt = TConst(primInt)
-val tLong = TConst(primLong)
-val tFloat = TConst(primFloat)
-val tDouble = TConst(primDouble)
+val tInt16 = TConst(primInt16)
+val tInt32 = TConst(primInt32)
+val tInt64 = TConst(primInt64)
+val tFloat32 = TConst(primFloat32)
+val tFloat64 = TConst(primFloat64)
 val tBoolean = TConst(primBoolean)
 val tChar = TConst(primChar)
 val tString = TConst(primString)
@@ -103,21 +103,21 @@ val tVector = TForall(listOf(-10), TApp(TConst(primVector, Kind.Constructor(1)),
 val tSet = TForall(listOf(-11), TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-11))))
 val tArray = TForall(listOf(-12), TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-12))))
 val tByteArray = TConst(primByteArray)
-val tShortArray = TConst(primShortArray)
-val tIntArray = TConst(primIntArray)
-val tLongArray = TConst(primLongArray)
-val tFloatArray = TConst(primFloatArray)
-val tDoubleArray = TConst(primDoubleArray)
+val tInt16Array = TConst(primInt16Array)
+val tInt32Array = TConst(primInt32Array)
+val tInt64Array = TConst(primInt64Array)
+val tFloat32Array = TConst(primFloat32Array)
+val tFloat64Array = TConst(primFloat64Array)
 val tBooleanArray = TConst(primBooleanArray)
 val tCharArray = TConst(primCharArray)
 
 val primTypes = mapOf(
     primByte to tByte,
-    primShort to tShort,
-    primInt to tInt,
-    primLong to tLong,
-    primFloat to tFloat,
-    primDouble to tDouble,
+    primInt16 to tInt16,
+    primInt32 to tInt32,
+    primInt64 to tInt64,
+    primFloat32 to tFloat32,
+    primFloat64 to tFloat64,
     primBoolean to tBoolean,
     primChar to tChar,
     primString to tString,
@@ -127,30 +127,31 @@ val primTypes = mapOf(
     primSet to tSet,
     primArray to tArray,
     primByteArray to tByteArray,
-    primIntArray to tIntArray,
-    primLongArray to tLongArray,
-    primFloatArray to tFloatArray,
-    primDoubleArray to tDoubleArray,
+    primInt16Array to tInt16Array,
+    primInt32Array to tInt32Array,
+    primInt64Array to tInt64Array,
+    primFloat32Array to tFloat32Array,
+    primFloat64Array to tFloat64Array,
     primBooleanArray to tBooleanArray,
     primCharArray to tCharArray
 )
 
 fun javaToNovah(jname: String): String = when (jname) {
     "byte" -> primByte
-    "short" -> primShort
-    "int" -> primInt
-    "long" -> primLong
-    "float" -> primFloat
-    "double" -> primDouble
+    "short" -> primInt16
+    "int" -> primInt32
+    "long" -> primInt64
+    "float" -> primFloat32
+    "double" -> primFloat64
     "char" -> primChar
     "boolean" -> primBoolean
     "java.lang.String" -> primString
     "java.lang.Byte" -> primByte
-    "java.lang.Short" -> primShort
-    "java.lang.Integer" -> primInt
-    "java.lang.Long" -> primLong
-    "java.lang.Float" -> primFloat
-    "java.lang.Double" -> primDouble
+    "java.lang.Short" -> primInt16
+    "java.lang.Integer" -> primInt32
+    "java.lang.Long" -> primInt64
+    "java.lang.Float" -> primFloat32
+    "java.lang.Double" -> primFloat64
     "java.lang.Character" -> primChar
     "java.lang.Boolean" -> primBoolean
     "java.lang.Object" -> primObject
@@ -160,11 +161,11 @@ fun javaToNovah(jname: String): String = when (jname) {
         if (jname.endsWith("[]")) {
             when (jname.replace("[]", "")) {
                 "byte" -> primByteArray
-                "short" -> primShortArray
-                "int" -> primIntArray
-                "long" -> primLongArray
-                "float" -> primFloatArray
-                "double" -> primDoubleArray
+                "short" -> primInt16Array
+                "int" -> primInt32Array
+                "long" -> primInt64Array
+                "float" -> primFloat32Array
+                "double" -> primFloat64Array
                 "char" -> primCharArray
                 "boolean" -> primBooleanArray
                 else -> primArray
@@ -175,7 +176,6 @@ fun javaToNovah(jname: String): String = when (jname) {
 
 val primImport = Import.Raw(PRIM, Span.empty())
 val coreImport = Import.Raw(CORE_MODULE, Span.empty())
-
 
 private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC, false)
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
@@ -194,11 +194,11 @@ val primModuleEnv = ModuleEnv(
     ),
     mapOf(
         "Byte" to tdecl(tByte),
-        "Short" to tdecl(tShort),
-        "Int" to tdecl(tInt),
-        "Long" to tdecl(tLong),
-        "Float" to tdecl(tFloat),
-        "Double" to tdecl(tDouble),
+        "Int16" to tdecl(tInt16),
+        "Int32" to tdecl(tInt32),
+        "Int64" to tdecl(tInt64),
+        "Float32" to tdecl(tFloat32),
+        "Float64" to tdecl(tFloat64),
         "String" to tdecl(tString),
         "Char" to tdecl(tChar),
         "Boolean" to tdecl(tBoolean),
@@ -208,11 +208,11 @@ val primModuleEnv = ModuleEnv(
         "Set" to tdecl(tSet),
         "Array" to tdecl(tArray),
         "ByteArray" to tdecl(tByteArray),
-        "ShortArray" to tdecl(tShortArray),
-        "IntArray" to tdecl(tIntArray),
-        "LongArray" to tdecl(tLongArray),
-        "FloatArray" to tdecl(tFloatArray),
-        "DoubleArray" to tdecl(tDoubleArray),
+        "Int16Array" to tdecl(tInt16Array),
+        "Int32Array" to tdecl(tInt32Array),
+        "Int64Array" to tdecl(tInt64Array),
+        "Float32Array" to tdecl(tFloat32Array),
+        "Float64Array" to tdecl(tFloat64Array),
         "CharArray" to tdecl(tCharArray),
         "BooleanArray" to tdecl(tBooleanArray),
     )

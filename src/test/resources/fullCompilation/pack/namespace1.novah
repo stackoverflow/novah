@@ -41,13 +41,13 @@ instance
 showOption : forall a. {{ Show a }} -> Show (Option a)
 showOption {{s}} = Show { show: showOptionImpl {{s}} }
 
-print : forall a. {{ Show a }} -> Option a -> Unit
-print {{s}} o = do
+printx : forall a. {{ Show a }} -> Option a -> Unit
+printx {{s}} o = do
   println (show 5)
   println (show false)
   println (show o)
 
 pub
 main () = do
-  print (Some (Some None))
+  printx (Some (Some None))
   ()

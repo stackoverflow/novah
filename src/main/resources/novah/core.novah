@@ -12,14 +12,26 @@ foreign import Object.hashCode() as jHashCode
 
 foreign import type novah.Core
 foreign import Core:not(Boolean) as negate
-foreign import Core:mkByteArray(Int)
-foreign import Core:mkShortArray(Int)
-foreign import Core:mkIntArray(Int)
-foreign import Core:mkLongArray(Int)
-foreign import Core:mkFloatArray(Int)
-foreign import Core:mkDoubleArray(Int)
-foreign import Core:mkCharArray(Int)
-foreign import Core:mkBooleanArray(Int)
+foreign import Core:mkByteArray(Int32)
+foreign import Core:mkShortArray(Int32)
+foreign import Core:mkIntArray(Int32)
+foreign import Core:mkLongArray(Int32)
+foreign import Core:mkFloatArray(Int32)
+foreign import Core:mkDoubleArray(Int32)
+foreign import Core:mkCharArray(Int32)
+foreign import Core:mkBooleanArray(Int32)
+
+/**
+ * A 32-bits Integer
+ */
+pub
+typealias Int = Int32
+
+/**
+ * A 64-bits floating point.
+ */
+pub
+typealias Float = Float64
 
 /**
  * Negates a boolean value.
@@ -55,7 +67,7 @@ toString x = jToString (unsafeCast x)
  * the native Java hashCode method.
  */
 pub
-hashCode : forall a. a -> Int
+hashCode : forall a. a -> Int32
 hashCode x = jHashCode (unsafeCast x)
 
 /**
@@ -66,39 +78,39 @@ byteArray : Int -> ByteArray
 byteArray size = mkByteArray size
 
 /**
- * Creates a short array of size [size].
+ * Creates a int16 array of size [size].
  */
 pub
-shortArray : Int -> ShortArray
-shortArray size = mkShortArray size
+int16Array : Int -> Int16Array
+int16Array size = mkShortArray size
 
 /**
- * Creates a int array of size [size].
+ * Creates a int32 array of size [size].
  */
 pub
-intArray : Int -> IntArray
+intArray : Int -> Int32Array
 intArray size = mkIntArray size
 
 /**
- * Creates a long array of size [size].
+ * Creates a int64 array of size [size].
  */
 pub
-longArray : Int -> LongArray
-longArray size = mkLongArray size
+int64Array : Int -> Int64Array
+int64Array size = mkLongArray size
 
 /**
- * Creates a float array of size [size].
+ * Creates a float32 array of size [size].
  */
 pub
-floatArray : Int -> FloatArray
+floatArray : Int -> Float32Array
 floatArray size = mkFloatArray size
 
 /**
- * Creates a double array of size [size].
+ * Creates a float64 array of size [size].
  */
 pub
-doubleArray : Int -> DoubleArray
-doubleArray size = mkDoubleArray size
+float64Array : Int -> Float64Array
+float64Array size = mkDoubleArray size
 
 /**
  * Creates a char array of size [size].

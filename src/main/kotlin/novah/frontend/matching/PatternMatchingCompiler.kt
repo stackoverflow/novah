@@ -240,10 +240,10 @@ class PatternMatchingCompiler<R> {
                     is LiteralPattern.BoolLiteral -> if (l.e.v) trueCtor else falseCtor
                     is LiteralPattern.CharLiteral -> mkPrimCtor(l.e.v.toString())
                     is LiteralPattern.StringLiteral -> mkPrimCtor(l.e.v)
-                    is LiteralPattern.IntLiteral -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.LongLiteral -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.FloatLiteral -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.DoubleLiteral -> mkPrimCtor(l.e.v.toString())
+                    is LiteralPattern.Int32Literal -> mkPrimCtor(l.e.v.toString())
+                    is LiteralPattern.Int64Literal -> mkPrimCtor(l.e.v.toString())
+                    is LiteralPattern.Float32Literal -> mkPrimCtor(l.e.v.toString())
+                    is LiteralPattern.Float64Literal -> mkPrimCtor(l.e.v.toString())
                 }
                 Pat.PCon(con, emptyList())
             }

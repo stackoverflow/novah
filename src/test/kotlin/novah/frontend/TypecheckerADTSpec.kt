@@ -34,7 +34,7 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.type?.simpleName() shouldBe "Int -> Day"
+        tys["x"]?.type?.simpleName() shouldBe "Int32 -> Day"
         tys["y"]?.type?.simpleName() shouldBe "Day"
     }
     
@@ -94,9 +94,9 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.type?.simpleName() shouldBe "Int -> Maybe String"
+        tys["x"]?.type?.simpleName() shouldBe "Int32 -> Maybe String"
         tys["y"]?.type?.simpleName() shouldBe "forall t1. t1 -> Maybe t1"
-        tys["w"]?.type?.simpleName() shouldBe "Int -> Maybe Int"
+        tys["w"]?.type?.simpleName() shouldBe "Int32 -> Maybe Int32"
     }
 
     "typecheck 2 parameter ADTs" {
@@ -113,7 +113,7 @@ class TypecheckerADTSpec : StringSpec({
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
-        tys["x"]?.type?.simpleName() shouldBe "Int -> Result Int String"
+        tys["x"]?.type?.simpleName() shouldBe "Int32 -> Result Int32 String"
         val y = tys["y"]!!.type
         y.simpleName() shouldBe "forall t1 t2. t1 -> Result t2 String"
     }
@@ -130,8 +130,8 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.type?.simpleName() shouldBe "Int -> List String"
-        tys["y"]?.type?.simpleName() shouldBe "List Int"
+        tys["x"]?.type?.simpleName() shouldBe "Int32 -> List String"
+        tys["y"]?.type?.simpleName() shouldBe "List Int32"
     }
 
     "typecheck complex type" {
@@ -171,7 +171,7 @@ class TypecheckerADTSpec : StringSpec({
 
         val f = TestUtil.compileCode(code).env.decls["f"]?.type
 
-        f?.simpleName() shouldBe "Unit -> Tuple Int Int"
+        f?.simpleName() shouldBe "Unit -> Tuple Int32 Int32"
     }
 
     "test type aliases with type applications" {
@@ -188,6 +188,6 @@ class TypecheckerADTSpec : StringSpec({
 
         val f = TestUtil.compileCode(code).env.decls["f"]?.type
 
-        f?.simpleName() shouldBe "Unit -> May (May Int)"
+        f?.simpleName() shouldBe "Unit -> May (May Int32)"
     }
 })

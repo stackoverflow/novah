@@ -15,7 +15,6 @@
  */
 package novah.backend
 
-import novah.ast.optimized.Clazz
 import novah.backend.GenUtil.OBJECT_CLASS
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes

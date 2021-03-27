@@ -157,19 +157,19 @@ data class DataConstructor(val name: String, val args: List<Type>, val visibilit
 }
 
 sealed class Expr {
-    data class IntE(val v: Int, val text: String) : Expr() {
+    data class Int32(val v: Int, val text: String) : Expr() {
         override fun toString(): String = text
     }
 
-    data class LongE(val v: Long, val text: String) : Expr() {
+    data class Int64(val v: Long, val text: String) : Expr() {
         override fun toString(): String = text
     }
 
-    data class FloatE(val v: Float, val text: String) : Expr() {
+    data class Float32(val v: Float, val text: String) : Expr() {
         override fun toString(): String = text
     }
 
-    data class DoubleE(val v: Double, val text: String) : Expr() {
+    data class Float64(val v: Double, val text: String) : Expr() {
         override fun toString(): String = text
     }
 
@@ -291,10 +291,10 @@ sealed class LiteralPattern {
     data class BoolLiteral(val e: Expr.Bool) : LiteralPattern()
     data class CharLiteral(val e: Expr.CharE) : LiteralPattern()
     data class StringLiteral(val e: Expr.StringE) : LiteralPattern()
-    data class IntLiteral(val e: Expr.IntE) : LiteralPattern()
-    data class LongLiteral(val e: Expr.LongE) : LiteralPattern()
-    data class FloatLiteral(val e: Expr.FloatE) : LiteralPattern()
-    data class DoubleLiteral(val e: Expr.DoubleE) : LiteralPattern()
+    data class Int32Literal(val e: Expr.Int32) : LiteralPattern()
+    data class Int64Literal(val e: Expr.Int64) : LiteralPattern()
+    data class Float32Literal(val e: Expr.Float32) : LiteralPattern()
+    data class Float64Literal(val e: Expr.Float64) : LiteralPattern()
 }
 
 typealias Row = Type
@@ -356,6 +356,14 @@ sealed class Type(open val span: Span) {
 
     fun substVars(map: Map<String, Type>): Type = everywhere { ty ->
         if (ty is TConst) map[ty.name] ?: ty else ty
+    }
+    
+    fun simpleName(): String? = when (this) {
+        is TConst -> name
+        is TForall -> type.simpleName()
+        is TApp -> type.simpleName()
+        is TParens -> type.simpleName()
+        else -> null
     }
 }
 
