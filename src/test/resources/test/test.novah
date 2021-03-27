@@ -1,11 +1,12 @@
 module test
 
-
 foreign import novah.Core:sum(Int, Int)
-            
-main _ = do
-  let [x, y] = [5, 10]
-  let {z} = {x: 2, y: 0, z: 33}
-  let [h :: _] = [3, 4, 5, 6]
-  let res = sum (sum (sum x y) z) h
-  println res
+
+fun s =
+  case s of
+    "hi" -> println "hey ho"
+    "hello" as x -> println x
+    _ -> println -1
+
+pub
+main _ = println (fun "hello")

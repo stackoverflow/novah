@@ -107,8 +107,8 @@ public class Core {
         System.out.println(arg);
     }
     
-    public static <T> boolean equivalent(T e1, T e2) {
-        return e1 == e2;
+    public static boolean equivalent(String e1, String e2) {
+        return e1.equals(e2);
     }
 
     public static boolean equivalent(byte e1, byte e2) {

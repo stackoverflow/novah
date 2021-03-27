@@ -2,8 +2,7 @@
 
 - [ ] Implement a kind checker for types
 - [ ] Report that an imported type is private instead of not found
-- [ ] Desugar types to Class<?> before codegen (what to do with user defined types?)
-- [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
+- [ ] Add primitive types to code generation when JEP 401/402 is done
 - [ ] Add spans to individual imports with error reporting
 - [ ] Check unsafeCast works at runtime
 - [ ] 0-cost opaque types
@@ -12,3 +11,4 @@
 - [ ] Rename operators and java keywords to be more java-friendly
 - [ ] Fix pattern matching warnings (records)
 - [ ] Implement the novah class loader to load external files
+- [ ] Report on unused imports/foreign imports

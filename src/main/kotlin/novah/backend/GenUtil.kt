@@ -15,16 +15,15 @@
  */
 package novah.backend
 
-import novah.ast.source.Visibility
+import novah.ast.optimized.Clazz
 import novah.ast.optimized.DataConstructor
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
-import novah.ast.optimized.Type
+import novah.ast.source.Visibility
 import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type as ASMType
 
 object GenUtil {
 
@@ -53,8 +52,6 @@ object GenUtil {
         "(Ljava/lang/invoke/MethodHandles\$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
         false
     )
-
-    val lambdaMethodType: ASMType = ASMType.getMethodType("(Ljava/lang/Object;)Ljava/lang/Object;")
 }
 
 class GenContext {
@@ -71,7 +68,7 @@ class GenContext {
         locals[name] = InnerLocal(num, startLabel)
     }
 
-    fun putParameter(name: String, type: Type, startLabel: Label) {
+    fun putParameter(name: String, type: Clazz, startLabel: Label) {
         val num = localsCount++
         locals[name] = InnerLocal(num, startLabel, localVar = Expr.LocalVar(name, type))
     }
@@ -92,8 +89,8 @@ class GenContext {
                 val lv = l.localVar!!
                 mv.visitLocalVariable(
                     lv.name,
-                    TypeUtil.toInternalType(lv.type),
-                    TypeUtil.maybeBuildFieldSignature(lv.type),
+                    lv.type.type.descriptor,
+                    null,
                     l.startLabel,
                     l.endLabel,
                     l.num

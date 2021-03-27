@@ -15,8 +15,12 @@
  */
 package novah.backend
 
-import novah.ast.optimized.Type
+import novah.ast.optimized.Clazz
 import novah.backend.GenUtil.OBJECT_CLASS
+import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
+import org.objectweb.asm.Type.*
 
 object TypeUtil {
 
@@ -29,50 +33,23 @@ object TypeUtil {
     const val CHAR_CLASS = "java/lang/Character"
     const val BOOL_CLASS = "java/lang/Boolean"
 
-    const val STRING_CLASS = "java/lang/String"
     const val RECORD_CLASS = "novah/collections/Record"
     const val VECTOR_CLASS = "io/lacuna/bifurcan/List"
     const val SET_CLASS = "io/lacuna/bifurcan/Set"
+    const val FUNCTION_CLASS = "java/util/function/Function"
 
-    private const val FUNCTION_CLASS = "java/util/function/Function"
-    const val FUNCTION_TYPE = "Ljava/util/function/Function;"
-    const val OBJECT_TYPE = "Ljava/lang/Object;"
-    const val STRING_TYPE = "Ljava/lang/String;"
-    const val RECORD_TYPE = "Lnovah/collections/Record;"
-    const val VECTOR_TYPE = "Lio/lacuna/bifurcan/List;"
-    const val SET_TYPE = "Lio/lacuna/bifurcan/Set;"
-
-    fun toInternalClass(type: Type): String = when (type) {
-        is Type.TVar -> if (type.isForall) OBJECT_CLASS else type.name
-        is Type.TConstructor -> {
-            if (type.name == "Array") "[" + toInternalClass(type.types[0])
-            else type.name
-        }
-        is Type.TFun -> FUNCTION_CLASS
-    }
-
-    fun toInternalType(type: Type): String = when (type) {
-        is Type.TVar -> if (type.isForall) OBJECT_TYPE else descriptor(type.name)
-        is Type.TConstructor -> {
-            if (type.name == "Array") "[" + toInternalType(type.types[0])
-            else descriptor(type.name)
-        }
-        is Type.TFun -> FUNCTION_TYPE
-    }
-
-    fun toInternalMethodType(ret: Type, args: List<Type>): String {
-        return args.joinToString("", prefix = "(", postfix = ")") { toInternalType(it) } + toInternalType(ret)
-    }
-
-    fun toInternalMethodType(tfun: Type.TFun): String {
-        return "(${toInternalType(tfun.arg)})${toInternalType(tfun.ret)}"
-    }
+    const val FUNCTION_DESC = "Ljava/util/function/Function;"
+    const val OBJECT_DESC = "Ljava/lang/Object;"
+    const val STRING_DESC = "Ljava/lang/String;"
+    const val RECORD_DESC = "Lnovah/collections/Record;"
+    const val VECTOR_DESC = "Lio/lacuna/bifurcan/List;"
+    const val SET_DESC = "Lio/lacuna/bifurcan/Set;"
 
     fun buildClassSignature(tyVars: List<String>, superClass: String = OBJECT_CLASS): String? {
         if (tyVars.isEmpty()) return null
 
         val tvarStr = tyVars.joinToString("", prefix = "<", postfix = ">") {
-            it.toUpperCase() + ":$OBJECT_TYPE"
+            it.toUpperCase() + ":$OBJECT_DESC"
         }
 
         val superVars = if (superClass != OBJECT_CLASS) {
@@ -84,34 +61,36 @@ object TypeUtil {
         return "${tvarStr}L$superClass$superVars;"
     }
 
-    fun maybeBuildFieldSignature(type: Type): String? {
-        return if (!type.isGeneric()) null
-        else if (type is Type.TConstructor && type.name == "Array") null
-        else buildFieldSignature(type)
-    }
-
-    fun buildFieldSignature(type: Type): String = when (type) {
-        is Type.TVar -> if (type.isForall) "T${type.name};" else descriptor(type.name)
-        is Type.TFun -> "Ljava/util/function/Function<" +
-                buildFieldSignature(type.arg) +
-                buildFieldSignature(type.ret) + ">;"
-        is Type.TConstructor -> {
-            if (type.types.isEmpty()) descriptor(type.name)
-            else "L${type.name}<" + type.types.joinToString("") { buildFieldSignature(it) } + ">;"
-        }
-    }
-
-    fun buildMethodSignature(ret: Type, args: List<Type>): String? {
-        return if ((args + ret).any { it.isGeneric() }) {
-            args.joinToString("", prefix = "(", postfix = ")") { buildFieldSignature(it) } + buildFieldSignature(ret)
-        } else null
-    }
-
     fun descriptor(t: String): String = "L$t;"
 
-    fun buildFunctions(types: List<Type>): Type {
-        val first = types.first()
-        return if (types.size == 1) first
-        else Type.TFun(first, buildFunctions(types.drop(1)))
+    /**
+     * Box a primitive type
+     */
+    fun box(ty: Type, mv: MethodVisitor) {
+        val wrapper = primitiveWrappers[ty.className]
+        val desc = getMethodDescriptor(getType(wrapper), ty)
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, getInternalName(wrapper), "valueOf", desc, false)
     }
+
+    /**
+     * Unbox a primitive type
+     */
+    fun unbox(ty: Type, mv: MethodVisitor) {
+        val name = ty.className
+        val internal = getInternalName(primitiveWrappers[name])
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, internal, "${name}Value", "()" + ty.descriptor, false)
+    }
+
+    val lambdaMethodType: Type = getMethodType("(Ljava/lang/Object;)Ljava/lang/Object;")
+    
+    private val primitiveWrappers = mutableMapOf(
+        "byte" to Byte::class.javaObjectType,
+        "short" to Short::class.javaObjectType,
+        "int" to Int::class.javaObjectType,
+        "long" to Long::class.javaObjectType,
+        "float" to Float::class.javaObjectType,
+        "double" to Double::class.javaObjectType,
+        "char" to Char::class.javaObjectType,
+        "boolean" to Boolean::class.javaObjectType
+    )
 }

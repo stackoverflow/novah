@@ -28,6 +28,8 @@ import novah.frontend.error.Severity
 import novah.frontend.hmftypechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
+import org.objectweb.asm.Type
+import java.util.function.Function
 import io.lacuna.bifurcan.List as PList
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
@@ -148,7 +150,8 @@ class Optimizer(private val ast: CModule) {
                     if (implicitContext != null) {
                         val app = resolvedImplicits().fold(fn.convert(locals)) { acc, argg ->
                             // the argument and return type of the function doesn't matter here
-                            Expr.App(acc, argg.convert(locals), Type.TFun(typ, typ))
+                            val pars = listOf(Clazz(OBJECT_TYPE), Clazz(OBJECT_TYPE))
+                            Expr.App(acc, argg.convert(locals), Clazz(FUNCTION_TYPE, pars))
                         }
                         Expr.App(app, arg.convert(locals), typ)
                     } else Expr.App(fn.convert(locals), arg.convert(locals), typ)
@@ -197,24 +200,20 @@ class Optimizer(private val ast: CModule) {
 
     private fun CBinder.convert(): String = name
 
-    private fun TType.convert(): Type = when (this) {
+    private fun TType.convert(): Clazz = when (this) {
         is TConst -> {
-            if (show(false)[0].isLowerCase()) Type.TVar(name.toUpperCase(), true)
-            else
-                Type.TVar(getPrimitiveTypeName(this))
+            if (show(false)[0].isLowerCase()) Clazz(OBJECT_TYPE)
+            else Clazz(getPrimitiveTypeName(this))
         }
-        is TApp -> {
-            val ty = type.convert() as Type.TVar
-            Type.TConstructor(ty.name, types.map { it.convert() })
-        }
+        is TApp -> Clazz(type.convert().type, types.map { it.convert() })
         // the only functions that can have more than 1 argument are native ones
         // but those don't need a type as we get the type from the reflected method/field/constructor
-        is TArrow -> Type.TFun(args[0].convert(), ret.convert())
+        is TArrow -> Clazz(FUNCTION_TYPE, listOf(args[0].convert(), ret.convert()))
         is TForall -> type.convert()
         is TVar -> {
             when (val tv = tvar) {
                 is TypeVar.Link -> tv.type.convert()
-                is TypeVar.Bound -> Type.TVar("T${tv.id}", true)
+                is TypeVar.Bound -> Clazz(OBJECT_TYPE)
                 is TypeVar.Generic ->
                     internalError("got unbound generic variable after typechecking: ${show(true)} at $span")
                 is TypeVar.Unbound ->
@@ -223,10 +222,10 @@ class Optimizer(private val ast: CModule) {
         }
         // records always have the same type
         is TRecord -> row.convert()
-        is TRowEmpty -> Type.TVar(RECORD_TYPE)
+        is TRowEmpty -> Clazz(RECORD_TYPE)
         is TRowExtend -> {
             val (rows, _) = collectRows()
-            Type.TVar(RECORD_TYPE, labels = rows.mapList { it.convert() })
+            Clazz(RECORD_TYPE, labels = rows.mapList { it.convert() })
         }
         is TImplicit -> type.convert()
     }
@@ -257,21 +256,20 @@ class Optimizer(private val ast: CModule) {
     private val equivalentBoolean = Core::class.java.methods.find {
         it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
     }!!
-    private val equivalent = Core::class.java.methods.find {
-        it.name == "equivalent" && it.parameterTypes[0] == Object::class.java
+    private val equivalentString = Core::class.java.methods.find {
+        it.name == "equivalent" && it.parameterTypes[0] == String::class.java
     }!!
 
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
     private val longType = tLong.convert()
-    private val objectType = tObject.convert()
 
     private fun makeThrow(msg: String): Expr {
         return Expr.Throw(
             Expr.NativeCtor(
                 rteCtor,
                 listOf(Expr.StringE(msg, stringType)),
-                Type.TVar("java/lang/RuntimeException")
+                Clazz(Type.getType(java.lang.RuntimeException::class.java))
             )
         )
     }
@@ -280,20 +278,21 @@ class Optimizer(private val ast: CModule) {
     private data class PatternResult(val exp: Expr, val vars: List<VarDef> = emptyList())
     private data class PatternExp(val exp: Expr, val varName: String?, val original: Expr)
 
-    private fun desugarMatch(m: CExpr.Match, type: Type, locals: List<String>): Expr {
+    private fun desugarMatch(m: CExpr.Match, type: Clazz, locals: List<String>): Expr {
         val tru = Expr.Bool(true, boolType)
 
         fun mkCtorField(
             name: String,
             fieldIndex: Int,
             ctorExpr: Expr,
-            ctorType: Type,
-            fieldType: Type,
-            expectedFieldType: Type?
+            ctorType: Clazz,
+            fieldType: Clazz,
+            expectedFieldType: Clazz?
         ): Expr {
             val castedExpr = Expr.Cast(ctorExpr, ctorType)
             val field = Expr.ConstructorAccess(name, fieldIndex, castedExpr, fieldType)
-            return if (expectedFieldType == null || fieldType == expectedFieldType || fieldType.isMono()) field
+            return if (expectedFieldType == null || fieldType == expectedFieldType
+                || expectedFieldType.type == OBJECT_TYPE) field
             else Expr.Cast(field, expectedFieldType)
         }
 
@@ -312,16 +311,13 @@ class Optimizer(private val ast: CModule) {
             return Expr.NativeStaticMethod(equivalentLong, listOf(sizeExp, longe), boolType)
         }
 
-        fun mkVectorAccessor(exp: Expr, index: Long, type: Type): Expr =
+        fun mkVectorAccessor(exp: Expr, index: Long, type: Clazz): Expr =
             Expr.NativeMethod(vectorAccess, exp, listOf(Expr.LongE(index, longType)), type)
 
         fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
             is Pattern.Wildcard -> PatternResult(tru)
             is Pattern.Var -> PatternResult(tru, listOf(VarDef(p.name, exp)))
-            is Pattern.Unit -> {
-                val cond = Expr.NativeStaticMethod(equivalent, listOf(exp, Expr.Unit(objectType)), boolType)
-                PatternResult(cond)
-            }
+            is Pattern.Unit -> PatternResult(tru)
             is Pattern.LiteralP -> {
                 val method = when (p.lit) {
                     is LiteralPattern.IntLiteral -> equivalentInt
@@ -330,7 +326,7 @@ class Optimizer(private val ast: CModule) {
                     is LiteralPattern.DoubleLiteral -> equivalentDouble
                     is LiteralPattern.CharLiteral -> equivalentChar
                     is LiteralPattern.BoolLiteral -> equivalentBoolean
-                    is LiteralPattern.StringLiteral -> equivalent
+                    is LiteralPattern.StringLiteral -> equivalentString
                 }
                 PatternResult(Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType))
             }
@@ -339,11 +335,11 @@ class Optimizer(private val ast: CModule) {
                 val vars = mutableListOf<VarDef>()
 
                 val (fieldTypes, _) = peelArgs(p.ctor.type!!)
-                val expectedFieldTypes = (exp.type as? Type.TConstructor)?.types ?: emptyList()
+                val expectedFieldTypes = exp.type.pars
 
                 val ctor = p.ctor.convert(locals) as Expr.Constructor
                 val name = p.ctor.fullname(ast.name)
-                val ctorType = Type.TConstructor(internalize(name), emptyList())
+                val ctorType = Clazz(Type.getObjectType(internalize(name)))
                 conds += Expr.InstanceOf(exp, ctorType)
 
                 p.fields.forEachIndexed { i, pat ->
@@ -361,7 +357,7 @@ class Optimizer(private val ast: CModule) {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                val rows = (exp.type as? Type.TVar)?.labels ?: internalError("Got wrong type for record: ${exp.type}")
+                val rows = exp.type.labels ?: internalError("Got wrong type for record: ${exp.type}")
 
                 p.labels.forEachKeyList { label, pat ->
                     val field = Expr.RecordSelect(exp, label, rows.get(label, null).first())
@@ -377,8 +373,7 @@ class Optimizer(private val ast: CModule) {
                 val vars = mutableListOf<VarDef>()
 
                 conds += mkVectorSizeCheck(exp, p.elems.size.toLong())
-                val fieltTy = (exp.type as? Type.TConstructor)?.types?.first()
-                    ?: internalError("Got wrong type for vector: ${exp.type}")
+                val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
                 p.elems.forEachIndexed { i, pat ->
                     val field = mkVectorAccessor(exp, i.toLong(), fieltTy)
                     val (cond, vs) = desugarPattern(pat, field)
@@ -391,10 +386,9 @@ class Optimizer(private val ast: CModule) {
             is Pattern.VectorHT -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
-                
+
                 conds += Expr.NativeStaticMethod(vectorNotEmpty, listOf(exp), boolType)
-                val fieltTy = (exp.type as? Type.TConstructor)?.types?.first()
-                    ?: internalError("Got wrong type for vector: ${exp.type}")
+                val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
                 val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
                 val tailExp = Expr.NativeMethod(vectorSlice, exp, listOf(Expr.LongE(1, longType), sizeExp), type)
@@ -491,7 +485,7 @@ class Optimizer(private val ast: CModule) {
         }
     }
 
-    private fun peelArgs(type: TType): Pair<List<Type>, Type> {
+    private fun peelArgs(type: TType): Pair<List<Clazz>, Clazz> {
         tailrec fun innerPeelArgs(args: List<TType>, t: TType): Pair<List<TType>, TType> = when (t) {
             is TArrow -> {
                 if (t.ret is TArrow) innerPeelArgs(args + t.args, t.ret)
@@ -533,34 +527,36 @@ class Optimizer(private val ast: CModule) {
     companion object {
 
         // TODO: use primitive types and implement autoboxing
-        private fun getPrimitiveTypeName(tvar: TConst): String = when (tvar.name) {
-            "prim.Byte" -> "java/lang/Byte"
-            "prim.Short" -> "java/lang/Short"
-            "prim.Int" -> "java/lang/Integer"
-            "prim.Long" -> "java/lang/Long"
-            "prim.Float" -> "java/lang/Float"
-            "prim.Double" -> "java/lang/Double"
-            "prim.Boolean" -> "java/lang/Boolean"
-            "prim.Char" -> "java/lang/Character"
-            "prim.String" -> "java/lang/String"
-            "prim.Unit" -> "java/lang/Object"
-            "prim.Object" -> "java/lang/Object"
-            "prim.Array" -> "Array"
-            "prim.ByteArray" -> "byte[]"
-            "prim.ShortArray" -> "short[]"
-            "prim.IntArray" -> "int[]"
-            "prim.LongArray" -> "long[]"
-            "prim.FloatArray" -> "float[]"
-            "prim.DoubleArray" -> "double[]"
-            "prim.CharArray" -> "char[]"
-            "prim.BooleanArray" -> "boolean[]"
-            "prim.Vector" -> "io/lacuna/bifurcan/List"
-            "prim.Set" -> "io/lacuna/bifurcan/Set"
-            else -> internalize(tvar.name)
+        private fun getPrimitiveTypeName(tvar: TConst): Type = when (tvar.name) {
+            "prim.Byte" -> Type.getType(Byte::class.javaObjectType)
+            "prim.Short" -> Type.getType(Short::class.javaObjectType)
+            "prim.Int" -> Type.getType(Int::class.javaObjectType)
+            "prim.Long" -> Type.getType(Long::class.javaObjectType)
+            "prim.Float" -> Type.getType(Float::class.javaObjectType)
+            "prim.Double" -> Type.getType(Double::class.javaObjectType)
+            "prim.Boolean" -> Type.getType(Boolean::class.javaObjectType)
+            "prim.Char" -> Type.getType(Char::class.javaObjectType)
+            "prim.String" -> Type.getType(String::class.java)
+            "prim.Unit" -> OBJECT_TYPE
+            "prim.Object" -> OBJECT_TYPE
+            "prim.Array" -> Type.getType(Array::class.java)
+            "prim.ByteArray" -> Type.getType(ByteArray::class.java)
+            "prim.ShortArray" -> Type.getType(ShortArray::class.java)
+            "prim.IntArray" -> Type.getType(IntArray::class.java)
+            "prim.LongArray" -> Type.getType(LongArray::class.java)
+            "prim.FloatArray" -> Type.getType(FloatArray::class.java)
+            "prim.DoubleArray" -> Type.getType(DoubleArray::class.java)
+            "prim.CharArray" -> Type.getType(CharArray::class.java)
+            "prim.BooleanArray" -> Type.getType(BooleanArray::class.java)
+            "prim.Vector" -> Type.getType(io.lacuna.bifurcan.List::class.java)
+            "prim.Set" -> Type.getType(io.lacuna.bifurcan.Set::class.java)
+            else -> Type.getObjectType(internalize(tvar.name))
         }
 
         private fun internalize(name: String) = name.replace('.', '/')
 
-        const val RECORD_TYPE = "novah/collections/Record"
+        private val OBJECT_TYPE = Type.getType(Object::class.java)
+        private val RECORD_TYPE = Type.getType(novah.collections.Record::class.java)
+        private val FUNCTION_TYPE = Type.getType(Function::class.java)
     }
 }

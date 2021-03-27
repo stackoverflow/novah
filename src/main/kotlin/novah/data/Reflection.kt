@@ -47,47 +47,60 @@ object Reflection {
         else -> type
     }
     
-    private fun checkParameter(javaType: String, par: String): Boolean = when (javaType) {
-        "boolean" -> "java.lang.Boolean" == par
-        "byte" -> "java.lang.Byte" == par
-        "short" -> "java.lang.Short" == par
-        "int" -> "java.lang.Integer" == par
-        "long" -> "java.lang.Long" == par
-        "float" -> "java.lang.Float" == par
-        "double" -> "java.lang.Double" == par
-        "char" -> "java.lang.Character" == par
+    private enum class Match {
+        YES, NO, MAYBE
+    }
+    
+    private fun match(b: Boolean) = if (b) Match.YES else Match.NO
+    
+    private fun checkParameter(javaType: String, par: String): Match = when (javaType) {
+        "boolean" -> match("java.lang.Boolean" == par)
+        "byte" -> match("java.lang.Byte" == par)
+        "short" -> match("java.lang.Short" == par)
+        "int" -> match("java.lang.Integer" == par)
+        "long" -> match("java.lang.Long" == par)
+        "float" -> match("java.lang.Float" == par)
+        "double" -> match("java.lang.Double" == par)
+        "char" -> match("java.lang.Character" == par)
         // better check if this is really safe
-        "java.lang.Object" -> true
+        // we leave this to the end after all possibilities are exhausted
+        "java.lang.Object" -> Match.MAYBE
         else -> {
             if (javaType.endsWith("[]") && javaType.contains(".")) {
-                "java.lang.Object[]" == par
-            } else javaType == par
+                match("java.lang.Object[]" == par)
+            } else match(javaType == par)
         }
     }
     
     fun findMethod(clazz: Class<*>, name: String, pars: List<String>): Method? {
+        var maybe: Method? = null
         val novahPars = pars.map { novahToJava(it) }
         for (method in clazz.methods) {
             if (method.name != name) continue
             if (method.parameterCount != novahPars.size) continue
             val allPars = method.parameterTypes.toList().map { it.canonicalName }.zip(novahPars)
-            if (allPars.all { checkParameter(it.first, it.second) }) {
+            val res = allPars.map { checkParameter(it.first, it.second) }
+            if (res.all { it == Match.YES }) {
                 return method
             }
+            if (res.all { it != Match.NO }) maybe = method
         }
-        return null
+        return maybe
     }
     
     fun findConstructor(clazz: Class<*>, pars: List<String>): Constructor<*>? {
+        var maybe: Constructor<*>? = null
         val novahPars = pars.map { novahToJava(it) }
         for (ctor in clazz.constructors) {
             if (ctor.parameterCount != novahPars.size) continue
             val allPars = ctor.parameterTypes.toList().map { it.canonicalName }.zip(novahPars)
-            if (allPars.all { checkParameter(it.first, it.second) }) {
+            val res = allPars.map { checkParameter(it.first, it.second) }
+            if (res.all { it == Match.YES }) {
                 return ctor
             }
+            if (res.all { it != Match.NO }) maybe = ctor
         }
-        return null
+        return maybe
     }
     
     fun findField(clazz: Class<*>, name: String): Field? {

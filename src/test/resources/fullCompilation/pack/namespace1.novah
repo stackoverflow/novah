@@ -16,7 +16,7 @@ sayHello name = do
   println "Hello"
   println name
 
-type Show a = Show { show : a -> String }
+opaque type Show a = { show : a -> String }
 
 pub
 show : forall a. {{ Show a }} -> a -> String
