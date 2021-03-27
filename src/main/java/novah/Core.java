@@ -147,23 +147,23 @@ public class Core {
         return new byte[size];
     }
 
-    public static short[] mkShortArray(int size) {
+    public static short[] mkInt16Array(int size) {
         return new short[size];
     }
 
-    public static int[] mkIntArray(int size) {
+    public static int[] mkInt32Array(int size) {
         return new int[size];
     }
 
-    public static long[] mkLongArray(int size) {
+    public static long[] mkInt64Array(int size) {
         return new long[size];
     }
 
-    public static float[] mkFloatArray(int size) {
+    public static float[] mkFloat32Array(int size) {
         return new float[size];
     }
 
-    public static double[] mkDoubleArray(int size) {
+    public static double[] mkFloat64Array(int size) {
         return new double[size];
     }
 
@@ -173,6 +173,10 @@ public class Core {
 
     public static boolean[] mkBooleanArray(int size) {
         return new boolean[size];
+    }
+    
+    public static Object[] mkObjectArray(int size) {
+        return new Object[size];
     }
     
     public static boolean not(boolean b) {

@@ -4,22 +4,26 @@
  */
 module novah.core
 
+foreign import type io.lacuna.bifurcan.IList
+foreign import type novah.Core
+
 foreign import get java.lang.System:out
 foreign import java.io.PrintStream.println(Object) as jprintln
 foreign import java.io.PrintStream.print(Object) as jprint
 foreign import Object.toString() as jToString
 foreign import Object.hashCode() as jHashCode
+foreign import IList.toArray() as vecToArr
 
-foreign import type novah.Core
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
-foreign import Core:mkShortArray(Int32)
-foreign import Core:mkIntArray(Int32)
-foreign import Core:mkLongArray(Int32)
-foreign import Core:mkFloatArray(Int32)
-foreign import Core:mkDoubleArray(Int32)
+foreign import Core:mkInt16Array(Int32)
+foreign import Core:mkInt32Array(Int32)
+foreign import Core:mkInt64Array(Int32)
+foreign import Core:mkFloat32Array(Int32)
+foreign import Core:mkFloat64Array(Int32)
 foreign import Core:mkCharArray(Int32)
 foreign import Core:mkBooleanArray(Int32)
+foreign import Core:mkObjectArray(Int32)
 
 /**
  * A 32-bits Integer
@@ -71,6 +75,13 @@ hashCode : forall a. a -> Int32
 hashCode x = jHashCode (unsafeCast x)
 
 /**
+ * Apply function [f] to [x].
+ */
+pub
+(|>) : forall a b. a -> (a -> b) -> b
+(|>) x f = f x
+
+/**
  * Creates a byte array of size [size].
  */
 pub
@@ -82,35 +93,35 @@ byteArray size = mkByteArray size
  */
 pub
 int16Array : Int -> Int16Array
-int16Array size = mkShortArray size
+int16Array size = mkInt16Array size
 
 /**
  * Creates a int32 array of size [size].
  */
 pub
 intArray : Int -> Int32Array
-intArray size = mkIntArray size
+intArray size = mkInt32Array size
 
 /**
  * Creates a int64 array of size [size].
  */
 pub
 int64Array : Int -> Int64Array
-int64Array size = mkLongArray size
+int64Array size = mkInt64Array size
 
 /**
  * Creates a float32 array of size [size].
  */
 pub
-floatArray : Int -> Float32Array
-floatArray size = mkFloatArray size
+float32Array : Int -> Float32Array
+float32Array size = mkFloat32Array size
 
 /**
  * Creates a float64 array of size [size].
  */
 pub
-float64Array : Int -> Float64Array
-float64Array size = mkDoubleArray size
+floatArray : Int -> Float64Array
+floatArray size = mkFloat64Array size
 
 /**
  * Creates a char array of size [size].
@@ -125,3 +136,14 @@ charArray size = mkCharArray size
 pub
 booleanArray : Int -> BooleanArray
 booleanArray size = mkBooleanArray size
+
+/**
+ * Creates an Object array of size [size].
+ */
+pub
+objectArray : Int -> Array Object
+objectArray size = mkObjectArray size
+
+pub
+toArray : forall a. Vector a -> Array a
+toArray vec = vecToArr (unsafeCast vec)
