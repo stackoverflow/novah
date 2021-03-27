@@ -6,4 +6,9 @@ toStr : forall a. Array a -> String
 toStr arr = toStringArr (unsafeCast arr)
 
 pub
-main () = toArray [4, 5, 6, 7] |> toStr |> println
+main () = do
+  let arr = toArray [4, 5, 6, 7]
+  let printArr = toStr >> println
+  aset 2 99 arr
+  println (aget 2 arr)
+  printArr arr

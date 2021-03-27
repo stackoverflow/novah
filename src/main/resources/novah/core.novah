@@ -24,6 +24,8 @@ foreign import Core:mkFloat64Array(Int32)
 foreign import Core:mkCharArray(Int32)
 foreign import Core:mkBooleanArray(Int32)
 foreign import Core:mkObjectArray(Int32)
+foreign import Core:getArray(Int32, Array)
+foreign import Core:setArray(Int32, Object, Array)
 
 /**
  * A 32-bits Integer
@@ -75,74 +77,110 @@ hashCode : forall a. a -> Int32
 hashCode x = jHashCode (unsafeCast x)
 
 /**
- * Apply function [f] to [x].
+ * Apply function f to x.
+ * Used to minimize parentheses and to have a
+ * more intuitive order of execution:
+ *
+ * x |> fun1 |> fun2 |> fun3 y
+ * instead of
+ * fun3 y (fun2 (fun1 x))
  */
 pub
 (|>) : forall a b. a -> (a -> b) -> b
 (|>) x f = f x
 
 /**
- * Creates a byte array of size [size].
+ * Forward composition operator: (f >> g) x = g (f x)
+ */
+pub
+(>>) : forall a b c. (a -> b) -> (b -> c) -> (a -> c)
+(>>) f g x = g (f x)
+
+/**
+ * Backward composition operator: (f << g) x = f (g x)
+ */
+pub
+(<<) : forall a b c. (b -> c) -> (a -> b) -> (a -> c)
+(<<) f g x = f (g x)
+
+/**
+ * Creates a byte array of the specified size.
  */
 pub
 byteArray : Int -> ByteArray
 byteArray size = mkByteArray size
 
 /**
- * Creates a int16 array of size [size].
+ * Creates a int16 array of the specified size.
  */
 pub
 int16Array : Int -> Int16Array
 int16Array size = mkInt16Array size
 
 /**
- * Creates a int32 array of size [size].
+ * Creates a int32 array of the specified size.
  */
 pub
 intArray : Int -> Int32Array
 intArray size = mkInt32Array size
 
 /**
- * Creates a int64 array of size [size].
+ * Creates a int64 array of the specified size.
  */
 pub
 int64Array : Int -> Int64Array
 int64Array size = mkInt64Array size
 
 /**
- * Creates a float32 array of size [size].
+ * Creates a float32 array of the specified size.
  */
 pub
 float32Array : Int -> Float32Array
 float32Array size = mkFloat32Array size
 
 /**
- * Creates a float64 array of size [size].
+ * Creates a float64 array of the specified size.
  */
 pub
 floatArray : Int -> Float64Array
 floatArray size = mkFloat64Array size
 
 /**
- * Creates a char array of size [size].
+ * Creates a char array of the specified size.
  */
 pub
 charArray : Int -> CharArray
 charArray size = mkCharArray size
 
 /**
- * Creates a boolean array of size [size].
+ * Creates a boolean array of the specified size.
  */
 pub
 booleanArray : Int -> BooleanArray
 booleanArray size = mkBooleanArray size
 
 /**
- * Creates an Object array of size [size].
+ * Creates an Object array of the specified size.
  */
 pub
 objectArray : Int -> Array Object
 objectArray size = mkObjectArray size
+
+/**
+ * Gets the element of the array at the
+ * specified index.
+ */
+pub
+aget : forall a. Int -> Array a -> a
+aget index arr = getArray index arr
+
+/**
+ * Sets the element of the array at the
+ * specified index.
+ */
+pub
+aset : forall a. Int -> a -> Array a -> Unit
+aset index x arr = setArray index x arr
 
 pub
 toArray : forall a. Vector a -> Array a

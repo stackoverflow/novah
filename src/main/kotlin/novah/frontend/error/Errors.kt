@@ -200,10 +200,6 @@ object Errors {
         Consider adding a type annotation.
     """.trimIndent()
 
-    fun wrongOperatorArity(op: String, arity: Int) = """
-        Binary operator $op has wrong arity: it should have 2 non-implicit parameters but got $arity.
-    """.trimIndent()
-
     fun expectedDefinition(name: String) = "Expected definition to follow its type declaration for $name."
 
     fun expectedLetDefinition(name: String) =

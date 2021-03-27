@@ -19,11 +19,6 @@ import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
 import novah.ast.optimized.Module
 import novah.data.mapList
-import novah.frontend.Span
-import novah.frontend.error.CompilerProblem
-import novah.frontend.error.Errors
-import novah.frontend.error.ProblemContext
-import novah.main.CompilationError
 
 object Optimization {
 
@@ -85,14 +80,16 @@ object Optimization {
                 val fn = e.fn
                 val arg = e.arg
                 when {
+                    // optimize && and ||
                     fn is App && fn.fn is Var && (fn.fn.name == and || fn.fn.name == or) && fn.fn.className == primMod -> {
                         val name = fn.fn.name
+                        val op = if (name == and) "&&" else "||"
                         if (arg is Expr.OperatorApp && fn.fn.name == arg.name) {
-                            Expr.OperatorApp(name, arg.operands + listOf(fn.arg), e.type)
+                            Expr.OperatorApp(op, arg.operands + listOf(fn.arg), e.type)
                         } else if (fn.arg is Expr.OperatorApp && fn.fn.name == fn.arg.name) {
-                            Expr.OperatorApp(name, fn.arg.operands + listOf(arg), e.type)
+                            Expr.OperatorApp(op, fn.arg.operands + listOf(arg), e.type)
                         } else {
-                            Expr.OperatorApp(name, listOf(fn.arg, arg), e.type)
+                            Expr.OperatorApp(op, listOf(fn.arg, arg), e.type)
                         }
                     }
                     // optimize ==

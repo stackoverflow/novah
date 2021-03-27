@@ -179,6 +179,14 @@ public class Core {
         return new Object[size];
     }
     
+    public static Object getArray(int index, Object[] arr) {
+        return arr[index];
+    }
+    
+    public static void setArray(int index, Object val, Object[] arr) {
+        arr[index] = val;
+    }
+    
     public static boolean not(boolean b) {
         return !b;
     }
