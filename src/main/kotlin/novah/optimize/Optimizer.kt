@@ -71,7 +71,8 @@ class Optimizer(private val ast: CModule) {
         return Module(internalize(name), sourceName, haslambda, ds)
     }
 
-    private fun CValDecl.convert(): Decl.ValDecl = Decl.ValDecl(name, exp.convert(), visibility, span)
+    private fun CValDecl.convert(): Decl.ValDecl =
+        Decl.ValDecl(Names.convert(name), exp.convert(), visibility, span)
 
     private fun CDataDecl.convert(): Decl.TypeDecl =
         Decl.TypeDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span)
@@ -99,10 +100,11 @@ class Optimizer(private val ast: CModule) {
             is CExpr.CharE -> Expr.CharE(v, typ)
             is CExpr.Bool -> Expr.Bool(v, typ)
             is CExpr.Var -> {
-                if (name in locals) Expr.LocalVar(name, typ)
+                val conName = Names.convert(name)
+                if (name in locals) Expr.LocalVar(conName, typ)
                 else {
                     val cname = internalize(moduleName ?: ast.name) + "/Module"
-                    Expr.Var(name, cname, typ)
+                    Expr.Var(conName, cname, typ)
                 }
             }
             is CExpr.Constructor -> {
@@ -112,15 +114,16 @@ class Optimizer(private val ast: CModule) {
                 Expr.Constructor(internalize(ctorName), arity, typ)
             }
             is CExpr.ImplicitVar -> {
-                if (name in locals) Expr.LocalVar(name, typ)
+                val conName = Names.convert(name)
+                if (name in locals) Expr.LocalVar(conName, typ)
                 else {
                     val cname = internalize(moduleName ?: ast.name) + "/Module"
-                    Expr.Var(name, cname, typ)
+                    Expr.Var(conName, cname, typ)
                 }
             }
             is CExpr.Lambda -> {
                 haslambda = true
-                val bind = binder.convert()
+                val bind = Names.convert(binder.convert())
                 Expr.Lambda(bind, body.convert(locals + bind), type = typ)
             }
             is CExpr.App -> {
@@ -163,7 +166,7 @@ class Optimizer(private val ast: CModule) {
                 typ
             )
             is CExpr.Let -> {
-                val binder = letDef.binder.convert()
+                val binder = Names.convert(letDef.binder.convert())
                 Expr.Let(binder, letDef.expr.convert(locals), body.convert(locals + binder), typ)
             }
             is CExpr.Ann -> exp.convert(locals)
@@ -316,7 +319,7 @@ class Optimizer(private val ast: CModule) {
 
         fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
             is Pattern.Wildcard -> PatternResult(tru)
-            is Pattern.Var -> PatternResult(tru, listOf(VarDef(p.name, exp)))
+            is Pattern.Var -> PatternResult(tru, listOf(VarDef(Names.convert(p.name), exp)))
             is Pattern.Unit -> PatternResult(tru)
             is Pattern.LiteralP -> {
                 val method = when (p.lit) {

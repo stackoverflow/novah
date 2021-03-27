@@ -1,9 +1,9 @@
 module test
 
-type Maybe a = Just a | Nothing
+foreign import java.util.Arrays:toString(Array) as toStringArr
 
-f : Maybe (Maybe Boolean) -> String
-f x = case x of
-  Just (Just true) -> "a"
-  Just Nothing -> "c"
-  Nothing -> "b"
+toStr : forall a. Array a -> String
+toStr arr = toStringArr (unsafeCast arr)
+
+pub
+main () = toArray [4, 5, 6, 7] |> toStr |> println
