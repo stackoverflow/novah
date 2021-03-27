@@ -48,12 +48,12 @@ object Optimization {
      */
     private fun optimizeCtorApplication(expr: Expr): Expr {
         return everywhere(expr) { e ->
-            if (e !is Expr.App) e
+            if (e !is App) e
             else {
                 var level = 0
                 var exp = e
                 val args = mutableListOf<Expr>()
-                while (exp is Expr.App) {
+                while (exp is App) {
                     args += exp.arg
                     level++
                     exp = exp.fn
@@ -66,18 +66,26 @@ object Optimization {
         }
     }
 
+    private const val and = "\$and\$and"
+    private const val or = "\$pipe\$pipe"
+    private const val eq = "\$equals\$equals"
+    private const val rail = "\$pipe\$greater"
+
+    private const val primMod = "prim/Module"
+    private const val coreMod = "novah/core/Module"
+
     /**
-     * Unnest applications of && and || and ==
+     * Unnest operators like &&, ||, ==, |>, etc
      * Ex.: ((&& ((&& true) a)) y) -> (&& true a y)
      */
     private fun optimizeOperatorApplication(expr: Expr): Expr {
         return everywhere(expr) { e ->
-            if (e !is Expr.App) e
+            if (e !is App) e
             else {
                 val fn = e.fn
                 val arg = e.arg
                 when {
-                    fn is Expr.App && fn.fn is Expr.Var && (fn.fn.name == "&&" || fn.fn.name == "||") && fn.fn.className == "prim/Module" -> {
+                    fn is App && fn.fn is Var && (fn.fn.name == and || fn.fn.name == or) && fn.fn.className == primMod -> {
                         val name = fn.fn.name
                         if (arg is Expr.OperatorApp && fn.fn.name == arg.name) {
                             Expr.OperatorApp(name, arg.operands + listOf(fn.arg), e.type)
@@ -87,8 +95,13 @@ object Optimization {
                             Expr.OperatorApp(name, listOf(fn.arg, arg), e.type)
                         }
                     }
-                    fn is Expr.App && fn.fn is Expr.Var && fn.fn.name == "==" && fn.fn.className == "prim/Module" -> {
+                    // optimize ==
+                    fn is App && fn.fn is Var && fn.fn.name == eq && fn.fn.className == primMod -> {
                         Expr.OperatorApp("==", listOf(fn.arg, arg), e.type)
+                    }
+                    // optimize |>
+                    fn is App && fn.fn is Var && fn.fn.name == rail && fn.fn.className == coreMod -> {
+                        Expr.App(arg, fn.arg, e.type)
                     }
                     else -> e
                 }
@@ -131,3 +144,6 @@ object Optimization {
         fs.fold(e) { ex, f -> f(ex) }
     }
 }
+
+private typealias App = Expr.App
+private typealias Var = Expr.Var
