@@ -22,7 +22,7 @@ class ForeignSpec : StringSpec({
 
     "test" {
         val code = """
-            module java
+            module test
 
             foreign import type java.util.ArrayList
             foreign import type java.io.File

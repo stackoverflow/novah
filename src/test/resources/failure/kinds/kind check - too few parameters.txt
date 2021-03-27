@@ -1,15 +1,15 @@
 module [33mtest[0m
-at src/test/resources/failure/kinds/kind check - too few parameters.novah:6:7 - 6:11
+at src/test/resources/failure/kinds/kind check - too few parameters.novah:4:7 - 4:11
 
   Cannot match type
   
-      Maybe
+      novah.core.Option
   
   with type
   
-      Maybe t50
+      novah.core.Option t59
 
-while checking type Maybe
-while checking expression Nope
+while checking type novah.core.Option
+while checking expression novah.core.None
 in declaration f
 

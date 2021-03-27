@@ -232,7 +232,7 @@ class PatternMatchingCompiler<R> {
             is Pattern.Wildcard -> Pat.PVar("_")
             is Pattern.Var -> Pat.PVar(p.name)
             is Pattern.Ctor -> {
-                val name = p.ctor.fullname(modName)
+                val name = p.ctor.fullname(p.ctor.moduleName ?: modName)
                 Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
             }
             is Pattern.LiteralP -> {

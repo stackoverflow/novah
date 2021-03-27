@@ -52,16 +52,14 @@ class PatternMatchingSpec : StringSpec({
 
     "pattern matching constructor typechecks" {
         val code = """
-            type Maybe a = Just a | Nothing
-            
-            f : Maybe Int -> Int
+            f : Option Int -> Int
             f x = case x of
-              Just v -> v
-              Nothing -> 0
+              Some v -> v
+              None -> 0
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
-        ty.simpleName() shouldBe "Maybe Int32 -> Int32"
+        ty.simpleName() shouldBe "Option Int32 -> Int32"
     }
 
     "pattern matching literals succeed" {
@@ -72,7 +70,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         shouldNotThrowAny {
-            TestUtil.compileAndOptimizeCode(code)
+            TestUtil.compileCode(code)
         }
     }
     
@@ -232,8 +230,6 @@ class PatternMatchingSpec : StringSpec({
             f3 {x, y} z = sum (sum x y) z
             
             f4 (:? Int as i) = i
-            
-            type Option a = Some a | None
             
             f5 (Some x) = x
             

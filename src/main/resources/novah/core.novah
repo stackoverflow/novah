@@ -185,3 +185,6 @@ aset index x arr = setArray index x arr
 pub
 toArray : forall a. Vector a -> Array a
 toArray vec = vecToArr (unsafeCast vec)
+
+pub+
+type Option a = Some a | None

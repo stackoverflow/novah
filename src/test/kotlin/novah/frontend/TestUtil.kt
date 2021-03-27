@@ -84,17 +84,14 @@ object TestUtil {
         val sources = listOf(Source.SString(Path.of("namespace"), code)).asSequence()
         return Compiler(sources, verbose)
     }
-
-    fun compileCode(code: String, verbose: Boolean = true): FullModuleEnv {
+    
+    fun compileCode(code: String, verbose: Boolean = false): FullModuleEnv {
         val compiler = compilerForCode(code, verbose)
-        val menv = compiler.compile().values.last()
-        val opt = Optimizer(menv.ast)
-        val conv = opt.convert()
-        if (opt.getWarnings().isNotEmpty()) {
-            opt.getWarnings().forEach { println(it.formatToConsole()) }
+        compiler.run(File("."), dryRun = true)
+        if (compiler.getWarnings().isNotEmpty()) {
+            compiler.getWarnings().forEach { println(it.formatToConsole()) }
         }
-        conv.map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
-        return menv
+        return compiler.getModules()["test"]!!
     }
 
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {

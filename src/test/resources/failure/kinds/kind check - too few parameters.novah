@@ -1,6 +1,4 @@
 module test
 
-type Maybe a = Just a | Nope
-            
-f : Int -> Maybe
-f _ = Nope
+f : Int -> Option
+f _ = None

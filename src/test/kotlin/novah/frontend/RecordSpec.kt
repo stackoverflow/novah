@@ -114,7 +114,6 @@ class RecordSpec : StringSpec({
 
     "polymorphic rows" {
         val code = """
-            type Option a = Some a | None
             typealias Named r = [ name : String | r ]
             typealias Aged a r = [ age : Option a | r ]
             

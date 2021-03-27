@@ -86,8 +86,6 @@ class TypedASTSpec : StringSpec({
 
     "metas are resolved after typecheck" {
         val code = """
-            type Maybe a = Just a | Nothing
-            
             id x = x
             
             ife a = if true then 3 else id a
@@ -107,7 +105,7 @@ class TypedASTSpec : StringSpec({
             
             lamb : Int -> String -> Unit
             lamb _ _ = do
-              Just "a"
+              Some "a"
               ()
             
             main _ = do

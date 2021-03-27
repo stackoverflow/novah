@@ -156,6 +156,8 @@ class Environment(private val verbose: Boolean) {
         }
         if (!dryRun) copyNativeLibs(output)
     }
+    
+    fun getModuleEnvs() = modules
 
     /**
      * Copy all the java classes necessary for novah to run

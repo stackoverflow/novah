@@ -1,9 +1,7 @@
 module test
 
-type Maybe a = Just a | Nothing
-
-f : forall a. Maybe a -> String
+f : forall a. Option a -> String
 f x = case x of
-  Just v -> toString v
-  Nothing -> "bla"
-  Nothing -> "nope"
+  Some v -> toString v
+  None -> "bla"
+  None -> "nope"

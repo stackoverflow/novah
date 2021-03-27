@@ -82,8 +82,6 @@ class DesugarSpec : StringSpec({
             
             f2 cond = if cond == 0 then _ else _
             
-            type Option a = Some a | None
-            
             f3 = case _ of
               [] -> 0
               [_ :: xs] -> sum 1 (f3 xs)
