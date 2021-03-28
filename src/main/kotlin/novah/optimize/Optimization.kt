@@ -15,10 +15,7 @@
  */
 package novah.optimize
 
-import novah.ast.optimized.Clazz
-import novah.ast.optimized.Decl
-import novah.ast.optimized.Expr
-import novah.ast.optimized.Module
+import novah.ast.optimized.*
 import novah.data.mapList
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
 
@@ -95,16 +92,21 @@ object Optimization {
                         }
                     }
                     // optimize ==
-                    fn is App && fn.fn is Var && fn.fn.name == eq && fn.fn.className == primMod -> {
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$primMod.$eq" -> {
                         Expr.OperatorApp("==", listOf(fn.arg, arg), e.type)
                     }
                     // optimize |>
-                    fn is App && fn.fn is Var && fn.fn.name == rail && fn.fn.className == coreMod -> {
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.$rail" -> {
                         Expr.App(arg, fn.arg, e.type)
                     }
-                    // optimize `arrayOf [ ... ]` to a literal array
-                    fn is Var && fn.name == "arrayOf" && fn.className == coreMod && arg is Expr.VectorLiteral -> {
+                    // optimize `arrayOf [...]` to a literal array
+                    fn is Var && fn.fullname() == "$coreMod.arrayOf" && arg is Expr.VectorLiteral -> {
                         Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars))
+                    }
+                    // optimize `format "..." [...]` to `String.format "..." <literal-array>` 
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.format" && arg is Expr.VectorLiteral -> {
+                        val arr = Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars))
+                        Expr.NativeStaticMethod(stringFormat, listOf(fn.arg, arr), e.type)
                     }
                     else -> e
                 }
@@ -147,6 +149,10 @@ object Optimization {
     private fun comp(vararg fs: (Expr) -> Expr): (Expr) -> Expr = { e ->
         fs.fold(e) { ex, f -> f(ex) }
     }
+
+    private val stringFormat = String::class.java.methods.find { 
+        it.name == "format" && it.parameterTypes[0] == String::class.java 
+    }!!
 }
 
 private typealias App = Expr.App
