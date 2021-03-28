@@ -56,7 +56,7 @@ object InstanceSearch {
                     val v = mkVar(name, type, span)
                     nestApps(listOf(v) + founds)
                 } else {
-                    unify(type, ty, span)
+                    unify(instTy, ty, span) 
                     mkVar(name, type, span)
                 }
             } catch (_: InferenceError) {
@@ -104,7 +104,7 @@ object InstanceSearch {
         is TApp -> ty.types.all { isUnbound(it) }
         else -> false
     }
-    
+
     private tailrec fun isUnbound(ty: Type): Boolean = when (ty) {
         is TVar -> {
             when (val tv = ty.tvar) {
@@ -120,13 +120,13 @@ object InstanceSearch {
         exps.reversed().reduceRight { exp, acc ->
             Expr.App(acc, exp, acc.span).apply { type = getReturn(acc.type!!) }
         }
-    
+
     private tailrec fun getReturn(ty: Type): Type = when (ty) {
         is TArrow -> getReturn(ty.ret)
         is TForall -> getReturn(ty.type)
         else -> ty
     }
-    
+
     private fun showImplicit(ty: Type): String = when (ty) {
         is TImplicit -> ty.type.show()
         else -> ty.show()
