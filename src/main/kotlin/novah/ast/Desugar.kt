@@ -694,10 +694,11 @@ class Desugar(private val smod: SModule) {
             }
         }?.span()
         
-        fun findForeignImport(name: String): Span? = smod.foreigns.find { it.name() == name }?.span
+        fun findForeignImport(name: String): Span? =
+            smod.foreigns.filter { it !is ForeignImport.Type }.find { it.name() == name }?.span
 
         smod.resolvedImports.forEach { (importName, modName) ->
-            if (modName != PRIM && modName != CORE_MODULE && importName !in usedVars) {
+            if (modName != PRIM && modName != CORE_MODULE && importName[0].isLowerCase() && importName !in usedVars) {
                 val span = findImport(modName)
                 if (span != null)
                     errors += makeError(E.unusedImport(importName), span)

@@ -15,7 +15,9 @@ foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
 foreign import IList.toArray() as vecToArr
 foreign import Vector.nth(Int64) as nthVec
+foreign import Vector.concat(IList) as vecConcat
 foreign import Int32.longValue()
+foreign import String.concat(String)
 
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
@@ -247,7 +249,46 @@ maybe def =
 
 /**
  * Returns the value at index for this Vector.
+ * Runtime: O(~1)
  */
 pub
 nth : forall a. Vector a -> Int -> a
 nth vec index = nthVec vec (longValue index)
+
+/**
+ * The type of things that can be appended and have some empty value.
+ * This type corresponds to a monoid.
+ */
+pub+
+opaque type Append a =
+  { append : a -> a -> a
+  , empty : a
+  }
+
+/**
+ * Appends 2 appendable values together.
+ */
+pub
+(++) : forall a. {{ Append a }} -> a -> a -> a
+(++) {{app}} x y = case app of Append a -> a.append x y
+
+/**
+ * Appends the 2 Strings.
+ */
+pub instance
+appendString : Append String
+appendString =
+  Append { append: \s s2 -> concat s s2
+         , empty: ""
+         }
+
+/**
+ * Appends the 2 Vectors.
+ * Runtime: O(log N)
+ */
+pub instance
+appendVector : forall a. Append (Vector a)
+appendVector =
+  Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCast
+         , empty: []
+         }

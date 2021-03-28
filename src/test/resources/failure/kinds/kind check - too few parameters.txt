@@ -1,5 +1,5 @@
 module [33mtest[0m
-at src/test/resources/failure/kinds/kind check - too few parameters.novah:4:7 - 4:11
+at src/test/resources/failure/kinds/kind check - too few parameters.novah:7:7 - 7:10
 
   Cannot match type
   
@@ -7,9 +7,9 @@ at src/test/resources/failure/kinds/kind check - too few parameters.novah:4:7 - 
   
   with type
   
-      novah.core.Option t92
+      novah.core.Option Int32
 
 while checking type novah.core.Option
-while checking expression novah.core.None
+while checking expression val
 in declaration f
 

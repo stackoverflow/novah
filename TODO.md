@@ -11,4 +11,4 @@
 - [ ] Rename operators and java keywords to be more java-friendly (WIP)
 - [ ] Fix pattern matching warnings (records)
 - [ ] Implement the novah class loader to load external files
-- [ ] Report on unused imports/foreign imports
+- [ ] Report on unused imports/foreign import types
