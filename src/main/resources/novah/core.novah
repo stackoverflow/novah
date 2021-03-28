@@ -12,6 +12,7 @@ foreign import java.io.PrintStream.println(Object) as jprintln
 foreign import java.io.PrintStream.print(Object) as jprint
 foreign import Object.toString() as jToString
 foreign import Object.hashCode() as jHashCode
+foreign import String:format(String, Array) as sformat
 foreign import IList.toArray() as vecToArr
 
 foreign import Core:not(Boolean) as negate
@@ -26,6 +27,7 @@ foreign import Core:mkBooleanArray(Int32)
 foreign import Core:mkObjectArray(Int32)
 foreign import Core:getArray(Int32, Array)
 foreign import Core:setArray(Int32, Object, Array)
+foreign import Core:getArrayLength(Array)
 
 /**
  * A 32-bits Integer
@@ -45,6 +47,47 @@ typealias Float = Float64
 pub
 not : Boolean -> Boolean
 not b = negate b
+
+/**
+ * A function that just returns it's argument.
+ */
+pub
+identity : forall a. a -> a
+identity x = x
+
+/**
+ * Flips the arguments of a 2-arguments function.
+ */
+pub
+flip : forall a b c. (a -> b -> c) -> (b -> a -> c)
+flip f y x = f x y
+
+/**
+ * Apply function f to x.
+ * Used to minimize parentheses and to have a
+ * more intuitive order of execution:
+ *
+ * x |> fun1 |> fun2 |> fun3 y
+ * instead of
+ * fun3 y (fun2 (fun1 x))
+ */
+pub
+(|>) : forall a b. a -> (a -> b) -> b
+(|>) x f = f x
+
+/**
+ * Forward composition operator: (f >> g) x = g (f x)
+ */
+pub
+(>>) : forall a b c. (a -> b) -> (b -> c) -> (a -> c)
+(>>) f g x = g (f x)
+
+/**
+ * Backward composition operator: (f << g) x = f (g x)
+ */
+pub
+(<<) : forall a b c. (b -> c) -> (a -> b) -> (a -> c)
+(<<) f g x = f (g x)
 
 /**
  * Prints x to the stdout and appends a new line.
@@ -75,33 +118,6 @@ toString x = jToString (unsafeCast x)
 pub
 hashCode : forall a. a -> Int32
 hashCode x = jHashCode (unsafeCast x)
-
-/**
- * Apply function f to x.
- * Used to minimize parentheses and to have a
- * more intuitive order of execution:
- *
- * x |> fun1 |> fun2 |> fun3 y
- * instead of
- * fun3 y (fun2 (fun1 x))
- */
-pub
-(|>) : forall a b. a -> (a -> b) -> b
-(|>) x f = f x
-
-/**
- * Forward composition operator: (f >> g) x = g (f x)
- */
-pub
-(>>) : forall a b c. (a -> b) -> (b -> c) -> (a -> c)
-(>>) f g x = g (f x)
-
-/**
- * Backward composition operator: (f << g) x = f (g x)
- */
-pub
-(<<) : forall a b c. (b -> c) -> (a -> b) -> (a -> c)
-(<<) f g x = f (g x)
 
 /**
  * Creates a byte array of the specified size.
@@ -171,20 +187,41 @@ objectArray size = mkObjectArray size
  * specified index.
  */
 pub
-aget : forall a. Int -> Array a -> a
-aget index arr = getArray index arr
+arrayGet : forall a. Int -> Array a -> a
+arrayGet index arr = getArray index arr
 
 /**
  * Sets the element of the array at the
  * specified index.
  */
 pub
-aset : forall a. Int -> a -> Array a -> Unit
-aset index x arr = setArray index x arr
+arraySet : forall a. Int -> a -> Array a -> Unit
+arraySet index x arr = setArray index x arr
 
+/**
+ * Gets the length of this array.
+ */
 pub
-toArray : forall a. Vector a -> Array a
-toArray vec = vecToArr (unsafeCast vec)
+arrayLength : forall a. Array a -> Int
+arrayLength arr = getArrayLength arr
 
+/**
+ * Converts a Vector of some type `a` to an Array of `a`.
+ */
+pub
+arrayOf : forall a. Vector a -> Array a
+arrayOf vec = vecToArr (unsafeCast vec)
+
+/**
+ * Returns a formatted string using the specified format string and arguments.
+ * See java.util.Formatter for format explanation.
+ */
+pub
+format : forall a. String -> Vector a -> String
+format str vec = sformat str (arrayOf vec)
+
+/**
+ * Represents the possibility of a missing value.
+ */
 pub+
 type Option a = Some a | None

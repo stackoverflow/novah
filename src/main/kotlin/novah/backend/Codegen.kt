@@ -457,6 +457,16 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitMethodInsn(INVOKESTATIC, SET_CLASS, "of", "([$OBJECT_DESC)$SET_DESC", false)
                 }
             }
+            is Expr.ArrayLiteral -> {
+                genInt(intExp(e.exps.size), mv)
+                mv.visitTypeInsn(ANEWARRAY, e.exps[0].type.type.internalName)
+                e.exps.forEachIndexed { i, exp ->
+                    mv.visitInsn(DUP)
+                    genInt(intExp(i), mv)
+                    genExpr(exp, mv, ctx)
+                    mv.visitInsn(AASTORE)
+                }
+            }
         }
     }
 

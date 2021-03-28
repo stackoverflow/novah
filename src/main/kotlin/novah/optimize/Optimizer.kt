@@ -541,7 +541,7 @@ class Optimizer(private val ast: CModule) {
             primString -> Type.getType(String::class.java)
             primUnit -> OBJECT_TYPE
             primObject -> OBJECT_TYPE
-            primArray -> Type.getType(Array::class.java)
+            primArray -> ARRAY_TYPE
             primByteArray -> Type.getType(ByteArray::class.java)
             primInt16Array -> Type.getType(ShortArray::class.java)
             primInt32Array -> Type.getType(IntArray::class.java)
@@ -560,5 +560,6 @@ class Optimizer(private val ast: CModule) {
         private val OBJECT_TYPE = Type.getType(Object::class.java)
         private val RECORD_TYPE = Type.getType(novah.collections.Record::class.java)
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
+        val ARRAY_TYPE = Type.getType(Array::class.java)
     }
 }

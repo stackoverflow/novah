@@ -93,6 +93,7 @@ sealed class Expr(open val type: Clazz) {
     data class RecordRestrict(val expr: Expr, val label: String, override val type: Clazz) : Expr(type)
     data class VectorLiteral(val exps: List<Expr>, override val type: Clazz) : Expr(type)
     data class SetLiteral(val exps: List<Expr>, override val type: Clazz) : Expr(type)
+    data class ArrayLiteral(val exps: List<Expr>, override val type: Clazz) : Expr(type)
 }
 
 fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = when {

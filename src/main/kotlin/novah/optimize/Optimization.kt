@@ -15,15 +15,17 @@
  */
 package novah.optimize
 
+import novah.ast.optimized.Clazz
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
 import novah.ast.optimized.Module
 import novah.data.mapList
+import novah.optimize.Optimizer.Companion.ARRAY_TYPE
 
 object Optimization {
 
     fun run(ast: Module): Module {
-        return optimize(ast, comp(::optimizeCtorApplication, ::optimizeOperatorApplication))
+        return optimize(ast, comp(::optimizeCtorApplication, ::optimizeFunctionAndOperatorApplication))
     }
 
     private fun optimize(ast: Module, f: (Expr) -> Expr): Module {
@@ -73,7 +75,7 @@ object Optimization {
      * Unnest operators like &&, ||, ==, |>, etc
      * Ex.: ((&& ((&& true) a)) y) -> (&& true a y)
      */
-    private fun optimizeOperatorApplication(expr: Expr): Expr {
+    private fun optimizeFunctionAndOperatorApplication(expr: Expr): Expr {
         return everywhere(expr) { e ->
             if (e !is App) e
             else {
@@ -99,6 +101,10 @@ object Optimization {
                     // optimize |>
                     fn is App && fn.fn is Var && fn.fn.name == rail && fn.fn.className == coreMod -> {
                         Expr.App(arg, fn.arg, e.type)
+                    }
+                    // optimize `arrayOf [ ... ]` to a literal array
+                    fn is Var && fn.name == "arrayOf" && fn.className == coreMod && arg is Expr.VectorLiteral -> {
+                        Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars))
                     }
                     else -> e
                 }
@@ -132,6 +138,7 @@ object Optimization {
             is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
             is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
             is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
+            is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))
             else -> f(e)
         }
         return go(expr)

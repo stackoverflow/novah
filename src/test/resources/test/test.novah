@@ -7,8 +7,9 @@ toStr arr = toStringArr (unsafeCast arr)
 
 pub
 main () = do
-  let arr = toArray [4, 5, 6, 7]
+  let arr = arrayOf [4, 5, 6, 7]
   let printArr = toStr >> println
-  aset 2 99 arr
-  println (aget 2 arr)
+  arraySet 2 99 arr
+  println (arrayGet 2 arr)
   printArr arr
+  format "some %s once told %s" [1, 4] |> println
