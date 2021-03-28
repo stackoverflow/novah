@@ -95,10 +95,10 @@ class PatternMatchingSpec : StringSpec({
 
     "pattern match lambdas - ignore pattern" {
         val code = """
-            const _ = 10
+            constant _ = 10
         """.module()
 
-        val ty = TestUtil.compileCode(code).env.decls["const"]!!.type
+        val ty = TestUtil.compileCode(code).env.decls["constant"]!!.type
         ty.simpleName() shouldBe "forall t1. t1 -> Int32"
     }
     

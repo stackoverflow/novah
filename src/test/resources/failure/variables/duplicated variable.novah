@@ -2,4 +2,6 @@ module test
 
 foreign import new java.io.File(String) as newFile
 
+file = newFile "asd"
+
 newFile () = 1

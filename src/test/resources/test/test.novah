@@ -14,4 +14,4 @@ main () = do
   println (arrayGet 2 arr)
   printArr arr
   format "some %s once told %s" ["body", "me"] |> println
-  println ([56, 78, 90, 14, 566] `nth` 4)
+  [56, 78, 90, 14, 566] |> flip nth 4 |> println

@@ -333,8 +333,16 @@ object Errors {
 
     fun unusedVariables(vars: List<String>): String {
         return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."
-        else "Variables ${vars.joinToString()} are unused in declaration."
+        else """
+            Variables
+            
+                ${vars.joinToString()}
+            
+            are unused in declaration.
+        """.trimIndent()
     }
+    
+    fun unusedImport(imp: String): String = "Import $imp is unused in module."
 
     fun recordMissingLabels(labels: List<String>): String {
         return if (labels.size == 1) "Record is missing label ${labels.joinToString()}."

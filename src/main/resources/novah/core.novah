@@ -65,8 +65,15 @@ flip : forall a b c. (a -> b -> c) -> (b -> a -> c)
 flip f y x = f x y
 
 /**
+ * Takes two parameters and returns the first, ignoring the second.
+ */
+pub
+const : forall a b. a -> b -> a
+const x _ = x
+
+/**
  * Apply function f to x.
- * Used to minimize parentheses and to have a
+ * Used to minimize parentheses and have a
  * more intuitive order of execution:
  *
  * x |> fun1 |> fun2 |> fun3 y

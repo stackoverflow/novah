@@ -1,0 +1,9 @@
+module mod1
+
+pub
+notUsed : String
+notUsed = ""
+
+pub
+(+++) : Int -> Int -> Int
+(+++) x _ = x

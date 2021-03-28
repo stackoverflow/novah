@@ -107,6 +107,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     DeclarationRef.RefType(sp.value.v, ctors)
                 } else DeclarationRef.RefType(sp.value.v)
             }
+            is Op -> DeclarationRef.RefVar(sp.value.op)
             else -> throwError(withError(E.EXPORT_REFER)(sp))
         }
     }

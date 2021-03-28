@@ -7,7 +7,7 @@ at src/test/resources/failure/kinds/kind check - too few parameters.novah:4:7 - 
   
   with type
   
-      novah.core.Option t59
+      novah.core.Option t92
 
 while checking type novah.core.Option
 while checking expression novah.core.None

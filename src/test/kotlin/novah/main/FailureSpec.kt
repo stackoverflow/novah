@@ -86,6 +86,12 @@ class FailureSpec : StringSpec({
             
               Found cycle between modules mod2, mod1.
             
+            
+            module [33mmod1[0m
+            at src/test/resources/multimodulefail/cycle/mod1.novah:1:1 - 1:12
+            
+              Found cycle between modules mod2, mod1.
+            
 
         """.trimIndent()
 
@@ -159,6 +165,28 @@ class FailureSpec : StringSpec({
             compiler.compile()
         }
     }
+
+    "unused imports fail" {
+        val compiler = TestUtil.compilerFor("multimodulefail/unusedimport")
+
+        val error = """
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/unusedimport/mod2.novah:3:1 - 3:27
+            
+              Import notUsed is unused in module.
+            
+            
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/unusedimport/mod2.novah:5:1 - 5:35
+            
+              Import codePoints is unused in module.
+            
+
+        """.trimIndent()
+        withError(error) {
+            compiler.compile()
+        }
+    }
 }) {
     companion object {
         private inline fun withError(error: String, block: () -> Unit) {
@@ -166,8 +194,8 @@ class FailureSpec : StringSpec({
                 block()
                 throw failure("Expected test to fail with a CompilationError.")
             } catch (ce: CompilationError) {
-                val err = ce.problems[0]
-                err.formatToConsole() shouldBe error
+                val err = ce.problems.joinToString("\n") { it.formatToConsole() }
+                err shouldBe error
             }
         }
     }

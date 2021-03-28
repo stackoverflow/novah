@@ -3,7 +3,7 @@ at src/test/resources/failure/records/missing row in annotation.novah:4:7 - 4:34
 
   Record is missing label notfun.
 
-while checking type { fun : String -> String | t61 }
+while checking type { fun : String -> String }
 while checking expression { fun: \x -> x, notfun: 0 }
 in declaration rec
 
