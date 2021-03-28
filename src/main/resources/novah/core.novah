@@ -14,6 +14,8 @@ foreign import Object.toString() as jToString
 foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
 foreign import IList.toArray() as vecToArr
+foreign import Vector.nth(Int64) as nthVec
+foreign import Int32.longValue()
 
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
@@ -225,3 +227,20 @@ format str vec = sformat str (arrayOf vec)
  */
 pub+
 type Option a = Some a | None
+
+/**
+ * Returns the value contained in this Option
+ * or the default value.
+ */
+maybe : forall a. a -> Option a -> a
+maybe def =
+  case _ of
+    Some x -> x
+    None -> def
+
+/**
+ * Returns the value at index for this Vector.
+ */
+pub
+nth : forall a. Vector a -> Int -> a
+nth vec index = nthVec vec (longValue index)

@@ -48,5 +48,6 @@ object Names {
         '^' to "\$hat",
         '.' to "\$dot",
         '?' to "\$question",
+        '!' to "\$bang"
     )
 }

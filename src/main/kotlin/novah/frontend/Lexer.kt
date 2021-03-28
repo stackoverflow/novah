@@ -144,7 +144,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
     private val iter = CharPositionIterator(input)
 
-    private val operators = "$=<>|&+-:*/%^.?"
+    private val operators = "$=<>|&+-:*/%^.?!"
 
     override fun hasNext(): Boolean = iter.hasNext()
 
@@ -202,6 +202,14 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     number(tk, true)
                 } else operator(c)
             }
+            '`' -> {
+                val op = ident(null)
+                if (op is Ident) {
+                    if (op.v.isEmpty()) lexError("Expected identifier after `.")
+                    if (accept("`") == null) lexError("Expected closing ` after operator application.")
+                    Op(op.v)
+                } else lexError("Invalid operator application.")
+            }
             else -> {
                 when {
                     c.isDigit() -> number(c)
@@ -229,8 +237,8 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         return ch
     }
 
-    private fun ident(init: Char): Token {
-        val builder = StringBuilder(init.toString())
+    private fun ident(init: Char?): Token {
+        val builder = StringBuilder(init?.toString() ?: "")
 
         while (iter.hasNext() && iter.peek().isValidIdentifier()) {
             builder.append(iter.next())
