@@ -744,10 +744,10 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 iter.next()
                 if (iter.peek().value is LBracket) {
                     iter.next()
-                    val id = expect<Ident>(withError(E.INSTANCE_VAR)).value.v
+                    val pat = parsePattern()
                     expect<RBracket>(withError(E.INSTANCE_VAR))
                     val end = expect<RBracket>(withError(E.INSTANCE_VAR))
-                    Pattern.ImplicitVar(id, span(tk.span, end.span))
+                    Pattern.ImplicitPattern(pat, span(tk.span, end.span))
                 } else {
                     val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
                     val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span

@@ -276,7 +276,7 @@ class Desugar(private val smod: SModule) {
         is SPattern.Named -> Pattern.Named(pat.desugar(locals), name, span)
         is SPattern.Unit -> Pattern.Unit(span)
         is SPattern.TypeTest -> Pattern.TypeTest(type.desugar(), alias, span)
-        is SPattern.ImplicitVar -> parserError(E.IMPLICIT_PATTERN, span)
+        is SPattern.ImplicitPattern -> parserError(E.IMPLICIT_PATTERN, span)
     }
 
     private fun SLiteralPattern.desugar(locals: List<String>): LiteralPattern = when (this) {
@@ -347,19 +347,21 @@ class Desugar(private val smod: SModule) {
         is SLetDef.DefPattern -> collectVars(ldef.pat)
     }
 
-    private fun collectVars(pat: SPattern): List<CollectedVar> = when (pat) {
-        is SPattern.Var -> listOf(CollectedVar(pat.name, pat.span))
-        is SPattern.Parens -> collectVars(pat.pattern)
-        is SPattern.Ctor -> pat.fields.flatMap { collectVars(it) }
-        is SPattern.Record -> pat.labels.flatMapList { collectVars(it) }.toList()
-        is SPattern.Vector -> pat.elems.flatMap { collectVars(it) }
-        is SPattern.VectorHT -> collectVars(pat.head) + collectVars(pat.tail)
-        is SPattern.Named -> collectVars(pat.pat)
-        is SPattern.ImplicitVar -> listOf(CollectedVar(pat.name, pat.span, true))
+    private fun collectVars(pat: SPattern, implicit: Boolean = false): List<CollectedVar> = when (pat) {
+        is SPattern.Var -> listOf(CollectedVar(pat.name, pat.span, implicit = implicit))
+        is SPattern.Parens -> collectVars(pat.pattern, implicit)
+        is SPattern.Ctor -> pat.fields.flatMap { collectVars(it, implicit) }
+        is SPattern.Record -> pat.labels.flatMapList { collectVars(it, implicit) }.toList()
+        is SPattern.Vector -> pat.elems.flatMap { collectVars(it, implicit) }
+        is SPattern.VectorHT -> collectVars(pat.head, implicit) + collectVars(pat.tail, implicit)
+        is SPattern.Named -> collectVars(pat.pat, implicit)
+        is SPattern.ImplicitPattern -> collectVars(pat.pat, true)
         is SPattern.Wildcard -> emptyList()
         is SPattern.LiteralP -> emptyList()
         is SPattern.Unit -> emptyList()
-        is SPattern.TypeTest -> if (pat.alias != null) listOf(CollectedVar(pat.alias, pat.span)) else emptyList()
+        is SPattern.TypeTest -> {
+            if (pat.alias != null) listOf(CollectedVar(pat.alias, pat.span, implicit)) else emptyList()
+        }
     }
 
     /**
@@ -421,12 +423,26 @@ class Desugar(private val smod: SModule) {
                     nestLambdaPatterns(pats.drop(1), exp, locals),
                     exp.span
                 )
-                is SPattern.ImplicitVar -> Expr.Lambda(
-                    Binder(pat.name, pat.span, true),
-                    null,
-                    nestLambdaPatterns(pats.drop(1), exp, locals),
-                    exp.span
-                )
+                is SPattern.ImplicitPattern -> {
+                    if (pat.pat is SPattern.Var) {
+                        Expr.Lambda(
+                            Binder(pat.pat.name, pat.span, true),
+                            null,
+                            nestLambdaPatterns(pats.drop(1), exp, locals),
+                            exp.span
+                        )
+                    } else {
+                        val v = newVar()
+                        val vars = listOf(Expr.Var(v, pat.span))
+                        val expr = Expr.Match(vars, listOf(Case(listOf(pat.pat.desugar(locals)), exp)), exp.span)
+                        Expr.Lambda(
+                            Binder(v, pat.span, true),
+                            null,
+                            nestLambdaPatterns(pats.drop(1), expr, locals),
+                            exp.span
+                        )
+                    }
+                }
                 else -> {
                     val vars = pats.map { Expr.Var(newVar(), it.span) }
                     val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals) }, exp)), exp.span)

@@ -292,7 +292,7 @@ sealed class Pattern(open val span: Span) {
     data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
-    data class ImplicitVar(val name: String, override val span: Span) : Pattern(span)
+    data class ImplicitPattern(val pat: Pattern, override val span: Span) : Pattern(span)
 }
 
 sealed class LiteralPattern {

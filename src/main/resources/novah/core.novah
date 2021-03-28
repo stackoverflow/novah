@@ -256,39 +256,22 @@ nth : forall a. Vector a -> Int -> a
 nth vec index = nthVec vec (longValue index)
 
 /**
- * The type of things that can be appended and have some empty value.
- * This type corresponds to a monoid.
+ * The type of things that can be appended.
  */
 pub+
-opaque type Append a =
-  { append : a -> a -> a
-  , empty : a
-  }
+opaque type Append a = { append : a -> a -> a }
 
 /**
  * Appends 2 appendable values together.
  */
 pub
 (++) : forall a. {{ Append a }} -> a -> a -> a
-(++) {{app}} x y = case app of Append a -> a.append x y
+(++) {{Append app}} x y = app.append x y
 
-/**
- * Appends the 2 Strings.
- */
 pub instance
 appendString : Append String
-appendString =
-  Append { append: \s s2 -> concat s s2
-         , empty: ""
-         }
+appendString = Append { append: \s s2 -> concat s s2 }
 
-/**
- * Appends the 2 Vectors.
- * Runtime: O(log N)
- */
 pub instance
 appendVector : forall a. Append (Vector a)
-appendVector =
-  Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCast
-         , empty: []
-         }
+appendVector = Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCast }
