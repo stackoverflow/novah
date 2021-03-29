@@ -24,9 +24,14 @@ class NovahClassWriter(flags: Int) : ClassWriter(flags) {
         return try {
             super.getCommonSuperClass(type1, type2)
         } catch (e: Exception) {
+            if (type1 == type2) return type1
             if (type1 == OBJECT_CLASS || type2 == OBJECT_CLASS) return OBJECT_CLASS
-            if (superClassCache[type1] == type2) return type2
-            if (superClassCache[type2] == type1) return type1
+            
+            val super1 = superClassCache[type1]
+            if (super1 == type2) return type2
+            val super2 = superClassCache[type2]
+            if (super2 == type1) return type1
+            if (super1 != null && super1 == super2) return super1
             throw e
         }
     }
