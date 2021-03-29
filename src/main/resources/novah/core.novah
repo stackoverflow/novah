@@ -5,6 +5,8 @@
 module novah.core
 
 foreign import type io.lacuna.bifurcan.IList
+foreign import type io.lacuna.bifurcan.ISet
+foreign import type java.util.function.Function
 foreign import type novah.Core
 
 foreign import get java.lang.System:out
@@ -14,10 +16,9 @@ foreign import Object.toString() as jToString
 foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
 foreign import IList.toArray() as vecToArr
-foreign import Vector.nth(Int64) as nthVec
 foreign import Vector.concat(IList) as vecConcat
-foreign import Int32.longValue()
 foreign import String.concat(String)
+foreign import Set.union(ISet)
 
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
@@ -32,6 +33,9 @@ foreign import Core:mkObjectArray(Int32)
 foreign import Core:getArray(Int32, Array)
 foreign import Core:setArray(Int32, Object, Array)
 foreign import Core:getArrayLength(Array)
+foreign import Core:equivalentObject(Object, Object)
+//foreign import Core:unsafeCoerce(Object)
+//foreign import Core:mapArray(Function, Array) as arrMap
 
 /**
  * A 32-bits Integer
@@ -44,6 +48,10 @@ typealias Int = Int32
  */
 pub
 typealias Float = Float64
+
+//pub
+//unsafeCaster : forall a b. a -> b
+//unsafeCaster x = unsafeCoerce x
 
 /**
  * Negates a boolean value.
@@ -87,21 +95,30 @@ pub
 (|>) x f = f x
 
 /**
- * Forward composition operator: (f >> g) x = g (f x)
+ * Forward function composition operator: (f >> g >> h) x = h (g (f x))
  */
 pub
 (>>) : forall a b c. (a -> b) -> (b -> c) -> (a -> c)
 (>>) f g x = g (f x)
 
 /**
- * Backward composition operator: (f << g) x = f (g x)
+ * Backward function composition operator: (f << g << h) x = f (g (h x))
  */
 pub
 (<<) : forall a b c. (b -> c) -> (a -> b) -> (a -> c)
 (<<) f g x = f (g x)
 
 /**
- * Prints x to the stdout and appends a new line.
+ * Returns true if the 2 objects are equivalent:
+ * point to the same object.
+ * This is the same as Java's ==
+ */
+pub
+(===) : forall a. a -> a -> Boolean
+(===) x y = equivalentObject (unsafeCast x) (unsafeCast y)
+
+/**
+ * Prints x to stdout and appends a new line.
  */
 pub
 println : forall a. a -> Unit
@@ -199,7 +216,7 @@ objectArray size = mkObjectArray size
  */
 pub
 arrayGet : forall a. Int -> Array a -> a
-arrayGet index arr = getArray index arr
+arrayGet index arr = getArray index (unsafeCast arr) |> unsafeCast
 
 /**
  * Sets the element of the array at the
@@ -207,21 +224,21 @@ arrayGet index arr = getArray index arr
  */
 pub
 arraySet : forall a. Int -> a -> Array a -> Unit
-arraySet index x arr = setArray index x arr
+arraySet index x arr = setArray index (unsafeCast x) (unsafeCast arr)
 
 /**
  * Gets the length of this array.
  */
 pub
 arrayLength : forall a. Array a -> Int
-arrayLength arr = getArrayLength arr
+arrayLength arr = getArrayLength (unsafeCast arr)
 
 /**
  * Converts a Vector of some type `a` to an Array of `a`.
  */
 pub
 arrayOf : forall a. Vector a -> Array a
-arrayOf vec = vecToArr (unsafeCast vec)
+arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
 
 /**
  * Returns a formatted string using the specified format string and arguments.
@@ -229,7 +246,7 @@ arrayOf vec = vecToArr (unsafeCast vec)
  */
 pub
 format : forall a. String -> Vector a -> String
-format str vec = sformat str (arrayOf vec)
+format str vec = sformat str (unsafeCast (arrayOf vec))
 
 /**
  * Represents the possibility of a missing value.
@@ -241,19 +258,12 @@ type Option a = Some a | None
  * Returns the value contained in this Option
  * or the default value.
  */
-maybe : forall a. a -> Option a -> a
-maybe def =
-  case _ of
+pub
+(?:) : forall a. Option a -> a -> a
+(?:) opt def =
+  case opt of
     Some x -> x
     None -> def
-
-/**
- * Returns the value at index for this Vector.
- * Runtime: O(~1)
- */
-pub
-nth : forall a. Vector a -> Int -> a
-nth vec index = nthVec vec (longValue index)
 
 /**
  * The type of things that can be appended.
@@ -275,3 +285,7 @@ appendString = Append { append: \s s2 -> concat s s2 }
 pub instance
 appendVector : forall a. Append (Vector a)
 appendVector = Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCast }
+
+pub instance
+appendSet : forall a. Append (Set a)
+appendSet = Append { append: \s s2 -> union s (unsafeCast s2) }
