@@ -27,7 +27,7 @@ class InstanceArgumentsSpec : StringSpec({
             opaque type Show a = { show : a -> String }
             
             show : forall a. {{ Show a }} -> a -> String
-            show {{s}} x = case s of Show ss -> ss.show x
+            show {{Show s}} x = s.show x
             
             instance
             showInt : Show Int
@@ -65,7 +65,7 @@ class InstanceArgumentsSpec : StringSpec({
             opaque type Show a = { show : a -> String }
             
             show : forall a. {{ Show a }} -> a -> String
-            show {{s}} x = case s of Show m -> m.show x
+            show {{Show s}} x = s.show x
             
             instance
             showInt : Show Int

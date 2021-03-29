@@ -12,3 +12,6 @@
 - [ ] Fix pattern matching warnings (records)
 - [ ] Implement the novah class loader to load external files
 - [ ] Report on unused imports/foreign import types
+- [ ] Fix point free unsafeCast (better way to unsafeCast)
+- [ ] Fix instance search when the instance is not the first parameter of the App
+- [ ] Fix double CHECKCAST on native function calls

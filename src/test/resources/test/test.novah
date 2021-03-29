@@ -6,13 +6,14 @@ toStr : forall a. Array a -> String
 toStr arr = toStringArr (unsafeCast arr)
 
 pub
-main : Unit -> Unit
-main () = do
+main : Array String -> Unit
+main _ = do
   let arr = arrayOf [4, 5, 6, 7]
   let printArr = toStr >> println
   arraySet 2 99 arr
-  //"some " ++ "body" |> println
-  [1, 2, 3] ++ [5, 6, 7] |> println
+  println (Some [4, 5])
+  None ?: 3 |> println
+  #{1, 2, 3} ++ #{5, 6, 7} |> println
   printArr arr
   format "some %s once told %s" ["body", "me"] |> println
   [56, 78, 90, 14, 566] |> flip nth 4 |> println

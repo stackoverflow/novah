@@ -57,6 +57,7 @@ fun8 x = case x of
   _ -> println "not int or object"
 
 pub
+main : Array String -> Unit
 main _ = do
   fun rec
   fun2 vec
@@ -66,3 +67,4 @@ main _ = do
   fun6 vec
   fun7 ()
   fun8 45
+  ()
