@@ -21,6 +21,9 @@ import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.frontend.hmftypechecker.CORE_MODULE
+import novah.frontend.hmftypechecker.coreImport
+import novah.frontend.hmftypechecker.primImport
 import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
@@ -56,6 +59,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 else -> break
             }
         }
+        addDefaultImports(imports)
 
         val decls = mutableListOf<Decl>()
         while (iter.peek().value !is EOF) {
@@ -114,6 +118,16 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseModuleName(): List<String> {
         return between<Dot, String> { expect<Ident>(withError(E.MODULE_NAME)).value.v }
+    }
+
+    /**
+     * Adds the primitive and core imports if needed.
+     */
+    private fun addDefaultImports(imports: MutableList<Import>) {
+        imports += primImport
+        if (!imports.any { it.module == CORE_MODULE } && moduleName != CORE_MODULE) {
+            imports += coreImport
+        }
     }
 
     private fun parseImport(): Import {

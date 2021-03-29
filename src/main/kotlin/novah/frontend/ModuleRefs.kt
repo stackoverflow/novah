@@ -17,7 +17,6 @@ package novah.frontend
 
 import novah.Util.internalError
 import novah.ast.source.*
-import novah.ast.source.Type as SType
 import novah.data.NovahClassLoader
 import novah.data.Reflection
 import novah.frontend.error.CompilerProblem
@@ -31,6 +30,7 @@ import novah.main.FullModuleEnv
 import novah.main.TypeDeclRef
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
+import novah.ast.source.Type as SType
 
 typealias VarRef = String
 typealias ModuleName = String
@@ -50,13 +50,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
     val resolved = mutableMapOf<VarRef, ModuleName>()
     val resolvedTypealiases = mutableListOf<Decl.TypealiasDecl>()
     val errors = mutableListOf<CompilerProblem>()
-    // add the primitive and core module as import to every module
-    val imports = if (mod.name == CORE_MODULE) {
-        mod.imports + primImport
-    } else {
-        mod.imports + primImport + coreImport
-    }
-    for (imp in imports) {
+    for (imp in mod.imports) {
         val mkError = makeError(imp.span())
         val mkWarn = makeWarn(imp.span())
         val m = if (imp.module == PRIM) primModuleEnv else modules[imp.module]?.env

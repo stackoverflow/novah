@@ -17,6 +17,8 @@ package novah;
 
 import io.lacuna.bifurcan.List;
 
+import java.util.function.Function;
+
 /**
  * Core language functions
  */
@@ -157,6 +159,10 @@ public class Core {
     public static boolean equivalent(boolean e1, boolean e2) {
         return e1 == e2;
     }
+    
+    public static boolean equivalentObject(Object o1, Object o2) {
+        return o1 == o2;
+    }
 
     public static byte[] mkByteArray(int size) {
         return new byte[size];
@@ -212,5 +218,19 @@ public class Core {
     
     public static boolean vectorNotEmpty(List<?> vec) {
         return vec.size() != 0;
+    }
+    
+    public static List<Object> mapVector(Function<Object, Object> f, List<Object> vec) {
+        var res = List.empty().linear();
+        vec.stream().forEach((elem) -> res.addLast(f.apply(elem)));
+        return res.forked();
+    }
+    
+    public static Object[] mapArray(Function<Object, Object> f, Object[] arr) {
+        var res = new Object[arr.length];
+        for (int i = 0; i < arr.length; i++) {
+            res[i] = f.apply(arr[i]);
+        }
+        return res;
     }
 }
