@@ -288,4 +288,4 @@ appendVector = Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCa
 
 pub instance
 appendSet : forall a. Append (Set a)
-appendSet = Append { append: \s s2 -> union s (unsafeCast s2) }
+appendSet = Append { append: \s s2 -> union s (unsafeCast s2) |> unsafeCast }

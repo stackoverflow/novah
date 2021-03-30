@@ -16,4 +16,4 @@ main _ = do
   #{1, 2, 3} ++ #{5, 6, 7} |> println
   printArr arr
   format "some %s once told %s" ["body", "me"] |> println
-  [56, 78, 90, 14, 566] |> flip nth 4 |> println
+  //[56, 78, 90, 14, 566] |> flip nth 4 |> println
