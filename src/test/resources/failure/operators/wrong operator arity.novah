@@ -1,4 +1,0 @@
-module test
-
-(+) : Int -> Int
-(+) x = x

@@ -3,15 +3,9 @@ module pack.test
 import pack.namespace1 ( Foo )
 
 foreign import type java.io.File
-foreign import new File(String) as newFile
-foreign import File.getAbsolutePath()
-foreign import get Int:MAX_VALUE as maxValue
-foreign import String.compareTo(String)
 foreign import type java.util.ArrayList
 foreign import new ArrayList() as newArrayList
 foreign import ArrayList.add(String)
-
-type Maybe a = Some a | None
 
 type Day = Weekday | Weekend
 
@@ -19,7 +13,7 @@ type Result k e = Ok k | Err e
 
 type Triple a b c = Triple a b c Int String
 
-bar : Unit -> Maybe Foo
+bar : Unit -> Option Foo
 bar () = Some 0
 
 pub
@@ -49,7 +43,7 @@ l _ = let l1 = toString 4
 
 w = \x -> x
 
-myFun : Maybe (Maybe String) -> String
+myFun : Option (Option String) -> String
 myFun x = case x of
   Some (Some v) -> v
   Some None -> "some nope"

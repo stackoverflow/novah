@@ -24,7 +24,7 @@ class RecordSpec : StringSpec({
 
     "basic records" {
         val code = """
-            rec : { a : Int, b : Boolean, c : Long }
+            rec : { a : Int, b : Boolean, c : Int64 }
             rec = { a: 1, b: true, c: 3L }
             
             a = rec.a
@@ -36,15 +36,15 @@ class RecordSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
 
-        ds["rec"]?.type?.simpleName() shouldBe "{ a : Int, b : Boolean, c : Long }"
-        ds["a"]?.type?.simpleName() shouldBe "Int"
-        ds["minus"]?.type?.simpleName() shouldBe "{ b : Boolean, c : Long }"
-        ds["plus"]?.type?.simpleName() shouldBe "{ d : Byte, a : Int, b : Boolean, c : Long }"
+        ds["rec"]?.type?.simpleName() shouldBe "{ a : Int32, b : Boolean, c : Int64 }"
+        ds["a"]?.type?.simpleName() shouldBe "Int32"
+        ds["minus"]?.type?.simpleName() shouldBe "{ b : Boolean, c : Int64 }"
+        ds["plus"]?.type?.simpleName() shouldBe "{ d : Byte, a : Int32, b : Boolean, c : Int64 }"
     }
 
     "duplicated labels" {
         val code = """
-            rec : { a : Int, a : Boolean, a : Long }
+            rec : { a : Int, a : Boolean, a : Int64 }
             rec = { a: 3, a: true, a: 3L }
             
             a = rec.a
@@ -60,11 +60,11 @@ class RecordSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
 
-        ds["rec"]?.type?.simpleName() shouldBe "{ a : Long, a : Boolean, a : Int }"
-        ds["a"]?.type?.simpleName() shouldBe "Long"
-        ds["minus"]?.type?.simpleName() shouldBe "{ a : Boolean, a : Int }"
+        ds["rec"]?.type?.simpleName() shouldBe "{ a : Int64, a : Boolean, a : Int32 }"
+        ds["a"]?.type?.simpleName() shouldBe "Int64"
+        ds["minus"]?.type?.simpleName() shouldBe "{ a : Boolean, a : Int32 }"
         ds["minusA"]?.type?.simpleName() shouldBe "Boolean"
-        ds["plus"]?.type?.simpleName() shouldBe "{ a : Byte, a : Long, a : Boolean, a : Int }"
+        ds["plus"]?.type?.simpleName() shouldBe "{ a : Byte, a : Int64, a : Boolean, a : Int32 }"
         ds["plusA"]?.type?.simpleName() shouldBe "Byte"
     }
 
@@ -85,11 +85,11 @@ class RecordSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["isXZero"]?.type?.simpleName() shouldBe "forall t1. { x : Int | t1 } -> Boolean"
-        ds["minus"]?.type?.simpleName() shouldBe "forall t1 t2. { x : t1 | t2 } -> { | t2 }"
+        ds["isXZero"]?.type?.simpleName() shouldBe "forall t1. { x : Int32 | t1 } -> Boolean"
+        ds["minus"]?.type?.simpleName() shouldBe "forall t2 t1. { x : t2 | t1 } -> { | t1 }"
         ds["plus"]?.type?.simpleName() shouldBe "forall t1 t2. t1 -> { | t2 } -> { x : t1 | t2 }"
-        ds["ap1"]?.type?.simpleName() shouldBe "Unit -> { y : Int }"
-        ds["ap2"]?.type?.simpleName() shouldBe "Unit -> { x : String, y : Int, z : Boolean }"
+        ds["ap1"]?.type?.simpleName() shouldBe "Unit -> { y : Int32 }"
+        ds["ap2"]?.type?.simpleName() shouldBe "Unit -> { x : String, y : Int32, z : Boolean }"
     }
 
     "string and UTF-8 labels" {
@@ -104,15 +104,16 @@ class RecordSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["rec"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int, "some 'label'" : Boolean, "😃 emoticons" : Long }"""
-        ds["minus"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int }"""
-        ds["plus"]?.type?.simpleName() shouldBe """{ "😑" : Byte, "Uppercase" : Int, "some 'label'" : Boolean, "😃 emoticons" : Long }"""
-        ds["sel"]?.type?.simpleName() shouldBe "Long"
+        ds["rec"]?.type?.simpleName() shouldBe
+                """{ "Uppercase" : Int32, "some 'label'" : Boolean, "😃 emoticons" : Int64 }"""
+        ds["minus"]?.type?.simpleName() shouldBe """{ "Uppercase" : Int32 }"""
+        ds["plus"]?.type?.simpleName() shouldBe
+                """{ "😑" : Byte, "Uppercase" : Int32, "some 'label'" : Boolean, "😃 emoticons" : Int64 }"""
+        ds["sel"]?.type?.simpleName() shouldBe "Int64"
     }
 
     "polymorphic rows" {
         val code = """
-            type Option a = Some a | None
             typealias Named r = [ name : String | r ]
             typealias Aged a r = [ age : Option a | r ]
             
@@ -124,7 +125,7 @@ class RecordSpec : StringSpec({
 
         val user = TestUtil.compileCode(code).env.decls["user"]
 
-        user?.type?.simpleName() shouldBe "{ ssn : String, name : String, age : Option Int }"
+        user?.type?.simpleName() shouldBe "{ ssn : String, name : String, age : Option Int32 }"
     }
 
     "record update" {
@@ -161,7 +162,7 @@ class RecordSpec : StringSpec({
         val pre = TestUtil.compileCode(code).env.decls["prelude"]?.type
         pre?.simpleName() shouldBe "{ const : forall t1 t2. t1 -> t2 -> t1, id : forall t3. t3 -> t3 }"
     }
-    
+
     "proper type checking for records" {
         val code = """
             

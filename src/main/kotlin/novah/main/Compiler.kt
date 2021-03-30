@@ -32,6 +32,8 @@ class Compiler(private val sources: Sequence<Source>, verbose: Boolean) {
     }
     
     fun getWarnings() = env.getWarnings()
+    
+    fun getModules() = env.getModuleEnvs()
 
     companion object {
         fun new(sources: Sequence<Path>, verbose: Boolean): Compiler {

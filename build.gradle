@@ -20,6 +20,7 @@ dependencies {
     implementation "org.ow2.asm:asm:9.0"
     implementation "com.github.ajalt.clikt:clikt:3.1.0"
     implementation "io.lacuna:bifurcan:0.2.0-alpha4"
+    implementation "org.reflections:reflections:0.9.12"
 
     testImplementation "io.kotest:kotest-runner-junit5-jvm:$kotestVersion"
     testImplementation "io.kotest:kotest-assertions-core-jvm:$kotestVersion"

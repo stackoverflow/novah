@@ -44,7 +44,7 @@ class ParserSpec : StringSpec({
 
     fun comparePattern(p1: Pattern, p2: Pattern): Boolean = when {
         p1 is Pattern.Var && p2 is Pattern.Var -> p1.name == p2.name
-        p1 is Pattern.ImplicitVar && p2 is Pattern.ImplicitVar -> p1.name == p2.name
+        p1 is Pattern.ImplicitPattern && p2 is Pattern.ImplicitPattern -> p1.pat == p2.pat
         else -> false
     }
     

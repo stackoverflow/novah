@@ -1,4 +1,4 @@
 module test
 
-rec : forall r. { fun : String -> String | r }
+rec : { fun : String -> String }
 rec = { fun: \x -> x, notfun: 0 }

@@ -6,6 +6,6 @@ at src/test/resources/failure/variables/shadowed variables - case expression.nov
 while checking expression case 4 of
   0 -> "zero"
   1 -> "one"
-  x -> (prim. ...
+  x -> (novah ...
 in declaration f
 

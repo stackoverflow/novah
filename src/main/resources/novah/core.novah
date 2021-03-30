@@ -1,0 +1,291 @@
+/**
+ * The core functions of the language.
+ * Imported automatically in every module.
+ */
+module novah.core
+
+foreign import type io.lacuna.bifurcan.IList
+foreign import type io.lacuna.bifurcan.ISet
+foreign import type java.util.function.Function
+foreign import type novah.Core
+
+foreign import get java.lang.System:out
+foreign import java.io.PrintStream.println(Object) as jprintln
+foreign import java.io.PrintStream.print(Object) as jprint
+foreign import Object.toString() as jToString
+foreign import Object.hashCode() as jHashCode
+foreign import String:format(String, Array) as sformat
+foreign import IList.toArray() as vecToArr
+foreign import Vector.concat(IList) as vecConcat
+foreign import String.concat(String)
+foreign import Set.union(ISet)
+
+foreign import Core:not(Boolean) as negate
+foreign import Core:mkByteArray(Int32)
+foreign import Core:mkInt16Array(Int32)
+foreign import Core:mkInt32Array(Int32)
+foreign import Core:mkInt64Array(Int32)
+foreign import Core:mkFloat32Array(Int32)
+foreign import Core:mkFloat64Array(Int32)
+foreign import Core:mkCharArray(Int32)
+foreign import Core:mkBooleanArray(Int32)
+foreign import Core:mkObjectArray(Int32)
+foreign import Core:getArray(Int32, Array)
+foreign import Core:setArray(Int32, Object, Array)
+foreign import Core:getArrayLength(Array)
+foreign import Core:equivalentObject(Object, Object)
+//foreign import Core:unsafeCoerce(Object)
+//foreign import Core:mapArray(Function, Array) as arrMap
+
+/**
+ * A 32-bits Integer
+ */
+pub
+typealias Int = Int32
+
+/**
+ * A 64-bits floating point.
+ */
+pub
+typealias Float = Float64
+
+//pub
+//unsafeCaster : forall a b. a -> b
+//unsafeCaster x = unsafeCoerce x
+
+/**
+ * Negates a boolean value.
+ */
+pub
+not : Boolean -> Boolean
+not b = negate b
+
+/**
+ * A function that just returns it's argument.
+ */
+pub
+identity : forall a. a -> a
+identity x = x
+
+/**
+ * Flips the arguments of a 2-arguments function.
+ */
+pub
+flip : forall a b c. (a -> b -> c) -> (b -> a -> c)
+flip f y x = f x y
+
+/**
+ * Takes two parameters and returns the first, ignoring the second.
+ */
+pub
+const : forall a b. a -> b -> a
+const x _ = x
+
+/**
+ * Apply function f to x.
+ * Used to minimize parentheses and have a
+ * more intuitive order of execution:
+ *
+ * x |> fun1 |> fun2 |> fun3 y
+ * instead of
+ * fun3 y (fun2 (fun1 x))
+ */
+pub
+(|>) : forall a b. a -> (a -> b) -> b
+(|>) x f = f x
+
+/**
+ * Forward function composition operator: (f >> g >> h) x = h (g (f x))
+ */
+pub
+(>>) : forall a b c. (a -> b) -> (b -> c) -> (a -> c)
+(>>) f g x = g (f x)
+
+/**
+ * Backward function composition operator: (f << g << h) x = f (g (h x))
+ */
+pub
+(<<) : forall a b c. (b -> c) -> (a -> b) -> (a -> c)
+(<<) f g x = f (g x)
+
+/**
+ * Returns true if the 2 objects are equivalent:
+ * point to the same object.
+ * This is the same as Java's ==
+ */
+pub
+(===) : forall a. a -> a -> Boolean
+(===) x y = equivalentObject (unsafeCast x) (unsafeCast y)
+
+/**
+ * Prints x to stdout and appends a new line.
+ */
+pub
+println : forall a. a -> Unit
+println x = jprintln out (unsafeCast x)
+
+/**
+ * Prints x to the stdout.
+ */
+pub
+print : forall a. a -> Unit
+print x = jprint out (unsafeCast x)
+
+/**
+ * Converts a value to String using the
+ * native Java toString method.
+ */
+pub
+toString : forall a. a -> String
+toString x = jToString (unsafeCast x)
+
+/**
+ * Returns the hash code for this value using
+ * the native Java hashCode method.
+ */
+pub
+hashCode : forall a. a -> Int32
+hashCode x = jHashCode (unsafeCast x)
+
+/**
+ * Creates a byte array of the specified size.
+ */
+pub
+byteArray : Int -> ByteArray
+byteArray size = mkByteArray size
+
+/**
+ * Creates a int16 array of the specified size.
+ */
+pub
+int16Array : Int -> Int16Array
+int16Array size = mkInt16Array size
+
+/**
+ * Creates a int32 array of the specified size.
+ */
+pub
+intArray : Int -> Int32Array
+intArray size = mkInt32Array size
+
+/**
+ * Creates a int64 array of the specified size.
+ */
+pub
+int64Array : Int -> Int64Array
+int64Array size = mkInt64Array size
+
+/**
+ * Creates a float32 array of the specified size.
+ */
+pub
+float32Array : Int -> Float32Array
+float32Array size = mkFloat32Array size
+
+/**
+ * Creates a float64 array of the specified size.
+ */
+pub
+floatArray : Int -> Float64Array
+floatArray size = mkFloat64Array size
+
+/**
+ * Creates a char array of the specified size.
+ */
+pub
+charArray : Int -> CharArray
+charArray size = mkCharArray size
+
+/**
+ * Creates a boolean array of the specified size.
+ */
+pub
+booleanArray : Int -> BooleanArray
+booleanArray size = mkBooleanArray size
+
+/**
+ * Creates an Object array of the specified size.
+ */
+pub
+objectArray : Int -> Array Object
+objectArray size = mkObjectArray size
+
+/**
+ * Gets the element of the array at the
+ * specified index.
+ */
+pub
+arrayGet : forall a. Int -> Array a -> a
+arrayGet index arr = getArray index (unsafeCast arr) |> unsafeCast
+
+/**
+ * Sets the element of the array at the
+ * specified index.
+ */
+pub
+arraySet : forall a. Int -> a -> Array a -> Unit
+arraySet index x arr = setArray index (unsafeCast x) (unsafeCast arr)
+
+/**
+ * Gets the length of this array.
+ */
+pub
+arrayLength : forall a. Array a -> Int
+arrayLength arr = getArrayLength (unsafeCast arr)
+
+/**
+ * Converts a Vector of some type `a` to an Array of `a`.
+ */
+pub
+arrayOf : forall a. Vector a -> Array a
+arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
+
+/**
+ * Returns a formatted string using the specified format string and arguments.
+ * See java.util.Formatter for format explanation.
+ */
+pub
+format : forall a. String -> Vector a -> String
+format str vec = sformat str (unsafeCast (arrayOf vec))
+
+/**
+ * Represents the possibility of a missing value.
+ */
+pub+
+type Option a = Some a | None
+
+/**
+ * Returns the value contained in this Option
+ * or the default value.
+ */
+pub
+(?:) : forall a. Option a -> a -> a
+(?:) opt def =
+  case opt of
+    Some x -> x
+    None -> def
+
+/**
+ * The type of things that can be appended.
+ */
+pub+
+opaque type Append a = { append : a -> a -> a }
+
+/**
+ * Appends 2 appendable values together.
+ */
+pub
+(++) : forall a. {{ Append a }} -> a -> a -> a
+(++) {{Append app}} x y = app.append x y
+
+pub instance
+appendString : Append String
+appendString = Append { append: \s s2 -> concat s s2 }
+
+pub instance
+appendVector : forall a. Append (Vector a)
+appendVector = Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCast }
+
+pub instance
+appendSet : forall a. Append (Set a)
+appendSet = Append { append: \s s2 -> union s (unsafeCast s2) |> unsafeCast }

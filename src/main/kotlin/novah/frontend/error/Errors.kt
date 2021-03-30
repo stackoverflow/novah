@@ -200,10 +200,6 @@ object Errors {
         Consider adding a type annotation.
     """.trimIndent()
 
-    fun wrongOperatorArity(op: String, arity: Int) = """
-        Binary operator $op has wrong arity: it should have 2 non-implicit parameters but got $arity.
-    """.trimIndent()
-
     fun expectedDefinition(name: String) = "Expected definition to follow its type declaration for $name."
 
     fun expectedLetDefinition(name: String) =
@@ -337,8 +333,16 @@ object Errors {
 
     fun unusedVariables(vars: List<String>): String {
         return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."
-        else "Variables ${vars.joinToString()} are unused in declaration."
+        else """
+            Variables
+            
+                ${vars.joinToString()}
+            
+            are unused in declaration.
+        """.trimIndent()
     }
+    
+    fun unusedImport(imp: String): String = "Import $imp is unused in module."
 
     fun recordMissingLabels(labels: List<String>): String {
         return if (labels.size == 1) "Record is missing label ${labels.joinToString()}."

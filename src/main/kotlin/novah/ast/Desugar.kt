@@ -18,9 +18,8 @@ package novah.ast
 import novah.Util.internalError
 import novah.Util.partitionIsInstance
 import novah.ast.canonical.*
+import novah.ast.source.*
 import novah.ast.source.Decl.TypealiasDecl
-import novah.ast.source.ForeignRef
-import novah.ast.source.fullname
 import novah.data.*
 import novah.data.Reflection.isStatic
 import novah.frontend.ParserError
@@ -54,6 +53,7 @@ class Desugar(private val smod: SModule) {
     private var synonyms = emptyMap<String, TypealiasDecl>()
     private val warnings = mutableListOf<CompilerProblem>()
     private val errors = mutableListOf<CompilerProblem>()
+    private val usedVars = mutableSetOf<String>()
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
@@ -68,6 +68,7 @@ class Desugar(private val smod: SModule) {
         return try {
             synonyms = validateTypealiases()
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
+            reportUnusedImports()
             if (errors.isNotEmpty()) desugarErrors(errors)
             Ok(Module(moduleName, smod.sourceName, decls))
         } catch (pe: ParserError) {
@@ -92,12 +93,12 @@ class Desugar(private val smod: SModule) {
             if (declNames.contains(name)) parserError(E.duplicatedDecl(name), span)
             declNames += name
             declVars.clear()
-            
+
             unusedVars.clear()
-            patterns.map { collectVars(it) }.flatten().forEach { 
+            patterns.map { collectVars(it) }.flatten().forEach {
                 if (!it.instance && !it.implicit) unusedVars[it.name] = it.span
             }
-            
+
             var expr = nestLambdaPatterns(patterns, exp.desugar(), emptyList())
 
             // if the declaration has a type annotation, annotate it, else warn
@@ -120,16 +121,17 @@ class Desugar(private val smod: SModule) {
         DataConstructor(name, args.map { it.desugar() }, visibility, span)
 
     private fun SExpr.desugar(locals: List<String> = listOf(), appFnDepth: Int = 0): Expr = when (this) {
-        is SExpr.IntE -> Expr.IntE(v, span)
-        is SExpr.LongE -> Expr.LongE(v, span)
-        is SExpr.FloatE -> Expr.FloatE(v, span)
-        is SExpr.DoubleE -> Expr.DoubleE(v, span)
+        is SExpr.Int32 -> Expr.Int32(v, span)
+        is SExpr.Int64 -> Expr.Int64(v, span)
+        is SExpr.Float32 -> Expr.Float32(v, span)
+        is SExpr.Float64 -> Expr.Float64(v, span)
         is SExpr.StringE -> Expr.StringE(v, span)
         is SExpr.CharE -> Expr.CharE(v, span)
         is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.Var -> {
             declVars += name
             unusedVars.remove(name)
+            usedVars += name
             if (name in locals) Expr.Var(name, span)
             else {
                 val foreign = smod.foreignVars[name]
@@ -155,7 +157,10 @@ class Desugar(private val smod: SModule) {
             }
         }
         is SExpr.ImplicitVar -> Expr.ImplicitVar(name, span, if (name in locals) null else imports[fullname()])
-        is SExpr.Operator -> Expr.Var(name, span, imports[fullname()])
+        is SExpr.Operator -> {
+            usedVars += name
+            Expr.Var(name, span, imports[fullname()])
+        }
         is SExpr.Constructor -> Expr.Constructor(name, span, imports[fullname()])
         is SExpr.Lambda -> {
             val vars = patterns.map { collectVars(it) }.flatten()
@@ -171,7 +176,7 @@ class Desugar(private val smod: SModule) {
                     Binder(v, it.span) to Expr.Var(v, it.span)
                 } else null to it.desugar(locals)
             }
-            
+
             val ifExp = Expr.If(args[0].second, args[1].second, args[2].second, span)
             nestLambdas(args.mapNotNull { it.first }, ifExp)
         }
@@ -181,7 +186,7 @@ class Desugar(private val smod: SModule) {
             nestLets(letDefs, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.Match -> {
-            val args = exps.map { 
+            val args = exps.map {
                 if (it is SExpr.Underscore) {
                     val v = newVar()
                     Binder(v, it.span) to Expr.Var(v, it.span)
@@ -223,7 +228,7 @@ class Desugar(private val smod: SModule) {
                 lvars += Binder(v, span)
                 Expr.Var(v, span)
             } else exp.desugar(locals)
-            
+
             val rec = Expr.RecordExtend(labelMapWith(plabels), expr, span)
             nestLambdas(lvars, rec)
         }
@@ -271,17 +276,17 @@ class Desugar(private val smod: SModule) {
         is SPattern.Named -> Pattern.Named(pat.desugar(locals), name, span)
         is SPattern.Unit -> Pattern.Unit(span)
         is SPattern.TypeTest -> Pattern.TypeTest(type.desugar(), alias, span)
-        is SPattern.ImplicitVar -> parserError(E.IMPLICIT_PATTERN, span)
+        is SPattern.ImplicitPattern -> parserError(E.IMPLICIT_PATTERN, span)
     }
 
     private fun SLiteralPattern.desugar(locals: List<String>): LiteralPattern = when (this) {
         is SLiteralPattern.BoolLiteral -> LiteralPattern.BoolLiteral(e.desugar(locals) as Expr.Bool)
         is SLiteralPattern.CharLiteral -> LiteralPattern.CharLiteral(e.desugar(locals) as Expr.CharE)
         is SLiteralPattern.StringLiteral -> LiteralPattern.StringLiteral(e.desugar(locals) as Expr.StringE)
-        is SLiteralPattern.IntLiteral -> LiteralPattern.IntLiteral(e.desugar(locals) as Expr.IntE)
-        is SLiteralPattern.LongLiteral -> LiteralPattern.LongLiteral(e.desugar(locals) as Expr.LongE)
-        is SLiteralPattern.FloatLiteral -> LiteralPattern.FloatLiteral(e.desugar(locals) as Expr.FloatE)
-        is SLiteralPattern.DoubleLiteral -> LiteralPattern.DoubleLiteral(e.desugar(locals) as Expr.DoubleE)
+        is SLiteralPattern.Int32Literal -> LiteralPattern.Int32Literal(e.desugar(locals) as Expr.Int32)
+        is SLiteralPattern.Int64Literal -> LiteralPattern.Int64Literal(e.desugar(locals) as Expr.Int64)
+        is SLiteralPattern.Float32Literal -> LiteralPattern.Float32Literal(e.desugar(locals) as Expr.Float32)
+        is SLiteralPattern.Float64Literal -> LiteralPattern.Float64Literal(e.desugar(locals) as Expr.Float64)
     }
 
     private fun SLetDef.DefBind.desugar(locals: List<String>): LetDef {
@@ -342,19 +347,21 @@ class Desugar(private val smod: SModule) {
         is SLetDef.DefPattern -> collectVars(ldef.pat)
     }
 
-    private fun collectVars(pat: SPattern): List<CollectedVar> = when (pat) {
-        is SPattern.Var -> listOf(CollectedVar(pat.name, pat.span))
-        is SPattern.Parens -> collectVars(pat.pattern)
-        is SPattern.Ctor -> pat.fields.flatMap { collectVars(it) }
-        is SPattern.Record -> pat.labels.flatMapList { collectVars(it) }.toList()
-        is SPattern.Vector -> pat.elems.flatMap { collectVars(it) }
-        is SPattern.VectorHT -> collectVars(pat.head) + collectVars(pat.tail)
-        is SPattern.Named -> collectVars(pat.pat)
-        is SPattern.ImplicitVar -> listOf(CollectedVar(pat.name, pat.span, true))
+    private fun collectVars(pat: SPattern, implicit: Boolean = false): List<CollectedVar> = when (pat) {
+        is SPattern.Var -> listOf(CollectedVar(pat.name, pat.span, implicit = implicit))
+        is SPattern.Parens -> collectVars(pat.pattern, implicit)
+        is SPattern.Ctor -> pat.fields.flatMap { collectVars(it, implicit) }
+        is SPattern.Record -> pat.labels.flatMapList { collectVars(it, implicit) }.toList()
+        is SPattern.Vector -> pat.elems.flatMap { collectVars(it, implicit) }
+        is SPattern.VectorHT -> collectVars(pat.head, implicit) + collectVars(pat.tail, implicit)
+        is SPattern.Named -> collectVars(pat.pat, implicit)
+        is SPattern.ImplicitPattern -> collectVars(pat.pat, true)
         is SPattern.Wildcard -> emptyList()
         is SPattern.LiteralP -> emptyList()
         is SPattern.Unit -> emptyList()
-        is SPattern.TypeTest -> if (pat.alias != null) listOf(CollectedVar(pat.alias, pat.span)) else emptyList()
+        is SPattern.TypeTest -> {
+            if (pat.alias != null) listOf(CollectedVar(pat.alias, pat.span, implicit)) else emptyList()
+        }
     }
 
     /**
@@ -405,7 +412,7 @@ class Desugar(private val smod: SModule) {
         return if (binders.isEmpty()) exp
         else Expr.Lambda(binders[0], null, nestLambdas(binders.drop(1), exp), exp.span)
     }
-    
+
     private fun nestLambdaPatterns(pats: List<SPattern>, exp: Expr, locals: List<String>): Expr {
         return if (pats.isEmpty()) exp
         else {
@@ -416,12 +423,26 @@ class Desugar(private val smod: SModule) {
                     nestLambdaPatterns(pats.drop(1), exp, locals),
                     exp.span
                 )
-                is SPattern.ImplicitVar -> Expr.Lambda(
-                    Binder(pat.name, pat.span, true),
-                    null,
-                    nestLambdaPatterns(pats.drop(1), exp, locals),
-                    exp.span
-                )
+                is SPattern.ImplicitPattern -> {
+                    if (pat.pat is SPattern.Var) {
+                        Expr.Lambda(
+                            Binder(pat.pat.name, pat.span, true),
+                            null,
+                            nestLambdaPatterns(pats.drop(1), exp, locals),
+                            exp.span
+                        )
+                    } else {
+                        val v = newVar()
+                        val vars = listOf(Expr.Var(v, pat.span))
+                        val expr = Expr.Match(vars, listOf(Case(listOf(pat.pat.desugar(locals)), exp)), exp.span)
+                        Expr.Lambda(
+                            Binder(v, pat.span, true),
+                            null,
+                            nestLambdaPatterns(pats.drop(1), expr, locals),
+                            exp.span
+                        )
+                    }
+                }
                 else -> {
                     val vars = pats.map { Expr.Var(newVar(), it.span) }
                     val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals) }, exp)), exp.span)
@@ -445,12 +466,12 @@ class Desugar(private val smod: SModule) {
             }
         }
     }
-    
+
     private tailrec fun nestRecordSelects(exp: Expr, labels: List<String>): Expr {
         return if (labels.isEmpty()) exp
         else nestRecordSelects(Expr.RecordSelect(exp, labels[0], exp.span), labels.drop(1))
     }
-    
+
     private tailrec fun nestRecordRestrictions(exp: Expr, labels: List<String>): Expr {
         return if (labels.isEmpty()) exp
         else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], exp.span), labels.drop(1))
@@ -677,6 +698,30 @@ class Desugar(private val smod: SModule) {
             }
             else -> {
             }
+        }
+    }
+
+    private fun reportUnusedImports() {
+        // only explicit imports should throw errors
+        fun findImport(name: String): Span? = smod.imports.find {
+            when (it) {
+                is Import.Raw -> false
+                is Import.Exposing -> it.module == name
+            }
+        }?.span()
+        
+        fun findForeignImport(name: String): Span? =
+            smod.foreigns.filter { it !is ForeignImport.Type }.find { it.name() == name }?.span
+
+        smod.resolvedImports.forEach { (importName, modName) ->
+            if (modName != PRIM && modName != CORE_MODULE && importName[0].isLowerCase() && importName !in usedVars) {
+                val span = findImport(modName)
+                if (span != null)
+                    errors += makeError(E.unusedImport(importName), span)
+            }
+        }
+        smod.foreignVars.forEach { (key, _) ->
+            if (key !in usedVars) errors += makeError(E.unusedImport(key), findForeignImport(key) ?: smod.span)
         }
     }
 

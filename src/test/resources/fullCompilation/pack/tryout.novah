@@ -1,7 +1,6 @@
 module pack.tryout
 
 foreign import novah.Core:sum(Int, Int)
-foreign import novah.Core:equivalent(Int, Int) as eqInt
 
 rec = { x: 1, y: { z: 'a' } }
 
@@ -29,9 +28,6 @@ fun4 n =
     () -> println "null"
     _ -> println "not null"
 
-(===) : Int -> Int -> Boolean
-(===) x y = eqInt x y
-
 fun5 () =
   case 5 of
     1 -> println 1
@@ -56,4 +52,15 @@ fun8 x = case x of
   :? Vector as v -> println v
   _ -> println "not int or object"
 
-main _ = fun8 45
+pub
+main : Array String -> Unit
+main _ = do
+  fun rec
+  fun2 vec
+  fun3 ()
+  fun4 ()
+  fun5 ()
+  fun6 vec
+  fun7 ()
+  fun8 45
+  ()

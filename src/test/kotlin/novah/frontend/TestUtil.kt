@@ -18,6 +18,7 @@ package novah.frontend
 import novah.ast.source.*
 import novah.data.flatMapList
 import novah.data.map
+import novah.data.mapList
 import novah.data.unwrapOrElse
 import novah.frontend.hmftypechecker.*
 import novah.frontend.hmftypechecker.Type
@@ -83,22 +84,19 @@ object TestUtil {
         val sources = listOf(Source.SString(Path.of("namespace"), code)).asSequence()
         return Compiler(sources, verbose)
     }
-
-    fun compileCode(code: String, verbose: Boolean = true): FullModuleEnv {
+    
+    fun compileCode(code: String, verbose: Boolean = false): FullModuleEnv {
         val compiler = compilerForCode(code, verbose)
-        val menv = compiler.compile().values.first()
-        val opt = Optimizer(menv.ast)
-        val conv = opt.convert()
-        if (opt.getWarnings().isNotEmpty()) {
-            opt.getWarnings().forEach { println(it.formatToConsole()) }
+        compiler.run(File("."), dryRun = true)
+        if (compiler.getWarnings().isNotEmpty()) {
+            compiler.getWarnings().forEach { println(it.formatToConsole()) }
         }
-        conv.map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
-        return menv
+        return compiler.getModules()["test"]!!
     }
 
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
         val compiler = compilerForCode(code, verbose)
-        val ast = compiler.compile().values.first().ast
+        val ast = compiler.compile().values.last().ast
         val opt = Optimizer(ast)
         val conv = opt.convert()
         if (opt.getWarnings().isNotEmpty()) {
@@ -107,7 +105,7 @@ object TestUtil {
         return conv.map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
     }
 
-    fun _i(i: Int) = Expr.IntE(i, "$i")
+    fun _i(i: Int) = Expr.Int32(i, "$i")
     fun _v(n: String) = Expr.Var(n)
     fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { Pattern.Var(it, Span.empty()) }, e)
     fun abs(n: String, e: Expr) = Expr.Lambda(listOf(Pattern.Var(n, Span.empty())), e)
@@ -132,22 +130,55 @@ object TestUtil {
         is TImplicit -> type.findUnbound()
     }
 
-    private val pat = Regex("""t\d+""")
+    private fun Type.everywhere(f: (Type) -> Type): Type {
+        fun go(t: Type): Type = when (t) {
+            is TConst -> f(t)
+            is TVar -> {
+                when (val tv = t.tvar) {
+                    is TypeVar.Link -> f(TVar(TypeVar.Link(go(tv.type))))
+                    else -> f(t)
+                }
+            }
+            is TApp -> f(t.copy(type = go(t.type), types = t.types.map(::go)))
+            is TArrow -> f(t.copy(t.args.map { go(it) }, go(t.ret)))
+            is TForall -> f(t.copy(type = go(t.type)))
+            is TRecord -> f(t.copy(go(t.row)))
+            is TRowEmpty -> f(t)
+            is TRowExtend -> f(t.copy(row = go(t.row), labels = t.labels.mapList { go(it) }))
+            is TImplicit -> f(t.copy(go(t.type)))
+        }
+        return go(this)
+    }
 
     /**
      * Like [Type.show] but reset the ids of vars.
      */
     fun Type.simpleName(): String {
-        val set = mutableSetOf<String>()
-        var id = 1
-        var str = show(false)
-        val matches = pat.findAll(str)
-        matches.forEach { m ->
-            if (!set.contains(m.value)) {
-                str = str.replace(m.value, "t${id++}")
-                set += m.value
+        var id = 0
+        val map = mutableMapOf<Int, Int>()
+        fun get(i: Id): Int {
+            return if (map[i] != null) map[i]!!
+            else {
+                id++
+                map[i] = id
+                id
             }
         }
-        return str
+        
+        val ty = everywhere { t ->
+            when (t) {
+                is TVar -> {
+                    when (val tv = t.tvar) {
+                        is TypeVar.Bound -> TVar(TypeVar.Bound(get(tv.id)))
+                        is TypeVar.Generic -> TVar(TypeVar.Generic(get(tv.id)))
+                        is TypeVar.Unbound -> TVar(TypeVar.Unbound(get(tv.id), 0))
+                        else -> t
+                    }
+                }
+                is TForall -> TForall(t.ids.map { get(it) }, t.type)
+                else -> t
+            }
+        }
+        return ty.show(false)
     }
 }

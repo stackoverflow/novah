@@ -50,8 +50,8 @@ class TypedASTSpec : StringSpec({
         val ast = TestUtil.compileCode(code).ast
         val map = toMap(ast)
 
-        map["num"]?.type?.simpleName() shouldBe "Int"
-        map["ife"]?.type?.simpleName() shouldBe "Int -> Int"
+        map["num"]?.type?.simpleName() shouldBe "Int32"
+        map["ife"]?.type?.simpleName() shouldBe "Int32 -> Int32"
         map["lam"]?.type?.simpleName() shouldBe "Boolean -> Boolean"
         map["lett"]?.type?.simpleName() shouldBe "Boolean -> Boolean"
         map["app"]?.type?.simpleName() shouldBe "forall t1. t1 -> Unit"
@@ -76,18 +76,16 @@ class TypedASTSpec : StringSpec({
 
         val iff = (map["f2"] as Expr.Lambda).body as Expr.If
         iff.cond.type?.simpleName() shouldBe "Boolean"
-        iff.thenCase.type?.simpleName() shouldBe "Int"
-        iff.elseCase.type?.simpleName() shouldBe "Int"
+        iff.thenCase.type?.simpleName() shouldBe "Int32"
+        iff.elseCase.type?.simpleName() shouldBe "Int32"
         val elseCase = iff.elseCase as Expr.Var
-        elseCase.type?.simpleName() shouldBe "Int"
+        elseCase.type?.simpleName() shouldBe "Int32"
 
-        ((map["f3"] as Expr.Lambda).body as Expr.Ann).exp.type?.simpleName() shouldBe "Int"
+        ((map["f3"] as Expr.Lambda).body as Expr.Ann).exp.type?.simpleName() shouldBe "Int32"
     }
 
     "metas are resolved after typecheck" {
         val code = """
-            type Maybe a = Just a | Nothing
-            
             id x = x
             
             ife a = if true then 3 else id a
@@ -107,7 +105,7 @@ class TypedASTSpec : StringSpec({
             
             lamb : Int -> String -> Unit
             lamb _ _ = do
-              Just "a"
+              Some "a"
               ()
             
             main _ = do

@@ -16,11 +16,11 @@ sayHello name = do
   println "Hello"
   println name
 
-type Show a = Show { show : a -> String }
+opaque type Show a = { show : a -> String }
 
 pub
 show : forall a. {{ Show a }} -> a -> String
-show {{s}} x = case s of Show ss -> ss.show x
+show {{Show s}} x = s.show x
 
 pub instance
 showInt : Show Int
@@ -29,8 +29,6 @@ showInt = Show { show: (\x -> toString x) : Int -> String }
 pub instance
 showBool : Show Boolean
 showBool = Show { show: (\x -> toString x) : Boolean -> String }
-
-type Option a = Some a | None
 
 showOptionImpl : forall a. {{ Show a }} -> Option a -> String
 showOptionImpl {{s}} o = case o of
@@ -41,13 +39,13 @@ instance
 showOption : forall a. {{ Show a }} -> Show (Option a)
 showOption {{s}} = Show { show: showOptionImpl {{s}} }
 
-print : forall a. {{ Show a }} -> Option a -> Unit
-print {{s}} o = do
+printx : forall a. {{ Show a }} -> Option a -> Unit
+printx {{s}} o = do
   println (show 5)
   println (show false)
   println (show o)
 
 pub
-main () = do
-  print (Some (Some None))
-  ()
+main : Array String -> Unit
+main _ =
+  printx (Some (Some None))

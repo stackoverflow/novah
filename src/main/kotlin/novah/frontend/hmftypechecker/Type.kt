@@ -118,7 +118,7 @@ sealed class Type {
     /**
      * Recursively walks this type up->bottom
      */
-    fun everywhere(f: (Type) -> Unit) {
+    fun everywhereUnit(f: (Type) -> Unit) {
         fun go(t: Type) {
             when (t) {
                 is TConst -> f(t)
@@ -202,7 +202,7 @@ sealed class Type {
      */
     fun show(qualified: Boolean = true): String {
         fun showId(id: Id) = if (id >= 0) "t$id" else "u${-id}"
-        
+
         fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
             is TConst -> {
                 val isCurrent = Typechecker.context?.mod?.name?.let { t.name.startsWith(it) } ?: false

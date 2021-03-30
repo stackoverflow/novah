@@ -15,20 +15,14 @@
  */
 package novah.optimize
 
-import novah.ast.optimized.Decl
-import novah.ast.optimized.Expr
-import novah.ast.optimized.Module
+import novah.ast.optimized.*
 import novah.data.mapList
-import novah.frontend.Span
-import novah.frontend.error.CompilerProblem
-import novah.frontend.error.Errors
-import novah.frontend.error.ProblemContext
-import novah.main.CompilationError
+import novah.optimize.Optimizer.Companion.ARRAY_TYPE
 
 object Optimization {
 
     fun run(ast: Module): Module {
-        return optimize(ast, comp(::optimizeCtorApplication, ::optimizeOperatorApplication))
+        return optimize(ast, comp(::optimizeCtorApplication, ::optimizeFunctionAndOperatorApplication))
     }
 
     private fun optimize(ast: Module, f: (Expr) -> Expr): Module {
@@ -48,12 +42,12 @@ object Optimization {
      */
     private fun optimizeCtorApplication(expr: Expr): Expr {
         return everywhere(expr) { e ->
-            if (e !is Expr.App) e
+            if (e !is App) e
             else {
                 var level = 0
                 var exp = e
                 val args = mutableListOf<Expr>()
-                while (exp is Expr.App) {
+                while (exp is App) {
                     args += exp.arg
                     level++
                     exp = exp.fn
@@ -66,29 +60,53 @@ object Optimization {
         }
     }
 
+    private const val and = "\$and\$and"
+    private const val or = "\$pipe\$pipe"
+    private const val eq = "\$equals\$equals"
+    private const val rail = "\$pipe\$greater"
+
+    private const val primMod = "prim/Module"
+    private const val coreMod = "novah/core/Module"
+
     /**
-     * Unnest applications of && and || and ==
+     * Unnest operators like &&, ||, ==, |>, etc
      * Ex.: ((&& ((&& true) a)) y) -> (&& true a y)
      */
-    private fun optimizeOperatorApplication(expr: Expr): Expr {
+    private fun optimizeFunctionAndOperatorApplication(expr: Expr): Expr {
         return everywhere(expr) { e ->
-            if (e !is Expr.App) e
+            if (e !is App) e
             else {
                 val fn = e.fn
                 val arg = e.arg
                 when {
-                    fn is Expr.App && fn.fn is Expr.Var && (fn.fn.name == "&&" || fn.fn.name == "||") && fn.fn.className == "prim/Module" -> {
+                    // optimize && and ||
+                    fn is App && fn.fn is Var && (fn.fn.name == and || fn.fn.name == or) && fn.fn.className == primMod -> {
                         val name = fn.fn.name
+                        val op = if (name == and) "&&" else "||"
                         if (arg is Expr.OperatorApp && fn.fn.name == arg.name) {
-                            Expr.OperatorApp(name, arg.operands + listOf(fn.arg), e.type)
+                            Expr.OperatorApp(op, arg.operands + listOf(fn.arg), e.type)
                         } else if (fn.arg is Expr.OperatorApp && fn.fn.name == fn.arg.name) {
-                            Expr.OperatorApp(name, fn.arg.operands + listOf(arg), e.type)
+                            Expr.OperatorApp(op, fn.arg.operands + listOf(arg), e.type)
                         } else {
-                            Expr.OperatorApp(name, listOf(fn.arg, arg), e.type)
+                            Expr.OperatorApp(op, listOf(fn.arg, arg), e.type)
                         }
                     }
-                    fn is Expr.App && fn.fn is Expr.Var && fn.fn.name == "==" && fn.fn.className == "prim/Module" -> {
+                    // optimize ==
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$primMod.$eq" -> {
                         Expr.OperatorApp("==", listOf(fn.arg, arg), e.type)
+                    }
+                    // optimize |>
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.$rail" -> {
+                        Expr.App(arg, fn.arg, e.type)
+                    }
+                    // optimize `arrayOf [...]` to a literal array
+                    fn is Var && fn.fullname() == "$coreMod.arrayOf" && arg is Expr.VectorLiteral -> {
+                        Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars))
+                    }
+                    // optimize `format "..." [...]` to `String.format "..." <literal-array>` 
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.format" && arg is Expr.VectorLiteral -> {
+                        val arr = Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars))
+                        Expr.NativeStaticMethod(stringFormat, listOf(fn.arg, arr), e.type)
                     }
                     else -> e
                 }
@@ -122,6 +140,7 @@ object Optimization {
             is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
             is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
             is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
+            is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))
             else -> f(e)
         }
         return go(expr)
@@ -130,4 +149,11 @@ object Optimization {
     private fun comp(vararg fs: (Expr) -> Expr): (Expr) -> Expr = { e ->
         fs.fold(e) { ex, f -> f(ex) }
     }
+
+    private val stringFormat = String::class.java.methods.find { 
+        it.name == "format" && it.parameterTypes[0] == String::class.java 
+    }!!
 }
+
+private typealias App = Expr.App
+private typealias Var = Expr.Var

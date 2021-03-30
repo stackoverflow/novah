@@ -98,7 +98,6 @@ object Inference {
                 inferRecursive(name, decl.exp, newEnv, 0)
             } else infer(newEnv, 0, decl.exp)
 
-            if (decl.isOperator) validateOperator(decl)
             if (implicitsToCheck.isNotEmpty()) instanceSearch(implicitsToCheck)
 
             val genTy = generalize(-1, ty)
@@ -113,10 +112,10 @@ object Inference {
     private fun infer(env: Env, level: Level, exp: Expr): Type {
         context?.apply { exps.push(exp) }
         val ty = when (exp) {
-            is Expr.IntE -> exp.withType(tInt)
-            is Expr.LongE -> exp.withType(tLong)
-            is Expr.FloatE -> exp.withType(tFloat)
-            is Expr.DoubleE -> exp.withType(tDouble)
+            is Expr.Int32 -> exp.withType(tInt32)
+            is Expr.Int64 -> exp.withType(tInt64)
+            is Expr.Float32 -> exp.withType(tFloat32)
+            is Expr.Float64 -> exp.withType(tFloat64)
             is Expr.CharE -> exp.withType(tChar)
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.StringE -> exp.withType(tString)
@@ -267,12 +266,12 @@ object Inference {
             types.push(type)
         }
         when {
-            exp is Expr.IntE && type == tByte && validByte(exp.v) -> exp.withType(tByte)
-            exp is Expr.IntE && type == tShort && validShort(exp.v) -> exp.withType(tShort)
-            exp is Expr.IntE && type == tInt -> exp.withType(tInt)
-            exp is Expr.LongE && type == tLong -> exp.withType(tLong)
-            exp is Expr.FloatE && type == tFloat -> exp.withType(tFloat)
-            exp is Expr.DoubleE && type == tDouble -> exp.withType(tDouble)
+            exp is Expr.Int32 && type == tByte && validByte(exp.v) -> exp.withType(tByte)
+            exp is Expr.Int32 && type == tInt16 && validShort(exp.v) -> exp.withType(tInt16)
+            exp is Expr.Int32 && type == tInt32 -> exp.withType(tInt32)
+            exp is Expr.Int64 && type == tInt64 -> exp.withType(tInt64)
+            exp is Expr.Float32 && type == tFloat32 -> exp.withType(tFloat32)
+            exp is Expr.Float64 && type == tFloat64 -> exp.withType(tFloat64)
             exp is Expr.StringE && type == tString -> exp.withType(tString)
             exp is Expr.CharE && type == tChar -> exp.withType(tChar)
             exp is Expr.Bool && type == tBoolean -> exp.withType(tBoolean)
@@ -593,7 +592,7 @@ object Inference {
     }
 
     private fun validateType(type: Type, env: Env, span: Span) {
-        type.everywhere { ty ->
+        type.everywhereUnit { ty ->
             if (ty is TConst && env.lookupType(ty.name) == null) {
                 inferError(Errors.undefinedType(ty.show()), ty.span ?: span)
             }
@@ -626,26 +625,6 @@ object Inference {
      */
     private fun checkShadowType(env: Env, type: String, span: Span) {
         if (env.lookupType(type) != null) inferError(Errors.duplicatedType(type), span)
-    }
-
-    /**
-     * Makes sure the operator receives only 2 non-instance parameters.
-     */
-    private fun validateOperator(decl: Decl.ValDecl) {
-        fun numPars(ty: Type, gotNonImplicit: Boolean = false): Int = when (ty) {
-            is TForall -> numPars(ty.type)
-            is TArrow -> {
-                when {
-                    gotNonImplicit -> 1 + numPars(ty.ret, gotNonImplicit)
-                    ty.args[0] is TImplicit -> numPars(ty.ret)
-                    else -> 1 + numPars(ty.ret, gotNonImplicit)
-                }
-            }
-            else -> 0
-        }
-
-        val arity = numPars(decl.exp.type!!)
-        if (arity != 2) inferError(Errors.wrongOperatorArity(decl.name, arity), decl.span)
     }
 
     private fun getDataType(d: Decl.TypeDecl, moduleName: String): Pair<Type, Map<String, TVar>> {

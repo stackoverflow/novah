@@ -43,10 +43,10 @@ class TypecheckerSpec : StringSpec({
         val tchar = inferX("'A'")
         val tboolean = inferX("false")
 
-        tint shouldBe tInt
-        tlong shouldBe tLong
-        tfloat shouldBe tFloat
-        tdouble shouldBe tDouble
+        tint shouldBe tInt32
+        tlong shouldBe tInt64
+        tfloat shouldBe tFloat32
+        tdouble shouldBe tFloat64
         tstring shouldBe tString
         tchar shouldBe tChar
         tboolean shouldBe tBoolean
@@ -61,7 +61,7 @@ class TypecheckerSpec : StringSpec({
             
             b2 = 12 : Byte
             
-            s : Short
+            s : Int16
             s = 12
             
             l = 9999999999
@@ -83,32 +83,32 @@ class TypecheckerSpec : StringSpec({
             
             hex2 = 0xFFL
             
-            hex3 : Short
+            hex3 : Int16
             hex3 = 0xFF
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["i"]?.type shouldBe tInt
+        tys["i"]?.type shouldBe tInt32
         tys["b"]?.type shouldBe tByte
         tys["b2"]?.type shouldBe tByte
-        tys["s"]?.type shouldBe tShort
-        tys["l"]?.type shouldBe tLong
-        tys["l2"]?.type shouldBe tLong
-        tys["d"]?.type shouldBe tDouble
-        tys["f"]?.type shouldBe tFloat
-        tys["bi"]?.type shouldBe tInt
-        tys["bi2"]?.type shouldBe tLong
+        tys["s"]?.type shouldBe tInt16
+        tys["l"]?.type shouldBe tInt64
+        tys["l2"]?.type shouldBe tInt64
+        tys["d"]?.type shouldBe tFloat64
+        tys["f"]?.type shouldBe tFloat32
+        tys["bi"]?.type shouldBe tInt32
+        tys["bi2"]?.type shouldBe tInt64
         tys["bi3"]?.type shouldBe tByte
-        tys["hex"]?.type shouldBe tInt
-        tys["hex2"]?.type shouldBe tLong
-        tys["hex3"]?.type shouldBe tShort
+        tys["hex"]?.type shouldBe tInt32
+        tys["hex2"]?.type shouldBe tInt64
+        tys["hex3"]?.type shouldBe tInt16
     }
 
     "typecheck if" {
         val ty = inferFX("if false then 0 else 1")
 
-        ty.simpleName() shouldBe "forall t1. t1 -> Int"
+        ty.simpleName() shouldBe "forall t1. t1 -> Int32"
     }
 
     "typecheck subsumed if" {
@@ -121,8 +121,8 @@ class TypecheckerSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["f"]?.type?.simpleName() shouldBe "forall t1. t1 -> Int"
-        tys["f2"]?.type?.simpleName() shouldBe "Int -> Int"
+        tys["f"]?.type?.simpleName() shouldBe "forall t1. t1 -> Int32"
+        tys["f2"]?.type?.simpleName() shouldBe "Int32 -> Int32"
     }
 
     "typecheck generics" {
@@ -161,7 +161,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]
 
-        ty?.type?.simpleName() shouldBe "forall t1. t1 -> Int"
+        ty?.type?.simpleName() shouldBe "forall t1. t1 -> Int32"
     }
 
     "typecheck do statements" {
@@ -205,7 +205,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["pseudofact"]
 
-        ty?.type?.simpleName() shouldBe "Int -> Int"
+        ty?.type?.simpleName() shouldBe "Int32 -> Int32"
     }
 
     "typecheck mutually recursive functions" {
@@ -249,7 +249,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         val res = TestUtil.compileCode(code).env.decls["fun"]
-        res?.type?.simpleName() shouldBe "(forall t1. t1 -> t1) -> Tuple Int String"
+        res?.type?.simpleName() shouldBe "(forall t1. t1 -> t1) -> Tuple Int32 String"
     }
 
     "typecheck recursive lets" {
@@ -261,6 +261,6 @@ class TypecheckerSpec : StringSpec({
 
         val res = TestUtil.compileCode(code).env.decls
 
-        res["fun"]?.type?.simpleName() shouldBe "forall t1. Int -> t1 -> t1"
+        res["fun"]?.type?.simpleName() shouldBe "forall t1. Int32 -> t1 -> t1"
     }
 })

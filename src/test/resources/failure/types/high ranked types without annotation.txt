@@ -3,7 +3,7 @@ at src/test/resources/failure/types/high ranked types without annotation.novah:6
 
   Cannot match type
   
-      Int
+      Int32
   
   with type
   

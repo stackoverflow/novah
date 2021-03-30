@@ -21,6 +21,9 @@ import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
+import novah.frontend.hmftypechecker.CORE_MODULE
+import novah.frontend.hmftypechecker.coreImport
+import novah.frontend.hmftypechecker.primImport
 import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
@@ -56,6 +59,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 else -> break
             }
         }
+        addDefaultImports(imports)
 
         val decls = mutableListOf<Decl>()
         while (iter.peek().value !is EOF) {
@@ -107,12 +111,23 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     DeclarationRef.RefType(sp.value.v, ctors)
                 } else DeclarationRef.RefType(sp.value.v)
             }
+            is Op -> DeclarationRef.RefVar(sp.value.op)
             else -> throwError(withError(E.EXPORT_REFER)(sp))
         }
     }
 
     private fun parseModuleName(): List<String> {
         return between<Dot, String> { expect<Ident>(withError(E.MODULE_NAME)).value.v }
+    }
+
+    /**
+     * Adds the primitive and core imports if needed.
+     */
+    private fun addDefaultImports(imports: MutableList<Import>) {
+        imports += primImport
+        if (!imports.any { it.module == CORE_MODULE } && moduleName != CORE_MODULE) {
+            imports += coreImport
+        }
     }
 
     private fun parseImport(): Import {
@@ -377,10 +392,10 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun tryParseAtom(inDo: Boolean = false): Expr? {
         val exp = when (iter.peek().value) {
-            is IntT -> parseInt()
-            is LongT -> parseLong()
-            is FloatT -> parseFloat()
-            is DoubleT -> parseDouble()
+            is IntT -> parseInt32()
+            is LongT -> parseInt64()
+            is FloatT -> parseFloat32()
+            is DoubleT -> parseFloat64()
             is StringT -> parseString()
             is CharT -> parseChar()
             is BoolT -> parseBool()
@@ -450,24 +465,24 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         } else exp
     }
 
-    private fun parseInt(): Expr {
+    private fun parseInt32(): Expr {
         val num = expect<IntT>(withError(E.literalExpected("integer")))
-        return Expr.IntE(num.value.v, num.value.text).withSpanAndComment(num)
+        return Expr.Int32(num.value.v, num.value.text).withSpanAndComment(num)
     }
 
-    private fun parseLong(): Expr {
+    private fun parseInt64(): Expr {
         val num = expect<LongT>(withError(E.literalExpected("long")))
-        return Expr.LongE(num.value.v, num.value.text).withSpanAndComment(num)
+        return Expr.Int64(num.value.v, num.value.text).withSpanAndComment(num)
     }
 
-    private fun parseFloat(): Expr {
+    private fun parseFloat32(): Expr {
         val num = expect<FloatT>(withError(E.literalExpected("float")))
-        return Expr.FloatE(num.value.v, num.value.text).withSpanAndComment(num)
+        return Expr.Float32(num.value.v, num.value.text).withSpanAndComment(num)
     }
 
-    private fun parseDouble(): Expr {
+    private fun parseFloat64(): Expr {
         val num = expect<DoubleT>(withError(E.literalExpected("double")))
-        return Expr.DoubleE(num.value.v, num.value.text).withSpanAndComment(num)
+        return Expr.Float64(num.value.v, num.value.text).withSpanAndComment(num)
     }
 
     private fun parseString(): Expr {
@@ -698,19 +713,19 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is IntT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.IntLiteral(Expr.IntE(tk.value.v, tk.value.text)), tk.span)
+                Pattern.LiteralP(LiteralPattern.Int32Literal(Expr.Int32(tk.value.v, tk.value.text)), tk.span)
             }
             is LongT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.LongLiteral(Expr.LongE(tk.value.v, tk.value.text)), tk.span)
+                Pattern.LiteralP(LiteralPattern.Int64Literal(Expr.Int64(tk.value.v, tk.value.text)), tk.span)
             }
             is FloatT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.FloatLiteral(Expr.FloatE(tk.value.v, tk.value.text)), tk.span)
+                Pattern.LiteralP(LiteralPattern.Float32Literal(Expr.Float32(tk.value.v, tk.value.text)), tk.span)
             }
             is DoubleT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.DoubleLiteral(Expr.DoubleE(tk.value.v, tk.value.text)), tk.span)
+                Pattern.LiteralP(LiteralPattern.Float64Literal(Expr.Float64(tk.value.v, tk.value.text)), tk.span)
             }
             is CharT -> {
                 iter.next()
@@ -743,10 +758,10 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 iter.next()
                 if (iter.peek().value is LBracket) {
                     iter.next()
-                    val id = expect<Ident>(withError(E.INSTANCE_VAR)).value.v
+                    val pat = parsePattern()
                     expect<RBracket>(withError(E.INSTANCE_VAR))
                     val end = expect<RBracket>(withError(E.INSTANCE_VAR))
-                    Pattern.ImplicitVar(id, span(tk.span, end.span))
+                    Pattern.ImplicitPattern(pat, span(tk.span, end.span))
                 } else {
                     val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
                     val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span

@@ -1,11 +1,19 @@
 module test
 
+foreign import java.util.Arrays:toString(Array) as toStringArr
 
-foreign import novah.Core:sum(Int, Int)
-            
+toStr : forall a. Array a -> String
+toStr arr = toStringArr (unsafeCast arr)
+
+pub
+main : Array String -> Unit
 main _ = do
-  let [x, y] = [5, 10]
-  let {z} = {x: 2, y: 0, z: 33}
-  let [h :: _] = [3, 4, 5, 6]
-  let res = sum (sum (sum x y) z) h
-  println res
+  let arr = arrayOf [4, 5, 6, 7]
+  let printArr = toStr >> println
+  arraySet 2 99 arr
+  println (Some [4, 5])
+  None ?: 3 |> println
+  #{1, 2, 3} ++ #{5, 6, 7} |> println
+  printArr arr
+  format "some %s once told %s" ["body", "me"] |> println
+  //[56, 78, 90, 14, 566] |> flip nth 4 |> println

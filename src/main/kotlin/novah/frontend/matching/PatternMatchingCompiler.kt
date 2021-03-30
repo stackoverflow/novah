@@ -196,7 +196,6 @@ class PatternMatchingCompiler<R> {
     companion object {
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
-        private val unitCtor = Ctor("unit", 0, 1)
         private val vectorEmptyCtor = Ctor("vector", 0, 2)
         private val vectorHTCtor = Ctor("vector", 2, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
@@ -233,7 +232,7 @@ class PatternMatchingCompiler<R> {
             is Pattern.Wildcard -> Pat.PVar("_")
             is Pattern.Var -> Pat.PVar(p.name)
             is Pattern.Ctor -> {
-                val name = p.ctor.fullname(modName)
+                val name = p.ctor.fullname(p.ctor.moduleName ?: modName)
                 Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
             }
             is Pattern.LiteralP -> {
@@ -241,10 +240,10 @@ class PatternMatchingCompiler<R> {
                     is LiteralPattern.BoolLiteral -> if (l.e.v) trueCtor else falseCtor
                     is LiteralPattern.CharLiteral -> mkPrimCtor(l.e.v.toString())
                     is LiteralPattern.StringLiteral -> mkPrimCtor(l.e.v)
-                    is LiteralPattern.IntLiteral -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.LongLiteral -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.FloatLiteral -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.DoubleLiteral -> mkPrimCtor(l.e.v.toString())
+                    is LiteralPattern.Int32Literal -> mkPrimCtor(l.e.v.toString())
+                    is LiteralPattern.Int64Literal -> mkPrimCtor(l.e.v.toString())
+                    is LiteralPattern.Float32Literal -> mkPrimCtor(l.e.v.toString())
+                    is LiteralPattern.Float64Literal -> mkPrimCtor(l.e.v.toString())
                 }
                 Pat.PCon(con, emptyList())
             }
@@ -260,7 +259,7 @@ class PatternMatchingCompiler<R> {
                 Pat.PCon(vectorHTCtor, listOf(convertPattern(p.head, modName), convertPattern(p.tail, modName)))
             }
             is Pattern.Named -> convertPattern(p.pat, modName)
-            is Pattern.Unit -> Pat.PCon(unitCtor, emptyList())
+            is Pattern.Unit -> Pat.PVar("()")
             is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.type.show()), emptyList())
         }
     }

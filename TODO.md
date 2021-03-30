@@ -2,13 +2,17 @@
 
 - [ ] Implement a kind checker for types
 - [ ] Report that an imported type is private instead of not found
-- [ ] Desugar types to Class<?> before codegen (what to do with user defined types?)
-- [ ] Add primitive autoboxing to code generation (using java.util.function primitive versions)
+- [ ] Add primitive types to code generation when JEP 401/402 is done
 - [ ] Add spans to individual imports with error reporting
-- [ ] Store and report type aliases in types
 - [ ] Check unsafeCast works at runtime
 - [ ] 0-cost opaque types
-- [ ] Syntax for record update/set (probably with type-level strings or macros?)
+- [ ] Syntax for record update (probably with type-level strings or macros?)
 - [ ] Disallow duplicate labels in pattern matching
-- [ ] Rename operators and java keywords to be more java-friendly
+- [ ] Rename operators and java keywords to be more java-friendly (WIP)
 - [ ] Fix pattern matching warnings (records)
+- [ ] Implement the novah class loader to load external files
+- [ ] Report on unused imports/foreign import types
+- [ ] Fix point free unsafeCast (better way to unsafeCast)
+- [ ] Fix instance search when the instance is not the first parameter of the App
+- [ ] Fix double CHECKCAST on native function calls
+- [ ] Add line numbers to expressions during codegen for better exception reporting

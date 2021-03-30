@@ -15,10 +15,10 @@
  */
 package novah.backend
 
+import novah.ast.optimized.Clazz
 import novah.ast.optimized.DataConstructor
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Module
-import novah.ast.optimized.Type
 import novah.backend.GenUtil.INIT
 import novah.backend.GenUtil.INSTANCE
 import novah.backend.GenUtil.LAMBDA_CTOR
@@ -26,23 +26,14 @@ import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
 import novah.backend.GenUtil.OBJECT_CLASS
 import novah.backend.GenUtil.STATIC_INIT
 import novah.backend.GenUtil.lambdaHandle
-import novah.backend.GenUtil.lambdaMethodType
 import novah.backend.GenUtil.visibility
-import novah.backend.TypeUtil.FUNCTION_TYPE
+import novah.backend.TypeUtil.FUNCTION_DESC
 import novah.backend.TypeUtil.buildClassSignature
-import novah.backend.TypeUtil.buildFieldSignature
-import novah.backend.TypeUtil.buildFunctions
 import novah.backend.TypeUtil.descriptor
-import novah.backend.TypeUtil.maybeBuildFieldSignature
-import novah.backend.TypeUtil.toInternalClass
-import novah.backend.TypeUtil.toInternalType
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Handle
-import org.objectweb.asm.Label
-import org.objectweb.asm.MethodVisitor
+import novah.backend.TypeUtil.lambdaMethodType
+import org.objectweb.asm.*
 import org.objectweb.asm.Opcodes.*
 import java.util.*
-import org.objectweb.asm.Type as ASMType
 
 /**
  * Generate bytecode for Algebraic Data Types.
@@ -106,7 +97,6 @@ class ADTGen(
         val sig = buildClassSignature(adt.tyVars, superClass)
         val vis = visibility(ctor)
         val args = ctor.args
-        val ctorType = Type.TConstructor(className, ctor.args.filter { it.isGeneric() })
 
         val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)
         cw.visit(
@@ -145,18 +135,15 @@ class ADTGen(
                 cw.visitField(
                     ACC_PUBLIC + ACC_FINAL,
                     "v${i + 1}",
-                    toInternalType(type),
-                    maybeBuildFieldSignature(type),
+                    type.type.descriptor,
+                    null,
                     null
                 )
             }
 
             // constructor
-            val desc = args.joinToString("", prefix = "(", postfix = ")V") { toInternalType(it) }
-            val signature = if (args.any { it.isGeneric() })
-                args.joinToString("", prefix = "(", postfix = ")V") { buildFieldSignature(it) }
-            else null
-            val ct = cw.visitMethod(ACC_PUBLIC, INIT, desc, signature, emptyArray())
+            val desc = args.joinToString("", prefix = "(", postfix = ")V") { it.type.descriptor }
+            val ct = cw.visitMethod(ACC_PUBLIC, INIT, desc, null, emptyArray())
             ct.visitCode()
             ct.visitVarInsn(ALOAD, 0)
             ct.visitMethodInsn(INVOKESPECIAL, superClass, INIT, "()V", false)
@@ -164,18 +151,17 @@ class ADTGen(
                 val index = i + 1
                 ct.visitVarInsn(ALOAD, 0)
                 ct.visitVarInsn(ALOAD, index)
-                ct.visitFieldInsn(PUTFIELD, className, "v$index", toInternalType(type))
+                ct.visitFieldInsn(PUTFIELD, className, "v$index", type.type.descriptor)
             }
             ct.visitInsn(RETURN)
             ct.visitMaxs(0, 0)
             ct.visitEnd()
 
             // curried static lambda constructor field
-            val ctorSig = buildFieldSignature(buildFunctions(args + ctorType))
-            cw.visitField(ACC_PUBLIC + ACC_STATIC + ACC_FINAL, LAMBDA_CTOR, FUNCTION_TYPE, ctorSig, null)
+            cw.visitField(ACC_PUBLIC + ACC_STATIC + ACC_FINAL, LAMBDA_CTOR, FUNCTION_DESC, null, null)
 
             // generate the lambda synthetic methods
-            val appliedTypes = mutableListOf<Type>()
+            val appliedTypes = mutableListOf<Clazz>()
             val toApplyTypes = LinkedList(args)
             repeat(args.size) {
                 makeLambdaMethod(cw, className, appliedTypes, toApplyTypes, desc)
@@ -222,11 +208,11 @@ class ADTGen(
         /**
          * Same as the default constructor but curried.
          */
-        private fun genFunctionalConstructor(cw: ClassWriter, className: String, args: List<Type>) {
+        private fun genFunctionalConstructor(cw: ClassWriter, className: String, args: List<Clazz>) {
             val init = cw.visitMethod(ACC_STATIC, STATIC_INIT, "()V", null, emptyArray())
             init.visitCode()
             createLambda(init, className, emptyList(), args)
-            init.visitFieldInsn(PUTSTATIC, className, LAMBDA_CTOR, FUNCTION_TYPE)
+            init.visitFieldInsn(PUTSTATIC, className, LAMBDA_CTOR, FUNCTION_DESC)
             init.visitInsn(RETURN)
             init.visitMaxs(0, 0)
             init.visitEnd()
@@ -235,16 +221,16 @@ class ADTGen(
         private fun makeLambdaMethod(
             cw: ClassWriter,
             className: String,
-            appliedTypes: List<Type>,
-            toApplyTypes: List<Type>,
+            appliedTypes: List<Clazz>,
+            toApplyTypes: List<Clazz>,
             ctorDesc: String
         ) {
             val totalApplied = appliedTypes.size
             val totalArgs = totalApplied + toApplyTypes.size
-            val desc = appliedTypes.joinToString("") { toInternalType(it) }
-            val ret = if (toApplyTypes.size > 1) FUNCTION_TYPE else descriptor(className)
+            val desc = appliedTypes.joinToString("") { it.type.descriptor }
+            val ret = if (toApplyTypes.size > 1) FUNCTION_DESC else descriptor(className)
             val nextArg = toApplyTypes.first()
-            val arg = toInternalType(nextArg)
+            val arg = nextArg.type.descriptor
             val end = toApplyTypes.size == 1
 
             val lam = cw.visitMethod(
@@ -272,14 +258,14 @@ class ADTGen(
         private fun createLambda(
             mw: MethodVisitor,
             className: String,
-            appliedTypes: List<Type>,
-            toApplyTypes: List<Type>
+            appliedTypes: List<Clazz>,
+            toApplyTypes: List<Clazz>
         ) {
             val totalApplied = appliedTypes.size
-            val desc = appliedTypes.joinToString("") { toInternalType(it) }
-            val ret = if (toApplyTypes.size > 1) FUNCTION_TYPE else descriptor(className)
+            val desc = appliedTypes.joinToString("") { it.type.descriptor }
+            val ret = if (toApplyTypes.size > 1) FUNCTION_DESC else descriptor(className)
             val nextArg = toApplyTypes.first()
-            val arg = toInternalType(nextArg)
+            val arg = nextArg.type.descriptor
 
             val handle = Handle(
                 H_INVOKESTATIC,
@@ -294,7 +280,7 @@ class ADTGen(
                 lambdaHandle,
                 lambdaMethodType,
                 handle,
-                ASMType.getMethodType("($arg)$ret")
+                Type.getMethodType("($arg)$ret")
             )
         }
 
@@ -302,7 +288,7 @@ class ADTGen(
          * Generates a default toString method for this class
          * which prints all the variables
          */
-        private fun genToString(cw: ClassWriter, className: String, simpleName: String, fields: List<Type>) {
+        private fun genToString(cw: ClassWriter, className: String, simpleName: String, fields: List<Clazz>) {
             val ts = cw.visitMethod(ACC_PUBLIC, "toString", "()Ljava/lang/String;", null, emptyArray())
             ts.visitCode()
             if (fields.isEmpty()) {
@@ -311,9 +297,8 @@ class ADTGen(
                 var args = ""
                 fields.forEachIndexed { index, type ->
                     ts.visitVarInsn(ALOAD, 0)
-                    val typeStr = toInternalType(type)
-                    args += typeStr
-                    ts.visitFieldInsn(GETFIELD, className, "v${index + 1}", typeStr)
+                    args += type.type.descriptor
+                    ts.visitFieldInsn(GETFIELD, className, "v${index + 1}", type.type.descriptor)
                 }
                 val pars = fields.indices.joinToString(", ") { "\u0001" }
                 val arg = "$simpleName($pars)"
@@ -328,7 +313,7 @@ class ADTGen(
          * Generates a default equals method for this class
          * which compares every field
          */
-        private fun genEquals(cw: ClassWriter, className: String, fields: List<Type>) {
+        private fun genEquals(cw: ClassWriter, className: String, fields: List<Clazz>) {
             val eq = cw.visitMethod(ACC_PUBLIC, "equals", "(Ljava/lang/Object;)Z", null, emptyArray())
             eq.visitCode()
             val l0 = Label()
@@ -367,12 +352,12 @@ class ADTGen(
             val l5 = Label()
             val l6 = Label()
             fields.forEachIndexed { i, field ->
-                val fType = toInternalType(field)
+                val ty = field.type
                 eq.visitVarInsn(ALOAD, 0)
-                eq.visitFieldInsn(GETFIELD, className, "v${i + 1}", fType)
+                eq.visitFieldInsn(GETFIELD, className, "v${i + 1}", ty.descriptor)
                 eq.visitVarInsn(ALOAD, 2)
-                eq.visitFieldInsn(GETFIELD, className, "v${i + 1}", fType)
-                eq.visitMethodInsn(INVOKEVIRTUAL, toInternalClass(field), "equals", "(Ljava/lang/Object;)Z", false)
+                eq.visitFieldInsn(GETFIELD, className, "v${i + 1}", ty.descriptor)
+                eq.visitMethodInsn(INVOKEVIRTUAL, ty.internalName, "equals", "(Ljava/lang/Object;)Z", false)
                 eq.visitJumpInsn(IFEQ, l5)
             }
             eq.visitInsn(ICONST_1)
@@ -382,11 +367,12 @@ class ADTGen(
             eq.visitLabel(l6)
             eq.visitInsn(IRETURN)
 
+            val desc = descriptor(className)
             val l7 = Label()
             eq.visitLabel(l7)
-            eq.visitLocalVariable("this", descriptor(className), null, l0, l7, 0)
-            eq.visitLocalVariable("other", descriptor(className), null, l0, l7, 1)
-            eq.visitLocalVariable("same", descriptor(className), null, l4, l7, 2)
+            eq.visitLocalVariable("this", desc, null, l0, l7, 0)
+            eq.visitLocalVariable("other", desc, null, l0, l7, 1)
+            eq.visitLocalVariable("same", desc, null, l4, l7, 2)
 
             eq.visitMaxs(0, 0)
             eq.visitEnd()
@@ -396,7 +382,7 @@ class ADTGen(
          * Generates a hashCode function for this class
          * based on all attributes.
          */
-        private fun genHashCode(cw: ClassWriter, className: String, fields: List<Type>) {
+        private fun genHashCode(cw: ClassWriter, className: String, fields: List<Clazz>) {
             val mv = cw.visitMethod(ACC_PUBLIC, "hashCode", "()I", null, emptyArray())
             mv.visitCode()
             val l0 = Label()
@@ -408,7 +394,7 @@ class ADTGen(
                 mv.visitInsn(DUP)
                 loadSmallNumber(i, mv)
                 mv.visitVarInsn(ALOAD, 0)
-                mv.visitFieldInsn(GETFIELD, className, "v${i + 1}", toInternalType(type))
+                mv.visitFieldInsn(GETFIELD, className, "v${i + 1}", type.type.descriptor)
                 mv.visitInsn(AASTORE)
             }
             mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "hash", "([Ljava/lang/Object;)I", false)

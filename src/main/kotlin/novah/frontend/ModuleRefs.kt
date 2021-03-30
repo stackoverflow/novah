@@ -17,7 +17,6 @@ package novah.frontend
 
 import novah.Util.internalError
 import novah.ast.source.*
-import novah.ast.source.Type as SType
 import novah.data.NovahClassLoader
 import novah.data.Reflection
 import novah.frontend.error.CompilerProblem
@@ -31,6 +30,7 @@ import novah.main.FullModuleEnv
 import novah.main.TypeDeclRef
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
+import novah.ast.source.Type as SType
 
 typealias VarRef = String
 typealias ModuleName = String
@@ -50,9 +50,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
     val resolved = mutableMapOf<VarRef, ModuleName>()
     val resolvedTypealiases = mutableListOf<Decl.TypealiasDecl>()
     val errors = mutableListOf<CompilerProblem>()
-    // add the primitive module as import to every module
-    val imports = mod.imports + primImport
-    for (imp in imports) {
+    for (imp in mod.imports) {
         val mkError = makeError(imp.span())
         val mkWarn = makeWarn(imp.span())
         val m = if (imp.module == PRIM) primModuleEnv else modules[imp.module]?.env
@@ -197,6 +195,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
             typealiases[alias] = fqType
         }
     }
+    typealiases.putAll(resolveImportedTypealiases(mod.resolvedTypealiases))
 
     for (imp in foreigns) {
         val error = makeError(imp.span)
@@ -313,6 +312,16 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     return errors
 }
 
+private fun resolveImportedTypealiases(tas: List<Decl.TypealiasDecl>): Map<String, String> {
+    return tas.mapNotNull { ta ->
+        if (ta.expanded != null) {
+            val name = ta.expanded!!.simpleName()
+            if (name != null) ta.name to Reflection.novahToJava(name)
+            else null
+        } else null
+    }.toMap()
+}
+
 private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars: List<String>): Type {
     val mpars = mutableListOf<String>()
     if (!static) mpars += type // `this` is always first paramenter of non-static methods
@@ -322,7 +331,7 @@ private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars
 
     mpars += if (m.returnType.canonicalName == "void") primUnit else m.returnType.canonicalName
     val pars = mpars.map { javaToNovah(it) }
-    val tpars = pars.map { toNovahType(it) } as List<Type>
+    val tpars = pars.map { toNovahType(it) }
 
     return tpars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
 }
@@ -330,7 +339,7 @@ private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars
 private fun ctorToFunction(c: Constructor<*>, type: String, novahPars: List<String>): Type {
     val mpars = if (c.parameterTypes.isEmpty()) listOf(primUnit) else novahPars.map { Reflection.novahToJava(it) }
     val pars = (mpars + type).map { javaToNovah(it) }
-    val tpars = pars.map { toNovahType(it) } as List<Type>
+    val tpars = pars.map { toNovahType(it) }
 
     return tpars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
 }
@@ -371,4 +380,5 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
     return errors
 }
 
-private fun warnOnRawImport(imp: Import.Raw): Boolean = imp.module != PRIM && imp.alias == null
+private fun warnOnRawImport(imp: Import.Raw): Boolean =
+    imp.alias == null && imp.module != PRIM && imp.module != CORE_MODULE

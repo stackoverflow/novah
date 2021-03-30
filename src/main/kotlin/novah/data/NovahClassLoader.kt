@@ -15,8 +15,6 @@
  */
 package novah.data
 
-import io.lacuna.bifurcan.List
-import io.lacuna.bifurcan.Set
 import novah.Core
 
 // TODO: implement this class
@@ -28,15 +26,23 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
         return super.findClass(name)
     }
 
-    override fun loadClass(name: String?): Class<*> {
-        // remove this when proper loading is implemented
-        if (name == List::class.java.canonicalName) return List::class.java
-        if (name == Set::class.java.canonicalName) return Set::class.java
+    override fun loadClass(name: String): Class<*> {
         if (name == Core::class.java.canonicalName) return Core::class.java
+        if (name.startsWith("io.lacuna.bifurcan")) return Class.forName(name)
         return clparent.loadClass(name)
     }
 
     fun safeLoadClass(name: String): Class<*>? {
+        when (name) {
+            "byte[]" -> return ByteArray::class.java
+            "short[]" -> return ShortArray::class.java
+            "int[]" -> return IntArray::class.java
+            "long[]" -> return LongArray::class.java
+            "float[]" -> return FloatArray::class.java
+            "double[]" -> return DoubleArray::class.java
+            "char[]" -> return CharArray::class.java
+            "boolean[]" -> return BooleanArray::class.java
+        }
         return try {
             loadClass(name)
         } catch (_: ClassNotFoundException) {

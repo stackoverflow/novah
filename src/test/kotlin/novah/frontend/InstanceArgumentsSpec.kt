@@ -27,7 +27,7 @@ class InstanceArgumentsSpec : StringSpec({
             opaque type Show a = { show : a -> String }
             
             show : forall a. {{ Show a }} -> a -> String
-            show {{s}} x = case s of Show ss -> ss.show x
+            show {{Show s}} x = s.show x
             
             instance
             showInt : Show Int
@@ -36,8 +36,6 @@ class InstanceArgumentsSpec : StringSpec({
             instance
             showBool : Show Boolean
             showBool = Show { show: \x -> toString x }
-            
-            type Option a = Some a | None
             
             showOptionImpl : forall a. {{ Show a }} -> Option a -> String
             showOptionImpl {{s}} o = case o of
@@ -47,8 +45,8 @@ class InstanceArgumentsSpec : StringSpec({
             showOption : forall a. {{ Show a }} -> Show (Option a)
             showOption {{s}} = Show { show: showOptionImpl {{s}} }
             
-            print : Option Int -> String
-            print o = do
+            printx : Option Int -> String
+            printx o = do
               let instance showOptInt = showOption {{showInt}}
               println (show o)
               show 3
@@ -57,7 +55,7 @@ class InstanceArgumentsSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["show"]?.type?.simpleName() shouldBe "forall t1. {{ Show t1 }} -> t1 -> String"
-        ds["showInt"]?.type?.simpleName() shouldBe "Show Int"
+        ds["showInt"]?.type?.simpleName() shouldBe "Show Int32"
         ds["showBool"]?.type?.simpleName() shouldBe "Show Boolean"
         ds["showOption"]?.type?.simpleName() shouldBe "forall t1. {{ Show t1 }} -> Show (Option t1)"
     }
@@ -67,7 +65,7 @@ class InstanceArgumentsSpec : StringSpec({
             opaque type Show a = { show : a -> String }
             
             show : forall a. {{ Show a }} -> a -> String
-            show {{s}} x = case s of Show m -> m.show x
+            show {{Show s}} x = s.show x
             
             instance
             showInt : Show Int
@@ -76,8 +74,6 @@ class InstanceArgumentsSpec : StringSpec({
             instance
             showBool : Show Boolean
             showBool = Show { show: \x -> toString x }
-            
-            type Option a = Some a | None
             
             showOptionImpl : forall a. {{ Show a }} -> Option a -> String
             showOptionImpl {{s}} o = case o of
