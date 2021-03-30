@@ -2,7 +2,7 @@ module test
 
 foreign import java.util.Arrays:toString(Array) as toStringArr
 
-toStr : forall a. Array a -> String
+toStr : Array a -> String
 toStr arr = toStringArr (unsafeCast arr)
 
 pub

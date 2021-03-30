@@ -1,19 +1,4 @@
-/**
- * Copyright 2021 Islon Scherer
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package novah.frontend.hmftypechecker
+package novah.frontend.typechecker
 
 import io.lacuna.bifurcan.Map
 import novah.ast.source.Import
@@ -22,6 +7,7 @@ import novah.frontend.Span
 import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
+
 
 class Env private constructor(
     private val env: Map<String, Type>,
@@ -34,7 +20,7 @@ class Env private constructor(
     }
 
     fun lookup(name: String): Type? = env.get(name, null)
-    
+
     fun remove(name: String) {
         env.remove(name)
     }
@@ -99,9 +85,9 @@ val tChar = TConst(primChar)
 val tString = TConst(primString)
 val tObject = TConst(primObject)
 val tUnit = TConst(primUnit)
-val tVector = TForall(listOf(-10), TApp(TConst(primVector, Kind.Constructor(1)), listOf(tbound(-10))))
-val tSet = TForall(listOf(-11), TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-11))))
-val tArray = TForall(listOf(-12), TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-12))))
+val tVector = TApp(TConst(primVector, Kind.Constructor(1)), listOf(tbound(-10)))
+val tSet = TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-11)))
+val tArray = TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-12)))
 val tByteArray = TConst(primByteArray)
 val tInt16Array = TConst(primInt16Array)
 val tInt32Array = TConst(primInt32Array)
@@ -135,6 +121,12 @@ val primTypes = mapOf(
     primBooleanArray to tBooleanArray,
     primCharArray to tCharArray
 )
+
+fun isVectorOf(type: Type, of: Type) =
+    type is TApp && type.type is TConst && type.type.name == primVector && type.types[0] == of
+
+fun isSetOf(type: Type, of: Type) =
+    type is TApp && type.type is TConst && type.type.name == primSet && type.types[0] == of
 
 fun javaToNovah(jname: String): String = when (jname) {
     "byte" -> primByte
@@ -177,20 +169,19 @@ fun javaToNovah(jname: String): String = when (jname) {
 val primImport = Import.Raw(PRIM, Span.empty())
 val coreImport = Import.Raw(CORE_MODULE, Span.empty())
 
-private fun decl(type: Type): Nothing = TODO()//DeclRef(type, Visibility.PUBLIC, false)
-private fun tdecl(type: Type): Nothing = TODO()//TypeDeclRef(type, Visibility.PUBLIC, emptyList())
+private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC, false)
+private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
 
 private fun tfun(a: Type, b: Type) = TArrow(listOf(a), b)
-private fun tfall(v: Id, t: Type) = TForall(listOf(v), t)
-private fun tbound(x: Id) = TVar(TypeVar.Bound(x))
+private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 
 val primModuleEnv = ModuleEnv(
     mapOf(
         // TODO: fix these negative numbers (probably by moving them to Core)
-        "unsafeCast" to decl(TForall(listOf(-1, -2), tfun(tbound(-1), tbound(-2)))),
+        "unsafeCast" to decl(tfun(tbound(-1), tbound(-2))),
         "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
         "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "==" to decl(tfall(-3, tfun(tbound(-3), tfun(tbound(-3), tBoolean))))
+        "==" to decl(tfun(tbound(-3), tfun(tbound(-3), tBoolean)))
     ),
     mapOf(
         "Byte" to tdecl(tByte),

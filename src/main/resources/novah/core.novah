@@ -50,7 +50,7 @@ pub
 typealias Float = Float64
 
 //pub
-//unsafeCaster : forall a b. a -> b
+//unsafeCaster : a -> b
 //unsafeCaster x = unsafeCoerce x
 
 /**
@@ -64,21 +64,21 @@ not b = negate b
  * A function that just returns it's argument.
  */
 pub
-identity : forall a. a -> a
+identity : a -> a
 identity x = x
 
 /**
  * Flips the arguments of a 2-arguments function.
  */
 pub
-flip : forall a b c. (a -> b -> c) -> (b -> a -> c)
+flip : (a -> b -> c) -> (b -> a -> c)
 flip f y x = f x y
 
 /**
  * Takes two parameters and returns the first, ignoring the second.
  */
 pub
-const : forall a b. a -> b -> a
+const : a -> b -> a
 const x _ = x
 
 /**
@@ -91,21 +91,21 @@ const x _ = x
  * fun3 y (fun2 (fun1 x))
  */
 pub
-(|>) : forall a b. a -> (a -> b) -> b
+(|>) : a -> (a -> b) -> b
 (|>) x f = f x
 
 /**
  * Forward function composition operator: (f >> g >> h) x = h (g (f x))
  */
 pub
-(>>) : forall a b c. (a -> b) -> (b -> c) -> (a -> c)
+(>>) : (a -> b) -> (b -> c) -> (a -> c)
 (>>) f g x = g (f x)
 
 /**
  * Backward function composition operator: (f << g << h) x = f (g (h x))
  */
 pub
-(<<) : forall a b c. (b -> c) -> (a -> b) -> (a -> c)
+(<<) : (b -> c) -> (a -> b) -> (a -> c)
 (<<) f g x = f (g x)
 
 /**
@@ -114,21 +114,21 @@ pub
  * This is the same as Java's ==
  */
 pub
-(===) : forall a. a -> a -> Boolean
+(===) : a -> a -> Boolean
 (===) x y = equivalentObject (unsafeCast x) (unsafeCast y)
 
 /**
  * Prints x to stdout and appends a new line.
  */
 pub
-println : forall a. a -> Unit
+println : a -> Unit
 println x = jprintln out (unsafeCast x)
 
 /**
  * Prints x to the stdout.
  */
 pub
-print : forall a. a -> Unit
+print : a -> Unit
 print x = jprint out (unsafeCast x)
 
 /**
@@ -136,7 +136,7 @@ print x = jprint out (unsafeCast x)
  * native Java toString method.
  */
 pub
-toString : forall a. a -> String
+toString : a -> String
 toString x = jToString (unsafeCast x)
 
 /**
@@ -144,7 +144,7 @@ toString x = jToString (unsafeCast x)
  * the native Java hashCode method.
  */
 pub
-hashCode : forall a. a -> Int32
+hashCode : a -> Int32
 hashCode x = jHashCode (unsafeCast x)
 
 /**
@@ -215,7 +215,7 @@ objectArray size = mkObjectArray size
  * specified index.
  */
 pub
-arrayGet : forall a. Int -> Array a -> a
+arrayGet : Int -> Array a -> a
 arrayGet index arr = getArray index (unsafeCast arr) |> unsafeCast
 
 /**
@@ -223,21 +223,21 @@ arrayGet index arr = getArray index (unsafeCast arr) |> unsafeCast
  * specified index.
  */
 pub
-arraySet : forall a. Int -> a -> Array a -> Unit
+arraySet : Int -> a -> Array a -> Unit
 arraySet index x arr = setArray index (unsafeCast x) (unsafeCast arr)
 
 /**
  * Gets the length of this array.
  */
 pub
-arrayLength : forall a. Array a -> Int
+arrayLength : Array a -> Int
 arrayLength arr = getArrayLength (unsafeCast arr)
 
 /**
  * Converts a Vector of some type `a` to an Array of `a`.
  */
 pub
-arrayOf : forall a. Vector a -> Array a
+arrayOf : Vector a -> Array a
 arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
 
 /**
@@ -245,7 +245,7 @@ arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
  * See java.util.Formatter for format explanation.
  */
 pub
-format : forall a. String -> Vector a -> String
+format : String -> Vector a -> String
 format str vec = sformat str (unsafeCast (arrayOf vec))
 
 /**
@@ -259,7 +259,7 @@ type Option a = Some a | None
  * or the default value.
  */
 pub
-(?:) : forall a. Option a -> a -> a
+(?:) : Option a -> a -> a
 (?:) opt def =
   case opt of
     Some x -> x
@@ -275,7 +275,7 @@ opaque type Append a = { append : a -> a -> a }
  * Appends 2 appendable values together.
  */
 pub
-(++) : forall a. {{ Append a }} -> a -> a -> a
+(++) : {{ Append a }} -> a -> a -> a
 (++) {{Append app}} x y = app.append x y
 
 pub instance
@@ -283,9 +283,9 @@ appendString : Append String
 appendString = Append { append: \s s2 -> concat s s2 }
 
 pub instance
-appendVector : forall a. Append (Vector a)
+appendVector : Append (Vector a)
 appendVector = Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCast }
 
 pub instance
-appendSet : forall a. Append (Set a)
+appendSet : Append (Set a)
 appendSet = Append { append: \s s2 -> union s (unsafeCast s2) |> unsafeCast }

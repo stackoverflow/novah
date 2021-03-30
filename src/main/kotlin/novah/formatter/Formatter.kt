@@ -253,7 +253,6 @@ class Formatter {
             tlist += show(fn)
             tlist.joinToString(" -> ")
         }
-        is Type.TForall -> "forall " + t.names.joinToString(" ") + ". ${show(t.type)}"
         is Type.TApp -> show(t.type) + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
         is Type.TConst -> t.fullname()
@@ -275,10 +274,6 @@ class Formatter {
             }
             tlist += show(fn)
             tlist.joinToString("\n$tab-> ", prefix = "$tab$prefix ")
-        }
-        is Type.TForall -> {
-            val str = if (t.type is Type.TFun) showIndented(t.type, ".") else show(t.type)
-            "$tab$prefix forall " + t.names.joinToString(" ", postfix = "\n") + str
         }
         else -> show(t)
     }

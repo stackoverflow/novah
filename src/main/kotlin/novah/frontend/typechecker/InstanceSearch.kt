@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah.frontend.hmftypechecker
+package novah.frontend.typechecker
 
 import novah.Util.splitAt
 import novah.ast.canonical.Expr
 import novah.frontend.Span
 import novah.frontend.error.Errors
-import novah.frontend.hmftypechecker.Typechecker.context
-import novah.frontend.hmftypechecker.Typechecker.instantiate
-import novah.frontend.hmftypechecker.Unification.unify
+import novah.frontend.typechecker.Typechecker.context
+import novah.frontend.typechecker.Typechecker.instantiate
+import novah.frontend.typechecker.Unification.unify
 
 object InstanceSearch {
 
@@ -31,11 +31,11 @@ object InstanceSearch {
         for (app in apps) {
             context?.apply { exps.push(app) }
             val impCtx = app.implicitContext!!
-            //val (imps, _) = peelImplicits(impCtx.type)
+            val (imps, _) = peelImplicits(impCtx.type)
 
-            //val resolved = imps.map { find(impCtx.env, it, 0, app.span) }
-            //impCtx.resolveds.addAll(resolved)
-            //println("resolved ${impCtx.type.show()} with $resolved")
+            val resolved = imps.map { find(impCtx.env, it, 0, app.span) }
+            impCtx.resolveds.addAll(resolved)
+            println("resolved ${impCtx.type.show()} with $resolved")
             context?.apply { exps.pop() }
         }
     }
@@ -90,7 +90,6 @@ object InstanceSearch {
 
     private tailrec fun typeName(ty: Type): String? = when (ty) {
         is TConst -> ty.name
-        is TForall -> typeName(ty.type)
         is TApp -> typeName(ty.type)
         is TImplicit -> typeName(ty.type)
         is TArrow -> if (ty.args.all { it is TImplicit }) typeName(ty.ret) else null
@@ -99,7 +98,6 @@ object InstanceSearch {
 
     private tailrec fun unboundImplicit(ty: Type): Boolean = when (ty) {
         is TImplicit -> unboundImplicit(ty.type)
-        is TForall -> unboundImplicit(ty.type)
         is TConst -> true
         is TApp -> ty.types.all { isUnbound(it) }
         else -> false
@@ -116,14 +114,13 @@ object InstanceSearch {
         else -> false
     }
 
-    private fun nestApps(exps: List<Expr>): Expr = TODO()
-//        exps.reversed().reduceRight { exp, acc ->
-//            Expr.App(acc, exp, acc.span).apply { type = getReturn(acc.type!!) }
-//        }
+    private fun nestApps(exps: List<Expr>): Expr =
+        exps.reversed().reduceRight { exp, acc ->
+            Expr.App(acc, exp, acc.span).apply { type = getReturn(acc.type!!) }
+        }
 
     private tailrec fun getReturn(ty: Type): Type = when (ty) {
         is TArrow -> getReturn(ty.ret)
-        is TForall -> getReturn(ty.type)
         else -> ty
     }
 
@@ -135,7 +132,6 @@ object InstanceSearch {
     private fun mkVar(name: String, ty: Type, span: Span): Expr {
         val idx = name.lastIndexOf('.')
         val (mod, nam) = if (idx != -1) name.splitAt(idx) else null to name
-        //return Expr.Var(nam, span, mod).apply { this.type = ty }
-        TODO()
+        return Expr.Var(nam, span, mod).apply { this.type = ty }
     }
 }

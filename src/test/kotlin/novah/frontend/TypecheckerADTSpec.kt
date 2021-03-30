@@ -54,26 +54,7 @@ class TypecheckerADTSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["ids"]?.type?.simpleName() shouldBe "forall t1. Unit -> List (t1 -> t1)"
-    }
-
-    "test rigid type variables (with annotations)" {
-        val code = """
-            type List a = Nil | Cons a (List a)
-            
-            cons x l = Cons x l
-            
-            id x = x
-            
-            single x = cons x Nil
-            
-            ids : Unit -> List (forall a. a -> a)
-            ids () = single id
-        """.module()
-
-        val tys = TestUtil.compileCode(code).env.decls
-
-        tys["ids"]?.type?.simpleName() shouldBe "Unit -> List (forall t1. t1 -> t1)"
+        tys["ids"]?.type?.simpleName() shouldBe "Unit -> List (t1 -> t1)"
     }
 
     "typecheck one parameter ADTs" {
@@ -81,7 +62,7 @@ class TypecheckerADTSpec : StringSpec({
             x : Int -> Option String
             x _ = None
             
-            y : forall a. a -> Option a
+            y : a -> Option a
             y _ = None
             
             w : Int -> Option Int
@@ -91,7 +72,7 @@ class TypecheckerADTSpec : StringSpec({
         val tys = TestUtil.compileCode(code).env.decls
 
         tys["x"]?.type?.simpleName() shouldBe "Int32 -> Option String"
-        tys["y"]?.type?.simpleName() shouldBe "forall t1. t1 -> Option t1"
+        tys["y"]?.type?.simpleName() shouldBe "t1 -> Option t1"
         tys["w"]?.type?.simpleName() shouldBe "Int32 -> Option Int32"
     }
 
@@ -111,7 +92,7 @@ class TypecheckerADTSpec : StringSpec({
         val tys = TestUtil.compileCode(code).env.decls
         tys["x"]?.type?.simpleName() shouldBe "Int32 -> Result Int32 String"
         val y = tys["y"]!!.type
-        y.simpleName() shouldBe "forall t1 t2. t1 -> Result t2 String"
+        y.simpleName() shouldBe "t1 -> Result t2 String"
     }
 
     "typecheck recursive ADT" {
@@ -132,14 +113,14 @@ class TypecheckerADTSpec : StringSpec({
 
     "typecheck complex type" {
         val code = """
-            type Comp a b = Cfun (a -> b) | Cfor (forall c. c -> c)
+            type Comp a b = Cfun (a -> b) | Cfor b
             
-            str : forall a. a -> String
+            str : a -> String
             str _ = "1"
             
             id a = a
             
-            x : forall a. Unit -> Comp a (forall b. b -> b)
+            x : Unit -> Comp a (b -> b)
             x () = Cfor id
             
             y _ = Cfun str
@@ -148,9 +129,9 @@ class TypecheckerADTSpec : StringSpec({
         val tys = TestUtil.compileCode(code).env.decls
 
         val x = tys["x"]!!.type
-        x.simpleName() shouldBe "forall t1. Unit -> Comp t1 (forall t2. t2 -> t2)"
+        x.simpleName() shouldBe "Unit -> Comp t1 (t2 -> t2)"
         val y = tys["y"]!!.type
-        y.simpleName() shouldBe "forall t1 t2. t1 -> Comp t2 String"
+        y.simpleName() shouldBe "t1 -> Comp t2 String"
     }
 
     "test type aliases" {

@@ -17,7 +17,7 @@ package novah.frontend.error
 
 import novah.ast.canonical.show
 import novah.frontend.Span
-import novah.frontend.hmftypechecker.TypingContext
+import novah.frontend.typechecker.TypingContext
 
 enum class Severity {
     WARN, ERROR;

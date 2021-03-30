@@ -19,7 +19,7 @@ sayHello name = do
 opaque type Show a = { show : a -> String }
 
 pub
-show : forall a. {{ Show a }} -> a -> String
+show : {{ Show a }} -> a -> String
 show {{Show s}} x = s.show x
 
 pub instance
@@ -30,16 +30,16 @@ pub instance
 showBool : Show Boolean
 showBool = Show { show: (\x -> toString x) : Boolean -> String }
 
-showOptionImpl : forall a. {{ Show a }} -> Option a -> String
+showOptionImpl : {{ Show a }} -> Option a -> String
 showOptionImpl {{s}} o = case o of
   Some x -> show x
   None -> "None"
 
 instance
-showOption : forall a. {{ Show a }} -> Show (Option a)
+showOption : {{ Show a }} -> Show (Option a)
 showOption {{s}} = Show { show: showOptionImpl {{s}} }
 
-printx : forall a. {{ Show a }} -> Option a -> Unit
+printx : {{ Show a }} -> Option a -> Unit
 printx {{s}} o = do
   println (show 5)
   println (show false)

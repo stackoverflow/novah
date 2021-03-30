@@ -99,7 +99,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["constant"]!!.type
-        ty.simpleName() shouldBe "forall t1. t1 -> Int32"
+        ty.simpleName() shouldBe "t1 -> Int32"
     }
     
     "pattern match unit" {
@@ -131,7 +131,7 @@ class PatternMatchingSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "Int32"
-        ds["f2"]?.type?.simpleName() shouldBe "forall t1. { x : Int32, z : Boolean, y : Int32 | t1 } -> Int32"
+        ds["f2"]?.type?.simpleName() shouldBe "{ x : Int32, z : Boolean, y : Int32 | t1 } -> Int32"
     }
     
     "pattern match vectors" {
@@ -160,7 +160,7 @@ class PatternMatchingSpec : StringSpec({
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "Int32"
         ds["f2"]?.type?.simpleName() shouldBe "Vector Int32 -> Int32"
-        ds["len"]?.type?.simpleName() shouldBe "forall t1. Vector t1 -> Int32"
+        ds["len"]?.type?.simpleName() shouldBe "Vector t1 -> Int32"
     }
     
     "pattern match named" {
@@ -240,12 +240,12 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["f1"]?.type?.simpleName() shouldBe "forall t1 t2. Unit -> t1 -> t2 -> t1"
+        ds["f1"]?.type?.simpleName() shouldBe "Unit -> t1 -> t2 -> t1"
         ds["f2"]?.type?.simpleName() shouldBe "Vector Int32 -> Int32"
-        ds["f3"]?.type?.simpleName() shouldBe "forall t1. { x : Int32, y : Int32 | t1 } -> Int32 -> Int32"
-        ds["f4"]?.type?.simpleName() shouldBe "forall t1. t1 -> Int32"
-        ds["f5"]?.type?.simpleName() shouldBe "forall t1. Option t1 -> t1"
-        ds["f6"]?.type?.simpleName() shouldBe "forall t1 t2. Option t1 -> Unit -> Vector t2 -> Int32"
+        ds["f3"]?.type?.simpleName() shouldBe "{ x : Int32, y : Int32 | t1 } -> Int32 -> Int32"
+        ds["f4"]?.type?.simpleName() shouldBe "t1 -> Int32"
+        ds["f5"]?.type?.simpleName() shouldBe "Option t1 -> t1"
+        ds["f6"]?.type?.simpleName() shouldBe "Option t1 -> Unit -> Vector t2 -> Int32"
         ds["f7"]?.type?.simpleName() shouldBe "Int32"
     }
     

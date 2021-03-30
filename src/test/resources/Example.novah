@@ -62,28 +62,24 @@ stuff v v2 = case v of
  */
 pub
 maybe
-  : forall a
-  . a
+  : a
   -> Int
   -> Maybe
 maybe def sm = case sm of
   Some x -> B.brain x
   Nope -> def
 
-id : forall a. a -> a
+id : a -> a
 id x = x
 
-compl : forall a b c. (a -> b) -> (b -> c) -> a -> c
+compl : (a -> b) -> (b -> c) -> a -> c
 compl f1 f2 x = f2 (f1 x)
-
-hrt : Int -> (forall a b. (a -> b) -> b) -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Tyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyype -> Int
-hrt i f t = 1
 
 pub
 sum : Int -> Int -> Int
 sum x y = x + y
 
-const : forall a. a -> b -> a
+const : a -> b -> a
 const x _ = x
 
 mklist : Int -> Int -> List (List (Int -> Int))
@@ -112,7 +108,7 @@ doIt () = do
   fun (\x y -> \z -> do
     println x
     x + 1) "a" (Some (3 + 1) 4)
-  let f : forall a. a -> a
+  let f : a -> a
       f x = x
   let y : Int
       y = f 9

@@ -50,12 +50,6 @@ object Errors {
 
     const val TYPE_DEF = "Expected a type definition."
 
-    val FORALL_TVARS = """Expected type variable(s) after forall quantifier:
-        |Example: forall a b. a -> b
-    """.trimMargin()
-
-    const val FORALL_DOT = "Expected `.` after forall quantifier."
-
     const val CTOR_NAME = "Expected constructor name (upper case identifier)."
 
     const val TOPLEVEL_IDENT = "Expected variable definition or variable type at the top level."
@@ -318,8 +312,6 @@ object Errors {
         Partially applied type alias $name.
         $name expects $expected parameter(s) but got $got.
     """.trimIndent()
-
-    fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
 
     fun recursiveAlias(name: String) = "Typealias $name is recursive."
 

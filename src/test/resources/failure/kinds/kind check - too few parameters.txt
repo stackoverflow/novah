@@ -9,7 +9,8 @@ at src/test/resources/failure/kinds/kind check - too few parameters.novah:7:7 - 
   
       novah.core.Option Int32
 
-while checking type novah.core.Option
-while checking expression val
+while checking type Int32 -> novah.core.Option
+while checking expression \var$0 -> case var$0 of
+  _ -> val
 in declaration f
 

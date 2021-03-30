@@ -21,9 +21,9 @@ import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.hmftypechecker.CORE_MODULE
-import novah.frontend.hmftypechecker.coreImport
-import novah.frontend.hmftypechecker.primImport
+import novah.frontend.typechecker.CORE_MODULE
+import novah.frontend.typechecker.coreImport
+import novah.frontend.typechecker.primImport
 import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
@@ -359,14 +359,14 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             val tyVars = tryParseListOf { tryParseTypeVar() }
             val end = iter.current().span
             expect<Equals>(withError(E.TYPEALIAS_EQUALS))
-            val type = parsePolytype()
+            val type = parseType()
             Decl.TypealiasDecl(name.value.v, tyVars, type, vis).withSpan(name.span, end)
         }
     }
 
     private fun parseTypeSignature(): Type {
         expect<Colon>(withError(E.TYPE_COLON))
-        return parsePolytype()
+        return parseType()
     }
 
     private fun parseExpression(inDo: Boolean = false): Expr {
@@ -383,7 +383,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         // type signatures have the lowest precedence
         return if (iter.peek().value is Colon) {
             val dc = iter.next()
-            val pt = parsePolytype()
+            val pt = parseType()
             Expr.Ann(unrolled, pt)
                 .withSpan(dc.span, iter.current().span)
                 .withComment(dc.comment)
@@ -617,7 +617,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         if (iter.peek().value is Colon) {
             type = withOffside {
                 iter.next()
-                parsePolytype()
+                parseType()
             }
             val newIdent = expect<Ident>(withError(E.expectedLetDefinition(name)))
             if (newIdent.value.v != name) throwError(withError(E.expectedLetDefinition(name))(newIdent))
@@ -948,17 +948,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
-    private fun parsePolytype(inConstructor: Boolean = false): Type {
-        return if (iter.peek().value is Forall) {
-            val tk = iter.next()
-            val tyVars = parseListOf(::parseTypeVar) { it is Ident }
-            if (tyVars.isEmpty()) throwError(withError(E.FORALL_TVARS)(iter.peek()))
-            expect<Dot>(withError(E.FORALL_DOT))
-            val ty = parseType(inConstructor)
-            Type.TForall(tyVars, ty, span(tk.span, ty.span))
-        } else parseType(inConstructor)
-    }
-
     private fun parseType(inConstructor: Boolean = false): Type {
         return parseTypeAtom(inConstructor) ?: throwError(withError(E.TYPE_DEF)(iter.peek()))
     }
@@ -978,7 +967,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         val tk = iter.peek()
         val ty = when (tk.value) {
-            is Forall -> parsePolytype(inConstructor)
             is LParen -> {
                 iter.next()
                 withIgnoreOffside {
@@ -1066,7 +1054,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseRecordTypeRow(): Pair<String, Type> {
         val (label, _) = parseLabel()
         expect<Colon>(withError(E.RECORD_COLON))
-        val ty = parsePolytype()
+        val ty = parseType()
         return label to ty
     }
 

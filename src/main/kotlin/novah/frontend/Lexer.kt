@@ -40,7 +40,6 @@ sealed class Token {
     object Pipe : Token()
     object ModuleT : Token()
     object ImportT : Token()
-    object Forall : Token()
     object TypeT : Token()
     object TypealiasT : Token()
     object As : Token()
@@ -258,7 +257,6 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "_" -> Underline
             "module" -> ModuleT
             "import" -> ImportT
-            "forall" -> Forall
             "let" -> LetT
             "case" -> CaseT
             "of" -> Of

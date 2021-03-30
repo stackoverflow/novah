@@ -1,6 +1,6 @@
 module test
 
-id : forall a. a -> a
+id : a -> a
 id x = x
 
 f : Int -> String

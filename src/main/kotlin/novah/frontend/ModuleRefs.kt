@@ -23,8 +23,8 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
-import novah.frontend.hmftypechecker.*
-import novah.frontend.hmftypechecker.Type
+import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Type
 import novah.main.DeclRef
 import novah.main.FullModuleEnv
 import novah.main.TypeDeclRef

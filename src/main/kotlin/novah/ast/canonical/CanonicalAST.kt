@@ -20,9 +20,8 @@ import novah.data.LabelMap
 import novah.data.mapList
 import novah.data.show
 import novah.frontend.Span
-import novah.frontend.hmftypechecker.Env
-import novah.frontend.hmftypechecker.Id
-import novah.frontend.hmftypechecker.Type
+import novah.frontend.typechecker.Env
+import novah.frontend.typechecker.Type
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Constructor as JConstructor
@@ -75,12 +74,7 @@ sealed class Expr(open val span: Span) {
     data class Var(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class Constructor(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class ImplicitVar(val name: String, override val span: Span, val moduleName: String?) : Expr(span)
-    data class Lambda(
-        val binder: Binder,
-        val ann: Pair<List<Id>, Type>?,
-        val body: Expr,
-        override val span: Span
-    ) : Expr(span)
+    data class Lambda(val binder: Binder, val body: Expr, override val span: Span) : Expr(span)
 
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span) {
         var implicitContext: ImplicitContext? = null
@@ -89,7 +83,7 @@ sealed class Expr(open val span: Span) {
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
     data class Match(val exps: List<Expr>, val cases: List<Case>, override val span: Span) : Expr(span)
-    data class Ann(val exp: Expr, val annType: Pair<List<Id>, Type>, override val span: Span) : Expr(span)
+    data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class NativeFieldGet(val name: String, val field: Field, val isStatic: Boolean, override val span: Span) :
         Expr(span)
@@ -132,8 +126,7 @@ data class LetDef(
     val binder: Binder,
     val expr: Expr,
     val recursive: Boolean,
-    val isInstance: Boolean,
-    val type: Type? = null
+    val isInstance: Boolean
 )
 
 data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null) {
@@ -241,7 +234,7 @@ fun Expr.show(): String = when (this) {
         }
         "case ${exps.joinToString { it.show() }} of\n  $cs"
     }
-    is Expr.Ann -> "${exp.show()} : ${annType.second.show()}"
+    is Expr.Ann -> "${exp.show()} : ${annType.show()}"
     is Expr.Do -> "do\n  " + exps.joinToString("\n  ") { it.show() }
     is Expr.NativeFieldGet -> name
     is Expr.NativeFieldSet -> name
