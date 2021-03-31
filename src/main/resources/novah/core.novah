@@ -299,8 +299,8 @@ pub
 (++) {{Append app}} x y = app.append x y
 
 pub instance
-appendString : Append String
-appendString = Append { append: \s s2 -> concat s s2 }
+append0String : Append String
+append0String = Append { append: \s s2 -> concat s s2 }
 
 pub instance
 appendVector : Append (Vector a)
