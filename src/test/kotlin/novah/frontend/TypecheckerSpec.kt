@@ -16,11 +16,13 @@
 package novah.frontend
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
-import novah.frontend.hmftypechecker.*
+import novah.frontend.typechecker.*
+import novah.main.CompilationError
 
 class TypecheckerSpec : StringSpec({
 
@@ -64,7 +66,7 @@ class TypecheckerSpec : StringSpec({
             s : Int16
             s = 12
             
-            l = 9999999999
+            l = 99999999
             
             l2 = 12L
             
@@ -93,7 +95,7 @@ class TypecheckerSpec : StringSpec({
         tys["b"]?.type shouldBe tByte
         tys["b2"]?.type shouldBe tByte
         tys["s"]?.type shouldBe tInt16
-        tys["l"]?.type shouldBe tInt64
+        tys["l"]?.type shouldBe tInt32
         tys["l2"]?.type shouldBe tInt64
         tys["d"]?.type shouldBe tFloat64
         tys["f"]?.type shouldBe tFloat32
@@ -108,7 +110,7 @@ class TypecheckerSpec : StringSpec({
     "typecheck if" {
         val ty = inferFX("if false then 0 else 1")
 
-        ty.simpleName() shouldBe "forall t1. t1 -> Int32"
+        ty.simpleName() shouldBe "t1 -> Int32"
     }
 
     "typecheck subsumed if" {
@@ -121,24 +123,24 @@ class TypecheckerSpec : StringSpec({
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["f"]?.type?.simpleName() shouldBe "forall t1. t1 -> Int32"
+        tys["f"]?.type?.simpleName() shouldBe "t1 -> Int32"
         tys["f2"]?.type?.simpleName() shouldBe "Int32 -> Int32"
     }
 
     "typecheck generics" {
         val ty = inferX("\\y -> y")
 
-        ty.simpleName() shouldBe "forall t1. t1 -> t1"
+        ty.simpleName() shouldBe "t1 -> t1"
 
         val ty2 = inferFX("(\\y -> y) false")
 
-        ty2.simpleName() shouldBe "forall t1. t1 -> Boolean"
+        ty2.simpleName() shouldBe "t1 -> Boolean"
     }
 
     "typecheck pre-added context vars" {
         val ty = inferFX("toString 10")
 
-        ty.simpleName() shouldBe "forall t1. t1 -> String"
+        ty.simpleName() shouldBe "t1 -> String"
     }
 
     "typecheck let" {
@@ -161,7 +163,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]
 
-        ty?.type?.simpleName() shouldBe "forall t1. t1 -> Int32"
+        ty?.type?.simpleName() shouldBe "t1 -> Int32"
     }
 
     "typecheck do statements" {
@@ -175,7 +177,7 @@ class TypecheckerSpec : StringSpec({
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
 
-        ty.simpleName() shouldBe "forall t1. t1 -> Boolean"
+        ty.simpleName() shouldBe "t1 -> Boolean"
     }
 
     "typecheck do statements with let" {
@@ -216,12 +218,6 @@ class TypecheckerSpec : StringSpec({
             (<=) : Int -> Int -> Boolean
             (<=) _ _ = true
             
-            (+) : Int -> Int -> Int
-            (+) x _ = x
-            
-            (-) : Int -> Int -> Int
-            (-) x _ = x
-            
             f1 : Int -> Int
             f1 x =
               if x > 0
@@ -240,16 +236,17 @@ class TypecheckerSpec : StringSpec({
         }
     }
 
-    "high ranked types compile with type annotation" {
+    "high ranked types don't compile" {
         val code = """
             type Tuple a b = Tuple a b
             
-            fun : (forall a. a -> a) -> Tuple Int String
+            //fun : (forall a. a -> a) -> Tuple Int String
             fun f = Tuple (f 1) (f "a")
         """.module()
 
-        val res = TestUtil.compileCode(code).env.decls["fun"]
-        res?.type?.simpleName() shouldBe "(forall t1. t1 -> t1) -> Tuple Int32 String"
+        shouldThrow<CompilationError> {
+            TestUtil.compileCode(code).env.decls["fun"]
+        }
     }
 
     "typecheck recursive lets" {
@@ -261,6 +258,6 @@ class TypecheckerSpec : StringSpec({
 
         val res = TestUtil.compileCode(code).env.decls
 
-        res["fun"]?.type?.simpleName() shouldBe "forall t1. Int32 -> t1 -> t1"
+        res["fun"]?.type?.simpleName() shouldBe "Int32 -> t1 -> t1"
     }
 })

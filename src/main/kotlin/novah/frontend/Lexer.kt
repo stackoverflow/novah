@@ -40,7 +40,6 @@ sealed class Token {
     object Pipe : Token()
     object ModuleT : Token()
     object ImportT : Token()
-    object Forall : Token()
     object TypeT : Token()
     object TypealiasT : Token()
     object As : Token()
@@ -70,7 +69,7 @@ sealed class Token {
     data class Op(val op: String) : Token()
 
     fun isDoubleColon() = this is Op && op == "::"
-    
+
     override fun toString(): String = this.javaClass.simpleName
 }
 
@@ -85,8 +84,11 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
 
     companion object {
         fun empty() = Span(-1, -1, -1, -1)
-        
+
         fun new(begin: Span, end: Span) = Span(begin.startLine, begin.startColumn, end.endLine, end.endColumn)
+        fun new(begin: Position, end: Position) = Span(begin.line, begin.column, end.line, end.column)
+        fun new(startLine: Int, startColumn: Int, endPos: Position) =
+            Span(startLine, startColumn, endPos.line, endPos.column)
     }
 }
 
@@ -96,7 +98,7 @@ data class Spanned<out T>(val span: Span, val value: T, val comment: Comment? = 
     fun offside() = span.startColumn
 }
 
-class LexError(val msg: String, val pos: Position) : RuntimeException("$msg at $pos")
+class LexError(val msg: String, val span: Span) : RuntimeException("$msg at $span")
 
 class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 
@@ -113,7 +115,7 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
             advancePos(temp)
         } else {
             if (!chars.hasNext()) {
-                throw LexError("Unexpected end of file", Position(line, column))
+                throw LexError("Unexpected end of file", Position(line, column).span())
             }
             advancePos(chars.next())
         }
@@ -121,12 +123,12 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 
     fun peek(): Char {
         if (!chars.hasNext() && lookahead == null) {
-            throw LexError("Unexpected end of file", Position(line, column))
+            throw LexError("Unexpected end of file", Position(line, column).span())
         }
         lookahead = lookahead ?: chars.next()
         return lookahead!!
     }
-    
+
     fun position() = Position(line, column)
 
     private fun advancePos(c: Char): Char {
@@ -205,10 +207,17 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             '`' -> {
                 val op = ident(null)
                 if (op is Ident) {
-                    if (op.v.isEmpty()) lexError("Expected identifier after `.")
-                    if (accept("`") == null) lexError("Expected closing ` after operator application.")
+                    if (op.v.isEmpty()) {
+                        lexError("Expected identifier after `.", Span.new(startLine, startColumn, iter.position()))
+                    }
+                    if (accept("`") == null) {
+                        lexError(
+                            "Expected closing ` after operator application.",
+                            Span.new(startLine, startColumn, iter.position())
+                        )
+                    }
                     Op(op.v)
-                } else lexError("Invalid operator application.")
+                } else lexError("Invalid operator application.", Span.new(startLine, startColumn, iter.position()))
             }
             else -> {
                 when {
@@ -258,7 +267,6 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "_" -> Underline
             "module" -> ModuleT
             "import" -> ImportT
-            "forall" -> Forall
             "let" -> LetT
             "case" -> CaseT
             "of" -> Of
@@ -299,6 +307,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     private fun number(init: Char, negative: Boolean = false): Token {
+        val startPos = iter.position()
         fun readE(): String {
             val e = iter.next().toString()
             val sign = accept("+-")?.toString() ?: ""
@@ -309,7 +318,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
         fun genNumIntToken(n: Long, text: String): Token = when {
             n >= Int.MIN_VALUE && n <= Int.MAX_VALUE -> IntT(n.toInt(), text)
-            else -> LongT(n, text)
+            else -> lexError("Number out of range for integer.", Span.new(startPos, iter.position()))
         }
 
         val n = if (negative) -1 else 1
@@ -372,10 +381,15 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     else DoubleT(number.toSafeDouble() * n, number)
                 }
                 else -> {
-                    // Int
-                    val l = accept("L")
-                    if (l != null) LongT(num.toSafeLong(10) * n, num + l)
-                    else genNumIntToken(num.toSafeLong(10) * n, num)
+                    // Int or Double
+                    if (iter.hasNext()) {
+                        val l = accept("L")
+                        if (l == null) {
+                            val f = accept("F")
+                            if (f != null) FloatT(num.toSafeFloat() * n, num + f)
+                            else genNumIntToken(num.toSafeLong(10) * n, num)
+                        } else LongT(num.toSafeLong(10) * n, num + l)
+                    } else genNumIntToken(num.toSafeLong(10) * n, num)
                 }
             }
         }
@@ -449,7 +463,11 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     private fun lexError(msg: String): Nothing {
-        throw LexError(msg, iter.position())
+        throw LexError(msg, iter.position().span())
+    }
+
+    private fun lexError(msg: String, span: Span): Nothing {
+        throw LexError(msg, span)
     }
 
     private fun Char.isValidIdentifierStart(): Boolean {

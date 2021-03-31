@@ -150,6 +150,7 @@ sealed class Decl(val name: String, val visibility: Visibility) {
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
         Decl(name, visibility) {
         var expanded: Type? = null
+        val freeVars = mutableSetOf<String>() 
     }
 
     var comment: Comment? = null
@@ -311,7 +312,6 @@ sealed class Type(open val span: Span) {
     data class TConst(val name: String, val alias: String? = null, override val span: Span) : Type(span)
     data class TApp(val type: Type, val types: List<Type> = listOf(), override val span: Span) : Type(span)
     data class TFun(val arg: Type, val ret: Type, override val span: Span) : Type(span)
-    data class TForall(val names: List<String>, val type: Type, override val span: Span) : Type(span)
     data class TParens(val type: Type, override val span: Span) : Type(span)
     data class TRecord(val row: Row, override val span: Span) : Type(span)
     data class TRowEmpty(override val span: Span) : Type(span)
@@ -326,7 +326,6 @@ sealed class Type(open val span: Span) {
             is TConst -> f(t)
             is TApp -> f(t.copy(type = go(t.type), types = t.types.map(::go)))
             is TFun -> f(t.copy(go(t.arg), go(t.ret)))
-            is TForall -> f(t.copy(type = go(t.type)))
             is TParens -> f(t.copy(go(t.type)))
             is TRecord -> f(t.copy(go(t.row)))
             is TRowEmpty -> f(t)
@@ -349,7 +348,6 @@ sealed class Type(open val span: Span) {
     fun findFreeVars(bound: List<String>): List<String> = when (this) {
         is TConst -> if (name[0].isLowerCase() && name !in bound) listOf(name) else listOf()
         is TFun -> arg.findFreeVars(bound) + ret.findFreeVars(bound)
-        is TForall -> type.findFreeVars(bound + names)
         is TApp -> type.findFreeVars(bound) + types.flatMap { it.findFreeVars(bound) }
         is TParens -> type.findFreeVars(bound)
         is TRecord -> row.findFreeVars(bound)
@@ -368,7 +366,6 @@ sealed class Type(open val span: Span) {
     
     fun simpleName(): String? = when (this) {
         is TConst -> name
-        is TForall -> type.simpleName()
         is TApp -> type.simpleName()
         is TParens -> type.simpleName()
         else -> null

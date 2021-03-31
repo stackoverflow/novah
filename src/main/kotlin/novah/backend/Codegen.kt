@@ -47,6 +47,7 @@ import novah.backend.TypeUtil.VECTOR_DESC
 import novah.backend.TypeUtil.box
 import novah.backend.TypeUtil.descriptor
 import novah.backend.TypeUtil.lambdaMethodType
+import novah.backend.TypeUtil.primitive
 import novah.backend.TypeUtil.unbox
 import novah.data.forEachList
 import org.objectweb.asm.*
@@ -199,7 +200,21 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 else mv.visitFieldInsn(GETSTATIC, e.fullName, LAMBDA_CTOR, FUNCTION_DESC)
             }
             is Expr.App -> {
-                resolvePrimitiveModuleApp(mv, e, ctx)
+                val fn = e.fn
+                genExpr(fn, mv, ctx)
+                genExpr(e.arg, mv, ctx)
+                val retType = fn.type.pars[1].type
+
+                mv.visitMethodInsn(
+                    INVOKEINTERFACE,
+                    "java/util/function/Function",
+                    "apply",
+                    "(Ljava/lang/Object;)Ljava/lang/Object;",
+                    true
+                )
+                if (retType.internalName != OBJECT_CLASS) {
+                    mv.visitTypeInsn(CHECKCAST, retType.internalName)
+                }
             }
             is Expr.CtorApp -> {
                 val name = e.ctor.fullName
@@ -225,8 +240,13 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     "&&" -> genOperatorAnd(e, mv, ctx)
                     "||" -> genOperatorOr(e, mv, ctx)
                     "==" -> genOperatorEquals(e, mv, ctx)
+                    "+" -> genNumericOperator(e.name, e, mv, ctx)
+                    "-" -> genNumericOperator(e.name, e, mv, ctx)
+                    "*" -> genNumericOperator(e.name, e, mv, ctx)
+                    "/" -> genNumericOperator(e.name, e, mv, ctx)
                 }
-                mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
+                val prim = e.operands[0].type.type.primitive()
+                if (prim != null) box(prim, mv)
             }
             is Expr.If -> {
                 val endLabel = Label()
@@ -635,28 +655,30 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             false
         )
     }
-
-    private fun resolvePrimitiveModuleApp(mv: MethodVisitor, e: Expr.App, ctx: GenContext) {
-        val fn = e.fn
-        if (fn is Expr.Var && fn.fullname() == "prim/Module.unsafeCast") {
-            genExpr(e.arg, mv, ctx)
-            //mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
-        } else {
-            genExpr(fn, mv, ctx)
-            genExpr(e.arg, mv, ctx)
-            val retType = fn.type.pars[1].type
-
-            mv.visitMethodInsn(
-                INVOKEINTERFACE,
-                "java/util/function/Function",
-                "apply",
-                "(Ljava/lang/Object;)Ljava/lang/Object;",
-                true
-            )
-            if (retType.internalName != OBJECT_CLASS) {
-                mv.visitTypeInsn(CHECKCAST, retType.internalName)
-            }
+    
+    private fun genNumericOperator(op: String, e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
+        if (e.operands.size != 2) internalError("got wrong number of operators for operator $op")
+        val op1 = e.operands[0]
+        val op2 = e.operands[1]
+        val t1 = op1.type.type
+        val prim = t1.primitive()!!
+        val operation = when (op) {
+            "+" -> IADD
+            "-" -> ISUB
+            "*" -> IMUL
+            "/" -> IDIV
+            else -> internalError("unkonwn operation $op")
         }
+        val clazz = when (prim.className) {
+            "int" -> Int::class.java
+            "double" -> Double::class.java
+            "long" -> Long::class.java
+            "float" -> Float::class.java
+            else -> internalError("unknown type to $op operator: ${t1.className}")
+        }
+        genExprForNativeCall(op1, clazz, mv, ctx)
+        genExprForNativeCall(op2, clazz, mv, ctx)
+        mv.visitInsn(prim.getOpcode(operation))
     }
 
     class LambdaContext(val lambda: Expr.Lambda, var ignores: List<String>, var locals: List<Expr.LocalVar>)
@@ -829,7 +851,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         private val ctorCache = mutableMapOf<String, DataConstructor>()
 
         private val arrayOfStringClazz = Clazz(getType(Array<String>::class.java))
-        
+
         private val ARRAY_TYPE = getType(Array::class.java)
 
         private fun intExp(n: Int): Expr.Int32 = Expr.Int32(n, Clazz(INT_TYPE))

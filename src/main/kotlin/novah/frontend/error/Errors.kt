@@ -50,12 +50,6 @@ object Errors {
 
     const val TYPE_DEF = "Expected a type definition."
 
-    val FORALL_TVARS = """Expected type variable(s) after forall quantifier:
-        |Example: forall a b. a -> b
-    """.trimMargin()
-
-    const val FORALL_DOT = "Expected `.` after forall quantifier."
-
     const val CTOR_NAME = "Expected constructor name (upper case identifier)."
 
     const val TOPLEVEL_IDENT = "Expected variable definition or variable type at the top level."
@@ -319,13 +313,19 @@ object Errors {
         $name expects $expected parameter(s) but got $got.
     """.trimIndent()
 
-    fun polyParameterToLambda(t: String) = """Polymorphic parameter inferred: $t."""
-
     fun recursiveAlias(name: String) = "Typealias $name is recursive."
 
     fun undefinedVar(name: String) = "Undefined variable $name."
 
     fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
+    
+    fun freeVarsInTypealias(talias: String, vars: Set<String>) = """
+        Type variables
+        
+            ${vars.joinToString()}
+        
+        are unbounded in type alias $talias.
+    """.trimIndent()
 
     fun duplicatedDecl(name: String) = "Declaration $name is already defined or imported."
 

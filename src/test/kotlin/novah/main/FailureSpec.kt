@@ -19,7 +19,7 @@ import io.kotest.assertions.failure
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil
-import novah.frontend.hmftypechecker.Typechecker
+import novah.frontend.typechecker.Typechecker
 import java.io.File
 
 class FailureSpec : StringSpec({

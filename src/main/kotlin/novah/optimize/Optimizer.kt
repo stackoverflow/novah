@@ -25,7 +25,7 @@ import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
-import novah.frontend.hmftypechecker.*
+import novah.frontend.typechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import org.objectweb.asm.Type
@@ -38,7 +38,7 @@ import novah.ast.canonical.Decl.ValDecl as CValDecl
 import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
 import novah.frontend.error.Errors as E
-import novah.frontend.hmftypechecker.Type as TType
+import novah.frontend.typechecker.Type as TType
 
 /**
  * Converts the canonical AST to the
@@ -212,15 +212,14 @@ class Optimizer(private val ast: CModule) {
         // the only functions that can have more than 1 argument are native ones
         // but those don't need a type as we get the type from the reflected method/field/constructor
         is TArrow -> Clazz(FUNCTION_TYPE, listOf(args[0].convert(), ret.convert()))
-        is TForall -> type.convert()
         is TVar -> {
             when (val tv = tvar) {
                 is TypeVar.Link -> tv.type.convert()
-                is TypeVar.Bound -> Clazz(OBJECT_TYPE)
-                is TypeVar.Generic ->
-                    internalError("got unbound generic variable after typechecking: ${show(true)} at $span")
-                is TypeVar.Unbound ->
-                    internalError("got unbound variable after typechecking: ${show(true)} at $span")
+                is TypeVar.Generic -> Clazz(OBJECT_TYPE)
+                is TypeVar.Unbound -> {
+                    //internalError("got unbound variable after typechecking: ${show(true)} at $span")
+                    Clazz(OBJECT_TYPE)
+                }
             }
         }
         // records always have the same type
@@ -496,12 +495,8 @@ class Optimizer(private val ast: CModule) {
             }
             else -> args to t
         }
-
-        var rawType = type
-        while (rawType is TForall) {
-            rawType = rawType.type
-        }
-        val (pars, ret) = innerPeelArgs(emptyList(), rawType)
+        
+        val (pars, ret) = innerPeelArgs(emptyList(), type)
         return pars.map { it.convert() } to ret.convert()
     }
 
@@ -533,7 +528,7 @@ class Optimizer(private val ast: CModule) {
             primByte -> Type.getType(Byte::class.javaObjectType)
             primInt16 -> Type.getType(Short::class.javaObjectType)
             primInt32 -> Type.getType(Int::class.javaObjectType)
-            primInt64 -> Type.getType(Long::class.javaObjectType)
+            primInt64 -> LONG_TYPE
             primFloat32 -> Type.getType(Float::class.javaObjectType)
             primFloat64 -> Type.getType(Double::class.javaObjectType)
             primBoolean -> Type.getType(Boolean::class.javaObjectType)
@@ -561,5 +556,6 @@ class Optimizer(private val ast: CModule) {
         private val RECORD_TYPE = Type.getType(novah.collections.Record::class.java)
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
         val ARRAY_TYPE = Type.getType(Array::class.java)
+        val LONG_TYPE = Type.getType(Long::class.javaObjectType)
     }
 }

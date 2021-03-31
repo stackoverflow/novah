@@ -85,9 +85,9 @@ class RecordSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["isXZero"]?.type?.simpleName() shouldBe "forall t1. { x : Int32 | t1 } -> Boolean"
-        ds["minus"]?.type?.simpleName() shouldBe "forall t2 t1. { x : t2 | t1 } -> { | t1 }"
-        ds["plus"]?.type?.simpleName() shouldBe "forall t1 t2. t1 -> { | t2 } -> { x : t1 | t2 }"
+        ds["isXZero"]?.type?.simpleName() shouldBe "{ x : Int32 | t1 } -> Boolean"
+        ds["minus"]?.type?.simpleName() shouldBe "{ x : t2 | t1 } -> { | t1 }"
+        ds["plus"]?.type?.simpleName() shouldBe "t1 -> { | t2 } -> { x : t1 | t2 }"
         ds["ap1"]?.type?.simpleName() shouldBe "Unit -> { y : Int32 }"
         ds["ap2"]?.type?.simpleName() shouldBe "Unit -> { x : String, y : Int32, z : Boolean }"
     }
@@ -132,27 +132,27 @@ class RecordSpec : StringSpec({
         // this is a hack, would be better to have type level strings or direct syntax
         // so we could generically update a record
         val code = """
-            same : forall a. a -> a -> a
+            same : a -> a -> a
             same _ y = y
             
             update newName named = { name: same named.name newName | { - name | named } }
         """.module()
 
         val user = TestUtil.compileCode(code).env.decls["update"]
-        user?.type?.simpleName() shouldBe "forall t1 t2. t1 -> { name : t1 | t2 } -> { name : t1 | t2 }"
+        user?.type?.simpleName() shouldBe "t1 -> { name : t1 | t2 } -> { name : t1 | t2 }"
     }
 
     "1st class modules" {
         val code = """
-            typealias Prelude =
-              { id : forall a. a -> a
-              , const : forall a b. a -> b -> a
+            typealias Prelude a b =
+              { id : a -> a
+              , const : a -> b -> a
               }
             
-            id : forall a. a -> a
+            id : a -> a
             id x = x
             
-            prelude : Prelude
+            prelude : Prelude a b
             prelude =
               { id: id
               , const: \x _ -> x
@@ -160,13 +160,13 @@ class RecordSpec : StringSpec({
         """.module()
 
         val pre = TestUtil.compileCode(code).env.decls["prelude"]?.type
-        pre?.simpleName() shouldBe "{ const : forall t1 t2. t1 -> t2 -> t1, id : forall t3. t3 -> t3 }"
+        pre?.simpleName() shouldBe "{ const : t1 -> t2 -> t1, id : t1 -> t1 }"
     }
 
     "proper type checking for records" {
         val code = """
             
-            select : { fun : forall a. a -> a } -> String
+            select : { fun : String -> String } -> String
             select m = m.fun ""
             
             id x = x
@@ -176,11 +176,14 @@ class RecordSpec : StringSpec({
             
             rec2 : Char -> { fun : Char }
             rec2 c = { fun: id c }
+            
+            call = select { fun: id }
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["select"]?.type?.simpleName() shouldBe "{ fun : forall t1. t1 -> t1 } -> String"
+        ds["select"]?.type?.simpleName() shouldBe "{ fun : String -> String } -> String"
         ds["rec"]?.type?.simpleName() shouldBe "{ fun : String -> String }"
         ds["rec2"]?.type?.simpleName() shouldBe "Char -> { fun : Char }"
+        ds["call"]?.type?.simpleName() shouldBe "String"
     }
 })

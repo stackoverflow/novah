@@ -1,6 +1,6 @@
 module test
 
-f : forall a. Option a -> String
+f : Option a -> String
 f x = case x of
   Some v -> toString v
   None -> "bla"

@@ -3,3 +3,5 @@ at src/test/resources/failure/variables/duplicated variable.novah:7:1 - 7:15
 
   Value newFile is shadowing another value with the same name.
 
+in declaration newFile
+

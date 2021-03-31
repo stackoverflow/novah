@@ -1,0 +1,25 @@
+module novah.vector
+
+foreign import type java.util.function.Function
+foreign import type novah.Core
+
+foreign import Core:mapVector(Function, Vector) as vecMap
+foreign import Int32.longValue()
+foreign import Vector.nth(Int64) as nthVec
+
+/**
+ * Maps function f over all elements of this Vector
+ * returning a Vector of the same size.
+ * Runtime: O(n)
+ */
+pub
+map : (a -> b) -> Vector a -> Vector b
+map f vec = vecMap (unsafeCoerce f) (unsafeCoerce vec) |> unsafeCast
+
+/**
+ * Returns the value at index for this Vector.
+ * Runtime: ~O(1)
+ */
+pub
+nth : Int -> Vector a -> a
+nth index vec = nthVec (unsafeCoerce vec) (longValue index) |> unsafeCast

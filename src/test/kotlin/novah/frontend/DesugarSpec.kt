@@ -76,18 +76,16 @@ class DesugarSpec : StringSpec({
     
     "anonymous function arguments" {
         val code = """
-            foreign import novah.Core:sum(Int, Int)
-            
             f1 = if _ then 1 else -1
             
             f2 cond = if cond == 0 then _ else _
             
             f3 = case _ of
               [] -> 0
-              [_ :: xs] -> sum 1 (f3 xs)
+              [_ :: xs] -> 1 + (f3 xs)
             
             f4 = case _, _ of
-              Some x, Some y -> sum x y
+              Some x, Some y -> x + y
               Some x, None -> x
               None, Some y -> y
               None, None -> -1
@@ -97,8 +95,6 @@ class DesugarSpec : StringSpec({
             f6 = _.address.street
             
             f7 = { name: _, age: _, id: _ | _ }
-            
-            (+) x y = sum x y
             
             f8 x = (_ + x)
             
@@ -111,17 +107,15 @@ class DesugarSpec : StringSpec({
         
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "Boolean -> Int32"
-        ds["f2"]?.type?.simpleName() shouldBe "forall t1. Int32 -> t1 -> t1 -> t1"
-        ds["f3"]?.type?.simpleName() shouldBe "forall t1. Vector t1 -> Int32"
+        ds["f2"]?.type?.simpleName() shouldBe "Int32 -> t1 -> t1 -> t1"
+        ds["f3"]?.type?.simpleName() shouldBe "Vector t1 -> Int32"
         ds["f4"]?.type?.simpleName() shouldBe "Option Int32 -> Option Int32 -> Int32"
-        ds["f5"]?.type?.simpleName() shouldBe "forall t2 t1. { name : t2 | t1 } -> t2"
-        ds["f6"]?.type?.simpleName() shouldBe "forall t3 t2 t1. { address : { street : t3 | t2 } | t1 } -> t3"
-        ds["f7"]?.type?.simpleName() shouldBe
-                "forall t1 t2 t3 t4. t1 -> t2 -> t3 -> { | t4 } -> { age : t2, id : t3, name : t1 | t4 }"
+        ds["f5"]?.type?.simpleName() shouldBe "{ name : t2 | t1 } -> t2"
+        ds["f6"]?.type?.simpleName() shouldBe "{ address : { street : t3 | t2 } | t1 } -> t3"
+        ds["f7"]?.type?.simpleName() shouldBe "t1 -> t2 -> t3 -> { | t4 } -> { age : t2, id : t3, name : t1 | t4 }"
         ds["f8"]?.type?.simpleName() shouldBe "Int32 -> Int32 -> Int32"
         ds["f9"]?.type?.simpleName() shouldBe "Int32 -> Int32 -> Int32"
         ds["f10"]?.type?.simpleName() shouldBe "Int32 -> Int32 -> Int32"
-        ds["f11"]?.type?.simpleName() shouldBe
-                "forall t4 t3 t2 t1. { name : t4, age : t3, id : t2 | t1 } -> { | t1 }"
+        ds["f11"]?.type?.simpleName() shouldBe "{ name : t4, age : t3, id : t2 | t1 } -> { | t1 }"
     }
 })

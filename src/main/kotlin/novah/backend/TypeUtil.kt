@@ -79,6 +79,18 @@ object TypeUtil {
         val internal = getInternalName(primitiveWrappers[name])
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, internal, "${name}Value", "()" + ty.descriptor, false)
     }
+    
+    fun Type.primitive(): Type? = when (this.className) {
+        "java.lang.Byte" -> BYTE_TYPE
+        "java.lang.Short" -> SHORT_TYPE
+        "java.lang.Integer" -> INT_TYPE
+        "java.lang.Long" -> LONG_TYPE
+        "java.lang.Float" -> FLOAT_TYPE
+        "java.lang.Double" -> DOUBLE_TYPE
+        "java.lang.Boolean" -> BOOLEAN_TYPE
+        "java.lang.Character" -> CHAR_TYPE
+        else -> null
+    }
 
     val lambdaMethodType: Type = getMethodType("(Ljava/lang/Object;)Ljava/lang/Object;")
     

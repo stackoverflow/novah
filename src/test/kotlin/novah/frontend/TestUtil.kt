@@ -20,8 +20,8 @@ import novah.data.flatMapList
 import novah.data.map
 import novah.data.mapList
 import novah.data.unwrapOrElse
-import novah.frontend.hmftypechecker.*
-import novah.frontend.hmftypechecker.Type
+import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Type
 import novah.main.CompilationError
 import novah.main.Compiler
 import novah.main.FullModuleEnv
@@ -115,7 +115,6 @@ object TestUtil {
     fun Type.findUnbound(): List<Type> = when (this) {
         is TArrow -> args.flatMap { it.findUnbound() } + ret.findUnbound()
         is TApp -> type.findUnbound() + types.flatMap { it.findUnbound() }
-        is TForall -> type.findUnbound()
         is TVar -> {
             when (val tv = tvar) {
                 is TypeVar.Link -> tv.type.findUnbound()
@@ -141,7 +140,6 @@ object TestUtil {
             }
             is TApp -> f(t.copy(type = go(t.type), types = t.types.map(::go)))
             is TArrow -> f(t.copy(t.args.map { go(it) }, go(t.ret)))
-            is TForall -> f(t.copy(type = go(t.type)))
             is TRecord -> f(t.copy(go(t.row)))
             is TRowEmpty -> f(t)
             is TRowExtend -> f(t.copy(row = go(t.row), labels = t.labels.mapList { go(it) }))
@@ -169,13 +167,11 @@ object TestUtil {
             when (t) {
                 is TVar -> {
                     when (val tv = t.tvar) {
-                        is TypeVar.Bound -> TVar(TypeVar.Bound(get(tv.id)))
                         is TypeVar.Generic -> TVar(TypeVar.Generic(get(tv.id)))
                         is TypeVar.Unbound -> TVar(TypeVar.Unbound(get(tv.id), 0))
                         else -> t
                     }
                 }
-                is TForall -> TForall(t.ids.map { get(it) }, t.type)
                 else -> t
             }
         }

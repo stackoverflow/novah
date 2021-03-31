@@ -9,6 +9,7 @@
 - [ ] Some compiler help for lenses?
 - [ ] Computational expressions
 - [ ] List/Vector/etc comprehension
+- [ ] Multi line strings
 - [X] Anonymous function arguments
 - [X] Full pattern destructuring for function and let parameters
 - [X] Multi-expression pattern matching

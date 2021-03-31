@@ -26,7 +26,7 @@ class InstanceArgumentsSpec : StringSpec({
         val code = """
             opaque type Show a = { show : a -> String }
             
-            show : forall a. {{ Show a }} -> a -> String
+            show : {{ Show a }} -> a -> String
             show {{Show s}} x = s.show x
             
             instance
@@ -37,12 +37,12 @@ class InstanceArgumentsSpec : StringSpec({
             showBool : Show Boolean
             showBool = Show { show: \x -> toString x }
             
-            showOptionImpl : forall a. {{ Show a }} -> Option a -> String
+            showOptionImpl : {{ Show a }} -> Option a -> String
             showOptionImpl {{s}} o = case o of
               Some x -> show x
               None -> "None"
             
-            showOption : forall a. {{ Show a }} -> Show (Option a)
+            showOption : {{ Show a }} -> Show (Option a)
             showOption {{s}} = Show { show: showOptionImpl {{s}} }
             
             printx : Option Int -> String
@@ -54,17 +54,17 @@ class InstanceArgumentsSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["show"]?.type?.simpleName() shouldBe "forall t1. {{ Show t1 }} -> t1 -> String"
+        ds["show"]?.type?.simpleName() shouldBe "{{ Show t1 }} -> t1 -> String"
         ds["showInt"]?.type?.simpleName() shouldBe "Show Int32"
         ds["showBool"]?.type?.simpleName() shouldBe "Show Boolean"
-        ds["showOption"]?.type?.simpleName() shouldBe "forall t1. {{ Show t1 }} -> Show (Option t1)"
+        ds["showOption"]?.type?.simpleName() shouldBe "{{ Show t1 }} -> Show (Option t1)"
     }
     
     "recursive search" {
         val code = """
             opaque type Show a = { show : a -> String }
             
-            show : forall a. {{ Show a }} -> a -> String
+            show : {{ Show a }} -> a -> String
             show {{Show s}} x = s.show x
             
             instance
@@ -75,24 +75,24 @@ class InstanceArgumentsSpec : StringSpec({
             showBool : Show Boolean
             showBool = Show { show: \x -> toString x }
             
-            showOptionImpl : forall a. {{ Show a }} -> Option a -> String
+            showOptionImpl : {{ Show a }} -> Option a -> String
             showOptionImpl {{s}} o = case o of
               Some x -> show x
               None -> "None"
             
             instance
-            showOption : forall a. {{ Show a }} -> Show (Option a)
+            showOption : {{ Show a }} -> Show (Option a)
             showOption {{s}} = Show { show: showOptionImpl {{s}} }
             
             type Result a b = Ok a | Err b
             
-            showResultImpl : forall a b. {{ Show a }} -> {{ Show b }} -> Result a b -> String
+            showResultImpl : {{ Show a }} -> {{ Show b }} -> Result a b -> String
             showResultImpl {{a}} {{b}} r = case r of
               Ok o -> show o
               Err e -> show e
             
             instance
-            showResult : forall a b. {{ Show a }} -> {{ Show b }} -> Show (Result a b)
+            showResult : {{ Show a }} -> {{ Show b }} -> Show (Result a b)
             showResult {{a}} {{b}} = Show { show: showResultImpl {{a}} {{b}} }
             
             main () = show (Some None)

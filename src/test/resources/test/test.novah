@@ -1,8 +1,10 @@
 module test
 
+import novah.vector as V
+
 foreign import java.util.Arrays:toString(Array) as toStringArr
 
-toStr : forall a. Array a -> String
+toStr : Array a -> String
 toStr arr = toStringArr (unsafeCast arr)
 
 pub
@@ -15,5 +17,7 @@ main _ = do
   None ?: 3 |> println
   #{1, 2, 3} ++ #{5, 6, 7} |> println
   printArr arr
+  println (3563.45F / 1090F)
+  println (V.nth 2 [56, 777, 1237, 12])
   format "some %s once told %s" ["body", "me"] |> println
   //[56, 78, 90, 14, 566] |> flip nth 4 |> println

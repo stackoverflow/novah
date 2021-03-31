@@ -33,8 +33,8 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
-import novah.frontend.hmftypechecker.Type
-import novah.frontend.hmftypechecker.Typechecker
+import novah.frontend.typechecker.Type
+import novah.frontend.typechecker.Typechecker
 import novah.frontend.resolveForeignImports
 import novah.frontend.resolveImports
 import novah.optimize.Optimization

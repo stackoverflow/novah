@@ -3,5 +3,5 @@ module test
 fun : Int -> Int
 fun x = x
 
-fun : forall a. a -> a
+fun : a -> a
 fun x = x

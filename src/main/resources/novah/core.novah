@@ -34,8 +34,22 @@ foreign import Core:getArray(Int32, Array)
 foreign import Core:setArray(Int32, Object, Array)
 foreign import Core:getArrayLength(Array)
 foreign import Core:equivalentObject(Object, Object)
-//foreign import Core:unsafeCoerce(Object)
-//foreign import Core:mapArray(Function, Array) as arrMap
+foreign import Core:sum(Int32, Int32) as sumInt
+foreign import Core:sum(Int64, Int64) as sumInt64
+foreign import Core:sum(Float32, Float32) as sumFloat32
+foreign import Core:sum(Float64, Float64) as sumFloat64
+foreign import Core:sub(Int32, Int32) as subInt
+foreign import Core:sub(Int64, Int64) as subInt64
+foreign import Core:sub(Float32, Float32) as subFloat32
+foreign import Core:sub(Float64, Float64) as subFloat64
+foreign import Core:mult(Int32, Int32) as mulInt
+foreign import Core:mult(Int64, Int64) as mulInt64
+foreign import Core:mult(Float32, Float32) as mulFloat32
+foreign import Core:mult(Float64, Float64) as mulFloat64
+foreign import Core:div(Int32, Int32) as divInt
+foreign import Core:div(Int64, Int64) as divInt64
+foreign import Core:div(Float32, Float32) as divFloat32
+foreign import Core:div(Float64, Float64) as divFloat64
 
 /**
  * A 32-bits Integer
@@ -49,9 +63,15 @@ typealias Int = Int32
 pub
 typealias Float = Float64
 
-//pub
-//unsafeCaster : forall a b. a -> b
-//unsafeCaster x = unsafeCoerce x
+/**
+ * Coerce parameter x from type a to b.
+ * This is extremely unsafe and should be used only
+ * when sure both types are compatible, otherwise
+ * a runtime exception will be thrown.
+ */
+pub
+unsafeCast : a -> b
+unsafeCast x = unsafeCoerce x
 
 /**
  * Negates a boolean value.
@@ -64,21 +84,21 @@ not b = negate b
  * A function that just returns it's argument.
  */
 pub
-identity : forall a. a -> a
+identity : a -> a
 identity x = x
 
 /**
  * Flips the arguments of a 2-arguments function.
  */
 pub
-flip : forall a b c. (a -> b -> c) -> (b -> a -> c)
+flip : (a -> b -> c) -> (b -> a -> c)
 flip f y x = f x y
 
 /**
  * Takes two parameters and returns the first, ignoring the second.
  */
 pub
-const : forall a b. a -> b -> a
+const : a -> b -> a
 const x _ = x
 
 /**
@@ -91,21 +111,21 @@ const x _ = x
  * fun3 y (fun2 (fun1 x))
  */
 pub
-(|>) : forall a b. a -> (a -> b) -> b
+(|>) : a -> (a -> b) -> b
 (|>) x f = f x
 
 /**
  * Forward function composition operator: (f >> g >> h) x = h (g (f x))
  */
 pub
-(>>) : forall a b c. (a -> b) -> (b -> c) -> (a -> c)
+(>>) : (a -> b) -> (b -> c) -> (a -> c)
 (>>) f g x = g (f x)
 
 /**
  * Backward function composition operator: (f << g << h) x = f (g (h x))
  */
 pub
-(<<) : forall a b c. (b -> c) -> (a -> b) -> (a -> c)
+(<<) : (b -> c) -> (a -> b) -> (a -> c)
 (<<) f g x = f (g x)
 
 /**
@@ -114,21 +134,21 @@ pub
  * This is the same as Java's ==
  */
 pub
-(===) : forall a. a -> a -> Boolean
+(===) : a -> a -> Boolean
 (===) x y = equivalentObject (unsafeCast x) (unsafeCast y)
 
 /**
  * Prints x to stdout and appends a new line.
  */
 pub
-println : forall a. a -> Unit
+println : a -> Unit
 println x = jprintln out (unsafeCast x)
 
 /**
  * Prints x to the stdout.
  */
 pub
-print : forall a. a -> Unit
+print : a -> Unit
 print x = jprint out (unsafeCast x)
 
 /**
@@ -136,7 +156,7 @@ print x = jprint out (unsafeCast x)
  * native Java toString method.
  */
 pub
-toString : forall a. a -> String
+toString : a -> String
 toString x = jToString (unsafeCast x)
 
 /**
@@ -144,7 +164,7 @@ toString x = jToString (unsafeCast x)
  * the native Java hashCode method.
  */
 pub
-hashCode : forall a. a -> Int32
+hashCode : a -> Int32
 hashCode x = jHashCode (unsafeCast x)
 
 /**
@@ -215,7 +235,7 @@ objectArray size = mkObjectArray size
  * specified index.
  */
 pub
-arrayGet : forall a. Int -> Array a -> a
+arrayGet : Int -> Array a -> a
 arrayGet index arr = getArray index (unsafeCast arr) |> unsafeCast
 
 /**
@@ -223,21 +243,21 @@ arrayGet index arr = getArray index (unsafeCast arr) |> unsafeCast
  * specified index.
  */
 pub
-arraySet : forall a. Int -> a -> Array a -> Unit
+arraySet : Int -> a -> Array a -> Unit
 arraySet index x arr = setArray index (unsafeCast x) (unsafeCast arr)
 
 /**
  * Gets the length of this array.
  */
 pub
-arrayLength : forall a. Array a -> Int
+arrayLength : Array a -> Int
 arrayLength arr = getArrayLength (unsafeCast arr)
 
 /**
  * Converts a Vector of some type `a` to an Array of `a`.
  */
 pub
-arrayOf : forall a. Vector a -> Array a
+arrayOf : Vector a -> Array a
 arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
 
 /**
@@ -245,7 +265,7 @@ arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
  * See java.util.Formatter for format explanation.
  */
 pub
-format : forall a. String -> Vector a -> String
+format : String -> Vector a -> String
 format str vec = sformat str (unsafeCast (arrayOf vec))
 
 /**
@@ -259,7 +279,7 @@ type Option a = Some a | None
  * or the default value.
  */
 pub
-(?:) : forall a. Option a -> a -> a
+(?:) : Option a -> a -> a
 (?:) opt def =
   case opt of
     Some x -> x
@@ -275,17 +295,147 @@ opaque type Append a = { append : a -> a -> a }
  * Appends 2 appendable values together.
  */
 pub
-(++) : forall a. {{ Append a }} -> a -> a -> a
+(++) : {{ Append a }} -> a -> a -> a
 (++) {{Append app}} x y = app.append x y
 
 pub instance
-appendString : Append String
-appendString = Append { append: \s s2 -> concat s s2 }
+append0String : Append String
+append0String = Append { append: \s s2 -> concat s s2 }
 
 pub instance
-appendVector : forall a. Append (Vector a)
-appendVector = Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCast }
+appendVector : Append (Vector a)
+appendVector = Append { append: \v v2 -> vecConcat (unsafeCast v) (unsafeCast v2) |> unsafeCast }
 
 pub instance
-appendSet : forall a. Append (Set a)
-appendSet = Append { append: \s s2 -> union s (unsafeCast s2) |> unsafeCast }
+appendSet : Append (Set a)
+appendSet = Append { append: \s s2 -> union (unsafeCast s) (unsafeCast s2) |> unsafeCast }
+
+/**
+ * The type of things that can be added together
+ * using the + operator.
+ */
+pub+
+opaque type Plus a = { plus : a -> a -> a }
+
+/**
+ * Adds x and y.
+ */
+pub
+(+) : {{ Plus a }} -> a -> a -> a
+(+) {{Plus p}} x y = p.plus x y
+
+pub instance
+plus0Int32 : Plus Int32
+plus0Int32 = Plus { plus: \x y -> sumInt x y }
+
+pub instance
+plusInt64 : Plus Int64
+plusInt64 = Plus { plus: \x y -> sumInt64 x y }
+
+pub instance
+plusFloat32 : Plus Float32
+plusFloat32 = Plus { plus: \x y -> sumFloat32 x y }
+
+pub instance
+plusFloat64 : Plus Float64
+plusFloat64 = Plus { plus: \x y -> sumFloat64 x y }
+
+/**
+ * The type of things that can be subtracted
+ * using the - operator.
+ */
+pub+
+opaque type Minus a = { minus : a -> a -> a }
+
+/**
+ * Subtracts x and y.
+ */
+pub
+(-) : {{ Minus a }} -> a -> a -> a
+(-) {{Minus p}} x y = p.minus x y
+
+pub instance
+minus0Int32 : Minus Int32
+minus0Int32 = Minus { minus: \x y -> subInt x y }
+
+pub instance
+minusInt64 : Minus Int64
+minusInt64 = Minus { minus: \x y -> subInt64 x y }
+
+pub instance
+minusFloat32 : Minus Float32
+minusFloat32 = Minus { minus: \x y -> subFloat32 x y }
+
+pub instance
+minusFloat64 : Minus Float64
+minusFloat64 = Minus { minus: \x y -> subFloat64 x y }
+
+/**
+ * The type of things that can be multiplied together
+ * using the * operator.
+ */
+pub+
+opaque type Mult a = { mult : a -> a -> a }
+
+/**
+ * Multiplies x and y.
+ */
+pub
+(*) : {{ Mult a }} -> a -> a -> a
+(*) {{Mult p}} x y = p.mult x y
+
+pub instance
+mult0Int32 : Mult Int32
+mult0Int32 = Mult { mult: \x y -> mulInt x y }
+
+pub instance
+multInt64 : Mult Int64
+multInt64 = Mult { mult: \x y -> mulInt64 x y }
+
+pub instance
+multFloat32 : Mult Float32
+multFloat32 = Mult { mult: \x y -> mulFloat32 x y }
+
+pub instance
+multFloat64 : Mult Float64
+multFloat64 = Mult { mult: \x y -> mulFloat64 x y }
+
+/**
+ * The type of things that can be divided
+ * using the / operator.
+ */
+pub+
+opaque type Divide a = { divide : a -> a -> a }
+
+/**
+ * Divides x by y.
+ */
+pub
+(/) : {{ Divide a }} -> a -> a -> a
+(/) {{Divide p}} x y = p.divide x y
+
+pub instance
+divide0Int32 : Divide Int32
+divide0Int32 = Divide { divide: \x y -> divInt x y }
+
+pub instance
+divideInt64 : Divide Int64
+divideInt64 = Divide { divide: \x y -> divInt64 x y }
+
+pub instance
+divideFloat32 : Divide Float32
+divideFloat32 = Divide { divide: \x y -> divFloat32 x y }
+
+pub instance
+divideFloat64 : Divide Float64
+divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
+
+/**
+ * The type of things that support equality comparison.
+ */
+pub+
+opaque type Eq a = { equals : a -> a -> Boolean }
+
+//pub
+//(==) : {{ Eq a }} -> a -> a -> Boolean
+//(==) {{Eq e}} x y = e.equals x y
