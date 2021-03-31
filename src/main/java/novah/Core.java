@@ -233,4 +233,9 @@ public class Core {
         }
         return res;
     }
+    
+    @SuppressWarnings("unchecked")
+    public static <T, T2> T unsafeCoerce(T2 o) {
+        return (T) o;
+    }
 }

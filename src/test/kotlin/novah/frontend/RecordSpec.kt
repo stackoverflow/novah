@@ -166,7 +166,7 @@ class RecordSpec : StringSpec({
     "proper type checking for records" {
         val code = """
             
-            select : { fun : a -> a } -> String
+            select : { fun : String -> String } -> String
             select m = m.fun ""
             
             id x = x
@@ -181,7 +181,7 @@ class RecordSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["select"]?.type?.simpleName() shouldBe "{ fun : t1 -> t1 } -> String"
+        ds["select"]?.type?.simpleName() shouldBe "{ fun : String -> String } -> String"
         ds["rec"]?.type?.simpleName() shouldBe "{ fun : String -> String }"
         ds["rec2"]?.type?.simpleName() shouldBe "Char -> { fun : Char }"
         ds["call"]?.type?.simpleName() shouldBe "String"

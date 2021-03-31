@@ -175,43 +175,43 @@ object Inference {
             is Expr.Ann -> {
                 context?.apply { exps.push(exp.exp) }
                 context?.apply { types.push(exp.annType) }
-                val type = instantiate(level, exp.annType)
-                val ty = exp.exp
+                val type = exp.annType
+                val expr = exp.exp
                 // this is a little `checking mode` for some base conversions
                 val resTy = when {
-                    ty is Expr.Int32 && type == tByte && validByte(ty.v) -> tByte
-                    ty is Expr.Int32 && type == tInt16 && validShort(ty.v) -> tInt16
-                    ty is Expr.VectorLiteral && isVectorOf(type, tByte)
-                            && ty.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
-                        ty.exps.forEach { it.withType(tByte) }
-                        exp.annType
+                    expr is Expr.Int32 && type == tByte && validByte(expr.v) -> tByte
+                    expr is Expr.Int32 && type == tInt16 && validShort(expr.v) -> tInt16
+                    expr is Expr.VectorLiteral && isVectorOf(type, tByte)
+                            && expr.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
+                        expr.exps.forEach { it.withType(tByte) }
+                        type
                     }
-                    ty is Expr.VectorLiteral && isVectorOf(type, tInt16)
-                            && ty.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
-                        ty.exps.forEach { it.withType(tInt16) }
-                        exp.annType
+                    expr is Expr.VectorLiteral && isVectorOf(type, tInt16)
+                            && expr.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
+                        expr.exps.forEach { it.withType(tInt16) }
+                        type
                     }
-                    ty is Expr.SetLiteral && isSetOf(type, tByte)
-                            && ty.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
-                        ty.exps.forEach { it.withType(tByte) }
-                        exp.annType
+                    expr is Expr.SetLiteral && isSetOf(type, tByte)
+                            && expr.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
+                        expr.exps.forEach { it.withType(tByte) }
+                        type
                     }
-                    ty is Expr.SetLiteral && isSetOf(type, tInt16)
-                            && ty.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
-                        ty.exps.forEach { it.withType(tInt16) }
-                        exp.annType
+                    expr is Expr.SetLiteral && isSetOf(type, tInt16)
+                            && expr.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
+                        expr.exps.forEach { it.withType(tInt16) }
+                        type
                     }
                     else -> {
-                        validateType(type, env, ty.span)
-                        unify(type, infer(env, level, ty), ty.span)
-                        if (ty is Expr.Lambda && type is TArrow)
-                            validateImplicitArgs(ty, type)
-                        exp.annType
+                        validateType(type, env, expr.span)
+                        unify(type, infer(env, level, expr), expr.span)
+                        if (expr is Expr.Lambda && type is TArrow)
+                            validateImplicitArgs(expr, type)
+                        type
                     }
                 }
                 context?.apply { exps.pop() }
                 context?.apply { types.pop() }
-                ty.withType(resTy)
+                expr.withType(resTy)
                 exp.withType(resTy)
             }
             is Expr.If -> {

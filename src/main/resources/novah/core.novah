@@ -34,8 +34,6 @@ foreign import Core:getArray(Int32, Array)
 foreign import Core:setArray(Int32, Object, Array)
 foreign import Core:getArrayLength(Array)
 foreign import Core:equivalentObject(Object, Object)
-//foreign import Core:unsafeCoerce(Object)
-//foreign import Core:mapArray(Function, Array) as arrMap
 
 /**
  * A 32-bits Integer
@@ -49,9 +47,15 @@ typealias Int = Int32
 pub
 typealias Float = Float64
 
-//pub
-//unsafeCaster : a -> b
-//unsafeCaster x = unsafeCoerce x
+/**
+ * Coerce parameter x from type a to b.
+ * This is extremely unsafe and should be used only
+ * when sure both types are compatible, otherwise
+ * a runtime exception will be thrown.
+ */
+pub
+unsafeCast : a -> b
+unsafeCast x = unsafeCoerce x
 
 /**
  * Negates a boolean value.
@@ -284,8 +288,8 @@ appendString = Append { append: \s s2 -> concat s s2 }
 
 pub instance
 appendVector : Append (Vector a)
-appendVector = Append { append: \v v2 -> vecConcat v (unsafeCast v2) |> unsafeCast }
+appendVector = Append { append: \v v2 -> vecConcat (unsafeCast v) (unsafeCast v2) |> unsafeCast }
 
 pub instance
 appendSet : Append (Set a)
-appendSet = Append { append: \s s2 -> union s (unsafeCast s2) |> unsafeCast }
+appendSet = Append { append: \s s2 -> union (unsafeCast s) (unsafeCast s2) |> unsafeCast }

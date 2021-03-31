@@ -676,7 +676,8 @@ class Desugar(private val smod: SModule) {
             }
         }
         smod.foreignVars.forEach { (key, _) ->
-            if (key !in usedVars) errors += makeError(E.unusedImport(key), findForeignImport(key) ?: smod.span)
+            if (key !in usedVars && key != "unsafeCoerce")
+                errors += makeError(E.unusedImport(key), findForeignImport(key) ?: smod.span)
         }
     }
 

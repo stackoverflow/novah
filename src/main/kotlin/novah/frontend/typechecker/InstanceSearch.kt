@@ -33,7 +33,7 @@ object InstanceSearch {
             val impCtx = app.implicitContext!!
             val (imps, _) = peelImplicits(impCtx.type)
 
-            val resolved = imps.map { find(impCtx.env, it, 0, app.span) }
+            val resolved = imps.map { find(impCtx.env, instantiate(0, it), 0, app.span) }
             impCtx.resolveds.addAll(resolved)
             println("resolved ${impCtx.type.show()} with $resolved")
             context?.apply { exps.pop() }

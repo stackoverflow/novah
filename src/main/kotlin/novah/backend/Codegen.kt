@@ -199,7 +199,21 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 else mv.visitFieldInsn(GETSTATIC, e.fullName, LAMBDA_CTOR, FUNCTION_DESC)
             }
             is Expr.App -> {
-                resolvePrimitiveModuleApp(mv, e, ctx)
+                val fn = e.fn
+                genExpr(fn, mv, ctx)
+                genExpr(e.arg, mv, ctx)
+                val retType = fn.type.pars[1].type
+
+                mv.visitMethodInsn(
+                    INVOKEINTERFACE,
+                    "java/util/function/Function",
+                    "apply",
+                    "(Ljava/lang/Object;)Ljava/lang/Object;",
+                    true
+                )
+                if (retType.internalName != OBJECT_CLASS) {
+                    mv.visitTypeInsn(CHECKCAST, retType.internalName)
+                }
             }
             is Expr.CtorApp -> {
                 val name = e.ctor.fullName
@@ -636,29 +650,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         )
     }
 
-    private fun resolvePrimitiveModuleApp(mv: MethodVisitor, e: Expr.App, ctx: GenContext) {
-        val fn = e.fn
-        if (fn is Expr.Var && fn.fullname() == "prim/Module.unsafeCast") {
-            genExpr(e.arg, mv, ctx)
-            //mv.visitTypeInsn(CHECKCAST, toInternalClass(e.type))
-        } else {
-            genExpr(fn, mv, ctx)
-            genExpr(e.arg, mv, ctx)
-            val retType = fn.type.pars[1].type
-
-            mv.visitMethodInsn(
-                INVOKEINTERFACE,
-                "java/util/function/Function",
-                "apply",
-                "(Ljava/lang/Object;)Ljava/lang/Object;",
-                true
-            )
-            if (retType.internalName != OBJECT_CLASS) {
-                mv.visitTypeInsn(CHECKCAST, retType.internalName)
-            }
-        }
-    }
-
     class LambdaContext(val lambda: Expr.Lambda, var ignores: List<String>, var locals: List<Expr.LocalVar>)
 
     private fun setupLambdas(value: Decl.ValDecl): List<Expr.Lambda> {
@@ -829,7 +820,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         private val ctorCache = mutableMapOf<String, DataConstructor>()
 
         private val arrayOfStringClazz = Clazz(getType(Array<String>::class.java))
-        
+
         private val ARRAY_TYPE = getType(Array::class.java)
 
         private fun intExp(n: Int): Expr.Int32 = Expr.Int32(n, Clazz(INT_TYPE))

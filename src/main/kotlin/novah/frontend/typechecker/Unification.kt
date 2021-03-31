@@ -131,7 +131,8 @@ object Unification {
                 is TVar -> {
                     when (val tv = t.tvar) {
                         is TypeVar.Link -> go(tv.type)
-                        is TypeVar.Generic -> internalError("Got generic var in occurs check.")
+                        is TypeVar.Generic -> {
+                        }
                         is TypeVar.Unbound -> {
                             if (id == tv.id) {
                                 inferError(Errors.infiniteType(type.show()), span, ProblemContext.UNIFICATION)

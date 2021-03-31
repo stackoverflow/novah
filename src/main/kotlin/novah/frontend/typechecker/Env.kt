@@ -8,7 +8,6 @@ import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
-
 class Env private constructor(
     private val env: Map<String, Type>,
     private val types: Map<String, Type>,
@@ -97,6 +96,8 @@ val tFloat64Array = TConst(primFloat64Array)
 val tBooleanArray = TConst(primBooleanArray)
 val tCharArray = TConst(primCharArray)
 
+val tUnsafeCoerce = TArrow(listOf(tbound(-13)), tbound(-14))
+
 val primTypes = mapOf(
     primByte to tByte,
     primInt16 to tInt16,
@@ -178,10 +179,9 @@ private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 val primModuleEnv = ModuleEnv(
     mapOf(
         // TODO: fix these negative numbers (probably by moving them to Core)
-        "unsafeCast" to decl(tfun(tbound(-1), tbound(-2))),
         "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
         "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "==" to decl(tfun(tbound(-3), tfun(tbound(-3), tBoolean)))
+        "==" to decl(tfun(tbound(-1), tfun(tbound(-1), tBoolean)))
     ),
     mapOf(
         "Byte" to tdecl(tByte),
