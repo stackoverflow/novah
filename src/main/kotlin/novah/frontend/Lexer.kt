@@ -60,6 +60,7 @@ sealed class Token {
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
     data class StringT(val s: String) : Token()
+    data class MultilineStringT(val s: String) : Token()
     data class IntT(val v: Int, val text: String) : Token()
     data class LongT(val v: Long, val text: String) : Token()
     data class FloatT(val v: Float, val text: String) : Token()
@@ -232,7 +233,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         return Spanned(Span(startLine, startColumn, iter.line, iter.column), token, comment)
     }
 
-    private val validEscapes = arrayOf('t', 'b', 'n', 'r', '\'', '\"', '\\')
+    private val validEscapes = setOf('t', 'b', 'n', 'r', '\'', '\"', '\\')
 
     private fun char(): Token {
         val c = iter.next()
@@ -291,10 +292,15 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     private fun string(): Token {
         val bld = StringBuilder()
         var c = iter.next()
+        if (c == '"') {
+            if (!iter.hasNext() || iter.peek() != '"') return StringT("")
+            iter.next()
+            return multilineString()
+        }
 
         while (c != '\"') {
             if (c == '\n') {
-                lexError("Newline is not allowed inside strings")
+                lexError("Newline is not allowed inside strings.")
             }
             if (c == '\\') {
                 c = readEscape()
@@ -305,6 +311,21 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         val str = bld.toString()
         return StringT(str)
     }
+    
+    private fun multilineString(): Token {
+        val bld = StringBuilder()
+        var last1 = ' '
+        var last0 = ' '
+        var c = iter.next()
+        while (c != '"' || last1 != '"' || last0 != '"') {
+            bld.append(c)
+            last1 = last0
+            last0 = c
+            c = iter.next()
+        }
+        val str = bld.toString()
+        return MultilineStringT(str.substring(0, str.length - 2))
+    }
 
     private fun number(init: Char, negative: Boolean = false): Token {
         val startPos = iter.position()
@@ -312,7 +333,10 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             val e = iter.next().toString()
             val sign = accept("+-")?.toString() ?: ""
             val exp = acceptMany("0123456789")
-            if (exp.isEmpty()) lexError("Invalid number format: expected number after `e`")
+            if (exp.isEmpty()) {
+                val span = Span.new(startPos, iter.position())
+                lexError("Invalid number format: expected number after `e`.", span)
+            }
             return "$e$sign$exp"
         }
 
@@ -456,8 +480,15 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     private fun readEscape(): Char {
+        fun getEscape(c: Char): Char = when (c) {
+            'n' -> '\n'
+            't' -> '\t'
+            'b' -> '\b'
+            'r' -> '\r'
+            else -> c
+        }
         return when (val c = iter.next()) {
-            in validEscapes -> c
+            in validEscapes -> getEscape(c)
             else -> lexError("Unexpected escape character `$c`. Valid ones are: $validEscapes")
         }
     }

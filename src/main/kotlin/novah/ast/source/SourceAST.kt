@@ -182,7 +182,7 @@ sealed class Expr {
         override fun toString(): String = text
     }
 
-    data class StringE(val v: String) : Expr() {
+    data class StringE(val v: String, val multi: Boolean = false) : Expr() {
         override fun toString(): String = "\"$v\""
     }
 
