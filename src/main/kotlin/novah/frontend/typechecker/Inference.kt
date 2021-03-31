@@ -58,24 +58,20 @@ object Inference {
         }
 
         val vals = ast.decls.filterIsInstance<Decl.ValDecl>()
-        vals.forEach { decl ->
-            val expr = decl.exp
+        vals.filter { it.exp is Expr.Ann }.forEach { decl ->
+            val expr = decl.exp as Expr.Ann
             val name = decl.name
             checkShadow(env, name, decl.span)
-            if (expr is Expr.Ann) {
-                env.extend(name, expr.annType)
-                if (decl.isInstance) env.extendInstance(name, expr.annType)
-            } else {
-                val t = newVar(0)
-                env.extend(name, t)
-                if (decl.isInstance) env.extendInstance(name, t)
-            }
+            env.extend(name, expr.annType)
+            if (decl.isInstance) env.extendInstance(name, expr.annType)
         }
 
         vals.forEach { decl ->
             implicitsToCheck.clear()
             context?.apply { this.decl = decl }
             val name = decl.name
+            if (decl.exp !is Expr.Ann) checkShadow(env, name, decl.span)
+            
             val newEnv = env.fork()
             val ty = if (decl.recursive) {
                 newEnv.remove(name)
