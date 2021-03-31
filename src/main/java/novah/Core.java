@@ -32,14 +32,6 @@ public class Core {
         return x + y;
     }
 
-    public static byte sum(byte x, byte y) {
-        return (byte) (x + y);
-    }
-
-    public static short sum(short x, short y) {
-        return (short) (x + y);
-    }
-
     public static float sum(float x, float y) {
         return x + y;
     }
@@ -54,14 +46,6 @@ public class Core {
 
     public static long sub(long x, long y) {
         return x - y;
-    }
-
-    public static byte sub(byte x, byte y) {
-        return (byte) (x - y);
-    }
-
-    public static short sub(short x, short y) {
-        return (short) (x - y);
     }
 
     public static float sub(float x, float y) {
@@ -80,14 +64,6 @@ public class Core {
         return x * y;
     }
 
-    public static byte mult(byte x, byte y) {
-        return (byte) (x * y);
-    }
-
-    public static short mult(short x, short y) {
-        return (short) (x * y);
-    }
-
     public static float mult(float x, float y) {
         return x * y;
     }
@@ -102,14 +78,6 @@ public class Core {
 
     public static long div(long x, long y) {
         return x / y;
-    }
-
-    public static byte div(byte x, byte y) {
-        return (byte) (x / y);
-    }
-
-    public static short div(short x, short y) {
-        return (short) (x / y);
     }
 
     public static float div(float x, float y) {

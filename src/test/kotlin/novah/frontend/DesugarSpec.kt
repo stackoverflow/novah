@@ -76,18 +76,16 @@ class DesugarSpec : StringSpec({
     
     "anonymous function arguments" {
         val code = """
-            foreign import novah.Core:sum(Int, Int)
-            
             f1 = if _ then 1 else -1
             
             f2 cond = if cond == 0 then _ else _
             
             f3 = case _ of
               [] -> 0
-              [_ :: xs] -> sum 1 (f3 xs)
+              [_ :: xs] -> 1 + (f3 xs)
             
             f4 = case _, _ of
-              Some x, Some y -> sum x y
+              Some x, Some y -> x + y
               Some x, None -> x
               None, Some y -> y
               None, None -> -1
@@ -97,8 +95,6 @@ class DesugarSpec : StringSpec({
             f6 = _.address.street
             
             f7 = { name: _, age: _, id: _ | _ }
-            
-            (+) x y = sum x y
             
             f8 x = (_ + x)
             

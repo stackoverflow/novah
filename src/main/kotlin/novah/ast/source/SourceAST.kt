@@ -150,6 +150,7 @@ sealed class Decl(val name: String, val visibility: Visibility) {
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
         Decl(name, visibility) {
         var expanded: Type? = null
+        val freeVars = mutableSetOf<String>() 
     }
 
     var comment: Comment? = null

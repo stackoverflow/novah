@@ -318,6 +318,14 @@ object Errors {
     fun undefinedVar(name: String) = "Undefined variable $name."
 
     fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
+    
+    fun freeVarsInTypealias(talias: String, vars: Set<String>) = """
+        Type variables
+        
+            ${vars.joinToString()}
+        
+        are unbounded in type alias $talias.
+    """.trimIndent()
 
     fun duplicatedDecl(name: String) = "Declaration $name is already defined or imported."
 

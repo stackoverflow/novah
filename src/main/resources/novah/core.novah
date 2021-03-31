@@ -34,6 +34,22 @@ foreign import Core:getArray(Int32, Array)
 foreign import Core:setArray(Int32, Object, Array)
 foreign import Core:getArrayLength(Array)
 foreign import Core:equivalentObject(Object, Object)
+foreign import Core:sum(Int32, Int32) as sumInt
+foreign import Core:sum(Int64, Int64) as sumInt64
+foreign import Core:sum(Float32, Float32) as sumFloat32
+foreign import Core:sum(Float64, Float64) as sumFloat64
+foreign import Core:sub(Int32, Int32) as subInt
+foreign import Core:sub(Int64, Int64) as subInt64
+foreign import Core:sub(Float32, Float32) as subFloat32
+foreign import Core:sub(Float64, Float64) as subFloat64
+foreign import Core:mult(Int32, Int32) as mulInt
+foreign import Core:mult(Int64, Int64) as mulInt64
+foreign import Core:mult(Float32, Float32) as mulFloat32
+foreign import Core:mult(Float64, Float64) as mulFloat64
+foreign import Core:div(Int32, Int32) as divInt
+foreign import Core:div(Int64, Int64) as divInt64
+foreign import Core:div(Float32, Float32) as divFloat32
+foreign import Core:div(Float64, Float64) as divFloat64
 
 /**
  * A 32-bits Integer
@@ -293,3 +309,133 @@ appendVector = Append { append: \v v2 -> vecConcat (unsafeCast v) (unsafeCast v2
 pub instance
 appendSet : Append (Set a)
 appendSet = Append { append: \s s2 -> union (unsafeCast s) (unsafeCast s2) |> unsafeCast }
+
+/**
+ * The type of things that can be added together
+ * using the + operator.
+ */
+pub+
+opaque type Plus a = { plus : a -> a -> a }
+
+/**
+ * Adds x and y.
+ */
+pub
+(+) : {{ Plus a }} -> a -> a -> a
+(+) {{Plus p}} x y = p.plus x y
+
+pub instance
+plus0Int32 : Plus Int32
+plus0Int32 = Plus { plus: \x y -> sumInt x y }
+
+pub instance
+plusInt64 : Plus Int64
+plusInt64 = Plus { plus: \x y -> sumInt64 x y }
+
+pub instance
+plusFloat32 : Plus Float32
+plusFloat32 = Plus { plus: \x y -> sumFloat32 x y }
+
+pub instance
+plusFloat64 : Plus Float64
+plusFloat64 = Plus { plus: \x y -> sumFloat64 x y }
+
+/**
+ * The type of things that can be subtracted
+ * using the - operator.
+ */
+pub+
+opaque type Minus a = { minus : a -> a -> a }
+
+/**
+ * Subtracts x and y.
+ */
+pub
+(-) : {{ Minus a }} -> a -> a -> a
+(-) {{Minus p}} x y = p.minus x y
+
+pub instance
+minus0Int32 : Minus Int32
+minus0Int32 = Minus { minus: \x y -> subInt x y }
+
+pub instance
+minusInt64 : Minus Int64
+minusInt64 = Minus { minus: \x y -> subInt64 x y }
+
+pub instance
+minusFloat32 : Minus Float32
+minusFloat32 = Minus { minus: \x y -> subFloat32 x y }
+
+pub instance
+minusFloat64 : Minus Float64
+minusFloat64 = Minus { minus: \x y -> subFloat64 x y }
+
+/**
+ * The type of things that can be multiplied together
+ * using the * operator.
+ */
+pub+
+opaque type Mult a = { mult : a -> a -> a }
+
+/**
+ * Multiplies x and y.
+ */
+pub
+(*) : {{ Mult a }} -> a -> a -> a
+(*) {{Mult p}} x y = p.mult x y
+
+pub instance
+mult0Int32 : Mult Int32
+mult0Int32 = Mult { mult: \x y -> mulInt x y }
+
+pub instance
+multInt64 : Mult Int64
+multInt64 = Mult { mult: \x y -> mulInt64 x y }
+
+pub instance
+multFloat32 : Mult Float32
+multFloat32 = Mult { mult: \x y -> mulFloat32 x y }
+
+pub instance
+multFloat64 : Mult Float64
+multFloat64 = Mult { mult: \x y -> mulFloat64 x y }
+
+/**
+ * The type of things that can be divided
+ * using the / operator.
+ */
+pub+
+opaque type Divide a = { divide : a -> a -> a }
+
+/**
+ * Divides x by y.
+ */
+pub
+(/) : {{ Divide a }} -> a -> a -> a
+(/) {{Divide p}} x y = p.divide x y
+
+pub instance
+divide0Int32 : Divide Int32
+divide0Int32 = Divide { divide: \x y -> divInt x y }
+
+pub instance
+divideInt64 : Divide Int64
+divideInt64 = Divide { divide: \x y -> divInt64 x y }
+
+pub instance
+divideFloat32 : Divide Float32
+divideFloat32 = Divide { divide: \x y -> divFloat32 x y }
+
+pub instance
+divideFloat64 : Divide Float64
+divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
+
+/**
+ * The type of things that support equality comparison.
+ */
+pub+
+opaque type Eq a = { equals : a -> a -> Boolean }
+
+//pub
+//(==) : {{ Eq a }} -> a -> a -> Boolean
+//(==) {{Eq e}} x y = e.equals x y

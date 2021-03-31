@@ -64,6 +64,20 @@ object Optimization {
     private const val or = "\$pipe\$pipe"
     private const val eq = "\$equals\$equals"
     private const val rail = "\$pipe\$greater"
+    
+    private val binOps = mapOf(
+        "\$plus" to "+",
+        "\$minus" to "-",
+        "\$times" to "*",
+        "\$slash" to "/"
+    )
+    
+    private val numericClasses = setOf(
+        "java.lang.Integer",
+        "java.lang.Long",
+        "java.lang.Float",
+        "java.lang.Double",
+    )
 
     private const val primMod = "prim/Module"
     private const val coreMod = "novah/core/Module"
@@ -107,6 +121,13 @@ object Optimization {
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.format" && arg is Expr.VectorLiteral -> {
                         val arr = Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars))
                         Expr.NativeStaticMethod(stringFormat, listOf(fn.arg, arr), e.type)
+                    }
+                    // optimize numeric operators like +, -, etc
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.className == coreMod
+                            && fn.fn.fn.name in binOps.keys -> {
+                        if (arg.type.type.className in numericClasses)
+                            Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type)
+                        else e
                     }
                     else -> e
                 }

@@ -15,5 +15,7 @@ main _ = do
   None ?: 3 |> println
   #{1, 2, 3} ++ #{5, 6, 7} |> println
   printArr arr
+  println (3563.45F / 1090F)
+  println (12312.45 - 5669.88)
   format "some %s once told %s" ["body", "me"] |> println
   //[56, 78, 90, 14, 566] |> flip nth 4 |> println

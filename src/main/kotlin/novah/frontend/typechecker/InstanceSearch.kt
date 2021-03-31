@@ -35,7 +35,7 @@ object InstanceSearch {
 
             val resolved = imps.map { find(impCtx.env, instantiate(0, it), 0, app.span) }
             impCtx.resolveds.addAll(resolved)
-            println("resolved ${impCtx.type.show()} with $resolved")
+            //println("resolved ${impCtx.type.show()} with $resolved")
             context?.apply { exps.pop() }
         }
     }
@@ -77,7 +77,7 @@ object InstanceSearch {
         env.forEachInstance { name, type ->
             if (tname == typeName(type)) cands += name to type
         }
-        return cands
+        return cands.sortedBy { it.first }
     }
 
     private fun peelImplicits(ty: Type): Pair<List<Type>, Type> = when (ty) {

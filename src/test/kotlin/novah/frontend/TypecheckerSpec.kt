@@ -66,7 +66,7 @@ class TypecheckerSpec : StringSpec({
             s : Int16
             s = 12
             
-            l = 9999999999
+            l = 99999999
             
             l2 = 12L
             
@@ -95,7 +95,7 @@ class TypecheckerSpec : StringSpec({
         tys["b"]?.type shouldBe tByte
         tys["b2"]?.type shouldBe tByte
         tys["s"]?.type shouldBe tInt16
-        tys["l"]?.type shouldBe tInt64
+        tys["l"]?.type shouldBe tInt32
         tys["l2"]?.type shouldBe tInt64
         tys["d"]?.type shouldBe tFloat64
         tys["f"]?.type shouldBe tFloat32
@@ -217,12 +217,6 @@ class TypecheckerSpec : StringSpec({
             
             (<=) : Int -> Int -> Boolean
             (<=) _ _ = true
-            
-            (+) : Int -> Int -> Int
-            (+) x _ = x
-            
-            (-) : Int -> Int -> Int
-            (-) x _ = x
             
             f1 : Int -> Int
             f1 x =

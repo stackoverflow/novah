@@ -40,7 +40,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             Ok(innerParseFullModule())
         } catch (le: LexError) {
             // for now we just return the first error
-            Err(CompilerProblem(le.msg, ProblemContext.PARSER, le.pos.span(), sourceName, moduleName))
+            Err(CompilerProblem(le.msg, ProblemContext.PARSER, le.span, sourceName, moduleName))
         } catch (pe: ParserError) {
             Err(CompilerProblem(pe.msg, ProblemContext.PARSER, pe.span, sourceName, moduleName))
         }
