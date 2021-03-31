@@ -100,6 +100,15 @@ ex = \x -> do
   sideEffect (if false then "false" else "true") -1
   x * y
 
+normalString = "a normal\\ \"single\nline\tstring\'"
+
+multiString = """
+  Novah supports
+  multiline Strings
+  
+  no problem.
+"""
+
 doIt : Unit -> String
 doIt () = do
   println

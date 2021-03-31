@@ -397,6 +397,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is FloatT -> parseFloat32()
             is DoubleT -> parseFloat64()
             is StringT -> parseString()
+            is MultilineStringT -> parseMultilineString()
             is CharT -> parseChar()
             is BoolT -> parseBool()
             is Ident -> parseVar()
@@ -488,6 +489,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseString(): Expr {
         val str = expect<StringT>(withError(E.literalExpected("string")))
         return Expr.StringE(str.value.s).withSpanAndComment(str)
+    }
+
+    private fun parseMultilineString(): Expr {
+        val str = expect<MultilineStringT>(withError(E.literalExpected("multiline string")))
+        return Expr.StringE(str.value.s, multi = true).withSpanAndComment(str)
     }
 
     private fun parseChar(): Expr {

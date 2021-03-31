@@ -184,7 +184,7 @@ class Formatter {
             is Expr.Int64 -> e.text
             is Expr.Float32 -> e.text
             is Expr.Float64 -> e.text
-            is Expr.StringE -> "\"${e.v}\""
+            is Expr.StringE -> if (e.multi) "\"\"\"${e.v}\"\"\"" else "\"${escapeString(e.v)}\""
             is Expr.CharE -> "'${e.v}'"
             is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
@@ -198,6 +198,25 @@ class Formatter {
             is Expr.Underscore -> "_"
             is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
         }
+    }
+    
+    private val escapes = mapOf(
+        '\n' to "\\n",
+        '\\' to "\\\\",
+        '\"' to "\\\"",
+        '\'' to "\\'",
+        '\r' to "\\r",
+        '\t' to "\\t",
+        '\b' to "\\b",
+    )
+    
+    private fun escapeString(s: String): String {
+        val bld = java.lang.StringBuilder()
+        for (c in s) {
+            val esc = escapes[c]
+            if (esc != null) bld.append(esc) else bld.append(c)
+        }
+        return bld.toString()
     }
 
     private fun showLabelExpr(l: String, e: Expr): String = "$l: ${show(e)}"
