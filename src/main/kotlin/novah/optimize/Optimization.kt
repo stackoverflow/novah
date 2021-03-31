@@ -15,9 +15,11 @@
  */
 package novah.optimize
 
+import io.lacuna.bifurcan.List
 import novah.ast.optimized.*
 import novah.data.mapList
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
+import novah.optimize.Optimizer.Companion.LONG_TYPE
 
 object Optimization {
 
@@ -81,6 +83,7 @@ object Optimization {
 
     private const val primMod = "prim/Module"
     private const val coreMod = "novah/core/Module"
+    private const val vectorMod = "novah/vector/Module"
 
     /**
      * Unnest operators like &&, ||, ==, |>, etc
@@ -129,6 +132,16 @@ object Optimization {
                             Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type)
                         else e
                     }
+                    // optimize vector access
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$vectorMod.nth" -> {
+                        when (fn.arg) {
+                            is Expr.Int32 -> {
+                                val long = Clazz(LONG_TYPE)
+                                Expr.NativeMethod(vecNth, arg, listOf(Expr.Int64(fn.arg.v.toLong(), long)), e.type)
+                            }
+                            else -> e
+                        }
+                    }
                     else -> e
                 }
             }
@@ -174,6 +187,8 @@ object Optimization {
     private val stringFormat = String::class.java.methods.find { 
         it.name == "format" && it.parameterTypes[0] == String::class.java 
     }!!
+    
+    private val vecNth = List::class.java.methods.find { it.name == "nth" }!!
 }
 
 private typealias App = Expr.App
