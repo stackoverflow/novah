@@ -209,7 +209,7 @@ object Inference {
                 exp.withType(resTy)
             }
             is Expr.If -> {
-                unify(tBoolean, infer(env, level + 1, exp.cond), exp.cond.span)
+                unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
                 val thenTy = infer(env, level, exp.thenCase)
                 val elseTy = infer(env, level, exp.elseCase)
                 unify(thenTy, elseTy, exp.span)
@@ -309,7 +309,7 @@ object Inference {
             is Pattern.Ctor -> {
                 val cty = infer(env, level, pat.ctor)
 
-                val (ctorTypes, ret) = peelArgs(listOf(), instantiate(level, cty))
+                val (ctorTypes, ret) = peelArgs(listOf(), cty)
                 unify(ret, ty, pat.ctor.span)
 
                 if (ctorTypes.size - pat.fields.size != 0)
