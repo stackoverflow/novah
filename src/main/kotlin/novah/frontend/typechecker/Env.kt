@@ -14,8 +14,9 @@ class Env private constructor(
     private val instances: Map<String, Type>
 ) {
 
-    fun extend(name: String, type: Type) {
+    fun extend(name: String, type: Type): Env {
         env.put(name, type)
+        return this
     }
 
     fun lookup(name: String): Type? = env.get(name, null)
@@ -26,14 +27,16 @@ class Env private constructor(
 
     fun fork() = Env(env.forked().linear(), types.forked().linear(), instances.forked().linear())
 
-    fun extendType(name: String, type: Type) {
+    fun extendType(name: String, type: Type): Env {
         types.put(name, type)
+        return this
     }
 
     fun lookupType(name: String): Type? = types.get(name, null)
 
-    fun extendInstance(name: String, type: Type) {
+    fun extendInstance(name: String, type: Type): Env {
         instances.put(name, type)
+        return this
     }
 
     fun lookupInstance(name: String): Type? = instances.get(name, null)

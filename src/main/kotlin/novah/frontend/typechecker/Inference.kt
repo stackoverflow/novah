@@ -58,24 +58,20 @@ object Inference {
         }
 
         val vals = ast.decls.filterIsInstance<Decl.ValDecl>()
-        vals.forEach { decl ->
-            val expr = decl.exp
+        vals.filter { it.exp is Expr.Ann }.forEach { decl ->
+            val expr = decl.exp as Expr.Ann
             val name = decl.name
             checkShadow(env, name, decl.span)
-            if (expr is Expr.Ann) {
-                env.extend(name, expr.annType)
-                if (decl.isInstance) env.extendInstance(name, expr.annType)
-            } else {
-                val t = newVar(0)
-                env.extend(name, t)
-                if (decl.isInstance) env.extendInstance(name, t)
-            }
+            env.extend(name, expr.annType)
+            if (decl.isInstance) env.extendInstance(name, expr.annType)
         }
 
         vals.forEach { decl ->
             implicitsToCheck.clear()
             context?.apply { this.decl = decl }
             val name = decl.name
+            if (decl.exp !is Expr.Ann) checkShadow(env, name, decl.span)
+            
             val newEnv = env.fork()
             val ty = if (decl.recursive) {
                 newEnv.remove(name)
@@ -136,8 +132,7 @@ object Inference {
                 val binder = exp.binder
                 checkShadow(env, binder.name, binder.span)
                 val param = newVar(level)
-                val newEnv = env.fork()
-                newEnv.extend(binder.name, param)
+                val newEnv = env.fork().extend(binder.name, param)
                 val returnTy = infer(newEnv, level, exp.body)
                 val ty = TArrow(listOf(param), returnTy)
                 exp.withType(ty)
@@ -149,8 +144,7 @@ object Inference {
                     inferRecursive(name, exp.letDef.expr, env, level + 1)
                 } else infer(env, level + 1, exp.letDef.expr)
                 val genTy = generalize(level, varTy)
-                val newEnv = env.fork()
-                newEnv.extend(name, genTy)
+                val newEnv = env.fork().extend(name, genTy)
                 if (exp.letDef.isInstance) newEnv.extendInstance(name, genTy)
                 val ty = infer(newEnv, level, exp.body)
                 exp.withType(ty)
@@ -278,17 +272,17 @@ object Inference {
                 exp.withType(ty)
             }
             is Expr.VectorLiteral -> {
-                val ty = newVar(level + 1)
+                val ty = newVar(level)
                 exp.exps.forEach { e ->
-                    unify(ty, infer(env, level + 1, e), e.span)
+                    unify(ty, infer(env, level, e), e.span)
                 }
                 val res = TApp(TConst(primVector), listOf(ty))
                 exp.withType(res)
             }
             is Expr.SetLiteral -> {
-                val ty = newVar(level + 1)
+                val ty = newVar(level)
                 exp.exps.forEach { e ->
-                    unify(ty, infer(env, level + 1, e), e.span)
+                    unify(ty, infer(env, level, e), e.span)
                 }
                 val res = TApp(TConst(primSet), listOf(ty))
                 exp.withType(res)
