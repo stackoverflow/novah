@@ -16,3 +16,4 @@
 - [ ] Fix instance search when the instance is not the first parameter of the App
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Add line numbers to expressions during codegen for better exception reporting
+- [ ] Use ropes instead of char arrays to process strings
