@@ -1,0 +1,9 @@
+module [33mtest[0m
+at src/test/resources/failure/typealias/unbound vars.novah:3:11 - 3:17
+
+  Type variables
+  
+      a, c
+  
+  are unbounded in type alias Module.
+

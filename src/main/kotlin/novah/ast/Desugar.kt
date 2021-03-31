@@ -447,39 +447,44 @@ class Desugar(private val smod: SModule) {
         }
         val map = (typealiases + smod.resolvedTypealiases).map { it.name to it }.toMap()
 
-        fun expandAndcheck(name: String, ty: SType, span: Span, vars: List<SType> = listOf()): SType = when (ty) {
+        fun expandAndcheck(ta: TypealiasDecl, ty: SType, vars: List<SType> = listOf()): SType = when (ty) {
             is SType.TConst -> {
-                if (ty.name == name) parserError(E.recursiveAlias(name), span)
+                val name = ta.name
+                if (ty.name == name) parserError(E.recursiveAlias(name), ta.span)
+                if (ty.name[0].isLowerCase() && ty.name !in ta.tyVars) {
+                    ta.freeVars += ty.name
+                }
                 val pointer = map[ty.fullname()]
                 if (pointer != null) {
                     if (vars.size != pointer.tyVars.size)
-                        parserError(E.partiallyAppliedAlias(pointer.name, pointer.tyVars.size, vars.size), span)
+                        parserError(E.partiallyAppliedAlias(pointer.name, pointer.tyVars.size, vars.size), ta.span)
 
-                    if (vars.isEmpty() && pointer.tyVars.isEmpty()) expandAndcheck(name, pointer.type, span)
+                    if (vars.isEmpty() && pointer.tyVars.isEmpty()) expandAndcheck(ta, pointer.type)
                     else {
                         val substMap = pointer.tyVars.zip(vars).toMap()
-                        expandAndcheck(name, pointer.type.substVars(substMap), span)
+                        expandAndcheck(ta, pointer.type.substVars(substMap))
                     }
                 } else ty
             }
-            is SType.TFun -> ty.copy(expandAndcheck(name, ty.arg, span), expandAndcheck(name, ty.ret, span))
+            is SType.TFun -> ty.copy(expandAndcheck(ta, ty.arg), expandAndcheck(ta, ty.ret))
             is SType.TApp -> {
-                val resolvedTypes = ty.types.map { expandAndcheck(name, it, span) }
-                val typ = expandAndcheck(name, ty.type, span, resolvedTypes)
+                val resolvedTypes = ty.types.map { expandAndcheck(ta, it) }
+                val typ = expandAndcheck(ta, ty.type, resolvedTypes)
                 if (typ is SType.TConst) ty.copy(type = typ, types = resolvedTypes)
                 else typ
             }
-            is SType.TParens -> ty.copy(expandAndcheck(name, ty.type, span))
-            is SType.TRecord -> ty.copy(row = expandAndcheck(name, ty.row, span))
+            is SType.TParens -> ty.copy(expandAndcheck(ta, ty.type))
+            is SType.TRecord -> ty.copy(row = expandAndcheck(ta, ty.row))
             is SType.TRowEmpty -> ty
             is SType.TRowExtend -> ty.copy(
-                row = expandAndcheck(name, ty.row, span),
-                labels = ty.labels.map { (k, v) -> k to expandAndcheck(name, v, span) }
+                row = expandAndcheck(ta, ty.row),
+                labels = ty.labels.map { (k, v) -> k to expandAndcheck(ta, v) }
             )
-            is SType.TImplicit -> ty.copy(expandAndcheck(name, ty.type, span))
+            is SType.TImplicit -> ty.copy(expandAndcheck(ta, ty.type))
         }
         typealiases.forEach { ta ->
-            ta.expanded = expandAndcheck(ta.name, ta.type, ta.span)
+            ta.expanded = expandAndcheck(ta, ta.type)
+            if (ta.freeVars.isNotEmpty()) parserError(E.freeVarsInTypealias(ta.name, ta.freeVars), ta.span)
         }
         val errs = validatePublicAliases(smod)
         if (errs.isNotEmpty()) desugarErrors(errs)

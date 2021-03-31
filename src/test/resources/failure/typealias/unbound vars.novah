@@ -1,0 +1,6 @@
+module test
+
+typealias Module =
+  { fun : a -> a
+  , other : c
+  }

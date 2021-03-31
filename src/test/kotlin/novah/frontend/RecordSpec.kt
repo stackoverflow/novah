@@ -178,6 +178,18 @@ class RecordSpec : StringSpec({
             rec2 c = { fun: id c }
             
             call = select { fun: id }
+            
+            typealias Prelude a b =
+              { id : a -> a
+              , const : a -> b -> a
+              }
+            
+            prelude : Prelude a b
+            prelude = { id: identity, const: const }
+            
+            main () = do
+              prelude.id 2
+              prelude.const "a" 'a'
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
@@ -185,5 +197,6 @@ class RecordSpec : StringSpec({
         ds["rec"]?.type?.simpleName() shouldBe "{ fun : String -> String }"
         ds["rec2"]?.type?.simpleName() shouldBe "Char -> { fun : Char }"
         ds["call"]?.type?.simpleName() shouldBe "String"
+        ds["prelude"]?.type?.simpleName() shouldBe "{ const : t1 -> t2 -> t1, id : t1 -> t1 }"
     }
 })
