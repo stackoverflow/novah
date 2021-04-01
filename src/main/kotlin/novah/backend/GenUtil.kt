@@ -20,6 +20,7 @@ import novah.ast.optimized.DataConstructor
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
 import novah.ast.source.Visibility
+import novah.frontend.Span
 import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
@@ -70,7 +71,7 @@ class GenContext {
 
     fun putParameter(name: String, type: Clazz, startLabel: Label) {
         val num = localsCount++
-        locals[name] = InnerLocal(num, startLabel, localVar = Expr.LocalVar(name, type))
+        locals[name] = InnerLocal(num, startLabel, localVar = Expr.LocalVar(name, type, Span.empty()))
     }
 
     fun setLocalVar(lv: Expr.LocalVar) {

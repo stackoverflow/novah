@@ -88,43 +88,43 @@ class Optimizer(private val ast: CModule) {
         }
         return when (this) {
             is CExpr.Int32 -> when (type) {
-                tByte -> Expr.ByteE(v.toByte(), typ)
-                tInt16 -> Expr.Int16(v.toShort(), typ)
-                tInt64 -> Expr.Int64(v.toLong(), typ)
-                else -> Expr.Int32(v, typ)
+                tByte -> Expr.ByteE(v.toByte(), typ, span)
+                tInt16 -> Expr.Int16(v.toShort(), typ, span)
+                tInt64 -> Expr.Int64(v.toLong(), typ, span)
+                else -> Expr.Int32(v, typ, span)
             }
-            is CExpr.Int64 -> Expr.Int64(v, typ)
-            is CExpr.Float32 -> Expr.Float32(v, typ)
-            is CExpr.Float64 -> Expr.Float64(v, typ)
-            is CExpr.StringE -> Expr.StringE(v, typ)
-            is CExpr.CharE -> Expr.CharE(v, typ)
-            is CExpr.Bool -> Expr.Bool(v, typ)
+            is CExpr.Int64 -> Expr.Int64(v, typ, span)
+            is CExpr.Float32 -> Expr.Float32(v, typ, span)
+            is CExpr.Float64 -> Expr.Float64(v, typ, span)
+            is CExpr.StringE -> Expr.StringE(v, typ, span)
+            is CExpr.CharE -> Expr.CharE(v, typ, span)
+            is CExpr.Bool -> Expr.Bool(v, typ, span)
             is CExpr.Var -> {
                 val conName = Names.convert(name)
-                if (name in locals) Expr.LocalVar(conName, typ)
+                if (name in locals) Expr.LocalVar(conName, typ, span)
                 else {
                     val cname = internalize(moduleName ?: ast.name) + "/Module"
-                    Expr.Var(conName, cname, typ)
+                    Expr.Var(conName, cname, typ, span)
                 }
             }
             is CExpr.Constructor -> {
                 val ctorName = fullname(moduleName ?: ast.name)
                 val arity = PatternMatchingCompiler.getFromCache(ctorName)?.arity
                     ?: internalError("Could not find constructor $name")
-                Expr.Constructor(internalize(ctorName), arity, typ)
+                Expr.Constructor(internalize(ctorName), arity, typ, span)
             }
             is CExpr.ImplicitVar -> {
                 val conName = Names.convert(name)
-                if (name in locals) Expr.LocalVar(conName, typ)
+                if (name in locals) Expr.LocalVar(conName, typ, span)
                 else {
                     val cname = internalize(moduleName ?: ast.name) + "/Module"
-                    Expr.Var(conName, cname, typ)
+                    Expr.Var(conName, cname, typ, span)
                 }
             }
             is CExpr.Lambda -> {
                 haslambda = true
                 val bind = Names.convert(binder.convert())
-                Expr.Lambda(bind, body.convert(locals + bind), type = typ)
+                Expr.Lambda(bind, body.convert(locals + bind), type = typ, span = span)
             }
             is CExpr.App -> {
                 val pair = unrollForeignApp(this)
@@ -132,21 +132,32 @@ class Optimizer(private val ast: CModule) {
                     val (exp, pars) = pair
                     when (exp) {
                         // native getter will never be static here
-                        is CExpr.NativeFieldGet -> Expr.NativeFieldGet(exp.field, pars[0].convert(locals), typ)
+                        is CExpr.NativeFieldGet -> Expr.NativeFieldGet(exp.field, pars[0].convert(locals), typ, span)
                         is CExpr.NativeFieldSet -> {
                             if (exp.isStatic)
-                                Expr.NativeStaticFieldSet(exp.field, pars[0].convert(locals), typ)
-                            else Expr.NativeFieldSet(exp.field, pars[0].convert(locals), pars[1].convert(locals), typ)
+                                Expr.NativeStaticFieldSet(exp.field, pars[0].convert(locals), typ, span)
+                            else Expr.NativeFieldSet(
+                                exp.field,
+                                pars[0].convert(locals),
+                                pars[1].convert(locals),
+                                typ,
+                                span
+                            )
                         }
                         is CExpr.NativeMethod -> {
                             if (exp.isStatic)
-                                Expr.NativeStaticMethod(exp.method, pars.map { it.convert(locals) }, typ)
+                                Expr.NativeStaticMethod(exp.method, pars.map { it.convert(locals) }, typ, span)
                             else {
                                 val nativePars = pars.map { it.convert(locals) }
-                                Expr.NativeMethod(exp.method, nativePars[0], nativePars.drop(1), typ)
+                                Expr.NativeMethod(exp.method, nativePars[0], nativePars.drop(1), typ, span)
                             }
                         }
-                        is CExpr.NativeConstructor -> Expr.NativeCtor(exp.ctor, pars.map { it.convert(locals) }, typ)
+                        is CExpr.NativeConstructor -> Expr.NativeCtor(
+                            exp.ctor,
+                            pars.map { it.convert(locals) },
+                            typ,
+                            span
+                        )
                         else -> internalError("Problem in `unrollForeignApp`, got non-native expression: $exp")
                     }
                 } else {
@@ -154,23 +165,24 @@ class Optimizer(private val ast: CModule) {
                         val app = resolvedImplicits().fold(fn.convert(locals)) { acc, argg ->
                             // the argument and return type of the function doesn't matter here
                             val pars = listOf(Clazz(OBJECT_TYPE), Clazz(OBJECT_TYPE))
-                            Expr.App(acc, argg.convert(locals), Clazz(FUNCTION_TYPE, pars))
+                            Expr.App(acc, argg.convert(locals), Clazz(FUNCTION_TYPE, pars), span)
                         }
-                        Expr.App(app, arg.convert(locals), typ)
-                    } else Expr.App(fn.convert(locals), arg.convert(locals), typ)
+                        Expr.App(app, arg.convert(locals), typ, span)
+                    } else Expr.App(fn.convert(locals), arg.convert(locals), typ, span)
                 }
             }
             is CExpr.If -> Expr.If(
                 listOf(cond.convert(locals) to thenCase.convert(locals)),
                 elseCase.convert(locals),
-                typ
+                typ,
+                span
             )
             is CExpr.Let -> {
                 val binder = Names.convert(letDef.binder.convert())
-                Expr.Let(binder, letDef.expr.convert(locals), body.convert(locals + binder), typ)
+                Expr.Let(binder, letDef.expr.convert(locals), body.convert(locals + binder), typ, span)
             }
             is CExpr.Ann -> exp.convert(locals)
-            is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ)
+            is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Match -> {
                 val match = cases.map { PatternMatchingCompiler.convert(it, ast.name) }
                 // guarded matches are ignored
@@ -182,7 +194,7 @@ class Optimizer(private val ast: CModule) {
             is CExpr.NativeFieldGet -> {
                 if (!Reflection.isStatic(field))
                     inferError(E.unkonwnArgsToNative(name, "getter"), span, ProblemContext.FOREIGN)
-                Expr.NativeStaticFieldGet(field, typ)
+                Expr.NativeStaticFieldGet(field, typ, span)
             }
             is CExpr.NativeFieldSet -> inferError(E.unkonwnArgsToNative(name, "setter"), span, ProblemContext.FOREIGN)
             is CExpr.NativeMethod -> inferError(E.unkonwnArgsToNative(name, "method"), span, ProblemContext.FOREIGN)
@@ -191,13 +203,14 @@ class Optimizer(private val ast: CModule) {
                 span,
                 ProblemContext.FOREIGN
             )
-            is CExpr.Unit -> Expr.Unit(typ)
-            is CExpr.RecordEmpty -> Expr.RecordEmpty(typ)
-            is CExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.convert(locals) }, exp.convert(locals), typ)
-            is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ)
-            is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ)
-            is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ)
-            is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ)
+            is CExpr.Unit -> Expr.Unit(typ, span)
+            is CExpr.RecordEmpty -> Expr.RecordEmpty(typ, span)
+            is CExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.convert(locals) },
+                exp.convert(locals), typ, span)
+            is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ, span)
+            is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ, span)
+            is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ, span)
+            is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
         }
     }
 
@@ -270,9 +283,10 @@ class Optimizer(private val ast: CModule) {
         return Expr.Throw(
             Expr.NativeCtor(
                 rteCtor,
-                listOf(Expr.StringE(msg, stringType)),
-                Clazz(Type.getType(java.lang.RuntimeException::class.java))
-            )
+                listOf(Expr.StringE(msg, stringType, Span.empty())),
+                Clazz(Type.getType(java.lang.RuntimeException::class.java)),
+                Span.empty()
+            ), Span.empty()
         )
     }
 
@@ -281,7 +295,7 @@ class Optimizer(private val ast: CModule) {
     private data class PatternExp(val exp: Expr, val varName: String?, val original: Expr)
 
     private fun desugarMatch(m: CExpr.Match, type: Clazz, locals: List<String>): Expr {
-        val tru = Expr.Bool(true, boolType)
+        val tru = Expr.Bool(true, boolType, Span.empty())
 
         fun mkCtorField(
             name: String,
@@ -291,11 +305,11 @@ class Optimizer(private val ast: CModule) {
             fieldType: Clazz,
             expectedFieldType: Clazz?
         ): Expr {
-            val castedExpr = Expr.Cast(ctorExpr, ctorType)
-            val field = Expr.ConstructorAccess(name, fieldIndex, castedExpr, fieldType)
+            val castedExpr = Expr.Cast(ctorExpr, ctorType, ctorExpr.span)
+            val field = Expr.ConstructorAccess(name, fieldIndex, castedExpr, fieldType, ctorExpr.span)
             return if (expectedFieldType == null || fieldType == expectedFieldType
                 || expectedFieldType.type == OBJECT_TYPE) field
-            else Expr.Cast(field, expectedFieldType)
+            else Expr.Cast(field, expectedFieldType, ctorExpr.span)
         }
 
         fun simplifyConds(conds: List<Expr>): Expr {
@@ -303,18 +317,18 @@ class Optimizer(private val ast: CModule) {
             return when {
                 simplified.isEmpty() -> tru
                 simplified.size == 1 -> simplified[0]
-                else -> Expr.OperatorApp("&&", simplified, boolType)
+                else -> Expr.OperatorApp("&&", simplified, boolType, simplified[0].span)
             }
         }
 
         fun mkVectorSizeCheck(exp: Expr, size: Long): Expr {
-            val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
-            val longe = Expr.Int64(size, longType)
-            return Expr.NativeStaticMethod(equivalentLong, listOf(sizeExp, longe), boolType)
+            val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType, exp.span)
+            val longe = Expr.Int64(size, longType, exp.span)
+            return Expr.NativeStaticMethod(equivalentLong, listOf(sizeExp, longe), boolType, exp.span)
         }
 
         fun mkVectorAccessor(exp: Expr, index: Long, type: Clazz): Expr =
-            Expr.NativeMethod(vectorAccess, exp, listOf(Expr.Int64(index, longType)), type)
+            Expr.NativeMethod(vectorAccess, exp, listOf(Expr.Int64(index, longType, exp.span)), type, exp.span)
 
         fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
             is Pattern.Wildcard -> PatternResult(tru)
@@ -330,7 +344,7 @@ class Optimizer(private val ast: CModule) {
                     is LiteralPattern.BoolLiteral -> equivalentBoolean
                     is LiteralPattern.StringLiteral -> equivalentString
                 }
-                PatternResult(Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType))
+                PatternResult(Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType, exp.span))
             }
             is Pattern.Ctor -> {
                 val conds = mutableListOf<Expr>()
@@ -342,7 +356,7 @@ class Optimizer(private val ast: CModule) {
                 val ctor = p.ctor.convert(locals) as Expr.Constructor
                 val name = p.ctor.fullname(ast.name)
                 val ctorType = Clazz(Type.getObjectType(internalize(name)))
-                conds += Expr.InstanceOf(exp, ctorType)
+                conds += Expr.InstanceOf(exp, ctorType, p.span)
 
                 p.fields.forEachIndexed { i, pat ->
                     val idx = i + 1
@@ -362,7 +376,7 @@ class Optimizer(private val ast: CModule) {
                 val rows = exp.type.labels ?: internalError("Got wrong type for record: ${exp.type}")
 
                 p.labels.forEachKeyList { label, pat ->
-                    val field = Expr.RecordSelect(exp, label, rows.get(label, null).first())
+                    val field = Expr.RecordSelect(exp, label, rows.get(label, null).first(), exp.span)
                     val (cond, vs) = desugarPattern(pat, field)
                     conds += cond
                     vars += vs
@@ -389,11 +403,12 @@ class Optimizer(private val ast: CModule) {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                conds += Expr.NativeStaticMethod(vectorNotEmpty, listOf(exp), boolType)
+                conds += Expr.NativeStaticMethod(vectorNotEmpty, listOf(exp), boolType, p.span)
                 val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
-                val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType)
-                val tailExp = Expr.NativeMethod(vectorSlice, exp, listOf(Expr.Int64(1, longType), sizeExp), type)
+                val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType, p.span)
+                val tailExp = Expr.NativeMethod(vectorSlice, exp,
+                    listOf(Expr.Int64(1, longType, p.span), sizeExp), type, p.span)
 
                 val (hCond, hVs) = desugarPattern(p.head, headExp)
                 val (tCond, tVs) = desugarPattern(p.tail, tailExp)
@@ -410,8 +425,8 @@ class Optimizer(private val ast: CModule) {
             }
             is Pattern.TypeTest -> {
                 val castType = p.type.convert()
-                val cond = Expr.InstanceOf(exp, castType)
-                val vs = if (p.alias != null) listOf(VarDef(p.alias, Expr.Cast(exp, castType))) else emptyList()
+                val cond = Expr.InstanceOf(exp, castType, p.span)
+                val vs = if (p.alias != null) listOf(VarDef(p.alias, Expr.Cast(exp, castType, p.span))) else emptyList()
                 PatternResult(cond, vs)
             }
         }
@@ -420,7 +435,7 @@ class Optimizer(private val ast: CModule) {
             return if (vdefs.isEmpty()) exp
             else {
                 val v = vdefs[0]
-                varToLet(vdefs.drop(1), Expr.Let(v.name, v.exp, exp, exp.type))
+                varToLet(vdefs.drop(1), Expr.Let(v.name, v.exp, exp, exp.type, exp.span))
             }
         }
 
@@ -428,7 +443,7 @@ class Optimizer(private val ast: CModule) {
             val exp = it.convert(locals)
             if (needVar(exp)) {
                 val name = "case$${genVar++}"
-                PatternExp(Expr.LocalVar(name, exp.type), name, exp)
+                PatternExp(Expr.LocalVar(name, exp.type, exp.span), name, exp)
             } else PatternExp(exp, null, exp)
         }
         val pats = m.cases.map { case ->
@@ -444,7 +459,7 @@ class Optimizer(private val ast: CModule) {
             if (case.guard != null) {
                 val guarded = varToLet(vars, case.guard.convert(locals + introducedVariables))
                 val guardCond = if (cond == tru) guarded
-                else Expr.OperatorApp("&&", listOf(cond, guarded), boolType)
+                else Expr.OperatorApp("&&", listOf(cond, guarded), boolType, case.guard.span)
                 // not sure the variables are visible in `caseExpr` better test
                 guardCond to caseExp
             } else {
@@ -454,7 +469,7 @@ class Optimizer(private val ast: CModule) {
         }
         val ifExp = if (pats.size == 1 && pats[0].first == tru) {
             pats[0].second
-        } else Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type)
+        } else Expr.If(pats, makeThrow("Failed pattern match at ${m.span}."), type, pats[0].second.span)
         val vars = exps.filter { it.varName != null }.map { it.varName!! to it.original }
         return nestLets(vars, ifExp, type)
     }
@@ -495,7 +510,7 @@ class Optimizer(private val ast: CModule) {
             }
             else -> args to t
         }
-        
+
         val (pars, ret) = innerPeelArgs(emptyList(), type)
         return pars.map { it.convert() } to ret.convert()
     }

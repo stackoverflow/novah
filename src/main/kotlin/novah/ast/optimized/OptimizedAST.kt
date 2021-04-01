@@ -44,63 +44,138 @@ sealed class Decl(open val span: Span) {
 
 data class DataConstructor(val name: String, val args: List<Clazz>, val visibility: Visibility)
 
-sealed class Expr(open val type: Clazz) {
-    data class ByteE(val v: Byte, override val type: Clazz) : Expr(type)
-    data class Int16(val v: Short, override val type: Clazz) : Expr(type)
-    data class Int32(val v: Int, override val type: Clazz) : Expr(type)
-    data class Int64(val v: Long, override val type: Clazz) : Expr(type)
-    data class Float32(val v: Float, override val type: Clazz) : Expr(type)
-    data class Float64(val v: Double, override val type: Clazz) : Expr(type)
-    data class StringE(val v: String, override val type: Clazz) : Expr(type)
-    data class CharE(val v: Char, override val type: Clazz) : Expr(type)
-    data class Bool(val v: Boolean, override val type: Clazz) : Expr(type)
-    data class Var(val name: String, val className: String, override val type: Clazz) : Expr(type)
-    data class Constructor(val fullName: String, val arity: Int, override val type: Clazz) : Expr(type)
-    data class LocalVar(val name: String, override val type: Clazz) : Expr(type)
+sealed class Expr(open val type: Clazz, open val span: Span) {
+    data class ByteE(val v: Byte, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Int16(val v: Short, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Int32(val v: Int, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Int64(val v: Long, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Float32(val v: Float, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Float64(val v: Double, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class StringE(val v: String, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class CharE(val v: Char, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Bool(val v: Boolean, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Var(val name: String, val className: String, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
+
+    data class Constructor(val fullName: String, val arity: Int, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
+
+    data class LocalVar(val name: String, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class Lambda(
         val binder: String,
         val body: Expr,
         var internalName: String = "",
         var locals: List<LocalVar> = listOf(),
-        override val type: Clazz
-    ) : Expr(type)
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
 
-    data class App(val fn: Expr, val arg: Expr, override val type: Clazz) : Expr(type)
-    data class CtorApp(val ctor: Constructor, val args: List<Expr>, override val type: Clazz) : Expr(type)
-    data class If(val conds: List<Pair<Expr, Expr>>, val elseCase: Expr, override val type: Clazz) : Expr(type)
-    data class Let(val binder: String, val bindExpr: Expr, val body: Expr, override val type: Clazz) : Expr(type)
-    data class Do(val exps: List<Expr>, override val type: Clazz) : Expr(type)
-    data class ConstructorAccess(val fullName: String, val field: Int, val ctor: Expr, override val type: Clazz) :
-        Expr(type)
+    data class App(val fn: Expr, val arg: Expr, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class CtorApp(val ctor: Constructor, val args: List<Expr>, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
 
-    data class OperatorApp(val name: String, val operands: List<Expr>, override val type: Clazz) : Expr(type)
-    data class InstanceOf(val exp: Expr, override val type: Clazz) : Expr(type)
-    data class NativeFieldGet(val field: Field, val thisPar: Expr, override val type: Clazz) : Expr(type)
-    data class NativeStaticFieldGet(val field: Field, override val type: Clazz) : Expr(type)
-    data class NativeFieldSet(val field: Field, val thisPar: Expr, val par: Expr, override val type: Clazz) : Expr(type)
-    data class NativeStaticFieldSet(val field: Field, val par: Expr, override val type: Clazz) : Expr(type)
-    data class NativeMethod(val method: Method, val thisPar: Expr, val pars: List<Expr>, override val type: Clazz) :
-        Expr(type)
+    data class If(
+        val conds: List<Pair<Expr, Expr>>,
+        val elseCase: Expr,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
 
-    data class NativeStaticMethod(val method: Method, val pars: List<Expr>, override val type: Clazz) : Expr(type)
-    data class NativeCtor(val ctor: JConstructor<*>, val pars: List<Expr>, override val type: Clazz) : Expr(type)
-    data class Unit(override val type: Clazz) : Expr(type)
-    data class Throw(val expr: Expr) : Expr(expr.type)
-    data class Cast(val expr: Expr, override val type: Clazz) : Expr(type)
-    data class RecordEmpty(override val type: Clazz) : Expr(type)
-    data class RecordExtend(val labels: LabelMap<Expr>, val expr: Expr, override val type: Clazz) : Expr(type)
-    data class RecordSelect(val expr: Expr, val label: String, override val type: Clazz) : Expr(type)
-    data class RecordRestrict(val expr: Expr, val label: String, override val type: Clazz) : Expr(type)
-    data class VectorLiteral(val exps: List<Expr>, override val type: Clazz) : Expr(type)
-    data class SetLiteral(val exps: List<Expr>, override val type: Clazz) : Expr(type)
-    data class ArrayLiteral(val exps: List<Expr>, override val type: Clazz) : Expr(type)
+    data class Let(
+        val binder: String,
+        val bindExpr: Expr,
+        val body: Expr,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class Do(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class ConstructorAccess(
+        val fullName: String,
+        val field: Int,
+        val ctor: Expr,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class OperatorApp(
+        val name: String,
+        val operands: List<Expr>,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class InstanceOf(val exp: Expr, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class NativeFieldGet(val field: Field, val thisPar: Expr, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
+
+    data class NativeStaticFieldGet(val field: Field, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
+
+    data class NativeFieldSet(
+        val field: Field,
+        val thisPar: Expr,
+        val par: Expr,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class NativeStaticFieldSet(
+        val field: Field,
+        val par: Expr,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class NativeMethod(
+        val method: Method,
+        val thisPar: Expr,
+        val pars: List<Expr>,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class NativeStaticMethod(
+        val method: Method,
+        val pars: List<Expr>,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class NativeCtor(
+        val ctor: JConstructor<*>,
+        val pars: List<Expr>,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class Unit(override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Throw(val expr: Expr, override val span: Span) : Expr(expr.type, span)
+    data class Cast(val expr: Expr, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class RecordEmpty(override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class RecordExtend(
+        val labels: LabelMap<Expr>,
+        val expr: Expr,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class RecordSelect(val expr: Expr, val label: String, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
+
+    data class RecordRestrict(val expr: Expr, val label: String, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
+
+    data class VectorLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class SetLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class ArrayLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
 }
 
 fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = when {
     binds.isEmpty() -> body
     else -> {
         val (name, exp) = binds[0]
-        Expr.Let(name, exp, nestLets(binds.drop(1), body, type), type)
+        Expr.Let(name, exp, nestLets(binds.drop(1), body, type), type, body.span)
     }
 }
 
