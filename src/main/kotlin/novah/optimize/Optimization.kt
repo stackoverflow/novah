@@ -56,7 +56,7 @@ object Optimization {
                 }
                 if (exp is Expr.Constructor && level == exp.arity) {
                     args.reverse()
-                    Expr.CtorApp(exp, args, e.type)
+                    Expr.CtorApp(exp, args, e.type, e.span)
                 } else e
             }
         }
@@ -101,35 +101,35 @@ object Optimization {
                         val name = fn.fn.name
                         val op = if (name == and) "&&" else "||"
                         if (arg is Expr.OperatorApp && fn.fn.name == arg.name) {
-                            Expr.OperatorApp(op, arg.operands + listOf(fn.arg), e.type)
+                            Expr.OperatorApp(op, arg.operands + listOf(fn.arg), e.type, e.span)
                         } else if (fn.arg is Expr.OperatorApp && fn.fn.name == fn.arg.name) {
-                            Expr.OperatorApp(op, fn.arg.operands + listOf(arg), e.type)
+                            Expr.OperatorApp(op, fn.arg.operands + listOf(arg), e.type, e.span)
                         } else {
-                            Expr.OperatorApp(op, listOf(fn.arg, arg), e.type)
+                            Expr.OperatorApp(op, listOf(fn.arg, arg), e.type, e.span)
                         }
                     }
                     // optimize ==
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$primMod.$eq" -> {
-                        Expr.OperatorApp("==", listOf(fn.arg, arg), e.type)
+                        Expr.OperatorApp("==", listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize |>
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.$rail" -> {
-                        Expr.App(arg, fn.arg, e.type)
+                        Expr.App(arg, fn.arg, e.type, e.span)
                     }
                     // optimize `arrayOf [...]` to a literal array
                     fn is Var && fn.fullname() == "$coreMod.arrayOf" && arg is Expr.VectorLiteral -> {
-                        Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars))
+                        Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars), e.span)
                     }
                     // optimize `format "..." [...]` to `String.format "..." <literal-array>` 
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.format" && arg is Expr.VectorLiteral -> {
-                        val arr = Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars))
-                        Expr.NativeStaticMethod(stringFormat, listOf(fn.arg, arr), e.type)
+                        val arr = Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars), e.span)
+                        Expr.NativeStaticMethod(stringFormat, listOf(fn.arg, arr), e.type, e.span)
                     }
                     // optimize numeric operators like +, -, etc
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.className == coreMod
                             && fn.fn.fn.name in binOps.keys -> {
                         if (arg.type.type.className in numericClasses)
-                            Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type)
+                            Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type, e.span)
                         else e
                     }
                     // optimize vector access
@@ -137,7 +137,8 @@ object Optimization {
                         when (fn.arg) {
                             is Expr.Int32 -> {
                                 val long = Clazz(LONG_TYPE)
-                                Expr.NativeMethod(vecNth, arg, listOf(Expr.Int64(fn.arg.v.toLong(), long)), e.type)
+                                Expr.NativeMethod(vecNth, arg,
+                                    listOf(Expr.Int64(fn.arg.v.toLong(), long, e.span)), e.type, e.span)
                             }
                             else -> e
                         }

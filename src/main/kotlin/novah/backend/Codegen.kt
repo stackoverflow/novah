@@ -50,6 +50,7 @@ import novah.backend.TypeUtil.lambdaMethodType
 import novah.backend.TypeUtil.primitive
 import novah.backend.TypeUtil.unbox
 import novah.data.forEachList
+import novah.frontend.Span
 import org.objectweb.asm.*
 import org.objectweb.asm.ClassWriter.COMPUTE_FRAMES
 import org.objectweb.asm.Opcodes.*
@@ -141,16 +142,26 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         init.visitEnd()
     }
 
+    private var lineNumber = -1
+    
     private fun genValDecl(decl: Decl.ValDecl, mv: MethodVisitor, ctx: GenContext) {
         if (decl.exp is Expr.StringE) return
         val l = Label()
         mv.visitLabel(l)
-        mv.visitLineNumber(decl.span.startLine, l)
+        lineNumber = decl.span.startLine
+        mv.visitLineNumber(lineNumber, l)
         genExpr(decl.exp, mv, ctx)
         mv.visitFieldInsn(PUTSTATIC, className, decl.name, decl.exp.type.type.descriptor)
     }
 
     private fun genExpr(e: Expr, mv: MethodVisitor, ctx: GenContext) {
+        val startLine = e.span.startLine
+        if (startLine != lineNumber && startLine != -1) {
+            lineNumber = startLine
+            val lnLabel = Label()
+            mv.visitLabel(lnLabel)
+            mv.visitLineNumber(lineNumber, lnLabel)
+        }
         when (e) {
             is Expr.ByteE -> {
                 genByte(e, mv)
@@ -776,7 +787,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val ftype = l.type.pars
         val args = mutableListOf<Expr.LocalVar>()
         args.addAll(l.locals)
-        args += Expr.LocalVar(l.binder, ftype[0])
+        args += Expr.LocalVar(l.binder, ftype[0], l.span)
 
         val argTypes = l.locals.map { it.type } + ftype[0]
         val lam = cw.visitMethod(
@@ -854,6 +865,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
         private val ARRAY_TYPE = getType(Array::class.java)
 
-        private fun intExp(n: Int): Expr.Int32 = Expr.Int32(n, Clazz(INT_TYPE))
+        private fun intExp(n: Int): Expr.Int32 = Expr.Int32(n, Clazz(INT_TYPE), Span.empty())
     }
 }
