@@ -16,6 +16,7 @@
 package novah;
 
 import io.lacuna.bifurcan.List;
+import io.lacuna.bifurcan.Set;
 
 import java.util.function.Function;
 
@@ -92,10 +93,6 @@ public class Core {
         System.out.println(arg);
     }
     
-    public static boolean equivalent(String e1, String e2) {
-        return e1.equals(e2);
-    }
-
     public static boolean equivalent(byte e1, byte e2) {
         return e1 == e2;
     }
@@ -200,6 +197,26 @@ public class Core {
             res[i] = f.apply(arr[i]);
         }
         return res;
+    }
+    
+    public static <T> boolean equalsVector(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
+        if (v1.size() != v2.size()) return false;
+        
+        long total = v1.size();
+        for (long i = 0; i < total; i++) {
+            if (!comp.apply(v1.nth(i)).apply(v2.nth(i))) return false;
+        }
+        return true;
+    }
+
+    public static <T> boolean equalsSet(Set<T> v1, Set<T> v2, Function<T, Function<T, Boolean>> comp) {
+        if (v1.size() != v2.size()) return false;
+
+        long total = v1.size();
+        for (long i = 0; i < total; i++) {
+            if (!comp.apply(v1.nth(i)).apply(v2.nth(i))) return false;
+        }
+        return true;
     }
     
     @SuppressWarnings("unchecked")

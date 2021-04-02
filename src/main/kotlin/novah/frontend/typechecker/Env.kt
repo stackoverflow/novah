@@ -87,9 +87,9 @@ val tChar = TConst(primChar)
 val tString = TConst(primString)
 val tObject = TConst(primObject)
 val tUnit = TConst(primUnit)
-val tVector = TApp(TConst(primVector, Kind.Constructor(1)), listOf(tbound(-10)))
-val tSet = TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-11)))
-val tArray = TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-12)))
+val tVector = TApp(TConst(primVector, Kind.Constructor(1)), listOf(tbound(-1)))
+val tSet = TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-2)))
+val tArray = TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-3)))
 val tByteArray = TConst(primByteArray)
 val tInt16Array = TConst(primInt16Array)
 val tInt32Array = TConst(primInt32Array)
@@ -99,7 +99,7 @@ val tFloat64Array = TConst(primFloat64Array)
 val tBooleanArray = TConst(primBooleanArray)
 val tCharArray = TConst(primCharArray)
 
-val tUnsafeCoerce = TArrow(listOf(tbound(-13)), tbound(-14))
+val tUnsafeCoerce = TArrow(listOf(tbound(-4)), tbound(-5))
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -181,10 +181,8 @@ private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 
 val primModuleEnv = ModuleEnv(
     mapOf(
-        // TODO: fix these negative numbers (probably by moving them to Core)
         "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "==" to decl(tfun(tbound(-1), tfun(tbound(-1), tBoolean)))
+        "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean)))
     ),
     mapOf(
         "Byte" to tdecl(tByte),

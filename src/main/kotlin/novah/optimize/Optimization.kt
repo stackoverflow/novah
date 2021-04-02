@@ -21,6 +21,12 @@ import novah.ast.optimized.*
 import novah.collections.Record
 import novah.data.mapList
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
+import novah.optimize.Optimizer.Companion.eqDouble
+import novah.optimize.Optimizer.Companion.eqFloat
+import novah.optimize.Optimizer.Companion.eqInt
+import novah.optimize.Optimizer.Companion.eqLong
+import novah.optimize.Optimizer.Companion.eqString
+import novah.optimize.Optimizer.Companion.vecSize
 
 object Optimization {
 
@@ -109,10 +115,6 @@ object Optimization {
                             Expr.OperatorApp(op, listOf(fn.arg, arg), e.type, e.span)
                         }
                     }
-                    // optimize ==
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$primMod.$eq" -> {
-                        Expr.OperatorApp("==", listOf(fn.arg, arg), e.type, e.span)
-                    }
                     // optimize |>
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.$rail" -> {
                         Expr.App(arg, fn.arg, e.type, e.span)
@@ -148,6 +150,17 @@ object Optimization {
                             is Expr.VectorLiteral -> Expr.NativeMethod(vecSize, arg, emptyList(), e.type, e.span)
                             is Expr.SetLiteral -> Expr.NativeMethod(setSize, arg, emptyList(), e.type, e.span)
                             is Expr.RecordExtend -> Expr.NativeMethod(recSize, arg, emptyList(), e.type, e.span)
+                            else -> e
+                        }
+                    }
+                    // optimize == for some types
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq" -> {
+                        when (arg) {
+                            is Expr.Int32 -> Expr.NativeStaticMethod(eqInt, listOf(fn.arg, arg), e.type, e.span)
+                            is Expr.Int64 -> Expr.NativeStaticMethod(eqLong, listOf(fn.arg, arg), e.type, e.span)
+                            is Expr.Float32 -> Expr.NativeStaticMethod(eqFloat, listOf(fn.arg, arg), e.type, e.span)
+                            is Expr.Float64 -> Expr.NativeStaticMethod(eqDouble, listOf(fn.arg, arg), e.type, e.span)
+                            is Expr.StringE -> Expr.NativeStaticMethod(eqString, listOf(fn.arg, arg), e.type, e.span)
                             else -> e
                         }
                     }
@@ -197,7 +210,6 @@ object Optimization {
         it.name == "format" && it.parameterTypes[0] == String::class.java 
     }!!
     private val vecNth = List::class.java.methods.find { it.name == "nth" }!!
-    private val vecSize = List::class.java.methods.find { it.name == "size" }!!
     private val setSize = Set::class.java.methods.find { it.name == "size" }!!
     private val recSize = Record::class.java.methods.find { it.name == "size" }!!
 }

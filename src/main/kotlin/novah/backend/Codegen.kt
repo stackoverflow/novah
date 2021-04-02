@@ -250,7 +250,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 when (e.name) {
                     "&&" -> genOperatorAnd(e, mv, ctx)
                     "||" -> genOperatorOr(e, mv, ctx)
-                    "==" -> genOperatorEquals(e, mv, ctx)
                     "+" -> genNumericOperator(e.name, e, mv, ctx)
                     "-" -> genNumericOperator(e.name, e, mv, ctx)
                     "*" -> genNumericOperator(e.name, e, mv, ctx)
@@ -504,12 +503,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private fun genExprForPrimitiveBool(e: Expr, mv: MethodVisitor, ctx: GenContext) = when (e) {
         is Expr.Bool -> genBool(e, mv)
         is Expr.InstanceOf -> genInstanceOf(e, mv, ctx)
-        is Expr.OperatorApp -> when (e.name) {
-            "&&" -> genOperatorAnd(e, mv, ctx)
-            "||" -> genOperatorOr(e, mv, ctx)
-            "==" -> genOperatorEquals(e, mv, ctx)
-            else -> internalError("unknown boolean operator ${e.name}")
-        }
         else -> {
             genExpr(e, mv, ctx)
             mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
@@ -651,21 +644,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         mv.visitInsn(ICONST_0)
         mv.visitLabel(end)
     }
-
-    private fun genOperatorEquals(e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
-        if (e.operands.size != 2) internalError("got wrong number of operators for == operator")
-        val op1 = e.operands[0]
-        val op2 = e.operands[1]
-        genExprForPrimitiveBool(op1, mv, ctx)
-        genExprForPrimitiveBool(op2, mv, ctx)
-        mv.visitMethodInsn(
-            INVOKEVIRTUAL,
-            op1.type.type.internalName,
-            "equals",
-            "($OBJECT_DESC)Z",
-            false
-        )
-    }
     
     private fun genNumericOperator(op: String, e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
         if (e.operands.size != 2) internalError("got wrong number of operators for operator $op")
@@ -802,6 +780,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         )
         lam.visitCode()
 
+        val lnum = Label()
+        lam.visitLabel(lnum)
+        lam.visitLineNumber(l.span.startLine, lnum)
+        
         val startL = Label()
         val ctx = GenContext()
         args.forEach { local ->
