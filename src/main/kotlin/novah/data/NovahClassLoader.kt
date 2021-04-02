@@ -16,6 +16,7 @@
 package novah.data
 
 import novah.Core
+import novah.collections.Record
 
 // TODO: implement this class
 class NovahClassLoader(private val classPath: String) : ClassLoader() {
@@ -27,7 +28,8 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
     }
 
     override fun loadClass(name: String): Class<*> {
-        if (name == Core::class.java.canonicalName) return Core::class.java
+        if (name == "novah.Core") return Core::class.java
+        if (name == "novah.collections.Record") return Record::class.java
         if (name.startsWith("io.lacuna.bifurcan")) return Class.forName(name)
         return clparent.loadClass(name)
     }

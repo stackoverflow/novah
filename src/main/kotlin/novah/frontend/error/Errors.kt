@@ -371,7 +371,7 @@ object Errors {
         
             $type
         
-        Make sure there's one instance in the context
+        Consider adding a type annotation
         or pass the argument explicitly.
     """.trimIndent()
 

@@ -96,10 +96,13 @@ class DesugarSpec : StringSpec({
             
             f7 = { name: _, age: _, id: _ | _ }
             
-            f8 x = (_ + x)
+            f8 : {{ Plus a }} -> a -> a -> a
+            f8 {{p}} x = (_ + x)
             
+            f9 : Int -> Int -> Int
             f9 y = (y + _)
             
+            f10 : Int -> Int -> Int
             f10 = (_ + _)
             
             f11 = { - name, age, id | _ }
@@ -113,7 +116,7 @@ class DesugarSpec : StringSpec({
         ds["f5"]?.type?.simpleName() shouldBe "{ name : t2 | t1 } -> t2"
         ds["f6"]?.type?.simpleName() shouldBe "{ address : { street : t3 | t2 } | t1 } -> t3"
         ds["f7"]?.type?.simpleName() shouldBe "t1 -> t2 -> t3 -> { | t4 } -> { age : t2, id : t3, name : t1 | t4 }"
-        ds["f8"]?.type?.simpleName() shouldBe "Int32 -> Int32 -> Int32"
+        ds["f8"]?.type?.simpleName() shouldBe "{{ Plus t1 }} -> t1 -> t1 -> t1"
         ds["f9"]?.type?.simpleName() shouldBe "Int32 -> Int32 -> Int32"
         ds["f10"]?.type?.simpleName() shouldBe "Int32 -> Int32 -> Int32"
         ds["f11"]?.type?.simpleName() shouldBe "{ name : t4, age : t3, id : t2 | t1 } -> { | t1 }"

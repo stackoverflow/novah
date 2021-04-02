@@ -8,10 +8,12 @@ import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
+data class InstanceEnv(val type: Type, val isVar: Boolean = false)
+
 class Env private constructor(
     private val env: Map<String, Type>,
     private val types: Map<String, Type>,
-    private val instances: Map<String, Type>
+    private val instances: Map<String, InstanceEnv>
 ) {
 
     fun extend(name: String, type: Type): Env {
@@ -34,19 +36,17 @@ class Env private constructor(
 
     fun lookupType(name: String): Type? = types.get(name, null)
 
-    fun extendInstance(name: String, type: Type): Env {
-        instances.put(name, type)
+    fun extendInstance(name: String, type: Type, isVar: Boolean = false): Env {
+        instances.put(name, InstanceEnv(type, isVar))
         return this
     }
 
-    fun lookupInstance(name: String): Type? = instances.get(name, null)
-
-    fun forEachInstance(action: (String, Type) -> Unit) {
+    fun forEachInstance(action: (String, InstanceEnv) -> Unit) {
         instances.forEach { action(it.key(), it.value()) }
     }
 
     companion object {
-        fun new() = Env(Map<String, Type>().linear(), Map.from(primTypes).linear(), Map<String, Type>().linear())
+        fun new() = Env(Map<String, Type>().linear(), Map.from(primTypes).linear(), Map<String, InstanceEnv>().linear())
     }
 }
 

@@ -8,17 +8,23 @@ foreign import type io.lacuna.bifurcan.IList
 foreign import type io.lacuna.bifurcan.ISet
 foreign import type java.util.function.Function
 foreign import type novah.Core
+foreign import type novah.collections.Record
 
 foreign import get java.lang.System:out
 foreign import java.io.PrintStream.println(Object) as jprintln
 foreign import java.io.PrintStream.print(Object) as jprint
+foreign import Int32.longValue()
 foreign import Object.toString() as jToString
 foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
 foreign import IList.toArray() as vecToArr
 foreign import Vector.concat(IList) as vecConcat
+foreign import Vector.size() as sizeVec
 foreign import String.concat(String)
+foreign import String.length() as strLength
 foreign import Set.union(ISet)
+foreign import Set.size() as sizeSet
+foreign import Record.size() as recSize
 
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
@@ -81,7 +87,7 @@ not : Boolean -> Boolean
 not b = negate b
 
 /**
- * A function that just returns it's argument.
+ * Returns it's argument unmodified.
  */
 pub
 identity : a -> a
@@ -166,6 +172,13 @@ toString x = jToString (unsafeCast x)
 pub
 hashCode : a -> Int32
 hashCode x = jHashCode (unsafeCast x)
+
+/**
+ * Converts this 32-bit integer to a 64-bit integer.
+ */
+pub
+int64 : Int32 -> Int64
+int64 i = longValue i
 
 /**
  * Creates a byte array of the specified size.
@@ -299,8 +312,8 @@ pub
 (++) {{Append app}} x y = app.append x y
 
 pub instance
-append0String : Append String
-append0String = Append { append: \s s2 -> concat s s2 }
+appendString : Append String
+appendString = Append { append: \s s2 -> concat s s2 }
 
 pub instance
 appendVector : Append (Vector a)
@@ -325,8 +338,8 @@ pub
 (+) {{Plus p}} x y = p.plus x y
 
 pub instance
-plus0Int32 : Plus Int32
-plus0Int32 = Plus { plus: \x y -> sumInt x y }
+plusInt32 : Plus Int32
+plusInt32 = Plus { plus: \x y -> sumInt x y }
 
 pub instance
 plusInt64 : Plus Int64
@@ -355,8 +368,8 @@ pub
 (-) {{Minus p}} x y = p.minus x y
 
 pub instance
-minus0Int32 : Minus Int32
-minus0Int32 = Minus { minus: \x y -> subInt x y }
+minusInt32 : Minus Int32
+minusInt32 = Minus { minus: \x y -> subInt x y }
 
 pub instance
 minusInt64 : Minus Int64
@@ -385,8 +398,8 @@ pub
 (*) {{Mult p}} x y = p.mult x y
 
 pub instance
-mult0Int32 : Mult Int32
-mult0Int32 = Mult { mult: \x y -> mulInt x y }
+multInt32 : Mult Int32
+multInt32 = Mult { mult: \x y -> mulInt x y }
 
 pub instance
 multInt64 : Mult Int64
@@ -415,8 +428,8 @@ pub
 (/) {{Divide p}} x y = p.divide x y
 
 pub instance
-divide0Int32 : Divide Int32
-divide0Int32 = Divide { divide: \x y -> divInt x y }
+divideInt32 : Divide Int32
+divideInt32 = Divide { divide: \x y -> divInt x y }
 
 pub instance
 divideInt64 : Divide Int64
@@ -429,6 +442,39 @@ divideFloat32 = Divide { divide: \x y -> divFloat32 x y }
 pub instance
 divideFloat64 : Divide Float64
 divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
+
+/**
+ * The type of things that can be counted / have size.
+ */
+pub+
+opaque type Count a = { count : a -> Int64 }
+
+/**
+ * Returns the size of this countable value.
+ */
+pub
+count : {{ Count a }} -> a -> Int64
+count {{Count s}} x = s.count x
+
+pub instance
+countString : Count String
+countString = Count { count: \s -> strLength s |> int64 }
+
+pub instance
+countVector : Count (Vector a)
+countVector = Count { count: \vec -> sizeVec (unsafeCoerce vec) }
+
+pub instance
+countSet : Count (Set a)
+countSet = Count { count: \set -> sizeSet (unsafeCoerce set) }
+
+pub instance
+countArray : Count (Array a)
+countArray = Count { count: \arr -> getArrayLength (unsafeCast arr) |> int64 }
+
+pub instance
+countRecord : Count { | a }
+countRecord = Count { count: \rec -> recSize (unsafeCoerce rec) }
 
 /**
  * The type of things that support equality comparison.

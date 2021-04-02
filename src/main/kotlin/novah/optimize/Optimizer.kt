@@ -101,11 +101,24 @@ class Optimizer(private val ast: CModule) {
             is CExpr.Bool -> Expr.Bool(v, typ, span)
             is CExpr.Var -> {
                 val conName = Names.convert(name)
-                if (name in locals) Expr.LocalVar(conName, typ, span)
+                val vvar = if (name in locals) Expr.LocalVar(conName, typ, span)
                 else {
                     val cname = internalize(moduleName ?: ast.name) + "/Module"
                     Expr.Var(conName, cname, typ, span)
                 }
+                if (implicitContext != null) {
+                    var v = vvar
+                    val ri = resolvedImplicits()
+                    ri.forEachIndexed { i, e -> 
+                        val clazz = if (i == ri.lastIndex) typ
+                        else {
+                            val pars = listOf(Clazz(OBJECT_TYPE), Clazz(OBJECT_TYPE))
+                            Clazz(FUNCTION_TYPE, pars)
+                        }
+                        v = Expr.App(v, e.convert(locals), clazz, span)
+                    }
+                    v
+                } else vvar
             }
             is CExpr.Constructor -> {
                 val ctorName = fullname(moduleName ?: ast.name)

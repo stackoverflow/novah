@@ -16,10 +16,11 @@
 package novah.optimize
 
 import io.lacuna.bifurcan.List
+import io.lacuna.bifurcan.Set
 import novah.ast.optimized.*
+import novah.collections.Record
 import novah.data.mapList
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
-import novah.optimize.Optimizer.Companion.LONG_TYPE
 
 object Optimization {
 
@@ -125,7 +126,7 @@ object Optimization {
                         val arr = Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars), e.span)
                         Expr.NativeStaticMethod(stringFormat, listOf(fn.arg, arr), e.type, e.span)
                     }
-                    // optimize numeric operators like +, -, etc
+                    // optimize fully applied numeric operators like +, -, etc
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.className == coreMod
                             && fn.fn.fn.name in binOps.keys -> {
                         if (arg.type.type.className in numericClasses)
@@ -135,11 +136,18 @@ object Optimization {
                     // optimize vector access
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$vectorMod.nth" -> {
                         when (fn.arg) {
-                            is Expr.Int32 -> {
-                                val long = Clazz(LONG_TYPE)
-                                Expr.NativeMethod(vecNth, arg,
-                                    listOf(Expr.Int64(fn.arg.v.toLong(), long, e.span)), e.type, e.span)
+                            is Expr.Int64 -> {
+                                Expr.NativeMethod(vecNth, arg, listOf(fn.arg), e.type, e.span)
                             }
+                            else -> e
+                        }
+                    }
+                    // optimize count function for vectors, sets and records
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.count" -> {
+                        when (arg) {
+                            is Expr.VectorLiteral -> Expr.NativeMethod(vecSize, arg, emptyList(), e.type, e.span)
+                            is Expr.SetLiteral -> Expr.NativeMethod(setSize, arg, emptyList(), e.type, e.span)
+                            is Expr.RecordExtend -> Expr.NativeMethod(recSize, arg, emptyList(), e.type, e.span)
                             else -> e
                         }
                     }
@@ -188,8 +196,10 @@ object Optimization {
     private val stringFormat = String::class.java.methods.find { 
         it.name == "format" && it.parameterTypes[0] == String::class.java 
     }!!
-    
     private val vecNth = List::class.java.methods.find { it.name == "nth" }!!
+    private val vecSize = List::class.java.methods.find { it.name == "size" }!!
+    private val setSize = Set::class.java.methods.find { it.name == "size" }!!
+    private val recSize = Record::class.java.methods.find { it.name == "size" }!!
 }
 
 private typealias App = Expr.App

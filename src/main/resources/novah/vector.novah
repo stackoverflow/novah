@@ -4,7 +4,6 @@ foreign import type java.util.function.Function
 foreign import type novah.Core
 
 foreign import Core:mapVector(Function, Vector) as vecMap
-foreign import Int32.longValue()
 foreign import Vector.nth(Int64) as nthVec
 
 /**
@@ -21,5 +20,5 @@ map f vec = vecMap (unsafeCoerce f) (unsafeCoerce vec) |> unsafeCast
  * Runtime: ~O(1)
  */
 pub
-nth : Int -> Vector a -> a
-nth index vec = nthVec (unsafeCoerce vec) (longValue index) |> unsafeCast
+nth : Int64 -> Vector a -> a
+nth index vec = nthVec (unsafeCoerce vec) index |> unsafeCast

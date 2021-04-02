@@ -48,4 +48,4 @@ printx {{s}} o = do
 pub
 main : Array String -> Unit
 main _ =
-  printx (Some (Some None))
+  printx (Some (Some 3))

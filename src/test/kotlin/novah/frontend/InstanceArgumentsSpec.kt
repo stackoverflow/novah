@@ -62,6 +62,8 @@ class InstanceArgumentsSpec : StringSpec({
     
     "recursive search" {
         val code = """
+            import novah.vector as V
+            
             opaque type Show a = { show : a -> String }
             
             show : {{ Show a }} -> a -> String
@@ -74,6 +76,10 @@ class InstanceArgumentsSpec : StringSpec({
             instance
             showBool : Show Boolean
             showBool = Show { show: \x -> toString x }
+            
+            instance
+            showString : Show String
+            showString = Show { show: \x -> x }
             
             showOptionImpl : {{ Show a }} -> Option a -> String
             showOptionImpl {{s}} o = case o of
@@ -95,9 +101,17 @@ class InstanceArgumentsSpec : StringSpec({
             showResult : {{ Show a }} -> {{ Show b }} -> Show (Result a b)
             showResult {{a}} {{b}} = Show { show: showResultImpl {{a}} {{b}} }
             
-            main () = show (Some None)
+            main () = show (Some (None : Option String))
             
-            main2 () = show (Some (Ok true))
+            main2 () =
+              let xx : Option (Result Boolean String)
+                  xx = Some (Ok true)
+              in show xx
+            
+            main3 () = V.map show [3, 4, 5]
+            
+            printx : {{ Show a }} -> Option a -> String
+            printx {{s}} o = show o
         """.module()
 
         TestUtil.compileCode(code).env.decls
