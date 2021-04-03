@@ -128,6 +128,92 @@ public class Core {
     public static boolean equivalentObject(Object o1, Object o2) {
         return o1 == o2;
     }
+    
+    public static Function<Integer, Function<Integer, Object>> compareInt(Object lt, Object eq, Object gt) {
+        return xx -> yy -> {
+            int x = xx;
+            int y = yy;
+            return x == y ? eq : (x < y ? lt : gt);
+        };
+    }
+
+    public static Function<Long, Function<Long, Object>> compareLong(Object lt, Object eq, Object gt) {
+        return xx -> yy -> {
+            long x = xx;
+            long y = yy;
+            return x == y ? eq : (x < y ? lt : gt);
+        };
+    }
+
+    public static Function<Double, Function<Double, Object>> compareDouble(Object lt, Object eq, Object gt) {
+        return xx -> yy -> {
+            double x = xx;
+            double y = yy;
+            return x == y ? eq : (x < y ? lt : gt);
+        };
+    }
+    
+    public static Function<Character, Function<Character, Object>> compareChar(Object lt, Object eq, Object gt) {
+        return x -> y -> {
+            int comp = x.compareTo(y);
+            return comp == 0 ? eq : (comp < 0 ? lt : gt);
+        };
+    }
+
+    public static Function<String, Function<String, Object>> compareString(Object lt, Object eq, Object gt) {
+        return x -> y -> {
+            int comp = x.compareTo(y);
+            return comp == 0 ? eq : (comp < 0 ? lt : gt);
+        };
+    }
+
+    public static boolean greaterInt(int i1, int i2) {
+        return i1 > i2;
+    }
+
+    public static boolean smallerInt(int i1, int i2) {
+        return i1 < i2;
+    }
+
+    public static boolean greaterOrEqualsInt(int i1, int i2) {
+        return i1 >= i2;
+    }
+
+    public static boolean smallerOrEqualsInt(int i1, int i2) {
+        return i1 <= i2;
+    }
+    
+    public static boolean greaterLong(long i1, long i2) {
+        return i1 > i2;
+    }
+
+    public static boolean smallerLong(long i1, long i2) {
+        return i1 < i2;
+    }
+
+    public static boolean greaterOrEqualsLong(long i1, long i2) {
+        return i1 >= i2;
+    }
+
+    public static boolean smallerOrEqualsLong(long i1, long i2) {
+        return i1 <= i2;
+    }
+
+    public static boolean greaterDouble(double d1, double d2) {
+        return d1 > d2;
+    }
+
+    public static boolean smallerDouble(double d1, double d2) {
+        return d1 < d2;
+    }
+
+    public static boolean greaterOrEqualsDouble(double d1, double d2) {
+        return d1 >= d2;
+    }
+
+    public static boolean smallerOrEqualsDouble(double d1, double d2) {
+        return d1 <= d2;
+    }
 
     public static byte[] mkByteArray(int size) {
         return new byte[size];
@@ -227,6 +313,48 @@ public class Core {
             if (!comp.apply(v1[i]).apply(v2[i])) return false;
         }
         return true;
+    }
+    
+    public static <T> String toStringVector(List<T> vec, Function<T, String> show) {
+        long size = vec.size();
+        if (size == 0) return "[]";
+        StringBuilder builder = new StringBuilder("[");
+        builder.append(show.apply(vec.nth(0)));
+        
+        for (long i = 1; i < size; i++) {
+            builder.append(", ");
+            builder.append(show.apply(vec.nth(i)));
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    public static <T> String toStringSet(Set<T> set, Function<T, String> show) {
+        long size = set.size();
+        if (size == 0) return "#{}";
+        StringBuilder builder = new StringBuilder("#{");
+        builder.append(show.apply(set.nth(0)));
+
+        for (long i = 1; i < size; i++) {
+            builder.append(", ");
+            builder.append(show.apply(set.nth(i)));
+        }
+        builder.append("}");
+        return builder.toString();
+    }
+    
+    public static <T> String toStringArray(T[] array, Function<T, String> show) {
+        int size = array.length;
+        if (size == 0) return "[]";
+        StringBuilder builder = new StringBuilder("[");
+        builder.append(show.apply(array[0]));
+
+        for (int i = 1; i < size; i++) {
+            builder.append(", ");
+            builder.append(show.apply(array[i]));
+        }
+        builder.append("]");
+        return builder.toString();
     }
     
     @SuppressWarnings("unchecked")

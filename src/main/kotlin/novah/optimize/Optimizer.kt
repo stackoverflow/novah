@@ -109,13 +109,8 @@ class Optimizer(private val ast: CModule) {
                 if (implicitContext != null) {
                     var v = vvar
                     val ri = resolvedImplicits()
-                    ri.forEachIndexed { i, e -> 
-                        val clazz = if (i == ri.lastIndex) typ
-                        else {
-                            val pars = listOf(Clazz(OBJECT_TYPE), Clazz(OBJECT_TYPE))
-                            Clazz(FUNCTION_TYPE, pars)
-                        }
-                        v = Expr.App(v, e.convert(locals), clazz, span)
+                    ri.forEach { e ->
+                        v = Expr.App(v, e.convert(locals), getReturnType(v.type), span)
                     }
                     v
                 } else vvar
@@ -176,9 +171,7 @@ class Optimizer(private val ast: CModule) {
                 } else {
                     if (implicitContext != null) {
                         val app = resolvedImplicits().fold(fn.convert(locals)) { acc, argg ->
-                            // the argument and return type of the function doesn't matter here
-                            val pars = listOf(Clazz(OBJECT_TYPE), Clazz(OBJECT_TYPE))
-                            Expr.App(acc, argg.convert(locals), Clazz(FUNCTION_TYPE, pars), span)
+                            Expr.App(acc, argg.convert(locals), getReturnType(acc.type), span)
                         }
                         Expr.App(app, arg.convert(locals), typ, span)
                     } else Expr.App(fn.convert(locals), arg.convert(locals), typ, span)
@@ -497,6 +490,9 @@ class Optimizer(private val ast: CModule) {
         val (pars, ret) = innerPeelArgs(emptyList(), type)
         return pars.map { it.convert() } to ret.convert()
     }
+    
+    private fun getReturnType(type: Clazz): Clazz =
+        if (type.pars.size > 1) type.pars[1] else type
 
     private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr.Match) {
         if (!res.exhaustive) {

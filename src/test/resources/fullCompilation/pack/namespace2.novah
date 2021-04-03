@@ -6,6 +6,4 @@ pub
 same : Int -> Int -> Boolean
 same x x2 = x == x2
 
-inst = N1.show 3
-
 main _ = N1.sayHello "Mario"

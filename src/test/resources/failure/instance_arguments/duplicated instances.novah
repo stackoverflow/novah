@@ -1,16 +1,16 @@
 module test
 
-type Show a = Show { show : a -> String }
+type View a = View { view : a -> String }
 
-show : {{ Show a }} -> a -> String
-show {{s}} x = case s of Show ss -> ss.show x
-
-instance
-showInt : Show Int
-showInt = Show { show: \x -> toString x }
+view : {{ View a }} -> a -> String
+view {{View s}} x = s.view x
 
 instance
-showInt2 : Show Int
-showInt2 = Show { show: \x -> toString x }
+viewInt : View Int
+viewInt = View { view: \x -> toString x }
 
-main () = show 4
+instance
+viewInt2 : View Int
+viewInt2 = View { view: \x -> toString x }
+
+main () = view 4

@@ -212,12 +212,6 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck mutually recursive functions" {
         val code = """
-            (>) : Int -> Int -> Boolean
-            (>) _ _ = true
-            
-            (<=) : Int -> Int -> Boolean
-            (<=) _ _ = true
-            
             f1 : Int -> Int
             f1 x =
               if x > 0

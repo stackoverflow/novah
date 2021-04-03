@@ -1,8 +1,8 @@
 module test
 
-type Show a = Show { show : a -> String }
+type View a = View { view : a -> String }
 
-show : {{ Show a }} -> a -> String
-show {{s}} x = case s of Show ss -> ss.show x
+view : {{ View a }} -> a -> String
+view {{View s}} x = s.view x
 
-main () = show 3
+main () = view 3

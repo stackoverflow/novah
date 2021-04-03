@@ -17,6 +17,7 @@ package novah.optimize
 
 import io.lacuna.bifurcan.List
 import io.lacuna.bifurcan.Set
+import novah.Core
 import novah.ast.optimized.*
 import novah.collections.Record
 import novah.data.mapList
@@ -73,14 +74,18 @@ object Optimization {
     private const val or = "\$pipe\$pipe"
     private const val eq = "\$equals\$equals"
     private const val rail = "\$pipe\$greater"
-    
+    private const val gt = "\$greater"
+    private const val gtEq = "\$greater\$equals"
+    private const val lt = "\$smaller"
+    private const val ltEq = "\$smaller\$equals"
+
     private val binOps = mapOf(
         "\$plus" to "+",
         "\$minus" to "-",
         "\$times" to "*",
         "\$slash" to "/"
     )
-    
+
     private val numericClasses = setOf(
         "java.lang.Integer",
         "java.lang.Long",
@@ -90,7 +95,6 @@ object Optimization {
 
     private const val primMod = "prim/Module"
     private const val coreMod = "novah/core/Module"
-    private const val vectorMod = "novah/vector/Module"
 
     /**
      * Unnest operators like &&, ||, ==, |>, etc
@@ -130,39 +134,95 @@ object Optimization {
                     }
                     // optimize fully applied numeric operators like +, -, etc
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.className == coreMod
-                            && fn.fn.fn.name in binOps.keys -> {
-                        if (arg.type.type.className in numericClasses)
-                            Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type, e.span)
-                        else e
+                            && fn.fn.fn.name in binOps.keys && arg.type.type.className in numericClasses -> {
+                        Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize vector access
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$vectorMod.nth" -> {
-                        when (fn.arg) {
-                            is Expr.Int64 -> {
-                                Expr.NativeMethod(vecNth, arg, listOf(fn.arg), e.type, e.span)
-                            }
-                            else -> e
-                        }
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.\$bang" -> {
+                        Expr.NativeMethod(vecNth, fn.arg, listOf(arg), e.type, e.span)
                     }
                     // optimize count function for vectors, sets and records
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.count" -> {
-                        when (arg) {
-                            is Expr.VectorLiteral -> Expr.NativeMethod(vecSize, arg, emptyList(), e.type, e.span)
-                            is Expr.SetLiteral -> Expr.NativeMethod(setSize, arg, emptyList(), e.type, e.span)
-                            is Expr.RecordExtend -> Expr.NativeMethod(recSize, arg, emptyList(), e.type, e.span)
-                            else -> e
-                        }
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.count" && arg is Expr.VectorLiteral -> {
+                        Expr.NativeMethod(vecSize, arg, emptyList(), e.type, e.span)
+                    }
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.count" && arg is Expr.SetLiteral -> {
+                        Expr.NativeMethod(setSize, arg, emptyList(), e.type, e.span)
+                    }
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.count" && arg is Expr.RecordExtend -> {
+                        Expr.NativeMethod(recSize, arg, emptyList(), e.type, e.span)
                     }
                     // optimize == for some types
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq" -> {
-                        when (arg) {
-                            is Expr.Int32 -> Expr.NativeStaticMethod(eqInt, listOf(fn.arg, arg), e.type, e.span)
-                            is Expr.Int64 -> Expr.NativeStaticMethod(eqLong, listOf(fn.arg, arg), e.type, e.span)
-                            is Expr.Float32 -> Expr.NativeStaticMethod(eqFloat, listOf(fn.arg, arg), e.type, e.span)
-                            is Expr.Float64 -> Expr.NativeStaticMethod(eqDouble, listOf(fn.arg, arg), e.type, e.span)
-                            is Expr.StringE -> Expr.NativeStaticMethod(eqString, listOf(fn.arg, arg), e.type, e.span)
-                            else -> e
-                        }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(eqInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(eqLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
+                            && arg.type.isFloat32() -> {
+                        Expr.NativeStaticMethod(eqFloat, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
+                            && arg.type.isFloat64() -> {
+                        Expr.NativeStaticMethod(eqDouble, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
+                            && arg.type.isString() -> {
+                        Expr.NativeStaticMethod(eqString, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    // optimize > for some types
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gt"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(gtInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gt"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(gtLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gt"
+                            && arg.type.isFloat64() -> {
+                        Expr.NativeStaticMethod(gtDouble, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    // optimize < for some types
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$lt"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(ltInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$lt"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(ltLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$lt"
+                            && arg.type.isFloat64() -> {
+                        Expr.NativeStaticMethod(ltDouble, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    // optimize >= for some types
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gtEq"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(gtEqInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gtEq"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(gtEqLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gtEq"
+                            && arg.type.isFloat64() -> {
+                        Expr.NativeStaticMethod(gtEqDouble, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    // optimize <= for some types
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$ltEq"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(ltEqInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$ltEq"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(ltEqLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$ltEq"
+                            && arg.type.isFloat64() -> {
+                        Expr.NativeStaticMethod(ltEqDouble, listOf(fn.arg, arg), e.type, e.span)
                     }
                     else -> e
                 }
@@ -206,12 +266,24 @@ object Optimization {
         fs.fold(e) { ex, f -> f(ex) }
     }
 
-    private val stringFormat = String::class.java.methods.find { 
-        it.name == "format" && it.parameterTypes[0] == String::class.java 
+    private val stringFormat = String::class.java.methods.find {
+        it.name == "format" && it.parameterTypes[0] == String::class.java
     }!!
     private val vecNth = List::class.java.methods.find { it.name == "nth" }!!
     private val setSize = Set::class.java.methods.find { it.name == "size" }!!
     private val recSize = Record::class.java.methods.find { it.name == "size" }!!
+    private val gtInt = Core::class.java.methods.find { it.name == "greaterInt" }!!
+    private val ltInt = Core::class.java.methods.find { it.name == "smallerInt" }!!
+    private val gtEqInt = Core::class.java.methods.find { it.name == "greaterOrEqualsInt" }!!
+    private val ltEqInt = Core::class.java.methods.find { it.name == "smallerOrEqualsInt" }!!
+    private val gtLong = Core::class.java.methods.find { it.name == "greaterLong" }!!
+    private val ltLong = Core::class.java.methods.find { it.name == "smallerLong" }!!
+    private val gtEqLong = Core::class.java.methods.find { it.name == "greaterOrEqualsLong" }!!
+    private val ltEqLong = Core::class.java.methods.find { it.name == "smallerOrEqualsLong" }!!
+    private val gtDouble = Core::class.java.methods.find { it.name == "greaterDouble" }!!
+    private val ltDouble = Core::class.java.methods.find { it.name == "smallerDouble" }!!
+    private val gtEqDouble = Core::class.java.methods.find { it.name == "greaterOrEqualsDouble" }!!
+    private val ltEqDouble = Core::class.java.methods.find { it.name == "smallerOrEqualsDouble" }!!
 }
 
 private typealias App = Expr.App

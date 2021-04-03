@@ -27,6 +27,10 @@ foreign import String.length() as strLength
 foreign import Set.union(ISet)
 foreign import Set.size() as sizeSet
 foreign import Record.size() as recSize
+foreign import Byte.intValue() as bToI
+foreign import Int16.intValue() as sToI
+foreign import Float32.doubleValue() as fToD
+foreign import Char.compareTo(Char) as compareChar
 
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
@@ -65,10 +69,17 @@ foreign import Core:equivalent(Int64, Int64) as equiInt64
 foreign import Core:equivalent(Float32, Float32) as equiFloat32
 foreign import Core:equivalent(Float64, Float64) as equiFloat64
 foreign import Core:equivalent(Char, Char) as equiChar
-foreign import Core:equivalent(Boolean, Boolean) as equiBoolean
 foreign import Core:equalsVector(Vector, Vector, Function)
 foreign import Core:equalsSet(Set, Set, Function)
 foreign import Core:equalsArray(Array, Array, Function)
+foreign import Core:toStringVector(Vector, Function)
+foreign import Core:toStringSet(Set, Function)
+foreign import Core:toStringArray(Array, Function)
+foreign import Core:compareInt(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:compareLong(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:compareDouble(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:compareChar(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:compareString(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 
 /**
  * A 32-bits Integer
@@ -505,80 +516,275 @@ countRecord : Count { | a }
 countRecord = Count { count: \rec -> recSize (unsafeCoerce rec) }
 
 /**
+ * The type of things that have a String representation.
+ */
+pub+
+opaque type Show a = { show : a -> String }
+
+/**
+ * Converts this value to a String.
+ */
+pub
+show : {{ Show a }} -> a -> String
+show {{Show s}} x = s.show x
+
+pub instance
+showString : Show String
+showString = Show { show: identity }
+
+pub instance
+showByte : Show Byte
+showByte = Show { show: toString }
+
+pub instance
+showInt16 : Show Int16
+showInt16 = Show { show: toString }
+
+pub instance
+showInt32 : Show Int32
+showInt32 = Show { show: toString }
+
+pub instance
+showInt64 : Show Int64
+showInt64 = Show { show: toString }
+
+pub instance
+showFloat32 : Show Float32
+showFloat32 = Show { show: toString }
+
+pub instance
+showFloat64 : Show Float64
+showFloat64 = Show { show: toString }
+
+pub instance
+showChar : Show Char
+showChar = Show { show: toString }
+
+pub instance
+showBoolean : Show Boolean
+showBoolean = Show { show: toString }
+
+showOpt : {{Show a}} -> Option a -> String
+showOpt {{Show s}} =
+  case _ of
+    Some x -> "Some " ++ s.show x
+    None -> "None"
+
+pub instance
+showOption : {{ Show a }} -> Show (Option a)
+showOption {{s}} = Show { show: showOpt {{s}} }
+
+pub instance
+showVector : {{ Show a }} -> Show (Vector a)
+showVector {{Show s}} = Show { show: \v -> toStringVector (unsafeCoerce v) (unsafeCoerce s.show) }
+
+pub instance
+showSet : {{ Show a }} -> Show (Set a)
+showSet {{Show s}} = Show { show: \set -> toStringSet (unsafeCoerce set) (unsafeCoerce s.show) }
+
+pub instance
+showArray : {{ Show a }} -> Show (Array a)
+showArray {{Show s}} = Show { show: \a -> toStringArray (unsafeCoerce a) (unsafeCoerce s.show) }
+
+/**
  * The type of things that support equality comparison.
  */
 pub+
-opaque type Eq a = { equals : a -> a -> Boolean }
+opaque type Equals a = { equals : a -> a -> Boolean }
 
 /**
  * Returns true if the two values are equal.
  */
 pub
-(==) : {{ Eq a }} -> a -> a -> Boolean
-(==) {{Eq eq}} x y = eq.equals x y
+(==) : {{ Equals a }} -> a -> a -> Boolean
+(==) {{Equals eq}} x y = eq.equals x y
 
 /**
  * Returns true if the two values are *not* equal.
  */
 pub
-(!=) : {{ Eq a }} -> a -> a -> Boolean
-(!=) {{Eq eq}} x y = not (eq.equals x y)
+(!=) : {{ Equals a }} -> a -> a -> Boolean
+(!=) {{Equals eq}} x y = not (eq.equals x y)
 
 pub instance
-eqByte : Eq Byte
-eqByte = Eq { equals: \x y -> equiByte x y }
+eqByte : Equals Byte
+eqByte = Equals { equals: \x y -> equiByte x y }
 
 pub instance
-eqInt16 : Eq Int16
-eqInt16 = Eq { equals: \x y -> equiInt16 x y }
+eqInt16 : Equals Int16
+eqInt16 = Equals { equals: \x y -> equiInt16 x y }
 
 pub instance
-eqInt32 : Eq Int32
-eqInt32 = Eq { equals: \x y -> equiInt32 x y }
+eqInt32 : Equals Int32
+eqInt32 = Equals { equals: \x y -> equiInt32 x y }
 
 pub instance
-eqInt64 : Eq Int64
-eqInt64 = Eq { equals: \x y -> equiInt64 x y }
+eqInt64 : Equals Int64
+eqInt64 = Equals { equals: \x y -> equiInt64 x y }
 
 pub instance
-eqFloat32 : Eq Float32
-eqFloat32 = Eq { equals: \x y -> equiFloat32 x y }
+eqFloat32 : Equals Float32
+eqFloat32 = Equals { equals: \x y -> equiFloat32 x y }
 
 pub instance
-eqFloat64 : Eq Float64
-eqFloat64 = Eq { equals: \x y -> equiFloat64 x y }
+eqFloat64 : Equals Float64
+eqFloat64 = Equals { equals: \x y -> equiFloat64 x y }
 
 pub instance
-eqChar : Eq Char
-eqChar = Eq { equals: \x y -> equiChar x y }
+eqChar : Equals Char
+eqChar = Equals { equals: \x y -> equiChar x y }
+
+equalsBoolean : Boolean -> Boolean -> Boolean
+equalsBoolean =
+  case _, _ of
+    true, true -> true
+    false, false -> true
+    _, _ -> false
 
 pub instance
-eqBoolean : Eq Boolean
-eqBoolean = Eq { equals: \x y -> equiBoolean x y }
+eqBoolean : Equals Boolean
+eqBoolean = Equals { equals: equalsBoolean }
 
 pub instance
-eqString : Eq String
-eqString = Eq { equals: \x y -> equalsString x y }
+eqString : Equals String
+eqString = Equals { equals: \x y -> equalsString x y }
 
 pub instance
-eqVector : {{ Eq a }} -> Eq (Vector a)
-eqVector {{Eq eq}} = Eq { equals: \x y -> equalsVector (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+eqVector : {{ Equals a }} -> Equals (Vector a)
+eqVector {{Equals eq}} = Equals { equals: \x y -> equalsVector (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
 
 pub instance
-eqSet : {{ Eq a }} -> Eq (Set a)
-eqSet {{Eq eq}} = Eq { equals: \x y -> equalsSet (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+eqSet : {{ Equals a }} -> Equals (Set a)
+eqSet {{Equals eq}} = Equals { equals: \x y -> equalsSet (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
 
 pub instance
-eqArray : {{ Eq a }} -> Eq (Array a)
-eqArray {{Eq eq}} = Eq { equals: \x y -> equalsArray (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+eqArray : {{ Equals a }} -> Equals (Array a)
+eqArray {{Equals eq}} = Equals { equals: \x y -> equalsArray (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
 
-equalsOption : {{ Eq a }} -> Option a -> Option a -> Boolean
-equalsOption {{Eq eq}} =
+equalsOption : {{ Equals a }} -> Option a -> Option a -> Boolean
+equalsOption {{Equals eq}} =
   case _, _ of
     Some x, Some y -> eq.equals x y
     None, None -> true
     _, _ -> false
 
 pub instance
-eqOption : {{ Eq a }} -> Eq (Option a)
-eqOption {{eq}} = Eq { equals: equalsOption {{eq}} }
+eqOption : {{ Equals a }} -> Equals (Option a)
+eqOption {{eq}} = Equals { equals: equalsOption {{eq}} }
+
+/**
+ * The ordering type represents the outcome
+ * of comparing 2 values:
+ *
+ * GT -> bigger than
+ * EQ -> equals
+ * LT -> less than
+ */
+pub+
+type Ordering = GT | LT | EQ
+
+equalsOrdering : Ordering -> Ordering -> Boolean
+equalsOrdering =
+  case _, _ of
+    GT, GT -> true
+    EQ, EQ -> true
+    LT, LT -> true
+    _, _ -> false
+
+pub instance
+eqOrdering : Equals Ordering
+eqOrdering = Equals { equals: equalsOrdering }
+
+pub instance
+showOrdering : Show Ordering
+showOrdering = Show { show: toString }
+
+/**
+ * The type of things that can be ordered.
+ */
+pub+
+opaque type Ord a = (Equals a) { compare : a -> a -> Ordering }
+
+/**
+ * Returns true if x is greater than y.
+ */
+pub
+(>) : {{ Ord a }} -> a -> a -> Boolean
+(>) {{Ord _ o}} x y =
+  case o.compare x y of
+    GT -> true
+    _ -> false
+
+/**
+ * Returns true if x is smaller than y.
+ */
+pub
+(<) : {{ Ord a }} -> a -> a -> Boolean
+(<) {{Ord _ o}} x y =
+  case o.compare x y of
+    LT -> true
+    _ -> false
+
+/**
+ * Returns true if x is greater than or equal y.
+ */
+pub
+(>=) : {{ Ord a }} -> a -> a -> Boolean
+(>=) {{Ord _ o}} x y =
+  case o.compare x y of
+    LT -> false
+    _ -> true
+
+/**
+ * Returns true if x is smaller than or equal y.
+ */
+pub
+(<=) : {{ Ord a }} -> a -> a -> Boolean
+(<=) {{Ord _ o}} x y =
+  case o.compare x y of
+    GT -> false
+    _ -> true
+
+pub instance
+ordInt32 : Ord Int32
+ordInt32 = Ord eqInt32 { compare: unsafeCoerce (compareInt LT EQ GT) }
+
+pub instance
+ordInt64 : Ord Int64
+ordInt64 = Ord eqInt64 { compare: unsafeCoerce (compareLong LT EQ GT) }
+
+pub instance
+ordFloat64 : Ord Float64
+ordFloat64 = Ord eqFloat64 { compare: unsafeCoerce (compareDouble LT EQ GT) }
+
+pub instance
+ordByte : Ord Byte
+ordByte = Ord eqByte { compare: \x y -> let comp = unsafeCoerce (compareInt LT EQ GT) in comp (bToI x) (bToI y) }
+
+pub instance
+ordInt16 : Ord Int16
+ordInt16 = Ord eqInt16 { compare: \x y -> let comp = unsafeCoerce (compareInt LT EQ GT) in comp (sToI x) (sToI y) }
+
+pub instance
+ordFloat32 : Ord Float32
+ordFloat32 = Ord eqFloat32 { compare: \x y -> let comp = unsafeCoerce (compareDouble LT EQ GT) in comp (fToD x) (fToD y) }
+
+pub instance
+ordChar : Ord Char
+ordChar = Ord eqChar { compare: unsafeCoerce (compareChar LT EQ GT) }
+
+compareBoolean : Boolean -> Boolean -> Ordering
+compareBoolean =
+  case _, _ of
+    true, true -> EQ
+    false, false -> EQ
+    true, false -> GT
+    false, true -> LT
+
+pub instance
+ordBoolean : Ord Boolean
+ordBoolean = Ord eqBoolean { compare: compareBoolean }
+
+pub instance
+ordString : Ord String
+ordString = Ord eqString { compare: unsafeCoerce (compareString LT EQ GT) }

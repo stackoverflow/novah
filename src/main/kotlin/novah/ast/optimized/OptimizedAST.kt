@@ -179,6 +179,12 @@ fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = w
     }
 }
 
-data class Clazz(val type: Type, val pars: List<Clazz> = emptyList(), val labels: LabelMap<Clazz>? = null)
+data class Clazz(val type: Type, val pars: List<Clazz> = emptyList(), val labels: LabelMap<Clazz>? = null) {
+    fun isInt32() = type.className == "java.lang.Integer"
+    fun isInt64() = type.className == "java.lang.Long"
+    fun isFloat32() = type.className == "java.lang.Float"
+    fun isFloat64() = type.className == "java.lang.Double"
+    fun isString() = type.className == "java.lang.String"
+}
 
 fun Expr.Var.fullname() = "$className.$name"
