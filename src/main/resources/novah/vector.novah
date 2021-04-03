@@ -16,9 +16,9 @@ map : (a -> b) -> Vector a -> Vector b
 map f vec = vecMap (unsafeCoerce f) (unsafeCoerce vec) |> unsafeCast
 
 /**
- * Returns the value at index for this Vector.
+ * Returns Some value at index for this Vector if it exists or None.
  * Runtime: ~O(1)
  */
 pub
-nth : Int64 -> Vector a -> a
-nth index vec = nthVec (unsafeCoerce vec) index |> unsafeCast
+nth : Int64 -> Vector a -> Option a
+nth index vec = nthVec (unsafeCoerce vec) index |> unsafeCast |> Some

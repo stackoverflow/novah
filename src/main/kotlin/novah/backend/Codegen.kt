@@ -503,6 +503,14 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private fun genExprForPrimitiveBool(e: Expr, mv: MethodVisitor, ctx: GenContext) = when (e) {
         is Expr.Bool -> genBool(e, mv)
         is Expr.InstanceOf -> genInstanceOf(e, mv, ctx)
+        is Expr.OperatorApp -> when (e.name) {
+            "&&" -> genOperatorAnd(e, mv, ctx)
+            "||" -> genOperatorOr(e, mv, ctx)
+            else -> {
+                genExpr(e, mv, ctx)
+                mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+            }
+        }
         else -> {
             genExpr(e, mv, ctx)
             mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)

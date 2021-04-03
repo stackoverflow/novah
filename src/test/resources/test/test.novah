@@ -13,12 +13,12 @@ main _ = do
   let arr = arrayOf [4, 5, 6, 7]
   let printArr = toStr >> println
   arraySet 2 99 arr
-  println (count { a: 3, v: 66, u: "asd" })
+  format "these options are equal: %s" [(Some 6 == Some 6)] |> println
   V.map count [[1, 2], [], [5, 6, 7]] |> println
   None ?: 3 |> println
   #{1, 2, 3} ++ #{5, 6, 7} |> println
   printArr arr
   println (3563.45F / 1090F)
-  println (V.nth 2L [56, 777, 1237, 12])
+  println ([56, 777, 1237, 12] ! 2L)
   format "some %s once told %s" ["body", "me"] |> println
-  //[56, 78, 90, 14, 566] |> flip nth 4 |> println
+  [56, 78, 90, 14, 566] |> (_ ! 4L) |> println

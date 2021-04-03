@@ -218,6 +218,16 @@ public class Core {
         }
         return true;
     }
+
+    public static <T> boolean equalsArray(T[] v1, T[] v2, Function<T, Function<T, Boolean>> comp) {
+        if (v1.length != v2.length) return false;
+
+        int total = v1.length;
+        for (int i = 0; i < total; i++) {
+            if (!comp.apply(v1[i]).apply(v2[i])) return false;
+        }
+        return true;
+    }
     
     @SuppressWarnings("unchecked")
     public static <T, T2> T unsafeCoerce(T2 o) {

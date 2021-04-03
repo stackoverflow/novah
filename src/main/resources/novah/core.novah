@@ -21,6 +21,7 @@ foreign import String.equals(String) as equalsString
 foreign import IList.toArray() as vecToArr
 foreign import Vector.concat(IList) as vecConcat
 foreign import Vector.size() as sizeVec
+foreign import Vector.nth(Int64) as nthVec
 foreign import String.concat(String)
 foreign import String.length() as strLength
 foreign import Set.union(ISet)
@@ -67,6 +68,7 @@ foreign import Core:equivalent(Char, Char) as equiChar
 foreign import Core:equivalent(Boolean, Boolean) as equiBoolean
 foreign import Core:equalsVector(Vector, Vector, Function)
 foreign import Core:equalsSet(Set, Set, Function)
+foreign import Core:equalsArray(Array, Array, Function)
 
 /**
  * A 32-bits Integer
@@ -205,6 +207,15 @@ int64 : Int32 -> Int64
 int64 i = longValue i
 
 /**
+ * Returns the value at index for this Vector.
+ * Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: ~O(1)
+ */
+pub
+(!) : Vector a -> Int64 -> a
+(!) vec index = nthVec (unsafeCoerce vec) index |> unsafeCast
+
+/**
  * Creates a byte array of the specified size.
  */
 pub
@@ -282,13 +293,6 @@ arrayGet index arr = getArray index (unsafeCast arr) |> unsafeCast
 pub
 arraySet : Int -> a -> Array a -> Unit
 arraySet index x arr = setArray index (unsafeCast x) (unsafeCast arr)
-
-/**
- * Gets the length of this array.
- */
-pub
-arrayLength : Array a -> Int
-arrayLength arr = getArrayLength (unsafeCast arr)
 
 /**
  * Converts a Vector of some type `a` to an Array of `a`.
@@ -563,3 +567,18 @@ eqVector {{Eq eq}} = Eq { equals: \x y -> equalsVector (unsafeCoerce x) (unsafeC
 pub instance
 eqSet : {{ Eq a }} -> Eq (Set a)
 eqSet {{Eq eq}} = Eq { equals: \x y -> equalsSet (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+
+pub instance
+eqArray : {{ Eq a }} -> Eq (Array a)
+eqArray {{Eq eq}} = Eq { equals: \x y -> equalsArray (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+
+equalsOption : {{ Eq a }} -> Option a -> Option a -> Boolean
+equalsOption {{Eq eq}} =
+  case _, _ of
+    Some x, Some y -> eq.equals x y
+    None, None -> true
+    _, _ -> false
+
+pub instance
+eqOption : {{ Eq a }} -> Eq (Option a)
+eqOption {{eq}} = Eq { equals: equalsOption {{eq}} }
