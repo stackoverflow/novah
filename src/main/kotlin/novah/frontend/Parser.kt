@@ -463,6 +463,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 Expr.Throw(exp).withSpan(tk.span, exp.span).withComment(tk.comment)
             }
             is TryT -> parseTryCatch()
+            is WhileT -> parseWhile()
             else -> null
         }
 
@@ -1003,6 +1004,36 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 } else {
                     Expr.Do(exps).withSpan(doo.span, iter.current().span).withComment(doo.comment)
                 }
+            }
+        }
+    }
+    
+    private fun parseWhile(): Expr {
+        val whil = expect<WhileT>(noErr())
+        val cond = withIgnoreOffside {
+            val exp = parseExpression()
+            expect<Then>(withError(E.THEN_WHILE))
+            exp
+        }
+        if (!cond.isSimpleExpr()) throwError(E.EXP_SIMPLE to cond.span)
+
+        val firstTk = iter.peek()
+        val align = firstTk.offside()
+        if (iter.peekIsOffside() || (nested && align <= iter.offside())) {
+            throwMismatchedIndentation(firstTk)
+        }
+        return withIgnoreOffside(false) {
+            withOffside(align) {
+                val exps = mutableListOf<Expr>()
+                val first = parseExpression(true)
+                exps += first
+
+                var tk = iter.peek()
+                while (!iter.peekIsOffside() && tk.value !in statementEnding) {
+                    exps += parseExpression(true)
+                    tk = iter.peek()
+                }
+                Expr.While(cond, exps).withSpan(whil.span, iter.current().span).withComment(whil.comment)
             }
         }
     }

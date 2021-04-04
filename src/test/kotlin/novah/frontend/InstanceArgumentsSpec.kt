@@ -90,8 +90,6 @@ class InstanceArgumentsSpec : StringSpec({
             viewOption : {{ View a }} -> View (Option a)
             viewOption {{s}} = View { view: viewOptionImpl {{s}} }
             
-            type Result a b = Ok a | Err b
-            
             viewResultImpl : {{ View a }} -> {{ View b }} -> Result a b -> String
             viewResultImpl {{a}} {{b}} r = case r of
               Ok o -> view o

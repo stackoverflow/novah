@@ -262,6 +262,7 @@ object Optimization {
                 val cs = e.catches.map { it.copy(expr = go(it.expr)) }
                 f(e.copy(tryExpr = tryy, catches = cs, finallyExp = e.finallyExp?.let(::go)))
             }
+            is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
             else -> f(e)
         }
         return go(expr)

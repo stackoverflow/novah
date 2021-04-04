@@ -499,6 +499,21 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitInsn(AASTORE)
                 }
             }
+            is Expr.While -> {
+                val whileLb = Label()
+                val endLb = Label()
+                mv.visitLabel(whileLb)
+                genExprForPrimitiveBool(e.cond, mv, ctx)
+                mv.visitJumpInsn(IFEQ, endLb)
+
+                e.exps.forEach { expr ->
+                    genExpr(expr, mv, ctx)
+                    mv.visitInsn(POP)
+                }
+                mv.visitJumpInsn(GOTO, whileLb)
+                mv.visitLabel(endLb)
+                mv.visitInsn(ACONST_NULL)
+            }
             is Expr.TryCatch -> {
                 val beginTry = Label()
                 val endTry = Label()
@@ -518,7 +533,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                         mv.visitTryCatchBlock(startl, endl, finallyLb, null)
                     }
                 }
-                
+
                 val retVar = ctx.nextLocal()
                 val excVar = ctx.nextLocal()
                 mv.visitLabel(beginTry)
@@ -822,6 +837,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     }
                     go(c.expr)
                 }
+            }
+            is Expr.While -> {
+                go(exp.cond)
+                for (e in exp.exps) go(e)
             }
             else -> {
             }

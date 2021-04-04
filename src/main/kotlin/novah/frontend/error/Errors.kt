@@ -155,6 +155,10 @@ object Errors {
     const val NO_CATCH = "Expected `catch` definition after try expression."
 
     const val WRONG_CATCH = "Catch patterns can only be a type test and cannot have guards."
+    
+    const val THEN_WHILE = "Expected keyword `then` after while condition."
+    
+    const val EXP_SIMPLE = "Invalid expression for while condition."
 
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.

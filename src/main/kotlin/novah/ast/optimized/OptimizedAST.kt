@@ -177,6 +177,9 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
         override val type: Clazz,
         override val span: Span
     ) : Expr(type, span)
+
+    data class While(val cond: Expr, val exps: List<Expr>, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
 }
 
 data class Catch(val exception: Clazz, val binder: String?, val expr: Expr, val span: Span) {

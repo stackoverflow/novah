@@ -242,6 +242,7 @@ sealed class Expr {
     class Underscore : Expr()
     data class Throw(val exp: Expr) : Expr()
     data class TryCatch(val tryExpr: Expr, val cases: List<Case>, val finallyExp: Expr?) : Expr()
+    data class While(val cond: Expr, val exps: List<Expr>) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null
@@ -254,6 +255,13 @@ sealed class Expr {
     fun <T> withSpanAndComment(s: Spanned<T>) = apply {
         span = s.span
         comment = s.comment
+    }
+    
+    fun isSimpleExpr(): Boolean = when (this) {
+        is If, is Let, is Match, is Do, is DoLet, is TryCatch
+            , is While -> false
+        is Ann -> exp.isSimpleExpr()
+        else -> true
     }
 }
 

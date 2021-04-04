@@ -102,6 +102,8 @@ sealed class Expr(open val span: Span) {
     data class TryCatch(val tryExp: Expr, val cases: List<Case>, val finallyExp: Expr?, override val span: Span) :
         Expr(span)
 
+    data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
+
     var implicitContext: ImplicitContext? = null
 
     var type: Type? = null
@@ -260,4 +262,5 @@ fun Expr.show(): String = when (this) {
         val fin = if (finallyExp != null) "\nfinally ${finallyExp.show()}" else ""
         "try ${tryExp.show()}\ncatch\n  $cs$fin"
     }
+    is Expr.While -> "while ${cond.show()} then\n  " + exps.joinToString("\n  ") { it.show() }
 }

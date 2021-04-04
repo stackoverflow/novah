@@ -226,6 +226,7 @@ class Optimizer(private val ast: CModule) {
                 }
                 Expr.TryCatch(tryExp.convert(locals), catches, finallyExp?.convert(locals), typ, span)
             }
+            is CExpr.While -> Expr.While(cond.convert(locals), exps.map { it.convert(locals) }, typ, span)
         }
     }
 

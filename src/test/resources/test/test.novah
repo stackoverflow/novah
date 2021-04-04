@@ -2,24 +2,16 @@ module test
 
 import novah.vector as V
 
-foreign import type java.lang.Exception
-foreign import type java.lang.RuntimeException
-foreign import new RuntimeException(String) as newRte
 foreign import java.util.Arrays:toString(Array) as toStringArr
-foreign import java.lang.Throwable.printStackTrace()
 
 toStr : Array a -> String
 toStr arr = toStringArr (unsafeCast arr)
 
 bla () = do
-  let xx = try throw (newRte "rrrrr")
-           catch
-             :? RuntimeException as rte -> do
-               printStackTrace (unsafeCast rte)
-               "rte"
-             :? Exception -> "ex"
-           finally println "always call"
-  xx
+  let atm = atom 10
+  while deref atm > 0 then
+    println atm
+    swap (_ - 1) atm
 
 pub
 main : Array String -> Unit
@@ -27,7 +19,6 @@ main _ = do
   let arr = arrayOf [4, 5, 6, 7]
   let printArr = toStr >> println
   arraySet 2 99 arr
-  println (bla ())
   format "these options are equal: %s" [Some 3 == Some 4] |> println
   None ?: 3 |> println
   #{1, 2, 3} ++ #{5, 6, 7} |> println
@@ -36,4 +27,4 @@ main _ = do
   println (V.nth 8L [56, 777, 1237, 12])
   format "some %s once told %s" ["body", "me"] |> println
   [56, 78, 90, 14, 566] |> (_ ! 4L) |> println
-  throw (newRte "oops")
+  bla ()

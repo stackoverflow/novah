@@ -328,6 +328,12 @@ object Inference {
                 if (exp.finallyExp != null) infer(env, level, exp.finallyExp)
                 exp.withType(resTy)
             }
+            is Expr.While -> {
+                unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
+                exp.exps.forEach { e -> infer(env, level, e) }
+                // while always returns unit
+                exp.withType(tUnit)
+            }
         }
         context?.apply { exps.pop() }
         return ty

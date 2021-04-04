@@ -250,6 +250,9 @@ class Desugar(private val smod: SModule) {
             val fin = finallyExp?.desugar(locals)
             Expr.TryCatch(tryExpr.desugar(locals), cases.map { it.desugar(locals) }, fin, span)
         }
+        is SExpr.While -> {
+            Expr.While(cond.desugar(locals), exps.map { it.desugar(locals) }, span)
+        }
     }
 
     private fun SCase.desugar(locals: List<String>): Case {
