@@ -12,12 +12,17 @@ main : Array String -> Unit
 main _ = do
   let arr = arrayOf [4, 5, 6, 7]
   let printArr = toStr >> println
+  let atm = atom 23
+  println atm
+  reset 99 atm
+  println (swap (_ + 10) atm)
+  println (deref atm)
   arraySet 2 99 arr
-  format "these options are equal: %s" [6.5 < 6.8] |> println
+  format "these options are equal: %s" [Some 3 == Some 4] |> println
   None ?: 3 |> println
   #{1, 2, 3} ++ #{5, 6, 7} |> println
   printArr arr
-  println (3563.45F / 1090F)
+  println (show (Err 45 : Result Int Int))
   println (V.nth 8L [56, 777, 1237, 12])
   format "some %s once told %s" ["body", "me"] |> println
   [56, 78, 90, 14, 566] |> (_ ! 4L) |> println

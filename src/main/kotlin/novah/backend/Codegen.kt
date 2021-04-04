@@ -214,7 +214,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val fn = e.fn
                 genExpr(fn, mv, ctx)
                 genExpr(e.arg, mv, ctx)
-                val retType = fn.type.pars[1].type
 
                 mv.visitMethodInsn(
                     INVOKEINTERFACE,
@@ -223,8 +222,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     "(Ljava/lang/Object;)Ljava/lang/Object;",
                     true
                 )
-                if (retType.internalName != OBJECT_CLASS) {
-                    mv.visitTypeInsn(CHECKCAST, retType.internalName)
+                if (fn.type.pars.size > 1) {
+                    val retType = fn.type.pars[1].type
+                    if (retType.internalName != OBJECT_CLASS) {
+                        mv.visitTypeInsn(CHECKCAST, retType.internalName)
+                    }
                 }
             }
             is Expr.CtorApp -> {
@@ -756,6 +758,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.RecordRestrict -> go(exp.expr)
             is Expr.VectorLiteral -> for (e in exp.exps) go(e)
             is Expr.SetLiteral -> for (e in exp.exps) go(e)
+            is Expr.ArrayLiteral -> for (e in exp.exps) go(e)
             else -> {
             }
         }

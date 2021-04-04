@@ -18,6 +18,7 @@ package novah;
 import io.lacuna.bifurcan.List;
 import io.lacuna.bifurcan.Set;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
@@ -126,6 +127,30 @@ public class Core {
     }
     
     public static boolean equivalentObject(Object o1, Object o2) {
+        if (o1 instanceof Integer && o2 instanceof Integer) {
+            return ((Integer) o1).intValue() == ((Integer) o2).intValue();
+        }
+        if (o1 instanceof Byte && o2 instanceof Byte) {
+            return ((Byte) o1).byteValue() == ((Byte) o2).byteValue();
+        }
+        if (o1 instanceof Short && o2 instanceof Short) {
+            return ((Short) o1).shortValue() == ((Short) o2).shortValue();
+        }
+        if (o1 instanceof Long && o2 instanceof Long) {
+            return ((Long) o1).longValue() == ((Long) o2).longValue();
+        }
+        if (o1 instanceof Float && o2 instanceof Float) {
+            return ((Float) o1).floatValue() == ((Float) o2).floatValue();
+        }
+        if (o1 instanceof Double && o2 instanceof Double) {
+            return ((Double) o1).doubleValue() == ((Double) o2).doubleValue();
+        }
+        if (o1 instanceof Character && o2 instanceof Character) {
+            return ((Character) o1).charValue() == ((Character) o2).charValue();
+        }
+        if (o1 instanceof Boolean && o2 instanceof Boolean) {
+            return ((Boolean) o1).booleanValue() == ((Boolean) o2).booleanValue();
+        }
         return o1 == o2;
     }
     
@@ -355,6 +380,16 @@ public class Core {
         }
         builder.append("]");
         return builder.toString();
+    }
+    
+    public static <T> T swapAtom(AtomicReference<T> atom, Function<T, T> f) {
+        for (;;) {
+            T v = atom.get();
+            T newv = f.apply(v);
+            if (atom.compareAndSet(v, newv)) {
+                return newv;
+            }
+        }
     }
     
     @SuppressWarnings("unchecked")

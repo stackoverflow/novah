@@ -9,6 +9,7 @@ foreign import type io.lacuna.bifurcan.ISet
 foreign import type java.util.function.Function
 foreign import type novah.Core
 foreign import type novah.collections.Record
+foreign import type java.util.concurrent.atomic.AtomicReference
 
 foreign import get java.lang.System:out
 foreign import java.io.PrintStream.println(Object) as jprintln
@@ -31,6 +32,10 @@ foreign import Byte.intValue() as bToI
 foreign import Int16.intValue() as sToI
 foreign import Float32.doubleValue() as fToD
 foreign import Char.compareTo(Char) as compareChar
+foreign import new AtomicReference(Object) as newAtom
+foreign import AtomicReference.get() as atomGet
+foreign import AtomicReference.set(Object) as atomSet
+foreign import AtomicReference.compareAndSet(Object, Object) as atomCmpAndSet
 
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
@@ -80,6 +85,7 @@ foreign import Core:compareLong(novah.core.Ordering, novah.core.Ordering, novah.
 foreign import Core:compareDouble(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 foreign import Core:compareChar(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 foreign import Core:compareString(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:swapAtom(AtomicReference, Function)
 
 /**
  * A 32-bits Integer
@@ -161,9 +167,6 @@ pub
 /**
  * Returns true if the 2 objects point to the same object.
  * This is the same as Java's ==
- * Note that, because Novah (currently) uses boxed primitives,
- * you should not use this function to compare primitive types
- * like Int, Char, etc.
  */
 pub
 (===) : a -> a -> Boolean
@@ -172,9 +175,6 @@ pub
 /**
  * Returns true if the 2 objects *do not* point to the same object.
  * This is the same as Java's !=
- * Note that, because Novah (currently) uses boxed primitives,
- * you should not use this function to compare primitive types
- * like Int, Char, etc.
  */
 pub
 (!==) : a -> a -> Boolean
@@ -318,7 +318,7 @@ arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
  */
 pub
 format : String -> Vector a -> String
-format str vec = sformat str (unsafeCast (arrayOf vec))
+format str vec = sformat str (unsafeCoerce (arrayOf vec))
 
 /**
  * Represents the possibility of a missing value.
@@ -361,6 +361,16 @@ appendVector = Append { append: \v v2 -> vecConcat (unsafeCast v) (unsafeCast v2
 pub instance
 appendSet : Append (Set a)
 appendSet = Append { append: \s s2 -> union (unsafeCast s) (unsafeCast s2) |> unsafeCast }
+
+appOption : Append a -> Option a -> Option a -> Option a
+appOption (Append ap) =
+  case _, _ of
+    Some x, Some y -> Some (ap.append x y)
+    _, _ -> None
+
+pub instance
+appendOption : {{ Append a }} -> Append (Option a)
+appendOption {{ap}} = Append { append: appOption ap }
 
 /**
  * The type of things that can be added together
@@ -564,15 +574,15 @@ pub instance
 showBoolean : Show Boolean
 showBoolean = Show { show: toString }
 
-showOpt : {{Show a}} -> Option a -> String
-showOpt {{Show s}} =
+showOpt : Show a -> Option a -> String
+showOpt (Show s) =
   case _ of
-    Some x -> "Some " ++ s.show x
+    Some x -> format "(Some %s)" [s.show x]
     None -> "None"
 
 pub instance
 showOption : {{ Show a }} -> Show (Option a)
-showOption {{s}} = Show { show: showOpt {{s}} }
+showOption {{s}} = Show { show: showOpt s }
 
 pub instance
 showVector : {{ Show a }} -> Show (Vector a)
@@ -661,8 +671,8 @@ pub instance
 eqArray : {{ Equals a }} -> Equals (Array a)
 eqArray {{Equals eq}} = Equals { equals: \x y -> equalsArray (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
 
-equalsOption : {{ Equals a }} -> Option a -> Option a -> Boolean
-equalsOption {{Equals eq}} =
+equalsOption : Equals a -> Option a -> Option a -> Boolean
+equalsOption (Equals eq) =
   case _, _ of
     Some x, Some y -> eq.equals x y
     None, None -> true
@@ -670,7 +680,7 @@ equalsOption {{Equals eq}} =
 
 pub instance
 eqOption : {{ Equals a }} -> Equals (Option a)
-eqOption {{eq}} = Equals { equals: equalsOption {{eq}} }
+eqOption {{eq}} = Equals { equals: equalsOption eq }
 
 /**
  * The ordering type represents the outcome
@@ -788,3 +798,81 @@ ordBoolean = Ord eqBoolean { compare: compareBoolean }
 pub instance
 ordString : Ord String
 ordString = Ord eqString { compare: unsafeCoerce (compareString LT EQ GT) }
+
+/**
+ * Represents a computation that can fail.
+ * Should be used to represent errors instead of exceptions.
+ */
+pub+
+type Result ok err = Ok ok | Err err
+
+equalsResult : Equals ok -> Equals err -> Result ok err -> Result ok err -> Boolean
+equalsResult (Equals eq1) (Equals eq2) =
+  case _, _ of
+    Ok x, Ok y -> eq1.equals x y
+    Err x, Err y -> eq2.equals x y
+    _, _ -> false
+
+pub instance
+eqResult : {{ Equals ok }} -> {{ Equals err }} -> Equals (Result ok err)
+eqResult {{eq1}} {{eq2}} = Equals { equals: equalsResult eq1 eq2 }
+
+showRes : Show ok -> Show err -> Result ok err -> String
+showRes (Show s1) (Show s2) =
+  case _ of
+    Ok x -> format "(Ok %s)" [s1.show x]
+    Err x -> format "(Err %s)" [s2.show x]
+
+pub instance
+showResult : {{ Show ok }} -> {{ Show err }} -> Show (Result ok err)
+showResult {{s1}} {{s2}} = Show { show: showRes s1 s2 }
+
+/**
+ * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
+ */
+pub
+opaque type Atom a = AtomicReference
+
+/**
+ * Creates a new Atom to hold x.
+ * Should *not* be used to hold a mutable value.
+ */
+pub
+atom : a -> Atom a
+atom x = Atom (newAtom (unsafeCoerce x))
+
+/**
+ * Returns the value inside this Atom.
+ */
+pub
+deref : Atom a -> a
+deref (Atom a) = unsafeCoerce (atomGet a)
+
+/**
+ * Resets the value of this Atom to x, discarding the old value.
+ * Returns x.
+ */
+pub
+reset : a -> Atom a -> a
+reset x (Atom a) = do
+  atomSet a (unsafeCoerce x)
+  x
+
+/**
+ * Swaps the value of this atom by applying a function to the old value.
+ * The function *should be free of side effects* as it may be executed
+ * multiple times.
+ */
+pub
+swap : (a -> a) -> Atom a -> a
+swap f (Atom a) = unsafeCoerce (swapAtom a (unsafeCoerce f))
+
+/**
+ * Low-level function that receives the old value, the new value and attempts
+ * to set the atom to new if old matches.
+ * Returns true if it succeeded.
+ * Always prefer `swap` over `compareAndSet`.
+ */
+pub
+compareAndSet : a -> a -> Atom a -> Boolean
+compareAndSet old new (Atom atm) = atomCmpAndSet atm (unsafeCoerce old) (unsafeCoerce new)
