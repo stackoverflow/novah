@@ -17,4 +17,3 @@
 - [ ] Use ropes instead of char arrays to process strings
 - [ ] Fix && and || operators
 - [ ] Optimize unsafeCast
-- [ ] Create a class for Unit instead of return null in codegen
