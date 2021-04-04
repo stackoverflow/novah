@@ -305,7 +305,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             val ctorvis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
             val pars = tryParseListOf { parseTypeAtom(true) }
             if (pars.isEmpty()) throwError(E.EMPTY_OPAQUE to iter.current().span)
-            
+
             val ctors = listOf(DataConstructor(name, pars, ctorvis, span(pars[0].span, pars.last().span)))
             Decl.TypeDecl(name, tyVars, ctors, vis, true)
                 .withSpan(tk.span, iter.current().span)
@@ -462,6 +462,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val exp = parseExpression()
                 Expr.Throw(exp).withSpan(tk.span, exp.span).withComment(tk.comment)
             }
+            is TryT -> parseTryCatch()
             else -> null
         }
 
@@ -651,6 +652,51 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             val exp = parseExpression()
             LetDef.DefPattern(pat, exp)
         }
+    }
+
+    private fun parseTryCatch(): Expr {
+        fun validCase(c: Case) {
+            if (c.patterns.size != 1)
+                throwError(E.wrongArityToCase(c.patterns.size, 1) to c.patternSpan())
+            val pat = c.patterns[0]
+            if (pat !is Pattern.TypeTest || c.guard != null)
+                throwError(E.WRONG_CATCH to pat.span)
+        }
+
+        val tryTk = expect<TryT>(noErr())
+        val tryExp = withOffside { parseExpression() }
+        expect<CatchT>(withError(E.NO_CATCH))
+
+        val firstTk = iter.peek()
+        val align = firstTk.offside()
+        if (iter.peekIsOffside() || (nested && align <= iter.offside())) {
+            throwMismatchedIndentation(firstTk)
+        }
+        val cases = withIgnoreOffside(false) {
+            withOffside(align) {
+                val cases = mutableListOf<Case>()
+                val first = parseCase()
+                validCase(first)
+                cases += first
+
+                var tk = iter.peek()
+                while (!iter.peekIsOffside() && tk.value !in statementEnding) {
+                    val case = parseCase()
+                    validCase(case)
+                    cases += case
+                    tk = iter.peek()
+                }
+                cases
+            }
+        }
+        
+        val fin = if (iter.peek().value is FinallyT) {
+            iter.next()
+            withOffside { parseExpression() }
+        } else null
+        return Expr.TryCatch(tryExp, cases, fin)
+            .withSpan(tryTk.span, iter.current().span)
+            .withComment(tryTk.comment)
     }
 
     private fun parseMatch(): Expr {

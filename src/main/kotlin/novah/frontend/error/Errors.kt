@@ -152,6 +152,10 @@ object Errors {
 
     const val APPLIED_DO_LET = "Cannot apply let statement as a function."
 
+    const val NO_CATCH = "Expected `catch` definition after try expression."
+
+    const val WRONG_CATCH = "Catch patterns can only be a type test and cannot have guards."
+
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
         
@@ -188,7 +192,7 @@ object Errors {
         |$example
     """.trimMargin()
     }
-    
+
     fun notException(type: String) = """
         Type
         

@@ -218,6 +218,14 @@ class Optimizer(private val ast: CModule) {
             is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Throw -> Expr.Throw(exp.convert(locals), span)
+            is CExpr.TryCatch -> {
+                val catches = cases.map { 
+                    val pat = it.patterns[0] as Pattern.TypeTest
+                    val loc = if (pat.alias != null) locals + pat.alias else locals
+                    Catch(pat.type.convert(), pat.alias, it.exp.convert(loc), pat.span)
+                }
+                Expr.TryCatch(tryExp.convert(locals), catches, finallyExp?.convert(locals), typ, span)
+            }
         }
     }
 

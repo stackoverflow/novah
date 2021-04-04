@@ -198,9 +198,17 @@ class Formatter {
             is Expr.Underscore -> "_"
             is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
             is Expr.Throw -> "throw ${show(e.exp)}"
+            is Expr.TryCatch -> {
+                val tr = "try ${show(e.tryExpr)}\n${tab}catch" + withIndent {
+                    e.cases.joinToString("\n$tab", prefix = tab) { show(it) }
+                }
+                if (e.finallyExp != null) {
+                    tr + "\n${tab}finally ${show(e.finallyExp)}"
+                } else tr
+            }
         }
     }
-    
+
     private val escapes = mapOf(
         '\n' to "\\n",
         '\\' to "\\\\",
@@ -210,7 +218,7 @@ class Formatter {
         '\t' to "\\t",
         '\b' to "\\b",
     )
-    
+
     private fun escapeString(s: String): String {
         val bld = java.lang.StringBuilder()
         for (c in s) {

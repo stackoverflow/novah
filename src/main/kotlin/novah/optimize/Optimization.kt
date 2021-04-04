@@ -257,6 +257,11 @@ object Optimization {
             is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
             is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
             is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))
+            is Expr.TryCatch -> {
+                val tryy = go(e.tryExpr)
+                val cs = e.catches.map { it.copy(expr = go(it.expr)) }
+                f(e.copy(tryExpr = tryy, catches = cs, finallyExp = e.finallyExp?.let(::go)))
+            }
             else -> f(e)
         }
         return go(expr)

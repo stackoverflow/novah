@@ -302,6 +302,32 @@ object Inference {
                 val ret = newVar(level)
                 exp.withType(ret)
             }
+            is Expr.TryCatch -> {
+                val resTy = infer(env, level, exp.tryExp)
+
+                exp.cases.forEach { case ->
+                    val vars = case.patterns.flatMap { pat ->
+                        // the type parameter is not actually used here
+                        // we just passed resTy as an optimization instead
+                        // of creating a new type var
+                        inferpattern(env, level, pat, resTy)
+                    }
+                    val newEnv = if (vars.isNotEmpty()) {
+                        val theEnv = env.fork()
+                        vars.forEach {
+                            checkShadow(theEnv, it.name, it.span)
+                            theEnv.extend(it.name, it.type)
+                        }
+                        theEnv
+                    } else env
+
+                    val ty = infer(newEnv, level, case.exp)
+                    unify(resTy, ty, case.exp.span)
+                }
+                // the result type of the finally expression is discarded
+                if (exp.finallyExp != null) infer(env, level, exp.finallyExp)
+                exp.withType(resTy)
+            }
         }
         context?.apply { exps.pop() }
         return ty
@@ -386,6 +412,7 @@ object Inference {
                 vars
             }
             is Pattern.TypeTest -> {
+                validateType(pat.type, env, pat.span)
                 if (pat.alias != null) {
                     // we need special handling for Vectors, Sets and Arrays
                     val type = when {

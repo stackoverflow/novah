@@ -241,6 +241,7 @@ sealed class Expr {
     data class SetLiteral(val exps: List<Expr>) : Expr()
     class Underscore : Expr()
     data class Throw(val exp: Expr) : Expr()
+    data class TryCatch(val tryExpr: Expr, val cases: List<Case>, val finallyExp: Expr?) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null

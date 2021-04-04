@@ -143,7 +143,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     }
 
     private var lineNumber = -1
-    
+
     private fun genValDecl(decl: Decl.ValDecl, mv: MethodVisitor, ctx: GenContext) {
         if (decl.exp is Expr.StringE) return
         val l = Label()
@@ -499,6 +499,34 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitInsn(AASTORE)
                 }
             }
+            is Expr.TryCatch -> {
+                val beginTry = Label()
+                val endTry = Label()
+                val end = Label()
+                e.catches.forEach {
+                    it.label = Label()
+                    mv.visitTryCatchBlock(beginTry, endTry, it.label, it.exception.type.internalName)
+                }
+                val retVar = ctx.nextLocal()
+                val excVar = ctx.nextLocal()
+                mv.visitLabel(beginTry)
+                genExpr(e.tryExpr, mv, ctx)
+                mv.visitVarInsn(ASTORE, retVar)
+                mv.visitLabel(endTry)
+                mv.visitJumpInsn(GOTO, end)
+                
+                e.catches.forEachIndexed { i, catch ->
+                    mv.visitLabel(catch.label!!)
+                    if (catch.binder != null) ctx.put(catch.binder, excVar, catch.label!!)
+                    mv.visitVarInsn(ASTORE, excVar)
+                    genExpr(catch.expr, mv, ctx)
+                    mv.visitVarInsn(ASTORE, retVar)
+                    if (i != e.catches.lastIndex)
+                        mv.visitJumpInsn(GOTO, end)
+                }
+                mv.visitLabel(end)
+                mv.visitVarInsn(ALOAD, retVar)
+            }
         }
     }
 
@@ -654,7 +682,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         mv.visitInsn(ICONST_0)
         mv.visitLabel(end)
     }
-    
+
     private fun genNumericOperator(op: String, e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
         if (e.operands.size != 2) internalError("got wrong number of operators for operator $op")
         val op1 = e.operands[0]
@@ -759,6 +787,18 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.VectorLiteral -> for (e in exp.exps) go(e)
             is Expr.SetLiteral -> for (e in exp.exps) go(e)
             is Expr.ArrayLiteral -> for (e in exp.exps) go(e)
+            is Expr.TryCatch -> {
+                go(exp.tryExpr)
+                if (exp.finallyExp != null) go(exp.finallyExp)
+                for (c in exp.catches) {
+                    if (c.binder != null) {
+                        for (l in lambdas) {
+                            l.ignores += c.binder
+                        }
+                    }
+                    go(c.expr)
+                }
+            }
             else -> {
             }
         }
@@ -794,7 +834,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val lnum = Label()
         lam.visitLabel(lnum)
         lam.visitLineNumber(l.span.startLine, lnum)
-        
+
         val startL = Label()
         val ctx = GenContext()
         args.forEach { local ->
