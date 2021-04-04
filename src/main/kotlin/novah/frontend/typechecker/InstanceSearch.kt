@@ -76,7 +76,7 @@ object InstanceSearch {
                 Res.Yes(found)
             } else if (!ienv.isVar) {
                 val found2 = checkImplicit(name, instantiate(0, ienv.type))
-                if (found2 != null) Res.Maybe(found2) else Res.No to null
+                if (found2 != null) Res.Maybe(found2) else Res.No
             } else Res.No
         }
         val yeses = res.filterIsInstance<Res.Yes>()
