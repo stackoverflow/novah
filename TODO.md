@@ -16,3 +16,4 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Use ropes instead of char arrays to process strings
 - [ ] Fix && and || operators
+- [ ] Optimize unsafeCast
