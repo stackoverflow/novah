@@ -23,10 +23,7 @@ import novah.ast.source.Decl
 import novah.ast.source.Module
 import novah.ast.source.Visibility
 import novah.backend.Codegen
-import novah.data.DAG
-import novah.data.DagNode
-import novah.data.mapBoth
-import novah.data.unwrapOrElse
+import novah.data.*
 import novah.frontend.Lexer
 import novah.frontend.Parser
 import novah.frontend.error.CompilerProblem
@@ -54,11 +51,15 @@ import novah.ast.canonical.Module as TypedModule
  * The environment where a full compilation
  * process takes place.
  */
-class Environment(private val verbose: Boolean) {
+class Environment(classPath: String, private val verbose: Boolean) {
     private val modules = mutableMapOf<String, FullModuleEnv>()
 
     private val errors = mutableListOf<CompilerProblem>()
     private val warnings = mutableListOf<CompilerProblem>()
+    
+    init {
+        classLoader = NovahClassLoader(classPath)
+    }
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
@@ -189,6 +190,15 @@ class Environment(private val verbose: Boolean) {
 
     private fun throwErrors(errs: List<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
     private fun throwError(err: CompilerProblem): Nothing = throw CompilationError(listOf(err))
+    
+    companion object {
+        private var classLoader: NovahClassLoader? = null
+        
+        fun classLoader(): NovahClassLoader {
+            return if (classLoader == null) internalError("Novah class loader is null")
+            else classLoader!!
+        }
+    }
 }
 
 /**

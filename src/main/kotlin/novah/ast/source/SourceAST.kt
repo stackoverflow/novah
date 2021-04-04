@@ -240,6 +240,7 @@ sealed class Expr {
     data class VectorLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
     class Underscore : Expr()
+    data class Throw(val exp: Expr) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null

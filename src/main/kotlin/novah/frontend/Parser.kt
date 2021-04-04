@@ -457,6 +457,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     Expr.SetLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
                 }
             }
+            is ThrowT -> {
+                val tk = iter.next()
+                val exp = parseExpression()
+                Expr.Throw(exp).withSpan(tk.span, exp.span).withComment(tk.comment)
+            }
             else -> null
         }
 

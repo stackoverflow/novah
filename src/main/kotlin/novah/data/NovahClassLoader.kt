@@ -17,6 +17,7 @@ package novah.data
 
 import novah.Core
 import novah.collections.Record
+import java.util.*
 
 // TODO: implement this class
 class NovahClassLoader(private val classPath: String) : ClassLoader() {
@@ -34,6 +35,10 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
         return clparent.loadClass(name)
     }
 
+    /**
+     * Attempts to load a class.
+     * Returns null if didn't succeed.
+     */
     fun safeLoadClass(name: String): Class<*>? {
         when (name) {
             "byte[]" -> return ByteArray::class.java
@@ -50,5 +55,15 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
         } catch (_: ClassNotFoundException) {
             null
         }
+    }
+
+    /**
+     * Checks if class `name` is a Throwable.
+     * The optional will be empty if cannot load class.
+     */
+    fun isException(name: String): Optional<Boolean> {
+        return safeLoadClass(name)?.let {
+            Optional.of(Throwable::class.java.isAssignableFrom(it))
+        } ?: Optional.empty()
     }
 }

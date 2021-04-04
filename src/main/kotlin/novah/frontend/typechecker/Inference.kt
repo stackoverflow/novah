@@ -4,10 +4,7 @@ import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
 import novah.ast.canonical.*
-import novah.data.LabelMap
-import novah.data.isEmpty
-import novah.data.mapList
-import novah.data.singletonPMap
+import novah.data.*
 import novah.frontend.Span
 import novah.frontend.typechecker.Type.Companion.nestArrows
 import novah.frontend.typechecker.Typechecker.context
@@ -17,6 +14,7 @@ import novah.frontend.typechecker.Typechecker.newGenVar
 import novah.frontend.typechecker.Typechecker.newVar
 import novah.frontend.typechecker.Unification.unify
 import novah.main.DeclRef
+import novah.main.Environment
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 import novah.frontend.error.Errors as E
@@ -88,7 +86,7 @@ object Inference {
 
         return ModuleEnv(decls, types)
     }
-    
+
     private fun infer(env: Env, level: Level, exp: Expr): Type {
         context?.apply { exps.push(exp) }
         val ty = when (exp) {
@@ -292,6 +290,17 @@ object Inference {
                 }
                 val res = TApp(TConst(primSet), listOf(ty))
                 exp.withType(res)
+            }
+            is Expr.Throw -> {
+                val ty = infer(env, level, exp.exp)
+                val res = Environment.classLoader().isException(ty.typeNameOrEmpty())
+                if (res.isEmpty || !res.get()) {
+                    inferError(E.notException(ty.show()), exp.span)
+                }
+                exp.exp.withType(ty)
+                // throw returns anything
+                val ret = newVar(level)
+                exp.withType(ret)
             }
         }
         context?.apply { exps.pop() }

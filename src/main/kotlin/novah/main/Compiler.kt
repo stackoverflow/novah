@@ -19,9 +19,9 @@ import novah.frontend.error.CompilerProblem
 import java.io.File
 import java.nio.file.Path
 
-class Compiler(private val sources: Sequence<Source>, verbose: Boolean) {
+class Compiler(private val sources: Sequence<Source>, classPath: String, verbose: Boolean) {
 
-    private val env = Environment(verbose)
+    private val env = Environment(classPath, verbose)
 
     fun compile(): Map<String, FullModuleEnv> = env.parseSources(sources)
 
@@ -36,9 +36,9 @@ class Compiler(private val sources: Sequence<Source>, verbose: Boolean) {
     fun getModules() = env.getModuleEnvs()
 
     companion object {
-        fun new(sources: Sequence<Path>, verbose: Boolean): Compiler {
+        fun new(sources: Sequence<Path>, classPath: String, verbose: Boolean): Compiler {
             val entries = sources.map { path -> Source.SPath(path) }
-            return Compiler(entries, verbose)
+            return Compiler(entries, classPath, verbose)
         }
     }
 }

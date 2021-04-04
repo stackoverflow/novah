@@ -197,6 +197,7 @@ class Formatter {
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
             is Expr.Underscore -> "_"
             is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
+            is Expr.Throw -> "throw ${show(e.exp)}"
         }
     }
     

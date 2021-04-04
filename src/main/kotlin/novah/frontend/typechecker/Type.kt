@@ -155,6 +155,20 @@ sealed class Type {
     }
 
     /**
+     * Returns the name of this type if it's a const
+     * or empty string.
+     */
+    fun typeNameOrEmpty(): String = when (this) {
+        is TConst -> name
+        is TImplicit -> type.typeNameOrEmpty()
+        is TVar -> {
+            if (tvar is TypeVar.Link) (tvar as TypeVar.Link).type.typeNameOrEmpty()
+            else ""
+        }
+        else -> ""
+    }
+
+    /**
      * Pretty print version of [toString]
      */
     fun show(qualified: Boolean = true): String {
