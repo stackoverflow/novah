@@ -117,7 +117,7 @@ not : Boolean -> Boolean
 not b = negate b
 
 /**
- * Returns it's argument unmodified.
+ * Returns its argument unmodified.
  */
 pub
 identity : a -> a
