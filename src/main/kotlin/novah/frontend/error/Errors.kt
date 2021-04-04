@@ -139,6 +139,8 @@ object Errors {
     const val INVALID_OPERATOR_DECL = "Operator declarations have to be defined between parentheses."
 
     const val INVALID_OPAQUE = "Opaque types should be in the form: opaque type <Name> = <type>."
+    
+    const val EMPTY_OPAQUE = "Empty data constructor. Opaque types need at least one type."
 
     val IMPORT_RAW = """Raw imports should only be used for core namespaces.
         |Use an alias or explicit import instead.""".trimMargin()
@@ -371,7 +373,7 @@ object Errors {
         
             $type
         
-        Make sure there's one instance in the context
+        Consider adding a type annotation
         or pass the argument explicitly.
     """.trimIndent()
 

@@ -214,7 +214,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val fn = e.fn
                 genExpr(fn, mv, ctx)
                 genExpr(e.arg, mv, ctx)
-                val retType = fn.type.pars[1].type
 
                 mv.visitMethodInsn(
                     INVOKEINTERFACE,
@@ -223,8 +222,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     "(Ljava/lang/Object;)Ljava/lang/Object;",
                     true
                 )
-                if (retType.internalName != OBJECT_CLASS) {
-                    mv.visitTypeInsn(CHECKCAST, retType.internalName)
+                if (fn.type.pars.size > 1) {
+                    val retType = fn.type.pars[1].type
+                    if (retType.internalName != OBJECT_CLASS) {
+                        mv.visitTypeInsn(CHECKCAST, retType.internalName)
+                    }
                 }
             }
             is Expr.CtorApp -> {
@@ -250,7 +252,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 when (e.name) {
                     "&&" -> genOperatorAnd(e, mv, ctx)
                     "||" -> genOperatorOr(e, mv, ctx)
-                    "==" -> genOperatorEquals(e, mv, ctx)
                     "+" -> genNumericOperator(e.name, e, mv, ctx)
                     "-" -> genNumericOperator(e.name, e, mv, ctx)
                     "*" -> genNumericOperator(e.name, e, mv, ctx)
@@ -507,8 +508,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         is Expr.OperatorApp -> when (e.name) {
             "&&" -> genOperatorAnd(e, mv, ctx)
             "||" -> genOperatorOr(e, mv, ctx)
-            "==" -> genOperatorEquals(e, mv, ctx)
-            else -> internalError("unknown boolean operator ${e.name}")
+            else -> {
+                genExpr(e, mv, ctx)
+                mv.visitMethodInsn(INVOKEVIRTUAL, BOOL_CLASS, "booleanValue", "()Z", false)
+            }
         }
         else -> {
             genExpr(e, mv, ctx)
@@ -651,21 +654,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         mv.visitInsn(ICONST_0)
         mv.visitLabel(end)
     }
-
-    private fun genOperatorEquals(e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
-        if (e.operands.size != 2) internalError("got wrong number of operators for == operator")
-        val op1 = e.operands[0]
-        val op2 = e.operands[1]
-        genExprForPrimitiveBool(op1, mv, ctx)
-        genExprForPrimitiveBool(op2, mv, ctx)
-        mv.visitMethodInsn(
-            INVOKEVIRTUAL,
-            op1.type.type.internalName,
-            "equals",
-            "($OBJECT_DESC)Z",
-            false
-        )
-    }
     
     private fun genNumericOperator(op: String, e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
         if (e.operands.size != 2) internalError("got wrong number of operators for operator $op")
@@ -770,6 +758,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.RecordRestrict -> go(exp.expr)
             is Expr.VectorLiteral -> for (e in exp.exps) go(e)
             is Expr.SetLiteral -> for (e in exp.exps) go(e)
+            is Expr.ArrayLiteral -> for (e in exp.exps) go(e)
             else -> {
             }
         }
@@ -802,6 +791,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         )
         lam.visitCode()
 
+        val lnum = Label()
+        lam.visitLabel(lnum)
+        lam.visitLineNumber(l.span.startLine, lnum)
+        
         val startL = Label()
         val ctx = GenContext()
         args.forEach { local ->

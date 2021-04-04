@@ -40,7 +40,7 @@ object GenUtil {
         if (decl.visibility == Visibility.PUBLIC) Opcodes.ACC_PUBLIC else 0
 
     fun visibility(ctor: DataConstructor): Int =
-        if (ctor.visibility == Visibility.PUBLIC) Opcodes.ACC_PUBLIC else 0
+        if (ctor.visibility == Visibility.PUBLIC) Opcodes.ACC_PUBLIC else Opcodes.ACC_PROTECTED
 
     fun visibility(decl: Decl.ValDecl): Int =
         if (decl.visibility == Visibility.PUBLIC) Opcodes.ACC_PUBLIC else Opcodes.ACC_PRIVATE

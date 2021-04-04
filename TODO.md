@@ -15,3 +15,5 @@
 - [ ] Fix instance search when the instance is not the first parameter of the App
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Use ropes instead of char arrays to process strings
+- [ ] Fix && and || operators
+- [ ] Optimize unsafeCast

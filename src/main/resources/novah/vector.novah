@@ -4,8 +4,6 @@ foreign import type java.util.function.Function
 foreign import type novah.Core
 
 foreign import Core:mapVector(Function, Vector) as vecMap
-foreign import Int32.longValue()
-foreign import Vector.nth(Int64) as nthVec
 
 /**
  * Maps function f over all elements of this Vector
@@ -17,9 +15,14 @@ map : (a -> b) -> Vector a -> Vector b
 map f vec = vecMap (unsafeCoerce f) (unsafeCoerce vec) |> unsafeCast
 
 /**
- * Returns the value at index for this Vector.
+ * Returns Some value at index for this Vector if it exists or None.
+ * This is a safe version of !
  * Runtime: ~O(1)
  */
 pub
-nth : Int -> Vector a -> a
-nth index vec = nthVec (unsafeCoerce vec) (longValue index) |> unsafeCast
+nth : Int64 -> Vector a -> Option a
+nth index vec =
+  let size = count vec
+  in if index < 0L || index > size
+     then None
+     else Some (vec ! index)

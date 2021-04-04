@@ -101,7 +101,7 @@ class ADTGen(
         val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)
         cw.visit(
             NOVAH_GENCLASS_VERSION,
-            vis + ACC_FINAL,
+            ACC_PUBLIC + ACC_FINAL,
             className,
             sig,
             superClass,
@@ -143,7 +143,7 @@ class ADTGen(
 
             // constructor
             val desc = args.joinToString("", prefix = "(", postfix = ")V") { it.type.descriptor }
-            val ct = cw.visitMethod(ACC_PUBLIC, INIT, desc, null, emptyArray())
+            val ct = cw.visitMethod(vis, INIT, desc, null, emptyArray())
             ct.visitCode()
             ct.visitVarInsn(ALOAD, 0)
             ct.visitMethodInsn(INVOKESPECIAL, superClass, INIT, "()V", false)
@@ -158,7 +158,7 @@ class ADTGen(
             ct.visitEnd()
 
             // curried static lambda constructor field
-            cw.visitField(ACC_PUBLIC + ACC_STATIC + ACC_FINAL, LAMBDA_CTOR, FUNCTION_DESC, null, null)
+            cw.visitField(vis + ACC_STATIC + ACC_FINAL, LAMBDA_CTOR, FUNCTION_DESC, null, null)
 
             // generate the lambda synthetic methods
             val appliedTypes = mutableListOf<Clazz>()

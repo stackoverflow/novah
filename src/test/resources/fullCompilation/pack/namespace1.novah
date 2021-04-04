@@ -16,29 +16,6 @@ sayHello name = do
   println "Hello"
   println name
 
-opaque type Show a = { show : a -> String }
-
-pub
-show : {{ Show a }} -> a -> String
-show {{Show s}} x = s.show x
-
-pub instance
-showInt : Show Int
-showInt = Show { show: (\x -> toString x) : Int -> String }
-
-pub instance
-showBool : Show Boolean
-showBool = Show { show: (\x -> toString x) : Boolean -> String }
-
-showOptionImpl : {{ Show a }} -> Option a -> String
-showOptionImpl {{s}} o = case o of
-  Some x -> show x
-  None -> "None"
-
-instance
-showOption : {{ Show a }} -> Show (Option a)
-showOption {{s}} = Show { show: showOptionImpl {{s}} }
-
 printx : {{ Show a }} -> Option a -> Unit
 printx {{s}} o = do
   println (show 5)
@@ -48,4 +25,4 @@ printx {{s}} o = do
 pub
 main : Array String -> Unit
 main _ =
-  printx (Some (Some None))
+  printx (Some (Some 3))

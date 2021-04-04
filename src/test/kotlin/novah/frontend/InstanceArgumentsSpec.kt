@@ -24,80 +24,94 @@ class InstanceArgumentsSpec : StringSpec({
 
     "constrained types" {
         val code = """
-            opaque type Show a = { show : a -> String }
+            opaque type View a = { view : a -> String }
             
-            show : {{ Show a }} -> a -> String
-            show {{Show s}} x = s.show x
-            
-            instance
-            showInt : Show Int
-            showInt = Show { show: \x -> toString x }
+            view : {{ View a }} -> a -> String
+            view {{View s}} x = s.view x
             
             instance
-            showBool : Show Boolean
-            showBool = Show { show: \x -> toString x }
+            viewInt : View Int
+            viewInt = View { view: \x -> toString x }
             
-            showOptionImpl : {{ Show a }} -> Option a -> String
-            showOptionImpl {{s}} o = case o of
-              Some x -> show x
+            instance
+            viewBool : View Boolean
+            viewBool = View { view: \x -> toString x }
+            
+            viewOptionImpl : {{ View a }} -> Option a -> String
+            viewOptionImpl {{s}} o = case o of
+              Some x -> view x
               None -> "None"
             
-            showOption : {{ Show a }} -> Show (Option a)
-            showOption {{s}} = Show { show: showOptionImpl {{s}} }
+            viewOption : {{ View a }} -> View (Option a)
+            viewOption {{s}} = View { view: viewOptionImpl {{s}} }
             
             printx : Option Int -> String
             printx o = do
-              let instance showOptInt = showOption {{showInt}}
-              println (show o)
-              show 3
-              show true
+              let instance viewOptInt = viewOption {{viewInt}}
+              println (view o)
+              view 3
+              view true
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["show"]?.type?.simpleName() shouldBe "{{ Show t1 }} -> t1 -> String"
-        ds["showInt"]?.type?.simpleName() shouldBe "Show Int32"
-        ds["showBool"]?.type?.simpleName() shouldBe "Show Boolean"
-        ds["showOption"]?.type?.simpleName() shouldBe "{{ Show t1 }} -> Show (Option t1)"
+        ds["view"]?.type?.simpleName() shouldBe "{{ View t1 }} -> t1 -> String"
+        ds["viewInt"]?.type?.simpleName() shouldBe "View Int32"
+        ds["viewBool"]?.type?.simpleName() shouldBe "View Boolean"
+        ds["viewOption"]?.type?.simpleName() shouldBe "{{ View t1 }} -> View (Option t1)"
     }
     
     "recursive search" {
         val code = """
-            opaque type Show a = { show : a -> String }
+            import novah.vector as V
             
-            show : {{ Show a }} -> a -> String
-            show {{Show s}} x = s.show x
+            opaque type View a = { view : a -> String }
             
-            instance
-            showInt : Show Int
-            showInt = Show { show: \x -> toString x }
+            view : {{ View a }} -> a -> String
+            view {{View s}} x = s.view x
             
             instance
-            showBool : Show Boolean
-            showBool = Show { show: \x -> toString x }
+            viewInt : View Int
+            viewInt = View { view: \x -> toString x }
             
-            showOptionImpl : {{ Show a }} -> Option a -> String
-            showOptionImpl {{s}} o = case o of
-              Some x -> show x
+            instance
+            viewBool : View Boolean
+            viewBool = View { view: \x -> toString x }
+            
+            instance
+            viewString : View String
+            viewString = View { view: \x -> x }
+            
+            viewOptionImpl : {{ View a }} -> Option a -> String
+            viewOptionImpl {{s}} o = case o of
+              Some x -> view x
               None -> "None"
             
             instance
-            showOption : {{ Show a }} -> Show (Option a)
-            showOption {{s}} = Show { show: showOptionImpl {{s}} }
+            viewOption : {{ View a }} -> View (Option a)
+            viewOption {{s}} = View { view: viewOptionImpl {{s}} }
             
             type Result a b = Ok a | Err b
             
-            showResultImpl : {{ Show a }} -> {{ Show b }} -> Result a b -> String
-            showResultImpl {{a}} {{b}} r = case r of
-              Ok o -> show o
-              Err e -> show e
+            viewResultImpl : {{ View a }} -> {{ View b }} -> Result a b -> String
+            viewResultImpl {{a}} {{b}} r = case r of
+              Ok o -> view o
+              Err e -> view e
             
             instance
-            showResult : {{ Show a }} -> {{ Show b }} -> Show (Result a b)
-            showResult {{a}} {{b}} = Show { show: showResultImpl {{a}} {{b}} }
+            viewResult : {{ View a }} -> {{ View b }} -> View (Result a b)
+            viewResult {{a}} {{b}} = View { view: viewResultImpl {{a}} {{b}} }
             
-            main () = show (Some None)
+            main () = view (Some (None : Option String))
             
-            main2 () = show (Some (Ok true))
+            main2 () =
+              let xx : Option (Result Boolean String)
+                  xx = Some (Ok true)
+              in view xx
+            
+            main3 () = V.map view [3, 4, 5]
+            
+            printx : {{ View a }} -> Option a -> String
+            printx {{s}} o = view o
         """.module()
 
         TestUtil.compileCode(code).env.decls

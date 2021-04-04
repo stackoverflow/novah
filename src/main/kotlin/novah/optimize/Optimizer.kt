@@ -101,11 +101,19 @@ class Optimizer(private val ast: CModule) {
             is CExpr.Bool -> Expr.Bool(v, typ, span)
             is CExpr.Var -> {
                 val conName = Names.convert(name)
-                if (name in locals) Expr.LocalVar(conName, typ, span)
+                val vvar = if (name in locals) Expr.LocalVar(conName, typ, span)
                 else {
                     val cname = internalize(moduleName ?: ast.name) + "/Module"
                     Expr.Var(conName, cname, typ, span)
                 }
+                if (implicitContext != null) {
+                    var v = vvar
+                    val ri = resolvedImplicits()
+                    ri.forEach { e ->
+                        v = Expr.App(v, e.convert(locals), getReturnType(v.type), span)
+                    }
+                    v
+                } else vvar
             }
             is CExpr.Constructor -> {
                 val ctorName = fullname(moduleName ?: ast.name)
@@ -163,9 +171,7 @@ class Optimizer(private val ast: CModule) {
                 } else {
                     if (implicitContext != null) {
                         val app = resolvedImplicits().fold(fn.convert(locals)) { acc, argg ->
-                            // the argument and return type of the function doesn't matter here
-                            val pars = listOf(Clazz(OBJECT_TYPE), Clazz(OBJECT_TYPE))
-                            Expr.App(acc, argg.convert(locals), Clazz(FUNCTION_TYPE, pars), span)
+                            Expr.App(acc, argg.convert(locals), getReturnType(acc.type), span)
                         }
                         Expr.App(app, arg.convert(locals), typ, span)
                     } else Expr.App(fn.convert(locals), arg.convert(locals), typ, span)
@@ -245,36 +251,6 @@ class Optimizer(private val ast: CModule) {
         is TImplicit -> type.convert()
     }
 
-    private val rteCtor = RuntimeException::class.java.constructors.find {
-        it.parameterCount == 1 && it.parameterTypes[0].canonicalName == "java.lang.String"
-    }!!
-
-    private val vectorSize = PList::class.java.methods.find { it.name == "size" }!!
-    private val vectorAccess = PList::class.java.methods.find { it.name == "nth" }!!
-    private val vectorSlice = PList::class.java.methods.find { it.name == "slice" }!!
-    private val vectorNotEmpty = Core::class.java.methods.find { it.name == "vectorNotEmpty" }!!
-    private val equivalentInt = Core::class.java.methods.find {
-        it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
-    }!!
-    private val equivalentLong = Core::class.java.methods.find {
-        it.name == "equivalent" && it.parameterTypes[0] == Long::class.java
-    }!!
-    private val equivalentFloat = Core::class.java.methods.find {
-        it.name == "equivalent" && it.parameterTypes[0] == Float::class.java
-    }!!
-    private val equivalentDouble = Core::class.java.methods.find {
-        it.name == "equivalent" && it.parameterTypes[0] == Double::class.java
-    }!!
-    private val equivalentChar = Core::class.java.methods.find {
-        it.name == "equivalent" && it.parameterTypes[0] == Char::class.java
-    }!!
-    private val equivalentBoolean = Core::class.java.methods.find {
-        it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
-    }!!
-    private val equivalentString = Core::class.java.methods.find {
-        it.name == "equivalent" && it.parameterTypes[0] == String::class.java
-    }!!
-
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
     private val longType = tInt64.convert()
@@ -322,13 +298,13 @@ class Optimizer(private val ast: CModule) {
         }
 
         fun mkVectorSizeCheck(exp: Expr, size: Long): Expr {
-            val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType, exp.span)
+            val sizeExp = Expr.NativeMethod(vecSize, exp, emptyList(), longType, exp.span)
             val longe = Expr.Int64(size, longType, exp.span)
-            return Expr.NativeStaticMethod(equivalentLong, listOf(sizeExp, longe), boolType, exp.span)
+            return Expr.NativeStaticMethod(eqLong, listOf(sizeExp, longe), boolType, exp.span)
         }
 
         fun mkVectorAccessor(exp: Expr, index: Long, type: Clazz): Expr =
-            Expr.NativeMethod(vectorAccess, exp, listOf(Expr.Int64(index, longType, exp.span)), type, exp.span)
+            Expr.NativeMethod(vecAccess, exp, listOf(Expr.Int64(index, longType, exp.span)), type, exp.span)
 
         fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
             is Pattern.Wildcard -> PatternResult(tru)
@@ -336,13 +312,13 @@ class Optimizer(private val ast: CModule) {
             is Pattern.Unit -> PatternResult(tru)
             is Pattern.LiteralP -> {
                 val method = when (p.lit) {
-                    is LiteralPattern.Int32Literal -> equivalentInt
-                    is LiteralPattern.Int64Literal -> equivalentLong
-                    is LiteralPattern.Float32Literal -> equivalentFloat
-                    is LiteralPattern.Float64Literal -> equivalentDouble
-                    is LiteralPattern.CharLiteral -> equivalentChar
-                    is LiteralPattern.BoolLiteral -> equivalentBoolean
-                    is LiteralPattern.StringLiteral -> equivalentString
+                    is LiteralPattern.Int32Literal -> eqInt
+                    is LiteralPattern.Int64Literal -> eqLong
+                    is LiteralPattern.Float32Literal -> eqFloat
+                    is LiteralPattern.Float64Literal -> eqDouble
+                    is LiteralPattern.CharLiteral -> eqChar
+                    is LiteralPattern.BoolLiteral -> eqBoolean
+                    is LiteralPattern.StringLiteral -> eqString
                 }
                 PatternResult(Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType, exp.span))
             }
@@ -403,11 +379,11 @@ class Optimizer(private val ast: CModule) {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                conds += Expr.NativeStaticMethod(vectorNotEmpty, listOf(exp), boolType, p.span)
+                conds += Expr.NativeStaticMethod(vecNotEmpty, listOf(exp), boolType, p.span)
                 val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
-                val sizeExp = Expr.NativeMethod(vectorSize, exp, emptyList(), longType, p.span)
-                val tailExp = Expr.NativeMethod(vectorSlice, exp,
+                val sizeExp = Expr.NativeMethod(vecSize, exp, emptyList(), longType, p.span)
+                val tailExp = Expr.NativeMethod(vecSlice, exp,
                     listOf(Expr.Int64(1, longType, p.span), sizeExp), type, p.span)
 
                 val (hCond, hVs) = desugarPattern(p.head, headExp)
@@ -514,6 +490,9 @@ class Optimizer(private val ast: CModule) {
         val (pars, ret) = innerPeelArgs(emptyList(), type)
         return pars.map { it.convert() } to ret.convert()
     }
+    
+    private fun getReturnType(type: Clazz): Clazz =
+        if (type.pars.size > 1) type.pars[1] else type
 
     private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr.Match) {
         if (!res.exhaustive) {
@@ -572,5 +551,33 @@ class Optimizer(private val ast: CModule) {
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
         val ARRAY_TYPE = Type.getType(Array::class.java)
         val LONG_TYPE = Type.getType(Long::class.javaObjectType)
+
+        private val rteCtor = RuntimeException::class.java.constructors.find {
+            it.parameterCount == 1 && it.parameterTypes[0].canonicalName == "java.lang.String"
+        }!!
+
+        val vecSize = PList::class.java.methods.find { it.name == "size" }!!
+        private val vecAccess = PList::class.java.methods.find { it.name == "nth" }!!
+        private val vecSlice = PList::class.java.methods.find { it.name == "slice" }!!
+        private val vecNotEmpty = Core::class.java.methods.find { it.name == "vectorNotEmpty" }!!
+        val eqInt = Core::class.java.methods.find {
+            it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
+        }!!
+        val eqLong = Core::class.java.methods.find {
+            it.name == "equivalent" && it.parameterTypes[0] == Long::class.java
+        }!!
+        val eqFloat = Core::class.java.methods.find {
+            it.name == "equivalent" && it.parameterTypes[0] == Float::class.java
+        }!!
+        val eqDouble = Core::class.java.methods.find {
+            it.name == "equivalent" && it.parameterTypes[0] == Double::class.java
+        }!!
+        val eqChar = Core::class.java.methods.find {
+            it.name == "equivalent" && it.parameterTypes[0] == Char::class.java
+        }!!
+        val eqBoolean = Core::class.java.methods.find {
+            it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
+        }!!
+        val eqString = String::class.java.methods.find { it.name == "equals" }!!
     }
 }

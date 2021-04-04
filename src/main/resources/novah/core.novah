@@ -8,17 +8,34 @@ foreign import type io.lacuna.bifurcan.IList
 foreign import type io.lacuna.bifurcan.ISet
 foreign import type java.util.function.Function
 foreign import type novah.Core
+foreign import type novah.collections.Record
+foreign import type java.util.concurrent.atomic.AtomicReference
 
 foreign import get java.lang.System:out
 foreign import java.io.PrintStream.println(Object) as jprintln
 foreign import java.io.PrintStream.print(Object) as jprint
+foreign import Int32.longValue()
 foreign import Object.toString() as jToString
 foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
+foreign import String.equals(String) as equalsString
 foreign import IList.toArray() as vecToArr
 foreign import Vector.concat(IList) as vecConcat
+foreign import Vector.size() as sizeVec
+foreign import Vector.nth(Int64) as nthVec
 foreign import String.concat(String)
+foreign import String.length() as strLength
 foreign import Set.union(ISet)
+foreign import Set.size() as sizeSet
+foreign import Record.size() as recSize
+foreign import Byte.intValue() as bToI
+foreign import Int16.intValue() as sToI
+foreign import Float32.doubleValue() as fToD
+foreign import Char.compareTo(Char) as compareChar
+foreign import new AtomicReference(Object) as newAtom
+foreign import AtomicReference.get() as atomGet
+foreign import AtomicReference.set(Object) as atomSet
+foreign import AtomicReference.compareAndSet(Object, Object) as atomCmpAndSet
 
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
@@ -50,6 +67,25 @@ foreign import Core:div(Int32, Int32) as divInt
 foreign import Core:div(Int64, Int64) as divInt64
 foreign import Core:div(Float32, Float32) as divFloat32
 foreign import Core:div(Float64, Float64) as divFloat64
+foreign import Core:equivalent(Byte, Byte) as equiByte
+foreign import Core:equivalent(Int16, Int16) as equiInt16
+foreign import Core:equivalent(Int32, Int32) as equiInt32
+foreign import Core:equivalent(Int64, Int64) as equiInt64
+foreign import Core:equivalent(Float32, Float32) as equiFloat32
+foreign import Core:equivalent(Float64, Float64) as equiFloat64
+foreign import Core:equivalent(Char, Char) as equiChar
+foreign import Core:equalsVector(Vector, Vector, Function)
+foreign import Core:equalsSet(Set, Set, Function)
+foreign import Core:equalsArray(Array, Array, Function)
+foreign import Core:toStringVector(Vector, Function)
+foreign import Core:toStringSet(Set, Function)
+foreign import Core:toStringArray(Array, Function)
+foreign import Core:compareInt(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:compareLong(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:compareDouble(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:compareChar(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:compareString(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
+foreign import Core:swapAtom(AtomicReference, Function)
 
 /**
  * A 32-bits Integer
@@ -81,7 +117,7 @@ not : Boolean -> Boolean
 not b = negate b
 
 /**
- * A function that just returns it's argument.
+ * Returns its argument unmodified.
  */
 pub
 identity : a -> a
@@ -115,27 +151,34 @@ pub
 (|>) x f = f x
 
 /**
- * Forward function composition operator: (f >> g >> h) x = h (g (f x))
+ * Forward function composition operator: (f >> g) x = g (f x)
  */
 pub
 (>>) : (a -> b) -> (b -> c) -> (a -> c)
 (>>) f g x = g (f x)
 
 /**
- * Backward function composition operator: (f << g << h) x = f (g (h x))
+ * Backward function composition operator: (f << g) x = f (g x)
  */
 pub
 (<<) : (b -> c) -> (a -> b) -> (a -> c)
 (<<) f g x = f (g x)
 
 /**
- * Returns true if the 2 objects are equivalent:
- * point to the same object.
+ * Returns true if the 2 objects point to the same object.
  * This is the same as Java's ==
  */
 pub
 (===) : a -> a -> Boolean
 (===) x y = equivalentObject (unsafeCast x) (unsafeCast y)
+
+/**
+ * Returns true if the 2 objects *do not* point to the same object.
+ * This is the same as Java's !=
+ */
+pub
+(!==) : a -> a -> Boolean
+(!==) x = not << (x === _)
 
 /**
  * Prints x to stdout and appends a new line.
@@ -166,6 +209,22 @@ toString x = jToString (unsafeCast x)
 pub
 hashCode : a -> Int32
 hashCode x = jHashCode (unsafeCast x)
+
+/**
+ * Converts this 32-bit integer to a 64-bit integer.
+ */
+pub
+int64 : Int32 -> Int64
+int64 i = longValue i
+
+/**
+ * Returns the value at index for this Vector.
+ * Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: ~O(1)
+ */
+pub
+(!) : Vector a -> Int64 -> a
+(!) vec index = nthVec (unsafeCoerce vec) index |> unsafeCast
 
 /**
  * Creates a byte array of the specified size.
@@ -247,13 +306,6 @@ arraySet : Int -> a -> Array a -> Unit
 arraySet index x arr = setArray index (unsafeCast x) (unsafeCast arr)
 
 /**
- * Gets the length of this array.
- */
-pub
-arrayLength : Array a -> Int
-arrayLength arr = getArrayLength (unsafeCast arr)
-
-/**
  * Converts a Vector of some type `a` to an Array of `a`.
  */
 pub
@@ -266,7 +318,7 @@ arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
  */
 pub
 format : String -> Vector a -> String
-format str vec = sformat str (unsafeCast (arrayOf vec))
+format str vec = sformat str (unsafeCoerce (arrayOf vec))
 
 /**
  * Represents the possibility of a missing value.
@@ -299,8 +351,8 @@ pub
 (++) {{Append app}} x y = app.append x y
 
 pub instance
-append0String : Append String
-append0String = Append { append: \s s2 -> concat s s2 }
+appendString : Append String
+appendString = Append { append: \s s2 -> concat s s2 }
 
 pub instance
 appendVector : Append (Vector a)
@@ -309,6 +361,16 @@ appendVector = Append { append: \v v2 -> vecConcat (unsafeCast v) (unsafeCast v2
 pub instance
 appendSet : Append (Set a)
 appendSet = Append { append: \s s2 -> union (unsafeCast s) (unsafeCast s2) |> unsafeCast }
+
+appOption : Append a -> Option a -> Option a -> Option a
+appOption (Append ap) =
+  case _, _ of
+    Some x, Some y -> Some (ap.append x y)
+    _, _ -> None
+
+pub instance
+appendOption : {{ Append a }} -> Append (Option a)
+appendOption {{ap}} = Append { append: appOption ap }
 
 /**
  * The type of things that can be added together
@@ -325,8 +387,8 @@ pub
 (+) {{Plus p}} x y = p.plus x y
 
 pub instance
-plus0Int32 : Plus Int32
-plus0Int32 = Plus { plus: \x y -> sumInt x y }
+plusInt32 : Plus Int32
+plusInt32 = Plus { plus: \x y -> sumInt x y }
 
 pub instance
 plusInt64 : Plus Int64
@@ -355,8 +417,8 @@ pub
 (-) {{Minus p}} x y = p.minus x y
 
 pub instance
-minus0Int32 : Minus Int32
-minus0Int32 = Minus { minus: \x y -> subInt x y }
+minusInt32 : Minus Int32
+minusInt32 = Minus { minus: \x y -> subInt x y }
 
 pub instance
 minusInt64 : Minus Int64
@@ -385,8 +447,8 @@ pub
 (*) {{Mult p}} x y = p.mult x y
 
 pub instance
-mult0Int32 : Mult Int32
-mult0Int32 = Mult { mult: \x y -> mulInt x y }
+multInt32 : Mult Int32
+multInt32 = Mult { mult: \x y -> mulInt x y }
 
 pub instance
 multInt64 : Mult Int64
@@ -415,8 +477,8 @@ pub
 (/) {{Divide p}} x y = p.divide x y
 
 pub instance
-divide0Int32 : Divide Int32
-divide0Int32 = Divide { divide: \x y -> divInt x y }
+divideInt32 : Divide Int32
+divideInt32 = Divide { divide: \x y -> divInt x y }
 
 pub instance
 divideInt64 : Divide Int64
@@ -431,11 +493,386 @@ divideFloat64 : Divide Float64
 divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
 
 /**
+ * The type of things that can be counted / have size.
+ */
+pub+
+opaque type Count a = { count : a -> Int64 }
+
+/**
+ * Returns the size of this countable value.
+ */
+pub
+count : {{ Count a }} -> a -> Int64
+count {{Count s}} x = s.count x
+
+pub instance
+countString : Count String
+countString = Count { count: \s -> strLength s |> int64 }
+
+pub instance
+countVector : Count (Vector a)
+countVector = Count { count: \vec -> sizeVec (unsafeCoerce vec) }
+
+pub instance
+countSet : Count (Set a)
+countSet = Count { count: \set -> sizeSet (unsafeCoerce set) }
+
+pub instance
+countArray : Count (Array a)
+countArray = Count { count: \arr -> getArrayLength (unsafeCast arr) |> int64 }
+
+pub instance
+countRecord : Count { | a }
+countRecord = Count { count: \rec -> recSize (unsafeCoerce rec) }
+
+/**
+ * The type of things that have a String representation.
+ */
+pub+
+opaque type Show a = { show : a -> String }
+
+/**
+ * Converts this value to a String.
+ */
+pub
+show : {{ Show a }} -> a -> String
+show {{Show s}} x = s.show x
+
+pub instance
+showString : Show String
+showString = Show { show: identity }
+
+pub instance
+showByte : Show Byte
+showByte = Show { show: toString }
+
+pub instance
+showInt16 : Show Int16
+showInt16 = Show { show: toString }
+
+pub instance
+showInt32 : Show Int32
+showInt32 = Show { show: toString }
+
+pub instance
+showInt64 : Show Int64
+showInt64 = Show { show: toString }
+
+pub instance
+showFloat32 : Show Float32
+showFloat32 = Show { show: toString }
+
+pub instance
+showFloat64 : Show Float64
+showFloat64 = Show { show: toString }
+
+pub instance
+showChar : Show Char
+showChar = Show { show: toString }
+
+pub instance
+showBoolean : Show Boolean
+showBoolean = Show { show: toString }
+
+showOpt : Show a -> Option a -> String
+showOpt (Show s) =
+  case _ of
+    Some x -> format "(Some %s)" [s.show x]
+    None -> "None"
+
+pub instance
+showOption : {{ Show a }} -> Show (Option a)
+showOption {{s}} = Show { show: showOpt s }
+
+pub instance
+showVector : {{ Show a }} -> Show (Vector a)
+showVector {{Show s}} = Show { show: \v -> toStringVector (unsafeCoerce v) (unsafeCoerce s.show) }
+
+pub instance
+showSet : {{ Show a }} -> Show (Set a)
+showSet {{Show s}} = Show { show: \set -> toStringSet (unsafeCoerce set) (unsafeCoerce s.show) }
+
+pub instance
+showArray : {{ Show a }} -> Show (Array a)
+showArray {{Show s}} = Show { show: \a -> toStringArray (unsafeCoerce a) (unsafeCoerce s.show) }
+
+/**
  * The type of things that support equality comparison.
  */
 pub+
-opaque type Eq a = { equals : a -> a -> Boolean }
+opaque type Equals a = { equals : a -> a -> Boolean }
 
-//pub
-//(==) : {{ Eq a }} -> a -> a -> Boolean
-//(==) {{Eq e}} x y = e.equals x y
+/**
+ * Returns true if the two values are equal.
+ */
+pub
+(==) : {{ Equals a }} -> a -> a -> Boolean
+(==) {{Equals eq}} x y = eq.equals x y
+
+/**
+ * Returns true if the two values are *not* equal.
+ */
+pub
+(!=) : {{ Equals a }} -> a -> a -> Boolean
+(!=) {{Equals eq}} x y = not (eq.equals x y)
+
+pub instance
+eqByte : Equals Byte
+eqByte = Equals { equals: \x y -> equiByte x y }
+
+pub instance
+eqInt16 : Equals Int16
+eqInt16 = Equals { equals: \x y -> equiInt16 x y }
+
+pub instance
+eqInt32 : Equals Int32
+eqInt32 = Equals { equals: \x y -> equiInt32 x y }
+
+pub instance
+eqInt64 : Equals Int64
+eqInt64 = Equals { equals: \x y -> equiInt64 x y }
+
+pub instance
+eqFloat32 : Equals Float32
+eqFloat32 = Equals { equals: \x y -> equiFloat32 x y }
+
+pub instance
+eqFloat64 : Equals Float64
+eqFloat64 = Equals { equals: \x y -> equiFloat64 x y }
+
+pub instance
+eqChar : Equals Char
+eqChar = Equals { equals: \x y -> equiChar x y }
+
+equalsBoolean : Boolean -> Boolean -> Boolean
+equalsBoolean =
+  case _, _ of
+    true, true -> true
+    false, false -> true
+    _, _ -> false
+
+pub instance
+eqBoolean : Equals Boolean
+eqBoolean = Equals { equals: equalsBoolean }
+
+pub instance
+eqString : Equals String
+eqString = Equals { equals: \x y -> equalsString x y }
+
+pub instance
+eqVector : {{ Equals a }} -> Equals (Vector a)
+eqVector {{Equals eq}} = Equals { equals: \x y -> equalsVector (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+
+pub instance
+eqSet : {{ Equals a }} -> Equals (Set a)
+eqSet {{Equals eq}} = Equals { equals: \x y -> equalsSet (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+
+pub instance
+eqArray : {{ Equals a }} -> Equals (Array a)
+eqArray {{Equals eq}} = Equals { equals: \x y -> equalsArray (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+
+equalsOption : Equals a -> Option a -> Option a -> Boolean
+equalsOption (Equals eq) =
+  case _, _ of
+    Some x, Some y -> eq.equals x y
+    None, None -> true
+    _, _ -> false
+
+pub instance
+eqOption : {{ Equals a }} -> Equals (Option a)
+eqOption {{eq}} = Equals { equals: equalsOption eq }
+
+/**
+ * The ordering type represents the outcome
+ * of comparing 2 values:
+ *
+ * GT -> bigger than
+ * EQ -> equals
+ * LT -> less than
+ */
+pub+
+type Ordering = GT | LT | EQ
+
+equalsOrdering : Ordering -> Ordering -> Boolean
+equalsOrdering =
+  case _, _ of
+    GT, GT -> true
+    EQ, EQ -> true
+    LT, LT -> true
+    _, _ -> false
+
+pub instance
+eqOrdering : Equals Ordering
+eqOrdering = Equals { equals: equalsOrdering }
+
+pub instance
+showOrdering : Show Ordering
+showOrdering = Show { show: toString }
+
+/**
+ * The type of things that can be ordered.
+ */
+pub+
+opaque type Ord a = (Equals a) { compare : a -> a -> Ordering }
+
+/**
+ * Returns true if x is greater than y.
+ */
+pub
+(>) : {{ Ord a }} -> a -> a -> Boolean
+(>) {{Ord _ o}} x y =
+  case o.compare x y of
+    GT -> true
+    _ -> false
+
+/**
+ * Returns true if x is smaller than y.
+ */
+pub
+(<) : {{ Ord a }} -> a -> a -> Boolean
+(<) {{Ord _ o}} x y =
+  case o.compare x y of
+    LT -> true
+    _ -> false
+
+/**
+ * Returns true if x is greater than or equal y.
+ */
+pub
+(>=) : {{ Ord a }} -> a -> a -> Boolean
+(>=) {{Ord _ o}} x y =
+  case o.compare x y of
+    LT -> false
+    _ -> true
+
+/**
+ * Returns true if x is smaller than or equal y.
+ */
+pub
+(<=) : {{ Ord a }} -> a -> a -> Boolean
+(<=) {{Ord _ o}} x y =
+  case o.compare x y of
+    GT -> false
+    _ -> true
+
+pub instance
+ordInt32 : Ord Int32
+ordInt32 = Ord eqInt32 { compare: unsafeCoerce (compareInt LT EQ GT) }
+
+pub instance
+ordInt64 : Ord Int64
+ordInt64 = Ord eqInt64 { compare: unsafeCoerce (compareLong LT EQ GT) }
+
+pub instance
+ordFloat64 : Ord Float64
+ordFloat64 = Ord eqFloat64 { compare: unsafeCoerce (compareDouble LT EQ GT) }
+
+pub instance
+ordByte : Ord Byte
+ordByte = Ord eqByte { compare: \x y -> let comp = unsafeCoerce (compareInt LT EQ GT) in comp (bToI x) (bToI y) }
+
+pub instance
+ordInt16 : Ord Int16
+ordInt16 = Ord eqInt16 { compare: \x y -> let comp = unsafeCoerce (compareInt LT EQ GT) in comp (sToI x) (sToI y) }
+
+pub instance
+ordFloat32 : Ord Float32
+ordFloat32 = Ord eqFloat32 { compare: \x y -> let comp = unsafeCoerce (compareDouble LT EQ GT) in comp (fToD x) (fToD y) }
+
+pub instance
+ordChar : Ord Char
+ordChar = Ord eqChar { compare: unsafeCoerce (compareChar LT EQ GT) }
+
+compareBoolean : Boolean -> Boolean -> Ordering
+compareBoolean =
+  case _, _ of
+    true, true -> EQ
+    false, false -> EQ
+    true, false -> GT
+    false, true -> LT
+
+pub instance
+ordBoolean : Ord Boolean
+ordBoolean = Ord eqBoolean { compare: compareBoolean }
+
+pub instance
+ordString : Ord String
+ordString = Ord eqString { compare: unsafeCoerce (compareString LT EQ GT) }
+
+/**
+ * Represents a computation that can fail.
+ * Should be used to represent errors instead of exceptions.
+ */
+pub+
+type Result ok err = Ok ok | Err err
+
+equalsResult : Equals ok -> Equals err -> Result ok err -> Result ok err -> Boolean
+equalsResult (Equals eq1) (Equals eq2) =
+  case _, _ of
+    Ok x, Ok y -> eq1.equals x y
+    Err x, Err y -> eq2.equals x y
+    _, _ -> false
+
+pub instance
+eqResult : {{ Equals ok }} -> {{ Equals err }} -> Equals (Result ok err)
+eqResult {{eq1}} {{eq2}} = Equals { equals: equalsResult eq1 eq2 }
+
+showRes : Show ok -> Show err -> Result ok err -> String
+showRes (Show s1) (Show s2) =
+  case _ of
+    Ok x -> format "(Ok %s)" [s1.show x]
+    Err x -> format "(Err %s)" [s2.show x]
+
+pub instance
+showResult : {{ Show ok }} -> {{ Show err }} -> Show (Result ok err)
+showResult {{s1}} {{s2}} = Show { show: showRes s1 s2 }
+
+/**
+ * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
+ */
+pub
+opaque type Atom a = AtomicReference
+
+/**
+ * Creates a new Atom to hold x.
+ * Should *not* be used to hold a mutable value.
+ */
+pub
+atom : a -> Atom a
+atom x = Atom (newAtom (unsafeCoerce x))
+
+/**
+ * Returns the value inside this Atom.
+ */
+pub
+deref : Atom a -> a
+deref (Atom a) = unsafeCoerce (atomGet a)
+
+/**
+ * Resets the value of this Atom to x, discarding the old value.
+ * Returns x.
+ */
+pub
+reset : a -> Atom a -> a
+reset x (Atom a) = do
+  atomSet a (unsafeCoerce x)
+  x
+
+/**
+ * Swaps the value of this atom by applying a function to the old value.
+ * The function *should be free of side effects* as it may be executed
+ * multiple times.
+ */
+pub
+swap : (a -> a) -> Atom a -> a
+swap f (Atom a) = unsafeCoerce (swapAtom a (unsafeCoerce f))
+
+/**
+ * Low-level function that receives the old value, the new value and attempts
+ * to set the atom to new if old matches.
+ * Returns true if it succeeded.
+ * Always prefer `swap` over `compareAndSet`.
+ */
+pub
+compareAndSet : a -> a -> Atom a -> Boolean
+compareAndSet old new (Atom atm) = atomCmpAndSet atm (unsafeCoerce old) (unsafeCoerce new)

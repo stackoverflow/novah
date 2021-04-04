@@ -3,7 +3,7 @@
 - [ ] Rewrite the compiler in novah itself
 - [ ] Add JSON support to the error reporter
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
-- [ ] IDE support
+- [X] IDE support (WIP)
 - [ ] LSP implemented in the compiler
 - [ ] Some compiler help for lenses?
 - [ ] Computational expressions

@@ -23,7 +23,7 @@ import novah.frontend.error.Errors as E
 
 object Inference {
 
-    private val implicitsToCheck = mutableListOf<Expr.App>()
+    private val implicitsToCheck = mutableListOf<Expr>()
 
     /**
      * Infer the whole module
@@ -71,7 +71,7 @@ object Inference {
             context?.apply { this.decl = decl }
             val name = decl.name
             if (decl.exp !is Expr.Ann) checkShadow(env, name, decl.span)
-            
+
             val newEnv = env.fork()
             val ty = if (decl.recursive) {
                 newEnv.remove(name)
@@ -88,7 +88,7 @@ object Inference {
 
         return ModuleEnv(decls, types)
     }
-
+    
     private fun infer(env: Env, level: Level, exp: Expr): Type {
         context?.apply { exps.push(exp) }
         val ty = when (exp) {
@@ -131,8 +131,9 @@ object Inference {
             is Expr.Lambda -> {
                 val binder = exp.binder
                 checkShadow(env, binder.name, binder.span)
-                val param = newVar(level)
+                val param = if (binder.isImplicit) TImplicit(newVar(level)) else newVar(level)
                 val newEnv = env.fork().extend(binder.name, param)
+                if (binder.isImplicit) newEnv.extendInstance(binder.name, param, true)
                 val returnTy = infer(newEnv, level, exp.body)
                 val ty = TArrow(listOf(param), returnTy)
                 exp.withType(ty)
@@ -157,12 +158,17 @@ object Inference {
                     params += paramTypes[0]
                     retTy = ret
                 } while (paramTypes[0] is TImplicit && exp.arg !is Expr.ImplicitVar)
-                unify(params.last(), infer(env, level, exp.arg), exp.arg.span)
+                val fullArgTy = infer(env, level, exp.arg)
+                val (argTy, implicits) = peelImplicits(fullArgTy)
+                unify(params.last(), argTy, exp.arg.span)
 
                 if (params.size > 1) {
-                    val impTy = nestArrows(params, retTy)
-                    exp.implicitContext = ImplicitContext(impTy, env.fork())
+                    exp.implicitContext = ImplicitContext(params.dropLast(1), env.fork())
                     implicitsToCheck += exp
+                }
+                if (implicits.isNotEmpty()) {
+                    exp.arg.implicitContext = ImplicitContext(implicits, env.fork())
+                    implicitsToCheck += exp.arg
                 }
                 exp.withType(retTy)
             }
@@ -394,7 +400,7 @@ object Inference {
         else -> args to t
     }
 
-    private fun generalize(level: Level, ty: Type): Type = when (ty) {
+    fun generalize(level: Level, ty: Type): Type = when (ty) {
         is TVar -> {
             val tv = ty.tvar
             when {
@@ -427,6 +433,16 @@ object Inference {
             params to retur
         }
         else -> inferError(E.NOT_A_FUNCTION, span)
+    }
+
+    private fun peelImplicits(ty: Type): Pair<Type, List<Type>> {
+        val imps = mutableListOf<Type>()
+        var ret = ty
+        while (ret is TArrow && ret.args[0] is TImplicit) {
+            imps += ret.args[0]
+            ret = ret.ret
+        }
+        return ret to imps
     }
 
     /**

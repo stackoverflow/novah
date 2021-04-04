@@ -75,11 +75,7 @@ sealed class Expr(open val span: Span) {
     data class Constructor(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class ImplicitVar(val name: String, override val span: Span, val moduleName: String?) : Expr(span)
     data class Lambda(val binder: Binder, val body: Expr, override val span: Span) : Expr(span)
-
-    data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span) {
-        var implicitContext: ImplicitContext? = null
-    }
-
+    data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
     data class Match(val exps: List<Expr>, val cases: List<Case>, override val span: Span) : Expr(span)
@@ -103,6 +99,8 @@ sealed class Expr(open val span: Span) {
     data class VectorLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
 
+    var implicitContext: ImplicitContext? = null
+
     var type: Type? = null
 
     fun withType(t: Type): Type {
@@ -111,7 +109,7 @@ sealed class Expr(open val span: Span) {
     }
 }
 
-class ImplicitContext(val type: Type, val env: Env, val resolveds: MutableList<Expr> = mutableListOf())
+class ImplicitContext(val types: List<Type>, val env: Env, val resolveds: MutableList<Expr> = mutableListOf())
 
 fun Expr.Var.fullname() = if (moduleName != null) "$moduleName.$name" else name
 fun Expr.ImplicitVar.fullname() = if (moduleName != null) "$moduleName.$name" else name
@@ -210,7 +208,7 @@ fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
     return acc
 }
 
-fun Expr.App.resolvedImplicits(): List<Expr> = implicitContext?.resolveds ?: emptyList()
+fun Expr.resolvedImplicits(): List<Expr> = implicitContext?.resolveds ?: emptyList()
 
 fun Expr.show(): String = when (this) {
     is Expr.Int32 -> "$v"

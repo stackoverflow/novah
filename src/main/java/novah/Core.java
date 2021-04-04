@@ -16,7 +16,9 @@
 package novah;
 
 import io.lacuna.bifurcan.List;
+import io.lacuna.bifurcan.Set;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
@@ -92,10 +94,6 @@ public class Core {
         System.out.println(arg);
     }
     
-    public static boolean equivalent(String e1, String e2) {
-        return e1.equals(e2);
-    }
-
     public static boolean equivalent(byte e1, byte e2) {
         return e1 == e2;
     }
@@ -129,7 +127,117 @@ public class Core {
     }
     
     public static boolean equivalentObject(Object o1, Object o2) {
+        if (o1 instanceof Integer && o2 instanceof Integer) {
+            return ((Integer) o1).intValue() == ((Integer) o2).intValue();
+        }
+        if (o1 instanceof Byte && o2 instanceof Byte) {
+            return ((Byte) o1).byteValue() == ((Byte) o2).byteValue();
+        }
+        if (o1 instanceof Short && o2 instanceof Short) {
+            return ((Short) o1).shortValue() == ((Short) o2).shortValue();
+        }
+        if (o1 instanceof Long && o2 instanceof Long) {
+            return ((Long) o1).longValue() == ((Long) o2).longValue();
+        }
+        if (o1 instanceof Float && o2 instanceof Float) {
+            return ((Float) o1).floatValue() == ((Float) o2).floatValue();
+        }
+        if (o1 instanceof Double && o2 instanceof Double) {
+            return ((Double) o1).doubleValue() == ((Double) o2).doubleValue();
+        }
+        if (o1 instanceof Character && o2 instanceof Character) {
+            return ((Character) o1).charValue() == ((Character) o2).charValue();
+        }
+        if (o1 instanceof Boolean && o2 instanceof Boolean) {
+            return ((Boolean) o1).booleanValue() == ((Boolean) o2).booleanValue();
+        }
         return o1 == o2;
+    }
+    
+    public static Function<Integer, Function<Integer, Object>> compareInt(Object lt, Object eq, Object gt) {
+        return xx -> yy -> {
+            int x = xx;
+            int y = yy;
+            return x == y ? eq : (x < y ? lt : gt);
+        };
+    }
+
+    public static Function<Long, Function<Long, Object>> compareLong(Object lt, Object eq, Object gt) {
+        return xx -> yy -> {
+            long x = xx;
+            long y = yy;
+            return x == y ? eq : (x < y ? lt : gt);
+        };
+    }
+
+    public static Function<Double, Function<Double, Object>> compareDouble(Object lt, Object eq, Object gt) {
+        return xx -> yy -> {
+            double x = xx;
+            double y = yy;
+            return x == y ? eq : (x < y ? lt : gt);
+        };
+    }
+    
+    public static Function<Character, Function<Character, Object>> compareChar(Object lt, Object eq, Object gt) {
+        return x -> y -> {
+            int comp = x.compareTo(y);
+            return comp == 0 ? eq : (comp < 0 ? lt : gt);
+        };
+    }
+
+    public static Function<String, Function<String, Object>> compareString(Object lt, Object eq, Object gt) {
+        return x -> y -> {
+            int comp = x.compareTo(y);
+            return comp == 0 ? eq : (comp < 0 ? lt : gt);
+        };
+    }
+
+    public static boolean greaterInt(int i1, int i2) {
+        return i1 > i2;
+    }
+
+    public static boolean smallerInt(int i1, int i2) {
+        return i1 < i2;
+    }
+
+    public static boolean greaterOrEqualsInt(int i1, int i2) {
+        return i1 >= i2;
+    }
+
+    public static boolean smallerOrEqualsInt(int i1, int i2) {
+        return i1 <= i2;
+    }
+    
+    public static boolean greaterLong(long i1, long i2) {
+        return i1 > i2;
+    }
+
+    public static boolean smallerLong(long i1, long i2) {
+        return i1 < i2;
+    }
+
+    public static boolean greaterOrEqualsLong(long i1, long i2) {
+        return i1 >= i2;
+    }
+
+    public static boolean smallerOrEqualsLong(long i1, long i2) {
+        return i1 <= i2;
+    }
+
+    public static boolean greaterDouble(double d1, double d2) {
+        return d1 > d2;
+    }
+
+    public static boolean smallerDouble(double d1, double d2) {
+        return d1 < d2;
+    }
+
+    public static boolean greaterOrEqualsDouble(double d1, double d2) {
+        return d1 >= d2;
+    }
+
+    public static boolean smallerOrEqualsDouble(double d1, double d2) {
+        return d1 <= d2;
     }
 
     public static byte[] mkByteArray(int size) {
@@ -200,6 +308,88 @@ public class Core {
             res[i] = f.apply(arr[i]);
         }
         return res;
+    }
+    
+    public static <T> boolean equalsVector(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
+        if (v1.size() != v2.size()) return false;
+        
+        long total = v1.size();
+        for (long i = 0; i < total; i++) {
+            if (!comp.apply(v1.nth(i)).apply(v2.nth(i))) return false;
+        }
+        return true;
+    }
+
+    public static <T> boolean equalsSet(Set<T> v1, Set<T> v2, Function<T, Function<T, Boolean>> comp) {
+        if (v1.size() != v2.size()) return false;
+
+        long total = v1.size();
+        for (long i = 0; i < total; i++) {
+            if (!comp.apply(v1.nth(i)).apply(v2.nth(i))) return false;
+        }
+        return true;
+    }
+
+    public static <T> boolean equalsArray(T[] v1, T[] v2, Function<T, Function<T, Boolean>> comp) {
+        if (v1.length != v2.length) return false;
+
+        int total = v1.length;
+        for (int i = 0; i < total; i++) {
+            if (!comp.apply(v1[i]).apply(v2[i])) return false;
+        }
+        return true;
+    }
+    
+    public static <T> String toStringVector(List<T> vec, Function<T, String> show) {
+        long size = vec.size();
+        if (size == 0) return "[]";
+        StringBuilder builder = new StringBuilder("[");
+        builder.append(show.apply(vec.nth(0)));
+        
+        for (long i = 1; i < size; i++) {
+            builder.append(", ");
+            builder.append(show.apply(vec.nth(i)));
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    public static <T> String toStringSet(Set<T> set, Function<T, String> show) {
+        long size = set.size();
+        if (size == 0) return "#{}";
+        StringBuilder builder = new StringBuilder("#{");
+        builder.append(show.apply(set.nth(0)));
+
+        for (long i = 1; i < size; i++) {
+            builder.append(", ");
+            builder.append(show.apply(set.nth(i)));
+        }
+        builder.append("}");
+        return builder.toString();
+    }
+    
+    public static <T> String toStringArray(T[] array, Function<T, String> show) {
+        int size = array.length;
+        if (size == 0) return "[]";
+        StringBuilder builder = new StringBuilder("[");
+        builder.append(show.apply(array[0]));
+
+        for (int i = 1; i < size; i++) {
+            builder.append(", ");
+            builder.append(show.apply(array[i]));
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+    
+    public static <T> T swapAtom(AtomicReference<T> atom, Function<T, T> f) {
+        for (;;) {
+            T v = atom.get();
+            T newv = f.apply(v);
+            if (atom.compareAndSet(v, newv)) {
+                return newv;
+            }
+        }
     }
     
     @SuppressWarnings("unchecked")

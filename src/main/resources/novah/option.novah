@@ -1,0 +1,12 @@
+module novah.option
+
+/**
+ * Maps a function over this option if it has a value.
+ * Runtime: O(1)
+ */
+pub
+map : (a -> b) -> Option a -> Option b
+map f =
+  case _ of
+    Some x -> Some (f x)
+    None -> None

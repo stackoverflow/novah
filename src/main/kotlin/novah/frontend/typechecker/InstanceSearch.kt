@@ -19,6 +19,7 @@ import novah.Util.splitAt
 import novah.ast.canonical.Expr
 import novah.frontend.Span
 import novah.frontend.error.Errors
+import novah.frontend.typechecker.Inference.generalize
 import novah.frontend.typechecker.Typechecker.context
 import novah.frontend.typechecker.Typechecker.instantiate
 import novah.frontend.typechecker.Unification.unify
@@ -27,55 +28,72 @@ object InstanceSearch {
 
     private const val MAX_DEPTH = 5
 
-    fun instanceSearch(apps: List<Expr.App>) {
+    fun instanceSearch(apps: List<Expr>) {
         for (app in apps) {
             context?.apply { exps.push(app) }
             val impCtx = app.implicitContext!!
-            val (imps, _) = peelImplicits(impCtx.type)
+            val imps = impCtx.types
 
-            val resolved = imps.map { find(impCtx.env, instantiate(0, it), 0, app.span) }
+            val resolved = imps.map { find(impCtx.env, it, 0, app.span) }
             impCtx.resolveds.addAll(resolved)
-            //println("resolved ${impCtx.type.show()} with $resolved")
+            //println("resolved ${imps.joinToString { it.show() }} with $resolved at ${app.span}")
             context?.apply { exps.pop() }
         }
+    }
+
+    private sealed class Res {
+        class Yes(val exp: Expr) : Res()
+        class Maybe(val exp: Expr) : Res()
+        object No : Res()
     }
 
     private fun find(env: Env, ty: Type, depth: Int, span: Span): Expr {
         if (depth > MAX_DEPTH) inferError(Errors.maxSearchDepth(ty.show()), span)
 
-        var exp: Expr? = null
         val candidates = findCandidates(env, ty, span)
-        val isUnbound = unboundImplicit(ty)
-        candidates.forEach { (name, type) ->
-            val found = try {
-                val instTy = instantiate(0, type)
-                val (imps, ret) = peelImplicits(instTy)
-                if (imps.isNotEmpty() && !isUnbound) {
-                    unify(ret, ty, span)
+        val genTy = generalize(-1, ty)
+        
+        fun checkImplicit(name: String, impType: Type): Expr? {
+            return try {
+                val (imps, ret) = peelImplicits(impType)
+                if (imps.isNotEmpty()) {
+                    unify(ret, genTy, span)
                     val founds = imps.map { t -> find(env, t, depth + 1, span) }
-                    val v = mkVar(name, type, span)
+                    val v = mkVar(name, impType, span)
                     nestApps(listOf(v) + founds)
                 } else {
-                    unify(instTy, ty, span) 
-                    mkVar(name, type, span)
+                    unify(impType, genTy, span)
+                    mkVar(name, impType, span)
                 }
             } catch (_: InferenceError) {
                 null
             }
-            if (found != null) {
-                if (exp != null) inferError(Errors.overlappingInstances(showImplicit(ty)), span)
-                exp = found
-            }
         }
-        if (exp == null) inferError(Errors.noInstanceFound(showImplicit(ty)), span)
-        return exp!!
+
+        val res = candidates.map { (name, ienv) ->
+            val found = checkImplicit(name, ienv.type)
+            if (found != null) {
+                Res.Yes(found)
+            } else if (!ienv.isVar) {
+                val found2 = checkImplicit(name, instantiate(0, ienv.type))
+                if (found2 != null) Res.Maybe(found2) else Res.No
+            } else Res.No
+        }
+        val yeses = res.filterIsInstance<Res.Yes>()
+        if (yeses.size == 1) return yeses[0].exp
+        if (yeses.size > 1) inferError(Errors.overlappingInstances(showImplicit(ty)), span)
+
+        val maybes = res.filterIsInstance<Res.Maybe>()
+        if (maybes.size == 1) return maybes[0].exp
+        if (maybes.size > 1) inferError(Errors.overlappingInstances(showImplicit(ty)), span)
+        inferError(Errors.noInstanceFound(showImplicit(ty)), span)
     }
 
-    private fun findCandidates(env: Env, ty: Type, span: Span): List<Pair<String, Type>> {
-        val cands = mutableListOf<Pair<String, Type>>()
+    private fun findCandidates(env: Env, ty: Type, span: Span): List<Pair<String, InstanceEnv>> {
+        val cands = mutableListOf<Pair<String, InstanceEnv>>()
         val tname = typeName(ty) ?: inferError(Errors.unamedType(ty.show()), span)
-        env.forEachInstance { name, type ->
-            if (tname == typeName(type)) cands += name to type
+        env.forEachInstance { name, ienv ->
+            if (tname == typeName(ienv.type)) cands += name to ienv
         }
         return cands.sortedBy { it.first }
     }
@@ -93,25 +111,8 @@ object InstanceSearch {
         is TApp -> typeName(ty.type)
         is TImplicit -> typeName(ty.type)
         is TArrow -> if (ty.args.all { it is TImplicit }) typeName(ty.ret) else null
+        is TVar -> if (ty.tvar is TypeVar.Link) typeName((ty.tvar as TypeVar.Link).type) else null
         else -> null
-    }
-
-    private tailrec fun unboundImplicit(ty: Type): Boolean = when (ty) {
-        is TImplicit -> unboundImplicit(ty.type)
-        is TConst -> true
-        is TApp -> ty.types.all { isUnbound(it) }
-        else -> false
-    }
-
-    private tailrec fun isUnbound(ty: Type): Boolean = when (ty) {
-        is TVar -> {
-            when (val tv = ty.tvar) {
-                is TypeVar.Unbound -> true
-                is TypeVar.Link -> isUnbound(tv.type)
-                else -> false
-            }
-        }
-        else -> false
     }
 
     private fun nestApps(exps: List<Expr>): Expr =

@@ -3,11 +3,11 @@ at src/test/resources/failure/instance_arguments/duplicated instances.novah:16:1
 
   Found more than one possible instance for type
   
-      Show Int32
+      View Int32
   
   Make sure there's no overlapping instances in the context
   or pass the argument explicitly.
 
-while checking expression (show 4)
+while checking expression (view 4)
 in declaration main
 

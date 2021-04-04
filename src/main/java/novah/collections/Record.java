@@ -25,11 +25,11 @@ import java.util.function.*;
  * Allows duplicate keys.
  * Just a thin wrapper over bifurcan's Map.
  */
-public class Record implements IMap<String, Record.ListValue> {
+public class Record implements IMap<String, ListValue> {
 
-    private final IMap<String, Record.ListValue> inner;
+    private final IMap<String, ListValue> inner;
 
-    private Record(IMap<String, Record.ListValue> map) {
+    private Record(IMap<String, ListValue> map) {
         inner = map;
     }
 
@@ -58,7 +58,7 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public Record.ListValue get(String key, Record.ListValue defaultValue) {
+    public ListValue get(String key, ListValue defaultValue) {
         return inner.get(key, defaultValue);
     }
 
@@ -75,7 +75,7 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public IList<IEntry<String, Record.ListValue>> entries() {
+    public IList<IEntry<String, ListValue>> entries() {
         return inner.entries();
     }
 
@@ -90,13 +90,13 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public IList<Record.ListValue> values() {
+    public IList<ListValue> values() {
         return inner.values();
     }
 
     @Override
-    public <U> IMap<String, U> mapValues(BiFunction<String, Record.ListValue, U> f) {
-        return (IMap<String, U>) new Record(inner.mapValues((BiFunction<String, Record.ListValue, Record.ListValue>) f));
+    public <U> IMap<String, U> mapValues(BiFunction<String, ListValue, U> f) {
+        return (IMap<String, U>) new Record(inner.mapValues((BiFunction<String, ListValue, ListValue>) f));
     }
 
 //    @Override
@@ -104,47 +104,47 @@ public class Record implements IMap<String, Record.ListValue> {
 //
 //    }
 
-    public IMap<String, Record.ListValue> merge(IMap<String, Record.ListValue> b, Function<Record.ListValue, Function<Record.ListValue, Record.ListValue>> mergeFn) {
+    public IMap<String, ListValue> merge(IMap<String, ListValue> b, Function<ListValue, Function<ListValue, ListValue>> mergeFn) {
         return merge(b, (e1, e2) -> mergeFn.apply(e1).apply(e2));
     }
 
     @Override
-    public IMap<String, Record.ListValue> merge(IMap<String, Record.ListValue> b, BinaryOperator<Record.ListValue> mergeFn) {
+    public IMap<String, ListValue> merge(IMap<String, ListValue> b, BinaryOperator<ListValue> mergeFn) {
         return new Record(inner.merge(b, mergeFn));
     }
 
     @Override
-    public IMap<String, Record.ListValue> difference(ISet<String> keys) {
+    public IMap<String, ListValue> difference(ISet<String> keys) {
         return new Record(inner.difference(keys));
     }
 
     @Override
-    public IMap<String, Record.ListValue> intersection(ISet<String> keys) {
+    public IMap<String, ListValue> intersection(ISet<String> keys) {
         return new Record(inner.intersection(keys));
     }
 
     @Override
-    public IMap<String, Record.ListValue> union(IMap<String, Record.ListValue> m) {
+    public IMap<String, ListValue> union(IMap<String, ListValue> m) {
         return new Record(inner.union(m));
     }
 
     @Override
-    public IMap<String, Record.ListValue> difference(IMap<String, ?> m) {
+    public IMap<String, ListValue> difference(IMap<String, ?> m) {
         return new Record(inner.difference(m));
     }
 
     @Override
-    public IMap<String, Record.ListValue> intersection(IMap<String, ?> m) {
+    public IMap<String, ListValue> intersection(IMap<String, ?> m) {
         return new Record(inner.intersection(m));
     }
 
     @Override
-    public IMap<String, Record.ListValue> put(String key, Record.ListValue value, BinaryOperator<Record.ListValue> merge) {
+    public IMap<String, ListValue> put(String key, ListValue value, BinaryOperator<ListValue> merge) {
         return new Record(inner.put(key, value, merge));
     }
 
     @Override
-    public IMap<String, Record.ListValue> update(String key, UnaryOperator<Record.ListValue> update) {
+    public IMap<String, ListValue> update(String key, UnaryOperator<ListValue> update) {
         return new Record(inner.update(key, update));
     }
 
@@ -163,7 +163,7 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public IMap<String, Record.ListValue> put(String key, Record.ListValue value) {
+    public IMap<String, ListValue> put(String key, ListValue value) {
         return new Record(inner.put(key, value));
     }
 
@@ -183,7 +183,7 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public IMap<String, Record.ListValue> remove(String key) {
+    public IMap<String, ListValue> remove(String key) {
         return new Record(inner.remove(key));
     }
 
@@ -207,7 +207,7 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public IMap<String, Record.ListValue> forked() {
+    public IMap<String, ListValue> forked() {
         return isLinear() ? new Record(inner.forked()) : this;
     }
 
@@ -216,7 +216,7 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public IMap<String, Record.ListValue> linear() {
+    public IMap<String, ListValue> linear() {
         return isLinear() ? this : new Record(inner.linear());
     }
 
@@ -230,7 +230,7 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public IList<? extends IMap<String, Record.ListValue>> split(int parts) {
+    public IList<? extends IMap<String, ListValue>> split(int parts) {
         return inner.split(parts);
     }
 //
@@ -245,48 +245,17 @@ public class Record implements IMap<String, Record.ListValue> {
     }
 
     @Override
-    public IEntry<String, Record.ListValue> nth(long idx) {
+    public IEntry<String, ListValue> nth(long idx) {
         return inner.nth(idx);
     }
 
     @Override
-    public IEntry<String, Record.ListValue> nth(long idx, IEntry<String, Record.ListValue> defaultValue) {
+    public IEntry<String, ListValue> nth(long idx, IEntry<String, ListValue> defaultValue) {
         return inner.nth(idx, defaultValue);
     }
 
     @Override
-    public IMap<String, Record.ListValue> clone() {
+    public IMap<String, ListValue> clone() {
         return new Record(inner.clone());
-    }
-
-    /**
-     * Because novah allows duplicate keys we need
-     * some way to store many values in a key.
-     * This is a bare-minimum immutable linked list
-     * that allows us to store multiple values without
-     * too much performance impact.
-     */
-    static class ListValue {
-        final Object value;
-        final ListValue next;
-
-        public ListValue(Object val, ListValue next) {
-            value = val;
-            this.next = next;
-        }
-
-        public static ListValue of(Object val) {
-            return new ListValue(val, null);
-        }
-
-        public static ListValue of(Object val, ListValue next) {
-            return new ListValue(val, next);
-        }
-
-        @Override
-        public String toString() {
-            if (next == null) return value.toString();
-            return value.toString() + ", " + next.toString();
-        }
     }
 }

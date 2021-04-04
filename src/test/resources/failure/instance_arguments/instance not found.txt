@@ -3,11 +3,11 @@ at src/test/resources/failure/instance_arguments/instance not found.novah:8:11 -
 
   Could not find instance for type
   
-      Show Int32
+      View Int32
   
-  Make sure there's one instance in the context
+  Consider adding a type annotation
   or pass the argument explicitly.
 
-while checking expression (show 3)
+while checking expression (view 3)
 in declaration main
 

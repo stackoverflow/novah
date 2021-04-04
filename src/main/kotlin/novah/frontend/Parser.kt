@@ -303,8 +303,10 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             expect<Equals>(withError(E.DATA_EQUALS))
 
             val ctorvis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
-            val type = parseType(true)
-            val ctors = listOf(DataConstructor(name, listOf(type), ctorvis, type.span))
+            val pars = tryParseListOf { parseTypeAtom(true) }
+            if (pars.isEmpty()) throwError(E.EMPTY_OPAQUE to iter.current().span)
+            
+            val ctors = listOf(DataConstructor(name, pars, ctorvis, span(pars[0].span, pars.last().span)))
             Decl.TypeDecl(name, tyVars, ctors, vis, true)
                 .withSpan(tk.span, iter.current().span)
         }
