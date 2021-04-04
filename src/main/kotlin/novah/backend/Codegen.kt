@@ -504,25 +504,49 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val endTry = Label()
                 val end = Label()
                 e.catches.forEach {
-                    it.label = Label()
-                    mv.visitTryCatchBlock(beginTry, endTry, it.label, it.exception.type.internalName)
+                    val ls = Label() to Label()
+                    it.labels = ls
+                    mv.visitTryCatchBlock(beginTry, endTry, ls.first, it.exception.type.internalName)
                 }
+
+                var finallyLb: Label? = null
+                if (e.finallyExp != null) {
+                    finallyLb = Label()
+                    mv.visitTryCatchBlock(beginTry, endTry, finallyLb, null)
+                    e.catches.forEach {
+                        val (startl, endl) = it.labels!!
+                        mv.visitTryCatchBlock(startl, endl, finallyLb, null)
+                    }
+                }
+                
                 val retVar = ctx.nextLocal()
                 val excVar = ctx.nextLocal()
                 mv.visitLabel(beginTry)
                 genExpr(e.tryExpr, mv, ctx)
                 mv.visitVarInsn(ASTORE, retVar)
                 mv.visitLabel(endTry)
+                if (finallyLb != null) genExpr(e.finallyExp!!, mv, ctx)
                 mv.visitJumpInsn(GOTO, end)
-                
+
                 e.catches.forEachIndexed { i, catch ->
-                    mv.visitLabel(catch.label!!)
-                    if (catch.binder != null) ctx.put(catch.binder, excVar, catch.label!!)
+                    val (slabel, elabel) = catch.labels!!
+                    mv.visitLabel(slabel)
+                    if (catch.binder != null) ctx.put(catch.binder, excVar, slabel)
                     mv.visitVarInsn(ASTORE, excVar)
                     genExpr(catch.expr, mv, ctx)
                     mv.visitVarInsn(ASTORE, retVar)
-                    if (i != e.catches.lastIndex)
+                    mv.visitLabel(elabel)
+                    if (finallyLb != null) genExpr(e.finallyExp!!, mv, ctx)
+                    if (i != e.catches.lastIndex || finallyLb != null)
                         mv.visitJumpInsn(GOTO, end)
+                }
+                if (finallyLb != null) {
+                    mv.visitLabel(finallyLb)
+                    mv.visitVarInsn(ASTORE, excVar)
+                    genExpr(e.finallyExp!!, mv, ctx)
+                    mv.visitVarInsn(ALOAD, excVar)
+                    mv.visitInsn(ATHROW)
+                    mv.visitInsn(POP)
                 }
                 mv.visitLabel(end)
                 mv.visitVarInsn(ALOAD, retVar)

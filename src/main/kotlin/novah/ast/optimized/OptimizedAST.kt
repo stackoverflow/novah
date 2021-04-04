@@ -180,7 +180,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
 }
 
 data class Catch(val exception: Clazz, val binder: String?, val expr: Expr, val span: Span) {
-    var label: Label? = null
+    var labels: Pair<Label, Label>? = null
 }
 
 fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = when {
