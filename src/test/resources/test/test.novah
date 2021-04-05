@@ -26,5 +26,5 @@ main _ = do
   println (show (Err 45 : Result Int Int))
   println (V.nth 8L [56, 777, 1237, 12])
   format "some %s once told %s" ["body", "me"] |> println
-  [56, 78, 90, 14, 566] |> (_ ! 4L) |> println
+  println (true && false)
   bla ()

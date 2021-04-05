@@ -86,6 +86,8 @@ foreign import Core:compareDouble(novah.core.Ordering, novah.core.Ordering, nova
 foreign import Core:compareChar(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 foreign import Core:compareString(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 foreign import Core:swapAtom(AtomicReference, Function)
+foreign import Core:and(Boolean, Boolean)
+foreign import Core:or(Boolean, Boolean)
 
 /**
  * A 32-bits Integer
@@ -178,7 +180,25 @@ pub
  */
 pub
 (!==) : a -> a -> Boolean
-(!==) x = not << (x === _)
+(!==) x y = negate (x === y)
+
+/**
+ * Logical `and` operator.
+ * Returns true if both conditions are true.
+ * This operator will short circuit if fully applied.
+ */
+pub
+(&&) : Boolean -> Boolean -> Boolean
+(&&) cond1 cond2 = and cond1 cond2
+
+/**
+ * Logical `or` operator.
+ * Returns true if at least one of the conditions is true.
+ * This operator will short circuit if fully applied.
+ */
+pub
+(||) : Boolean -> Boolean -> Boolean
+(||) cond1 cond2 = or cond1 cond2
 
 /**
  * Prints x to stdout and appends a new line.

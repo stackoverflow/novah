@@ -93,7 +93,6 @@ object Optimization {
         "java.lang.Double",
     )
 
-    private const val primMod = "prim/Module"
     private const val coreMod = "novah/core/Module"
 
     /**
@@ -108,7 +107,7 @@ object Optimization {
                 val arg = e.arg
                 when {
                     // optimize && and ||
-                    fn is App && fn.fn is Var && (fn.fn.name == and || fn.fn.name == or) && fn.fn.className == primMod -> {
+                    fn is App && fn.fn is Var && (fn.fn.name == and || fn.fn.name == or) && fn.fn.className == coreMod -> {
                         val name = fn.fn.name
                         val op = if (name == and) "&&" else "||"
                         if (arg is Expr.OperatorApp && fn.fn.name == arg.name) {
