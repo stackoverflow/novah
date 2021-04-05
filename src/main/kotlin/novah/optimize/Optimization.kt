@@ -123,6 +123,12 @@ object Optimization {
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.$rail" -> {
                         Expr.App(arg, fn.arg, e.type, e.span)
                     }
+                    // optimize unsafeCast
+                    fn is Var && fn.fullname() == "$coreMod.unsafeCast" -> {
+                        val (from, to) = fn.type.pars
+                        if (from.type == to.type) arg
+                        else Expr.Cast(arg, to, e.span)
+                    }
                     // optimize `arrayOf [...]` to a literal array
                     fn is Var && fn.fullname() == "$coreMod.arrayOf" && arg is Expr.VectorLiteral -> {
                         Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars), e.span)
