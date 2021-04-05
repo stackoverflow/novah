@@ -252,10 +252,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 when (e.name) {
                     "&&" -> genOperatorAnd(e, mv, ctx)
                     "||" -> genOperatorOr(e, mv, ctx)
-                    "+" -> genNumericOperator(e.name, e, mv, ctx)
-                    "-" -> genNumericOperator(e.name, e, mv, ctx)
-                    "*" -> genNumericOperator(e.name, e, mv, ctx)
-                    "/" -> genNumericOperator(e.name, e, mv, ctx)
+                    "+", "-", "*", "/" -> genNumericOperator(e.name, e, mv, ctx)
                 }
                 val prim = e.operands[0].type.type.primitive()
                 if (prim != null) box(prim, mv)

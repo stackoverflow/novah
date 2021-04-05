@@ -279,7 +279,7 @@ class Desugar(private val smod: SModule) {
         is SPattern.TypeTest -> Pattern.TypeTest(type.desugar(), alias, span)
         is SPattern.ImplicitPattern -> parserError(E.IMPLICIT_PATTERN, span)
         is SPattern.ListP -> {
-            val ctor = Expr.Constructor("Cons", span, CORE_MODULE)
+            val ctor = Expr.Constructor("Cons", span, if (smod.name == CORE_MODULE) null else CORE_MODULE)
             Pattern.Ctor(ctor, listOf(head.desugar(locals), tail.desugar(locals)), span)
         }
     }
@@ -295,17 +295,15 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SLetDef.DefBind.desugar(locals: List<String>): LetDef {
+        val exp = if (type != null)
+            Expr.Ann(expr.desugar(locals), type.desugar(), expr.span)
+        else expr.desugar(locals)
+        val vars = collectVars(exp)
+        val recursive = name.name in vars
+        
         return if (patterns.isEmpty()) {
-            val exp = if (type != null)
-                Expr.Ann(expr.desugar(locals), type.desugar(), expr.span)
-            else expr.desugar(locals)
-            LetDef(name.desugar(), exp, false, isInstance)
+            LetDef(name.desugar(), exp, recursive, isInstance)
         } else {
-            val exp = if (type != null)
-                Expr.Ann(expr.desugar(locals), type.desugar(), expr.span)
-            else expr.desugar(locals)
-            val vars = collectVars(exp)
-            val recursive = name.name in vars
             LetDef(name.desugar(), nestLambdaPatterns(patterns, exp, locals), recursive, isInstance)
         }
     }

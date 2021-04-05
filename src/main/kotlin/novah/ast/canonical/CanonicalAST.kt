@@ -201,6 +201,16 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.RecordSelect -> f(e.copy(exp = go(e.exp)))
         is Expr.RecordRestrict -> f(e.copy(exp = go(e.exp)))
         is Expr.RecordExtend -> f(e.copy(exp = go(e.exp), labels = e.labels.mapList(::go)))
+        is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.Throw -> f(e.copy(exp = go(e.exp)))
+        is Expr.TryCatch -> {
+            val cases = e.cases.map {
+                it.copy(exp = go(it.exp), guard = it.guard?.let { g -> go(g) })
+            }
+            f(e.copy(tryExp = go(e.tryExp), finallyExp = e.finallyExp?.let { go(it) }, cases = cases))
+        }
+        is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
         else -> f(e)
     }
     return go(this)
