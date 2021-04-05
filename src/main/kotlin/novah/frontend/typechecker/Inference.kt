@@ -297,7 +297,6 @@ object Inference {
                 if (res.isEmpty || !res.get()) {
                     inferError(E.notException(ty.show()), exp.span)
                 }
-                exp.exp.withType(ty)
                 // throw returns anything
                 val ret = newVar(level)
                 exp.withType(ret)
