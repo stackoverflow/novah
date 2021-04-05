@@ -139,7 +139,7 @@ object Errors {
     const val INVALID_OPERATOR_DECL = "Operator declarations have to be defined between parentheses."
 
     const val INVALID_OPAQUE = "Opaque types should be in the form: opaque type <Name> = <type>."
-    
+
     const val EMPTY_OPAQUE = "Empty data constructor. Opaque types need at least one type."
 
     val IMPORT_RAW = """Raw imports should only be used for core namespaces.
@@ -151,6 +151,14 @@ object Errors {
         "Implicit patterns can only be used in function parameters before any destructuring happens."
 
     const val APPLIED_DO_LET = "Cannot apply let statement as a function."
+
+    const val NO_CATCH = "Expected `catch` definition after try expression."
+
+    const val WRONG_CATCH = "Catch patterns can only be a type test and cannot have guards."
+    
+    const val DO_WHILE = "Expected keyword `do` after while condition."
+    
+    const val EXP_SIMPLE = "Invalid expression for while condition."
 
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
@@ -188,6 +196,14 @@ object Errors {
         |$example
     """.trimMargin()
     }
+
+    fun notException(type: String) = """
+        Type
+        
+            $type
+        
+        is not a subclass of Throwable and cannot be thrown.
+    """.trimIndent()
 
     fun wrongArityToCase(got: Int, expected: Int) = "Case expression expected $expected patterns but got $got."
 
@@ -320,7 +336,7 @@ object Errors {
     fun undefinedVar(name: String) = "Undefined variable $name."
 
     fun shadowedVariable(name: String) = "Value $name is shadowing another value with the same name."
-    
+
     fun freeVarsInTypealias(talias: String, vars: Set<String>) = """
         Type variables
         
@@ -343,7 +359,7 @@ object Errors {
             are unused in declaration.
         """.trimIndent()
     }
-    
+
     fun unusedImport(imp: String): String = "Import $imp is unused in module."
 
     fun recordMissingLabels(labels: List<String>): String {

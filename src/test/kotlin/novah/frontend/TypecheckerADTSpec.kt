@@ -78,21 +78,21 @@ class TypecheckerADTSpec : StringSpec({
 
     "typecheck 2 parameter ADTs" {
         val code = """
-            type Result k e
-              = Ok k
-              | Err e
+            type Res k e
+              = Okk k
+              | Errr e
             
-            x : Int -> Result Int String
-            x _ = Ok 1
+            x : Int -> Res Int String
+            x _ = Okk 1
             
-            //y : Int -> Result Int String
-            y _ = Err "oops"
+            //y : Int -> Res Int String
+            y _ = Errr "oops"
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
-        tys["x"]?.type?.simpleName() shouldBe "Int32 -> Result Int32 String"
+        tys["x"]?.type?.simpleName() shouldBe "Int32 -> Res Int32 String"
         val y = tys["y"]!!.type
-        y.simpleName() shouldBe "t1 -> Result t2 String"
+        y.simpleName() shouldBe "t1 -> Res t2 String"
     }
 
     "typecheck recursive ADT" {

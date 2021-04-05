@@ -93,7 +93,6 @@ object Optimization {
         "java.lang.Double",
     )
 
-    private const val primMod = "prim/Module"
     private const val coreMod = "novah/core/Module"
 
     /**
@@ -108,7 +107,7 @@ object Optimization {
                 val arg = e.arg
                 when {
                     // optimize && and ||
-                    fn is App && fn.fn is Var && (fn.fn.name == and || fn.fn.name == or) && fn.fn.className == primMod -> {
+                    fn is App && fn.fn is Var && (fn.fn.name == and || fn.fn.name == or) && fn.fn.className == coreMod -> {
                         val name = fn.fn.name
                         val op = if (name == and) "&&" else "||"
                         if (arg is Expr.OperatorApp && fn.fn.name == arg.name) {
@@ -122,6 +121,12 @@ object Optimization {
                     // optimize |>
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.$rail" -> {
                         Expr.App(arg, fn.arg, e.type, e.span)
+                    }
+                    // optimize unsafeCast
+                    fn is Var && fn.fullname() == "$coreMod.unsafeCast" -> {
+                        val (from, to) = fn.type.pars
+                        if (from.type == to.type) arg
+                        else Expr.Cast(arg, to, e.span)
                     }
                     // optimize `arrayOf [...]` to a literal array
                     fn is Var && fn.fullname() == "$coreMod.arrayOf" && arg is Expr.VectorLiteral -> {
@@ -257,6 +262,12 @@ object Optimization {
             is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
             is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
             is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))
+            is Expr.TryCatch -> {
+                val tryy = go(e.tryExpr)
+                val cs = e.catches.map { it.copy(expr = go(it.expr)) }
+                f(e.copy(tryExpr = tryy, catches = cs, finallyExp = e.finallyExp?.let(::go)))
+            }
+            is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
             else -> f(e)
         }
         return go(expr)

@@ -1,0 +1,4 @@
+module test
+
+main : Unit -> Unit
+main () = throw "Error"

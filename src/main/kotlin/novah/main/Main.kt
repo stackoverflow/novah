@@ -43,6 +43,12 @@ class CompileCommand : CliktCommand() {
         "--verbose",
         help = "Prints information about the compilation process to stdout"
     ).flag(default = false)
+    
+    private val classPath by option("-cp", "--classpath", help = "").file(
+        mustExist = true,
+        canBeDir = true,
+        canBeFile = false
+    )
 
     private val srcs by argument(help = "Source files").path(mustExist = true, canBeDir = false).multiple()
 
@@ -58,9 +64,12 @@ class CompileCommand : CliktCommand() {
                 return
             }
         }
+        if (classPath == null) {
+            echo("classpath was not specified. Specify it with -cp <classpath>", err = true)
+        }
         if (verbose) echo("Compiling files to $out")
 
-        val compiler = Compiler.new(srcs.asSequence(), verbose)
+        val compiler = Compiler.new(srcs.asSequence(), classPath!!.canonicalPath, verbose)
         try {
             val warns = compiler.run(out)
             if (warns.isNotEmpty()) {

@@ -245,6 +245,14 @@ class Desugar(private val smod: SModule) {
             nestLambdas(args.mapNotNull { it.first }, app)
         }
         is SExpr.Underscore -> parserError(E.ANONYMOUS_FUNCTION_ARGUMENT, span)
+        is SExpr.Throw -> Expr.Throw(exp.desugar(locals), span)
+        is SExpr.TryCatch -> {
+            val fin = finallyExp?.desugar(locals)
+            Expr.TryCatch(tryExpr.desugar(locals), cases.map { it.desugar(locals) }, fin, span)
+        }
+        is SExpr.While -> {
+            Expr.While(cond.desugar(locals), exps.map { it.desugar(locals) }, span)
+        }
     }
 
     private fun SCase.desugar(locals: List<String>): Case {

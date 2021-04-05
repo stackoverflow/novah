@@ -4,7 +4,6 @@ import io.lacuna.bifurcan.Map
 import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.frontend.Span
-import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
@@ -173,17 +172,11 @@ fun javaToNovah(jname: String): String = when (jname) {
 val primImport = Import.Raw(PRIM, Span.empty())
 val coreImport = Import.Raw(CORE_MODULE, Span.empty())
 
-private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC, false)
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
-
-private fun tfun(a: Type, b: Type) = TArrow(listOf(a), b)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 
 val primModuleEnv = ModuleEnv(
-    mapOf(
-        "&&" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean))),
-        "||" to decl(tfun(tBoolean, tfun(tBoolean, tBoolean)))
-    ),
+    mapOf(),
     mapOf(
         "Byte" to tdecl(tByte),
         "Int16" to tdecl(tInt16),

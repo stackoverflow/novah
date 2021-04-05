@@ -98,6 +98,11 @@ sealed class Expr(open val span: Span) {
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
     data class VectorLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
+    data class Throw(val exp: Expr, override val span: Span) : Expr(span)
+    data class TryCatch(val tryExp: Expr, val cases: List<Case>, val finallyExp: Expr?, override val span: Span) :
+        Expr(span)
+
+    data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
 
     var implicitContext: ImplicitContext? = null
 
@@ -248,4 +253,14 @@ fun Expr.show(): String = when (this) {
     }
     is Expr.VectorLiteral -> "[${exps.joinToString { it.show() }}]"
     is Expr.SetLiteral -> "#{${exps.joinToString { it.show() }}}"
+    is Expr.Throw -> "throw ${exp.show()}"
+    is Expr.TryCatch -> {
+        val cs = cases.joinToString("\n  ") { cs ->
+            val guard = if (cs.guard != null) " if " + cs.guard.show() else ""
+            cs.patterns.joinToString { it.show() } + guard + " -> " + cs.exp.show()
+        }
+        val fin = if (finallyExp != null) "\nfinally ${finallyExp.show()}" else ""
+        "try ${tryExp.show()}\ncatch\n  $cs$fin"
+    }
+    is Expr.While -> "while ${cond.show()} do\n  " + exps.joinToString("\n  ") { it.show() }
 }

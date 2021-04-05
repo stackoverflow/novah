@@ -4,10 +4,7 @@ import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
 import novah.ast.canonical.*
-import novah.data.LabelMap
-import novah.data.isEmpty
-import novah.data.mapList
-import novah.data.singletonPMap
+import novah.data.*
 import novah.frontend.Span
 import novah.frontend.typechecker.Type.Companion.nestArrows
 import novah.frontend.typechecker.Typechecker.context
@@ -17,6 +14,7 @@ import novah.frontend.typechecker.Typechecker.newGenVar
 import novah.frontend.typechecker.Typechecker.newVar
 import novah.frontend.typechecker.Unification.unify
 import novah.main.DeclRef
+import novah.main.Environment
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 import novah.frontend.error.Errors as E
@@ -88,7 +86,7 @@ object Inference {
 
         return ModuleEnv(decls, types)
     }
-    
+
     private fun infer(env: Env, level: Level, exp: Expr): Type {
         context?.apply { exps.push(exp) }
         val ty = when (exp) {
@@ -293,6 +291,48 @@ object Inference {
                 val res = TApp(TConst(primSet), listOf(ty))
                 exp.withType(res)
             }
+            is Expr.Throw -> {
+                val ty = infer(env, level, exp.exp)
+                val res = Environment.classLoader().isException(ty.typeNameOrEmpty())
+                if (res.isEmpty || !res.get()) {
+                    inferError(E.notException(ty.show()), exp.span)
+                }
+                // throw returns anything
+                val ret = newVar(level)
+                exp.withType(ret)
+            }
+            is Expr.TryCatch -> {
+                val resTy = infer(env, level, exp.tryExp)
+
+                exp.cases.forEach { case ->
+                    val vars = case.patterns.flatMap { pat ->
+                        // the type parameter is not actually used here
+                        // we just passed resTy as an optimization instead
+                        // of creating a new type var
+                        inferpattern(env, level, pat, resTy)
+                    }
+                    val newEnv = if (vars.isNotEmpty()) {
+                        val theEnv = env.fork()
+                        vars.forEach {
+                            checkShadow(theEnv, it.name, it.span)
+                            theEnv.extend(it.name, it.type)
+                        }
+                        theEnv
+                    } else env
+
+                    val ty = infer(newEnv, level, case.exp)
+                    unify(resTy, ty, case.exp.span)
+                }
+                // the result type of the finally expression is discarded
+                if (exp.finallyExp != null) infer(env, level, exp.finallyExp)
+                exp.withType(resTy)
+            }
+            is Expr.While -> {
+                unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
+                exp.exps.forEach { e -> infer(env, level, e) }
+                // while always returns unit
+                exp.withType(tUnit)
+            }
         }
         context?.apply { exps.pop() }
         return ty
@@ -377,6 +417,7 @@ object Inference {
                 vars
             }
             is Pattern.TypeTest -> {
+                validateType(pat.type, env, pat.span)
                 if (pat.alias != null) {
                     // we need special handling for Vectors, Sets and Arrays
                     val type = when {

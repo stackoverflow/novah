@@ -56,6 +56,11 @@ sealed class Token {
     object PublicPlus : Token()
     object Instance : Token()
     object Opaque : Token()
+    object ThrowT : Token()
+    object TryT : Token()
+    object CatchT : Token()
+    object FinallyT : Token()
+    object WhileT : Token()
 
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char) : Token()
@@ -280,6 +285,11 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "pub" -> PublicT
             "instance" -> Instance
             "opaque" -> Opaque
+            "throw" -> ThrowT
+            "try" -> TryT
+            "catch" -> CatchT
+            "finally" -> FinallyT
+            "while" -> WhileT
             else ->
                 if (id[0].isUpperCase()) {
                     UpperIdent(id)

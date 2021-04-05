@@ -162,7 +162,7 @@ class Formatter {
                 }
             }
             is Expr.If -> {
-                val simple = e.thenCase.isSimple() && e.elseCase.isSimple()
+                val simple = e.thenCase.isSimpleExpr() && e.elseCase.isSimpleExpr()
                 if (simple) "if ${show(e.cond)} then ${show(e.thenCase)} else ${show(e.elseCase)}"
                 else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}\n${tab}else ${show(e.elseCase)}"
             }
@@ -197,9 +197,22 @@ class Formatter {
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
             is Expr.Underscore -> "_"
             is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
+            is Expr.Throw -> "throw ${show(e.exp)}"
+            is Expr.TryCatch -> {
+                val tr = "try ${show(e.tryExpr)}\n${tab}catch" + withIndent {
+                    e.cases.joinToString("\n$tab", prefix = tab) { show(it) }
+                }
+                if (e.finallyExp != null) {
+                    tr + "\n${tab}finally ${show(e.finallyExp)}"
+                } else tr
+            }
+            is Expr.While -> {
+                val cond = show(e.cond)
+                "while $cond do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
+            }
         }
     }
-    
+
     private val escapes = mapOf(
         '\n' to "\\n",
         '\\' to "\\\\",
@@ -209,7 +222,7 @@ class Formatter {
         '\t' to "\\t",
         '\b' to "\\b",
     )
-    
+
     private fun escapeString(s: String): String {
         val bld = java.lang.StringBuilder()
         for (c in s) {
@@ -302,7 +315,7 @@ class Formatter {
         "$tab/*\n$tab * " + c.comment.split("\n").joinToString("\n$tab *") + "\n$tab */$end"
     } else "// ${c.comment}\n"
 
-    private fun Expr.isSimple(): Boolean = when (this) {
+    private fun Expr.isSimpleExpr(): Boolean = when (this) {
         is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
         is Expr.StringE, is Expr.CharE, is Expr.Bool,
         is Expr.Var, is Expr.Operator -> true

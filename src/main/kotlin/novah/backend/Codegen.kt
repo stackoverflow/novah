@@ -143,7 +143,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     }
 
     private var lineNumber = -1
-    
+
     private fun genValDecl(decl: Decl.ValDecl, mv: MethodVisitor, ctx: GenContext) {
         if (decl.exp is Expr.StringE) return
         val l = Label()
@@ -354,14 +354,14 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val f = e.field
                 genExprForNativeCall(e.par, f.type, mv, ctx)
                 mv.visitFieldInsn(PUTSTATIC, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
-                mv.visitInsn(ACONST_NULL)
+                genUnit(mv)
             }
             is Expr.NativeFieldSet -> {
                 val f = e.field
                 genExpr(e.thisPar, mv, ctx)
                 genExprForNativeCall(e.par, f.type, mv, ctx)
                 mv.visitFieldInsn(PUTFIELD, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
-                mv.visitInsn(ACONST_NULL)
+                genUnit(mv)
             }
             is Expr.NativeStaticMethod -> {
                 val m = e.method
@@ -371,7 +371,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val desc = getMethodDescriptor(m)
                 mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, false)
 
-                if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
+                if (m.returnType == Void.TYPE) genUnit(mv)
                 else {
                     if (m.returnType.isPrimitive) box(getType(m.returnType), mv)
                     val type = e.type.type
@@ -389,7 +389,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val (op, isInterface) = if (m.declaringClass.isInterface) INVOKEINTERFACE to true else INVOKEVIRTUAL to false
                 mv.visitMethodInsn(op, getInternalName(m.declaringClass), m.name, getMethodDescriptor(m), isInterface)
 
-                if (m.returnType == Void.TYPE) mv.visitInsn(ACONST_NULL)
+                if (m.returnType == Void.TYPE) genUnit(mv)
                 else {
                     if (m.returnType.isPrimitive) box(getType(m.returnType), mv)
                     val type = e.type.type
@@ -409,7 +409,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKESPECIAL, internal, INIT, getConstructorDescriptor(c), false)
             }
             is Expr.Unit -> {
-                mv.visitInsn(ACONST_NULL)
+                genUnit(mv)
             }
             is Expr.Throw -> {
                 genExpr(e.expr, mv, ctx)
@@ -499,7 +499,78 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitInsn(AASTORE)
                 }
             }
+            is Expr.While -> {
+                val whileLb = Label()
+                val endLb = Label()
+                mv.visitLabel(whileLb)
+                genExprForPrimitiveBool(e.cond, mv, ctx)
+                mv.visitJumpInsn(IFEQ, endLb)
+
+                e.exps.forEach { expr ->
+                    genExpr(expr, mv, ctx)
+                    mv.visitInsn(POP)
+                }
+                mv.visitJumpInsn(GOTO, whileLb)
+                mv.visitLabel(endLb)
+                genUnit(mv)
+            }
+            is Expr.TryCatch -> {
+                val beginTry = Label()
+                val endTry = Label()
+                val end = Label()
+                e.catches.forEach {
+                    val ls = Label() to Label()
+                    it.labels = ls
+                    mv.visitTryCatchBlock(beginTry, endTry, ls.first, it.exception.type.internalName)
+                }
+
+                var finallyLb: Label? = null
+                if (e.finallyExp != null) {
+                    finallyLb = Label()
+                    mv.visitTryCatchBlock(beginTry, endTry, finallyLb, null)
+                    e.catches.forEach {
+                        val (startl, endl) = it.labels!!
+                        mv.visitTryCatchBlock(startl, endl, finallyLb, null)
+                    }
+                }
+
+                val retVar = ctx.nextLocal()
+                val excVar = ctx.nextLocal()
+                mv.visitLabel(beginTry)
+                genExpr(e.tryExpr, mv, ctx)
+                mv.visitVarInsn(ASTORE, retVar)
+                mv.visitLabel(endTry)
+                if (finallyLb != null) genExpr(e.finallyExp!!, mv, ctx)
+                mv.visitJumpInsn(GOTO, end)
+
+                e.catches.forEachIndexed { i, catch ->
+                    val (slabel, elabel) = catch.labels!!
+                    mv.visitLabel(slabel)
+                    if (catch.binder != null) ctx.put(catch.binder, excVar, slabel)
+                    mv.visitVarInsn(ASTORE, excVar)
+                    genExpr(catch.expr, mv, ctx)
+                    mv.visitVarInsn(ASTORE, retVar)
+                    mv.visitLabel(elabel)
+                    if (finallyLb != null) genExpr(e.finallyExp!!, mv, ctx)
+                    if (i != e.catches.lastIndex || finallyLb != null)
+                        mv.visitJumpInsn(GOTO, end)
+                }
+                if (finallyLb != null) {
+                    mv.visitLabel(finallyLb)
+                    mv.visitVarInsn(ASTORE, excVar)
+                    genExpr(e.finallyExp!!, mv, ctx)
+                    mv.visitVarInsn(ALOAD, excVar)
+                    mv.visitInsn(ATHROW)
+                    mv.visitInsn(POP)
+                }
+                mv.visitLabel(end)
+                mv.visitVarInsn(ALOAD, retVar)
+            }
         }
+    }
+    
+    private fun genUnit(mv: MethodVisitor) {
+        mv.visitFieldInsn(GETSTATIC, "novah/Unit", INSTANCE, "Lnovah/Unit;")
     }
 
     private fun genExprForPrimitiveBool(e: Expr, mv: MethodVisitor, ctx: GenContext) = when (e) {
@@ -654,7 +725,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         mv.visitInsn(ICONST_0)
         mv.visitLabel(end)
     }
-    
+
     private fun genNumericOperator(op: String, e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
         if (e.operands.size != 2) internalError("got wrong number of operators for operator $op")
         val op1 = e.operands[0]
@@ -759,6 +830,22 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.VectorLiteral -> for (e in exp.exps) go(e)
             is Expr.SetLiteral -> for (e in exp.exps) go(e)
             is Expr.ArrayLiteral -> for (e in exp.exps) go(e)
+            is Expr.TryCatch -> {
+                go(exp.tryExpr)
+                if (exp.finallyExp != null) go(exp.finallyExp)
+                for (c in exp.catches) {
+                    if (c.binder != null) {
+                        for (l in lambdas) {
+                            l.ignores += c.binder
+                        }
+                    }
+                    go(c.expr)
+                }
+            }
+            is Expr.While -> {
+                go(exp.cond)
+                for (e in exp.exps) go(e)
+            }
             else -> {
             }
         }
@@ -794,7 +881,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val lnum = Label()
         lam.visitLabel(lnum)
         lam.visitLineNumber(l.span.startLine, lnum)
-        
+
         val startL = Label()
         val ctx = GenContext()
         args.forEach { local ->

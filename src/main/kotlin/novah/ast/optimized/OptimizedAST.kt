@@ -18,6 +18,7 @@ package novah.ast.optimized
 import novah.ast.source.Visibility
 import novah.data.LabelMap
 import novah.frontend.Span
+import org.objectweb.asm.Label
 import org.objectweb.asm.Type
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -169,6 +170,20 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
     data class VectorLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class SetLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ArrayLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class TryCatch(
+        val tryExpr: Expr,
+        val catches: List<Catch>,
+        val finallyExp: Expr?,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
+    data class While(val cond: Expr, val exps: List<Expr>, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
+}
+
+data class Catch(val exception: Clazz, val binder: String?, val expr: Expr, val span: Span) {
+    var labels: Pair<Label, Label>? = null
 }
 
 fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = when {

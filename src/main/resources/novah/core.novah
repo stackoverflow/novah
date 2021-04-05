@@ -86,6 +86,8 @@ foreign import Core:compareDouble(novah.core.Ordering, novah.core.Ordering, nova
 foreign import Core:compareChar(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 foreign import Core:compareString(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 foreign import Core:swapAtom(AtomicReference, Function)
+foreign import Core:and(Boolean, Boolean)
+foreign import Core:or(Boolean, Boolean)
 
 /**
  * A 32-bits Integer
@@ -178,7 +180,25 @@ pub
  */
 pub
 (!==) : a -> a -> Boolean
-(!==) x = not << (x === _)
+(!==) x y = negate (x === y)
+
+/**
+ * Logical `and` operator.
+ * Returns true if both conditions are true.
+ * This operator will short circuit if fully applied.
+ */
+pub
+(&&) : Boolean -> Boolean -> Boolean
+(&&) cond1 cond2 = and cond1 cond2
+
+/**
+ * Logical `or` operator.
+ * Returns true if at least one of the conditions is true.
+ * This operator will short circuit if fully applied.
+ */
+pub
+(||) : Boolean -> Boolean -> Boolean
+(||) cond1 cond2 = or cond1 cond2
 
 /**
  * Prints x to stdout and appends a new line.
@@ -224,7 +244,7 @@ int64 i = longValue i
  */
 pub
 (!) : Vector a -> Int64 -> a
-(!) vec index = nthVec (unsafeCoerce vec) index |> unsafeCast
+(!) vec index = unsafeCast (nthVec (unsafeCast vec) index)
 
 /**
  * Creates a byte array of the specified size.
@@ -295,7 +315,7 @@ objectArray size = mkObjectArray size
  */
 pub
 arrayGet : Int -> Array a -> a
-arrayGet index arr = getArray index (unsafeCast arr) |> unsafeCast
+arrayGet index arr = unsafeCast (getArray index (unsafeCast arr))
 
 /**
  * Sets the element of the array at the
@@ -310,7 +330,7 @@ arraySet index x arr = setArray index (unsafeCast x) (unsafeCast arr)
  */
 pub
 arrayOf : Vector a -> Array a
-arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
+arrayOf vec = unsafeCast (vecToArr (unsafeCast vec))
 
 /**
  * Returns a formatted string using the specified format string and arguments.
@@ -318,7 +338,7 @@ arrayOf vec = vecToArr (unsafeCast vec) |> unsafeCast
  */
 pub
 format : String -> Vector a -> String
-format str vec = sformat str (unsafeCoerce (arrayOf vec))
+format str vec = sformat str (unsafeCast (arrayOf vec))
 
 /**
  * Represents the possibility of a missing value.
@@ -356,11 +376,11 @@ appendString = Append { append: \s s2 -> concat s s2 }
 
 pub instance
 appendVector : Append (Vector a)
-appendVector = Append { append: \v v2 -> vecConcat (unsafeCast v) (unsafeCast v2) |> unsafeCast }
+appendVector = Append { append: \v v2 -> unsafeCast (vecConcat (unsafeCast v) (unsafeCast v2)) }
 
 pub instance
 appendSet : Append (Set a)
-appendSet = Append { append: \s s2 -> union (unsafeCast s) (unsafeCast s2) |> unsafeCast }
+appendSet = Append { append: \s s2 -> unsafeCast (union (unsafeCast s) (unsafeCast s2)) }
 
 appOption : Append a -> Option a -> Option a -> Option a
 appOption (Append ap) =
@@ -511,11 +531,11 @@ countString = Count { count: \s -> strLength s |> int64 }
 
 pub instance
 countVector : Count (Vector a)
-countVector = Count { count: \vec -> sizeVec (unsafeCoerce vec) }
+countVector = Count { count: \vec -> sizeVec (unsafeCast vec) }
 
 pub instance
 countSet : Count (Set a)
-countSet = Count { count: \set -> sizeSet (unsafeCoerce set) }
+countSet = Count { count: \set -> sizeSet (unsafeCast set) }
 
 pub instance
 countArray : Count (Array a)
@@ -523,7 +543,7 @@ countArray = Count { count: \arr -> getArrayLength (unsafeCast arr) |> int64 }
 
 pub instance
 countRecord : Count { | a }
-countRecord = Count { count: \rec -> recSize (unsafeCoerce rec) }
+countRecord = Count { count: \rec -> recSize (unsafeCast rec) }
 
 /**
  * The type of things that have a String representation.
@@ -586,15 +606,15 @@ showOption {{s}} = Show { show: showOpt s }
 
 pub instance
 showVector : {{ Show a }} -> Show (Vector a)
-showVector {{Show s}} = Show { show: \v -> toStringVector (unsafeCoerce v) (unsafeCoerce s.show) }
+showVector {{Show s}} = Show { show: \v -> toStringVector (unsafeCast v) (unsafeCast s.show) }
 
 pub instance
 showSet : {{ Show a }} -> Show (Set a)
-showSet {{Show s}} = Show { show: \set -> toStringSet (unsafeCoerce set) (unsafeCoerce s.show) }
+showSet {{Show s}} = Show { show: \set -> toStringSet (unsafeCast set) (unsafeCast s.show) }
 
 pub instance
 showArray : {{ Show a }} -> Show (Array a)
-showArray {{Show s}} = Show { show: \a -> toStringArray (unsafeCoerce a) (unsafeCoerce s.show) }
+showArray {{Show s}} = Show { show: \a -> toStringArray (unsafeCast a) (unsafeCast s.show) }
 
 /**
  * The type of things that support equality comparison.
@@ -661,15 +681,15 @@ eqString = Equals { equals: \x y -> equalsString x y }
 
 pub instance
 eqVector : {{ Equals a }} -> Equals (Vector a)
-eqVector {{Equals eq}} = Equals { equals: \x y -> equalsVector (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+eqVector {{Equals eq}} = Equals { equals: \x y -> equalsVector (unsafeCast x) (unsafeCast y) (unsafeCast eq.equals) }
 
 pub instance
 eqSet : {{ Equals a }} -> Equals (Set a)
-eqSet {{Equals eq}} = Equals { equals: \x y -> equalsSet (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+eqSet {{Equals eq}} = Equals { equals: \x y -> equalsSet (unsafeCast x) (unsafeCast y) (unsafeCast eq.equals) }
 
 pub instance
 eqArray : {{ Equals a }} -> Equals (Array a)
-eqArray {{Equals eq}} = Equals { equals: \x y -> equalsArray (unsafeCoerce x) (unsafeCoerce y) (unsafeCoerce eq.equals) }
+eqArray {{Equals eq}} = Equals { equals: \x y -> equalsArray (unsafeCast x) (unsafeCast y) (unsafeCast eq.equals) }
 
 equalsOption : Equals a -> Option a -> Option a -> Boolean
 equalsOption (Equals eq) =
@@ -757,31 +777,31 @@ pub
 
 pub instance
 ordInt32 : Ord Int32
-ordInt32 = Ord eqInt32 { compare: unsafeCoerce (compareInt LT EQ GT) }
+ordInt32 = Ord eqInt32 { compare: unsafeCast (compareInt LT EQ GT) }
 
 pub instance
 ordInt64 : Ord Int64
-ordInt64 = Ord eqInt64 { compare: unsafeCoerce (compareLong LT EQ GT) }
+ordInt64 = Ord eqInt64 { compare: unsafeCast (compareLong LT EQ GT) }
 
 pub instance
 ordFloat64 : Ord Float64
-ordFloat64 = Ord eqFloat64 { compare: unsafeCoerce (compareDouble LT EQ GT) }
+ordFloat64 = Ord eqFloat64 { compare: unsafeCast (compareDouble LT EQ GT) }
 
 pub instance
 ordByte : Ord Byte
-ordByte = Ord eqByte { compare: \x y -> let comp = unsafeCoerce (compareInt LT EQ GT) in comp (bToI x) (bToI y) }
+ordByte = Ord eqByte { compare: \x y -> let comp = unsafeCast (compareInt LT EQ GT) in comp (bToI x) (bToI y) }
 
 pub instance
 ordInt16 : Ord Int16
-ordInt16 = Ord eqInt16 { compare: \x y -> let comp = unsafeCoerce (compareInt LT EQ GT) in comp (sToI x) (sToI y) }
+ordInt16 = Ord eqInt16 { compare: \x y -> let comp = unsafeCast (compareInt LT EQ GT) in comp (sToI x) (sToI y) }
 
 pub instance
 ordFloat32 : Ord Float32
-ordFloat32 = Ord eqFloat32 { compare: \x y -> let comp = unsafeCoerce (compareDouble LT EQ GT) in comp (fToD x) (fToD y) }
+ordFloat32 = Ord eqFloat32 { compare: \x y -> let comp = unsafeCast (compareDouble LT EQ GT) in comp (fToD x) (fToD y) }
 
 pub instance
 ordChar : Ord Char
-ordChar = Ord eqChar { compare: unsafeCoerce (compareChar LT EQ GT) }
+ordChar = Ord eqChar { compare: unsafeCast (compareChar LT EQ GT) }
 
 compareBoolean : Boolean -> Boolean -> Ordering
 compareBoolean =
@@ -797,7 +817,7 @@ ordBoolean = Ord eqBoolean { compare: compareBoolean }
 
 pub instance
 ordString : Ord String
-ordString = Ord eqString { compare: unsafeCoerce (compareString LT EQ GT) }
+ordString = Ord eqString { compare: unsafeCast (compareString LT EQ GT) }
 
 /**
  * Represents a computation that can fail.
@@ -839,14 +859,14 @@ opaque type Atom a = AtomicReference
  */
 pub
 atom : a -> Atom a
-atom x = Atom (newAtom (unsafeCoerce x))
+atom x = Atom (newAtom (unsafeCast x))
 
 /**
  * Returns the value inside this Atom.
  */
 pub
 deref : Atom a -> a
-deref (Atom a) = unsafeCoerce (atomGet a)
+deref (Atom a) = unsafeCast (atomGet a)
 
 /**
  * Resets the value of this Atom to x, discarding the old value.
@@ -855,7 +875,7 @@ deref (Atom a) = unsafeCoerce (atomGet a)
 pub
 reset : a -> Atom a -> a
 reset x (Atom a) = do
-  atomSet a (unsafeCoerce x)
+  atomSet a (unsafeCast x)
   x
 
 /**
@@ -865,7 +885,7 @@ reset x (Atom a) = do
  */
 pub
 swap : (a -> a) -> Atom a -> a
-swap f (Atom a) = unsafeCoerce (swapAtom a (unsafeCoerce f))
+swap f (Atom a) = unsafeCast (swapAtom a (unsafeCast f))
 
 /**
  * Low-level function that receives the old value, the new value and attempts
@@ -875,4 +895,4 @@ swap f (Atom a) = unsafeCoerce (swapAtom a (unsafeCoerce f))
  */
 pub
 compareAndSet : a -> a -> Atom a -> Boolean
-compareAndSet old new (Atom atm) = atomCmpAndSet atm (unsafeCoerce old) (unsafeCoerce new)
+compareAndSet old new (Atom atm) = atomCmpAndSet atm (unsafeCast old) (unsafeCast new)

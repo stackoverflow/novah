@@ -9,8 +9,6 @@ foreign import ArrayList.add(String)
 
 type Day = Weekday | Weekend
 
-type Result k e = Ok k | Err e
-
 type Triple a b c = Triple a b c Int String
 
 bar : Unit -> Option Foo

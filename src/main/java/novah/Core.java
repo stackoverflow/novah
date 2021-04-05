@@ -392,6 +392,14 @@ public class Core {
         }
     }
     
+    public static boolean and(boolean cond1, boolean cond2) {
+        return cond1 && cond2;
+    }
+
+    public static boolean or(boolean cond1, boolean cond2) {
+        return cond1 || cond2;
+    }
+    
     @SuppressWarnings("unchecked")
     public static <T, T2> T unsafeCoerce(T2 o) {
         return (T) o;
