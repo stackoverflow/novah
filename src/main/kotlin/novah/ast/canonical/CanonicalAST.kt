@@ -262,5 +262,5 @@ fun Expr.show(): String = when (this) {
         val fin = if (finallyExp != null) "\nfinally ${finallyExp.show()}" else ""
         "try ${tryExp.show()}\ncatch\n  $cs$fin"
     }
-    is Expr.While -> "while ${cond.show()} then\n  " + exps.joinToString("\n  ") { it.show() }
+    is Expr.While -> "while ${cond.show()} do\n  " + exps.joinToString("\n  ") { it.show() }
 }

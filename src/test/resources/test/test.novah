@@ -9,7 +9,7 @@ toStr arr = toStringArr (unsafeCast arr)
 
 bla () = do
   let atm = atom 10
-  while deref atm > 0 then
+  while deref atm > 0 do
     println atm
     swap (_ - 1) atm
 

@@ -208,7 +208,7 @@ class Formatter {
             }
             is Expr.While -> {
                 val cond = show(e.cond)
-                "while $cond then" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
+                "while $cond do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
         }
     }

@@ -371,9 +371,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return parseType()
     }
 
-    private fun parseExpression(inDo: Boolean = false): Expr {
+    private fun parseExpression(inDo: Boolean = false, allowDo: Boolean = true): Expr {
         val tk = iter.peek()
-        val exps = tryParseListOf(true) { tryParseAtom(inDo) }
+        val exps = tryParseListOf(true) { tryParseAtom(inDo, allowDo) }
         // sanity check
         if (exps.size > 1) {
             val doLets = exps.filterIsInstance<Expr.DoLet>()
@@ -392,7 +392,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         } else unrolled
     }
 
-    private fun tryParseAtom(inDo: Boolean = false): Expr? {
+    private fun tryParseAtom(inDo: Boolean = false, allowDo: Boolean = true): Expr? {
         val exp = when (iter.peek().value) {
             is IntT -> parseInt32()
             is LongT -> parseInt64()
@@ -433,7 +433,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is IfT -> parseIf()
             is LetT -> parseLet(inDo)
             is CaseT -> parseMatch()
-            is Do -> parseDo()
+            is Do -> if (allowDo) parseDo() else null
             is LBracket -> parseRecordOrImplicit()
             is LSBracket -> {
                 val tk = iter.next()
@@ -1011,8 +1011,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseWhile(): Expr {
         val whil = expect<WhileT>(noErr())
         val cond = withIgnoreOffside {
-            val exp = parseExpression()
-            expect<Then>(withError(E.THEN_WHILE))
+            val exp = parseExpression(allowDo = false)
+            expect<Do>(withError(E.DO_WHILE))
             exp
         }
         if (!cond.isSimpleExpr()) throwError(E.EXP_SIMPLE to cond.span)
