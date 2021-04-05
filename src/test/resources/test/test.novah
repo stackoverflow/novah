@@ -8,7 +8,7 @@ toStr : Array a -> String
 toStr arr = toStringArr (unsafeCast arr)
 
 bla () = do
-  let atm = atom 10
+  let atm = atom 5
   while deref atm > 0 do
     println atm
     swap (_ - 1) atm
@@ -20,11 +20,9 @@ main _ = do
   let printArr = toStr >> println
   arraySet 2 99 arr
   format "these options are equal: %s" [Some 3 == Some 4] |> println
-  None ?: 3 |> println
   #{1, 2, 3} ++ #{5, 6, 7} |> println
   printArr arr
   println (show (Err 45 : Result Int Int))
-  println (V.nth 8L [56, 777, 1237, 12])
   format "some %s once told %s" ["body", "me"] |> println
   println (true && false)
   bla ()

@@ -116,8 +116,13 @@ object Errors {
 
     const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
 
-    const val NOT_A_FUNCTION = "Expected expression to be a function."
-
+    val NOT_A_FUNCTION = """
+        Expected expression to be a function.
+        If you are trying to pass an instance argument to a function explicitily
+        make sure to use the {{}} syntax.
+        Ex.: myFunction {{parameter}}
+    """.trimIndent()
+    
     const val TYPEALIAS_NAME = "Expected name for typealias."
 
     const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
@@ -206,6 +211,9 @@ object Errors {
     """.trimIndent()
 
     fun wrongArityToCase(got: Int, expected: Int) = "Case expression expected $expected patterns but got $got."
+    
+    fun wrongArityCtorPattern(name: String, got: Int, expected: Int) =
+        "Constructor pattern $name expected $expected parameter(s) but got $got."
 
     fun noTypeAnnDecl(name: String) = """
         No type annotation given for top-level declaration $name.

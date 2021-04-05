@@ -819,6 +819,21 @@ pub instance
 ordString : Ord String
 ordString = Ord eqString { compare: unsafeCast (compareString LT EQ GT) }
 
+compareOption : Ord a -> Option a -> Option a -> Ordering
+compareOption (Ord _ o) = case _, _ of
+  Some x, Some y -> o.compare x y
+  Some _, None -> GT
+  None, Some _ -> LT
+  None, None -> EQ
+
+/**
+ * Compares two options if their values are comparable.
+ * None values are always smaller then Some.
+ */
+pub instance
+ordOption : {{ Ord a }} -> Ord (Option a)
+ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption ord }
+
 /**
  * Represents a computation that can fail.
  * Should be used to represent errors instead of exceptions.
@@ -896,3 +911,14 @@ swap f (Atom a) = unsafeCast (swapAtom a (unsafeCast f))
 pub
 compareAndSet : a -> a -> Atom a -> Boolean
 compareAndSet old new (Atom atm) = atomCmpAndSet atm (unsafeCast old) (unsafeCast new)
+
+equalsAtom : Equals a -> Atom a -> Atom a -> Boolean
+equalsAtom (Equals eq) x y = eq.equals (deref x) (deref y)
+
+pub instance
+eqAtom : {{ Equals a }} -> Equals (Atom a)
+eqAtom {{eq}} = Equals { equals: equalsAtom eq }
+
+pub instance
+showAtom : {{ Show a }} -> Show (Atom a)
+showAtom {{Show s}} = Show { show: \atm -> format "(Atom %s)" [s.show (deref atm)] }

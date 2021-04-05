@@ -359,7 +359,7 @@ object Inference {
                 unify(ret, ty, pat.ctor.span)
 
                 if (ctorTypes.size - pat.fields.size != 0)
-                    internalError("unified two constructors with wrong kinds: $pat")
+                    inferError(E.wrongArityCtorPattern(pat.ctor.name, pat.fields.size, ctorTypes.size), pat.span)
 
                 if (ctorTypes.isEmpty()) emptyList()
                 else {
