@@ -198,6 +198,14 @@ class Environment(classPath: String, private val verbose: Boolean) {
             return if (classLoader == null) internalError("Novah class loader is null")
             else classLoader!!
         }
+        
+        private val constructorTypes = mutableMapOf<String, Type>()
+        
+        fun cacheConstructorType(name: String, type: Type) {
+            constructorTypes[name] = type
+        }
+        
+        fun findConstructor(name: String): Type? = constructorTypes[name]
     }
 }
 

@@ -922,3 +922,10 @@ eqAtom {{eq}} = Equals { equals: equalsAtom eq }
 pub instance
 showAtom : {{ Show a }} -> Show (Atom a)
 showAtom {{Show s}} = Show { show: \atm -> format "(Atom %s)" [s.show (deref atm)] }
+
+pub+
+type List a = Nil | Cons a (List a)
+
+pub
+(::) : a -> List a -> List a
+(::) = Cons

@@ -25,9 +25,10 @@ import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
-import novah.frontend.typechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
+import novah.frontend.typechecker.*
+import novah.main.Environment
 import org.objectweb.asm.Type
 import java.util.function.Function
 import io.lacuna.bifurcan.List as PList
@@ -336,13 +337,13 @@ class Optimizer(private val ast: CModule) {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                val (fieldTypes, _) = peelArgs(p.ctor.type!!)
-                val expectedFieldTypes = exp.type.pars
-
                 val ctor = p.ctor.convert(locals) as Expr.Constructor
-                val name = p.ctor.fullname(ast.name)
+                val name = p.ctor.fullname(p.ctor.moduleName ?: ast.name)
                 val ctorType = Clazz(Type.getObjectType(internalize(name)))
                 conds += Expr.InstanceOf(exp, ctorType, p.span)
+
+                val (fieldTypes, _) = peelArgs(Environment.findConstructor(name)!!)
+                val expectedFieldTypes = exp.type.pars
 
                 p.fields.forEachIndexed { i, pat ->
                     val idx = i + 1

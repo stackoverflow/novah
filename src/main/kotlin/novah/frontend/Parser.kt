@@ -690,7 +690,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 cases
             }
         }
-        
+
         val fin = if (iter.peek().value is FinallyT) {
             iter.next()
             withOffside { parseExpression() }
@@ -802,8 +802,16 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     Pattern.Unit(span(tk.span, end.span))
                 } else {
                     val pat = parsePattern()
-                    val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
-                    Pattern.Parens(pat, span(tk.span, tkEnd.span))
+                    
+                    if (iter.peek().value.isDoubleColon()) {
+                        iter.next()
+                        val right = parsePattern()
+                        val tkEnd = expect<RParen>(withError(E.rparensExpected("list pattern declaration")))
+                        Pattern.ListP(pat, right, span(pat.span, tkEnd.span))
+                    } else {
+                        val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
+                        Pattern.Parens(pat, span(tk.span, tkEnd.span))
+                    }
                 }
             }
             is UpperIdent -> {
@@ -974,8 +982,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         val freeVars = pars.flatMap { it.findFreeVars(typeVars) }
         if (freeVars.isNotEmpty()) {
-            val tk = ctor.copy(span = span(ctor.span, iter.current().span))
-            throwError(withError(E.undefinedVarInCtor(ctor.value.v, freeVars))(tk))
+            throwError(E.undefinedVarInCtor(ctor.value.v, freeVars) to span(ctor.span, iter.current().span))
         }
         return DataConstructor(ctor.value.v, pars, vis, span(ctor.span, iter.current().span))
     }
@@ -1007,7 +1014,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
         }
     }
-    
+
     private fun parseWhile(): Expr {
         val whil = expect<WhileT>(noErr())
         val cond = withIgnoreOffside {
@@ -1015,7 +1022,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             expect<Do>(withError(E.DO_WHILE))
             exp
         }
-        if (!cond.isSimpleExpr()) throwError(E.EXP_SIMPLE to cond.span)
+        if (!cond.isSimple()) throwError(E.EXP_SIMPLE to cond.span)
 
         val firstTk = iter.peek()
         val align = firstTk.offside()

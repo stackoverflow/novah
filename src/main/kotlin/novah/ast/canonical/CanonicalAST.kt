@@ -104,6 +104,8 @@ sealed class Expr(open val span: Span) {
 
     data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
 
+    // end of subclasses
+
     var implicitContext: ImplicitContext? = null
 
     var type: Type? = null

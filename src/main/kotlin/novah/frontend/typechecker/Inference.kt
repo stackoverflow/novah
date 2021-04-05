@@ -4,7 +4,10 @@ import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
 import novah.ast.canonical.*
-import novah.data.*
+import novah.data.LabelMap
+import novah.data.isEmpty
+import novah.data.mapList
+import novah.data.singletonPMap
 import novah.frontend.Span
 import novah.frontend.typechecker.Type.Companion.nestArrows
 import novah.frontend.typechecker.Typechecker.context
@@ -45,6 +48,7 @@ object Inference {
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
+                Environment.cacheConstructorType("${ast.name}.${dc.name}", dcty)
                 decls[dc.name] = DeclRef(dcty, dc.visibility, false)
             }
             types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
