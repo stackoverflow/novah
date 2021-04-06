@@ -16,4 +16,3 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Use ropes instead of char arrays to process strings
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
-- [ ] Use removeFirst for VectorHT pattern matching

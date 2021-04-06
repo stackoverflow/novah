@@ -422,9 +422,7 @@ class Optimizer(private val ast: CModule) {
                 conds += Expr.NativeStaticMethod(vecNotEmpty, listOf(exp), boolType, p.span)
                 val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
-                val sizeExp = Expr.NativeMethod(vecSize, exp, emptyList(), longType, p.span)
-                val tailExp = Expr.NativeMethod(vecSlice, exp,
-                    listOf(Expr.Int64(1, longType, p.span), sizeExp), type, p.span)
+                val tailExp = Expr.NativeMethod(vecTail, exp, emptyList(), type, p.span)
 
                 val (hCond, hVs) = desugarPattern(p.head, headExp)
                 val (tCond, tVs) = desugarPattern(p.tail, tailExp)
@@ -598,7 +596,7 @@ class Optimizer(private val ast: CModule) {
 
         val vecSize = PList::class.java.methods.find { it.name == "size" }!!
         private val vecAccess = PList::class.java.methods.find { it.name == "nth" }!!
-        private val vecSlice = PList::class.java.methods.find { it.name == "slice" }!!
+        private val vecTail = PList::class.java.methods.find { it.name == "removeFirst" }!!
         private val vecNotEmpty = Core::class.java.methods.find { it.name == "vectorNotEmpty" }!!
         val eqInt = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
