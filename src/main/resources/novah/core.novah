@@ -923,9 +923,31 @@ pub instance
 showAtom : {{ Show a }} -> Show (Atom a)
 showAtom {{Show s}} = Show { show: \atm -> format "(Atom %s)" [s.show (deref atm)] }
 
+/**
+ * An immutable linked list.
+ * A vector should be prefered over this class unless the only needed operations are
+ * appending to or removing from the head of the list. Any other operation will be
+ * faster on vectors.
+ */
 pub+
 type List a = Nil | Cons a (List a)
 
+/**
+ * An alias to the Cons constructor of a list.
+ */
 pub
 (::) : a -> List a -> List a
 (::) = Cons
+
+showList_ : Show a -> List a -> String
+showList_ (Show s) l =
+  let innerShow = case _ of
+    Nil -> "Nil"
+    (x :: xs) -> s.show x ++ " :: " ++ innerShow xs
+  in case l of
+    Nil -> "Nil"
+    (_ :: _) as list -> "(" ++ innerShow list ++ ")"
+
+pub instance
+showList : {{ Show a }} -> Show (List a)
+showList {{s}} = Show { show: showList_ s }

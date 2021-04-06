@@ -17,6 +17,7 @@ package novah.ast.optimized
 
 import novah.ast.source.Visibility
 import novah.data.LabelMap
+import novah.data.mapList
 import novah.frontend.Span
 import org.objectweb.asm.Label
 import org.objectweb.asm.Type
@@ -186,6 +187,44 @@ data class Catch(val exception: Clazz, val binder: String?, val expr: Expr, val 
     var labels: Pair<Label, Label>? = null
 }
 
+/**
+ * Visit every expression in this AST (bottom->up)
+ */
+fun Expr.everywhere(f: (Expr) -> Expr): Expr {
+    fun go(e: Expr): Expr = when (e) {
+        is Expr.Lambda -> f(e.copy(body = go(e.body)))
+        is Expr.App -> f(e.copy(fn = go(e.fn), arg = go(e.arg)))
+        is Expr.CtorApp -> f(e.copy(ctor = go(e.ctor) as Expr.Constructor, args = e.args.map(::go)))
+        is Expr.If -> f(e.copy(conds = e.conds.map { (c, t) -> go(c) to go(t) }, elseCase = go(e.elseCase)))
+        is Expr.Let -> f(e.copy(bindExpr = go(e.bindExpr), body = go(e.body)))
+        is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.OperatorApp -> f(e.copy(operands = e.operands.map(::go)))
+        is Expr.InstanceOf -> f(e.copy(exp = go(e.exp)))
+        is Expr.NativeFieldGet -> f(e.copy(thisPar = go(e.thisPar)))
+        is Expr.NativeFieldSet -> f(e.copy(thisPar = go(e.thisPar), par = go(e.par)))
+        is Expr.NativeStaticFieldSet -> f(e.copy(par = go(e.par)))
+        is Expr.NativeMethod -> f(e.copy(thisPar = go(e.thisPar), pars = e.pars.map(::go)))
+        is Expr.NativeStaticMethod -> f(e.copy(pars = e.pars.map(::go)))
+        is Expr.NativeCtor -> f(e.copy(pars = e.pars.map(::go)))
+        is Expr.Throw -> f(e.copy(expr = go(e.expr)))
+        is Expr.Cast -> f(e.copy(expr = go(e.expr)))
+        is Expr.RecordExtend -> f(e.copy(labels = e.labels.mapList(::go), expr = go(e.expr)))
+        is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
+        is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
+        is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.TryCatch -> {
+            val tryy = go(e.tryExpr)
+            val cs = e.catches.map { it.copy(expr = go(it.expr)) }
+            f(e.copy(tryExpr = tryy, catches = cs, finallyExp = e.finallyExp?.let(::go)))
+        }
+        is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
+        else -> f(e)
+    }
+    return go(this)
+}
+
 fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = when {
     binds.isEmpty() -> body
     else -> {
@@ -200,6 +239,7 @@ data class Clazz(val type: Type, val pars: List<Clazz> = emptyList(), val labels
     fun isFloat32() = type.className == "java.lang.Float"
     fun isFloat64() = type.className == "java.lang.Double"
     fun isString() = type.className == "java.lang.String"
+    fun isFunction() = type.className == "java.util.function.Function"
 }
 
 fun Expr.Var.fullname() = "$className.$name"

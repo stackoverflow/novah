@@ -20,7 +20,6 @@ import io.lacuna.bifurcan.Set
 import novah.Core
 import novah.ast.optimized.*
 import novah.collections.Record
-import novah.data.mapList
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
 import novah.optimize.Optimizer.Companion.eqDouble
 import novah.optimize.Optimizer.Companion.eqFloat
@@ -51,7 +50,7 @@ object Optimization {
      * Ex.: ((Tuple 1) 2) -> new Tuple(1, 2)
      */
     private fun optimizeCtorApplication(expr: Expr): Expr {
-        return everywhere(expr) { e ->
+        return expr.everywhere { e ->
             if (e !is App) e
             else {
                 var level = 0
@@ -100,7 +99,7 @@ object Optimization {
      * Ex.: ((&& ((&& true) a)) y) -> (&& true a y)
      */
     private fun optimizeFunctionAndOperatorApplication(expr: Expr): Expr {
-        return everywhere(expr) { e ->
+        return expr.everywhere { e ->
             if (e !is App) e
             else {
                 val fn = e.fn
@@ -233,44 +232,6 @@ object Optimization {
                 }
             }
         }
-    }
-
-    /**
-     * Visit every expression in this AST (bottom->up)
-     */
-    private fun everywhere(expr: Expr, f: (Expr) -> Expr): Expr {
-        fun go(e: Expr): Expr = when (e) {
-            is Expr.Lambda -> f(e.copy(body = go(e.body)))
-            is Expr.App -> f(e.copy(fn = go(e.fn), arg = go(e.arg)))
-            is Expr.CtorApp -> f(e.copy(ctor = go(e.ctor) as Expr.Constructor, args = e.args.map(::go)))
-            is Expr.If -> f(e.copy(conds = e.conds.map { (c, t) -> go(c) to go(t) }, elseCase = go(e.elseCase)))
-            is Expr.Let -> f(e.copy(bindExpr = go(e.bindExpr), body = go(e.body)))
-            is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
-            is Expr.OperatorApp -> f(e.copy(operands = e.operands.map(::go)))
-            is Expr.InstanceOf -> f(e.copy(exp = go(e.exp)))
-            is Expr.NativeFieldGet -> f(e.copy(thisPar = go(e.thisPar)))
-            is Expr.NativeFieldSet -> f(e.copy(thisPar = go(e.thisPar), par = go(e.par)))
-            is Expr.NativeStaticFieldSet -> f(e.copy(par = go(e.par)))
-            is Expr.NativeMethod -> f(e.copy(thisPar = go(e.thisPar), pars = e.pars.map(::go)))
-            is Expr.NativeStaticMethod -> f(e.copy(pars = e.pars.map(::go)))
-            is Expr.NativeCtor -> f(e.copy(pars = e.pars.map(::go)))
-            is Expr.Throw -> f(e.copy(expr = go(e.expr)))
-            is Expr.Cast -> f(e.copy(expr = go(e.expr)))
-            is Expr.RecordExtend -> f(e.copy(labels = e.labels.mapList(::go), expr = go(e.expr)))
-            is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
-            is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
-            is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
-            is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
-            is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))
-            is Expr.TryCatch -> {
-                val tryy = go(e.tryExpr)
-                val cs = e.catches.map { it.copy(expr = go(it.expr)) }
-                f(e.copy(tryExpr = tryy, catches = cs, finallyExp = e.finallyExp?.let(::go)))
-            }
-            is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
-            else -> f(e)
-        }
-        return go(expr)
     }
 
     private fun comp(vararg fs: (Expr) -> Expr): (Expr) -> Expr = { e ->

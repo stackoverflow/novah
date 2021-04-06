@@ -16,6 +16,7 @@
 package novah.optimize
 
 import novah.Core
+import novah.RecFunction
 import novah.Util.internalError
 import novah.ast.canonical.*
 import novah.ast.optimized.*
@@ -30,6 +31,7 @@ import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
 import novah.main.Environment
 import org.objectweb.asm.Type
+import java.lang.reflect.Constructor
 import java.util.function.Function
 import io.lacuna.bifurcan.List as PList
 import novah.ast.canonical.Binder as CBinder
@@ -186,7 +188,9 @@ class Optimizer(private val ast: CModule) {
             )
             is CExpr.Let -> {
                 val binder = Names.convert(letDef.binder.convert())
-                Expr.Let(binder, letDef.expr.convert(locals), body.convert(locals + binder), typ, span)
+                val lcs = locals + binder
+                val let = Expr.Let(binder, letDef.expr.convert(lcs), body.convert(lcs), typ, span)
+                if (letDef.recursive) makeRecursiveLet(let) else let
             }
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ, span)
@@ -260,6 +264,31 @@ class Optimizer(private val ast: CModule) {
             Clazz(RECORD_TYPE, labels = rows.mapList { it.convert() })
         }
         is TImplicit -> type.convert()
+    }
+
+    /**
+     * Uses a fixpoint operator to make recursive lets
+     * work at runtime.
+     */
+    private fun makeRecursiveLet(let: Expr.Let): Expr {
+        val bindTy = let.bindExpr.type
+        // should not happen
+        if (!bindTy.isFunction()) return let
+        
+        val binder = let.binder + "\$rec"
+        val recFunTy = Clazz(Type.getObjectType("novah/RecFunction"), bindTy.pars)
+        val recCtor = Expr.NativeCtor(newRecFun, emptyList(), recFunTy, let.bindExpr.span)
+        val recVar = Expr.LocalVar(binder, recFunTy, let.bindExpr.span)
+        val getRec = Expr.NativeFieldGet(recFunField, recVar, bindTy, let.bindExpr.span)
+        
+        val newBinderExpr = let.bindExpr.everywhere { e ->
+            if (e is Expr.LocalVar && e.name == let.binder) getRec else e
+        }
+        
+        val innerLet = Expr.Let(let.binder, getRec, let.body, let.type, let.span)
+        val fieldSet = Expr.NativeFieldSet(recFunField, recVar, newBinderExpr, newBinderExpr.type, newBinderExpr.span)
+        val recBody = Expr.Do(listOf(fieldSet, innerLet), let.type, let.span)
+        return Expr.Let(binder, recCtor, recBody, let.type, let.span)
     }
 
     private val stringType = tString.convert()
@@ -590,5 +619,7 @@ class Optimizer(private val ast: CModule) {
             it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
         }!!
         val eqString = String::class.java.methods.find { it.name == "equals" }!!
+        val newRecFun: Constructor<*> = RecFunction::class.java.constructors.first()
+        val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
     }
 }
