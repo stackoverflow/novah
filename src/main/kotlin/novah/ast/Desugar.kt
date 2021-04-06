@@ -103,13 +103,10 @@ class Desugar(private val smod: SModule) {
 
             var expr = nestLambdaPatterns(patterns, exp.desugar(), emptyList())
 
-            // if the declaration has a type annotation, annotate it, else warn
+            // if the declaration has a type annotation, annotate it
             expr = if (type != null) {
                 Expr.Ann(expr, type.desugar(), span)
-            } else {
-                warnings += makeWarn(E.noTypeAnnDecl(name), span)
-                expr
-            }
+            } else expr
             if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
         }

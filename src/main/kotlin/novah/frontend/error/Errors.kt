@@ -215,9 +215,13 @@ object Errors {
     fun wrongArityCtorPattern(name: String, got: Int, expected: Int) =
         "Constructor pattern $name expected $expected parameter(s) but got $got."
 
-    fun noTypeAnnDecl(name: String) = """
+    fun noTypeAnnDecl(name: String, inferedType: String) = """
         No type annotation given for top-level declaration $name.
         Consider adding a type annotation.
+        
+        The inferred type was:
+        
+            $inferedType
     """.trimIndent()
 
     fun expectedDefinition(name: String) = "Expected definition to follow its type declaration for $name."

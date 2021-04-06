@@ -34,6 +34,7 @@ import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
 import novah.frontend.resolveForeignImports
 import novah.frontend.resolveImports
+import novah.frontend.typechecker.Inference
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import novah.util.BufferedCharIterator
@@ -127,6 +128,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
             val canonical = desugar.desugar().unwrapOrElse { throwErrors(it) }
             warnings.addAll(desugar.getWarnings())
             val menv = Typechecker.infer(canonical).unwrapOrElse { throwErrors(it) }
+            warnings.addAll(Inference.getWarnings())
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
             modules[mod.data.name] = FullModuleEnv(menv, canonical, taliases)
