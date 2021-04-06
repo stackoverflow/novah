@@ -2,9 +2,8 @@ module novah.list
 
 /**
  * An immutable linked list.
- * A vector should be prefered over this type unless the only needed operations are
- * appending to or removing from the head of the list. Any other operation will be
- * faster on vectors.
+ * A vector should almost always be prefered over this type as vectors make for good linked lists.
+ * Most list operations are O(n) like `count`.
  */
 pub+
 type List a = Nil | Cons a (List a)
@@ -32,8 +31,8 @@ countList = Count { count: countList_ }
 showList_ : Show a -> List a -> String
 showList_ (Show s) l =
   let innerShow = case _ of
-    Nil -> "Nil"
-    Cons x xs -> s.show x ++ " :: " ++ innerShow xs
+        Nil -> "Nil"
+        Cons x xs -> s.show x ++ " :: " ++ innerShow xs
   in case l of
     Nil -> "Nil"
     Cons _ _ as list -> "(" ++ innerShow list ++ ")"
@@ -56,8 +55,8 @@ eqList {{eq}} = Equals { equals: eqList_ eq }
 appendList_ : List a -> List a -> List a
 appendList_ l1 l2 =
   let addTo to = case _ of
-    Nil -> to
-    Cons x xs -> addTo (x :: to) xs
+        Nil -> to
+        Cons x xs -> addTo (x :: to) xs
   in addTo Nil l1 |> addTo l2
 
 pub instance

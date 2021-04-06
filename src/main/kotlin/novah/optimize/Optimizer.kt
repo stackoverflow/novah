@@ -18,6 +18,7 @@ package novah.optimize
 import novah.Core
 import novah.RecFunction
 import novah.Util.internalError
+import novah.ast.Desugar
 import novah.ast.canonical.*
 import novah.ast.optimized.*
 import novah.ast.optimized.Decl
@@ -29,6 +30,7 @@ import novah.frontend.error.Severity
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
+import novah.main.CompilationError
 import novah.main.Environment
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
@@ -51,6 +53,7 @@ class Optimizer(private val ast: CModule) {
 
     private var haslambda = false
     private val warnings = mutableListOf<CompilerProblem>()
+    private val unusedImports: MutableMap<String, Span> = ast.unusedImports.toMutableMap()
 
     private var genVar = 0
 
@@ -59,7 +62,9 @@ class Optimizer(private val ast: CModule) {
     fun convert(): Result<Module, CompilerProblem> {
         return try {
             PatternMatchingCompiler.addConsToCache(ast)
-            Ok(ast.convert())
+            val optimized = ast.convert()
+            reportUnusedImports()
+            Ok(optimized)
         } catch (ie: InferenceError) {
             Err(CompilerProblem(ie.msg, ie.ctx, ie.span, ast.sourceName, ast.name))
         }
@@ -111,9 +116,9 @@ class Optimizer(private val ast: CModule) {
                 }
                 if (implicitContext != null) {
                     var v = vvar
-                    val ri = resolvedImplicits()
-                    ri.forEach { e ->
-                        v = Expr.App(v, e.convert(locals), getReturnType(v.type), span)
+                    resolvedImplicits().forEach { instance ->
+                        checkUseImport(instance)
+                        v = Expr.App(v, instance.convert(locals), getReturnType(v.type), span)
                     }
                     v
                 } else vvar
@@ -173,8 +178,9 @@ class Optimizer(private val ast: CModule) {
                     }
                 } else {
                     if (implicitContext != null) {
-                        val app = resolvedImplicits().fold(fn.convert(locals)) { acc, argg ->
-                            Expr.App(acc, argg.convert(locals), getReturnType(acc.type), span)
+                        val app = resolvedImplicits().fold(fn.convert(locals)) { acc, instance ->
+                            checkUseImport(instance)
+                            Expr.App(acc, instance.convert(locals), getReturnType(acc.type), span)
                         }
                         Expr.App(app, arg.convert(locals), typ, span)
                     } else Expr.App(fn.convert(locals), arg.convert(locals), typ, span)
@@ -216,15 +222,17 @@ class Optimizer(private val ast: CModule) {
             )
             is CExpr.Unit -> Expr.Unit(typ, span)
             is CExpr.RecordEmpty -> Expr.RecordEmpty(typ, span)
-            is CExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.convert(locals) },
-                exp.convert(locals), typ, span)
+            is CExpr.RecordExtend -> Expr.RecordExtend(
+                labels.mapList { it.convert(locals) },
+                exp.convert(locals), typ, span
+            )
             is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ, span)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ, span)
             is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Throw -> Expr.Throw(exp.convert(locals), span)
             is CExpr.TryCatch -> {
-                val catches = cases.map { 
+                val catches = cases.map {
                     val pat = it.patterns[0] as Pattern.TypeTest
                     val loc = if (pat.alias != null) locals + pat.alias else locals
                     Catch(pat.type.convert(), pat.alias, it.exp.convert(loc), pat.span)
@@ -274,17 +282,17 @@ class Optimizer(private val ast: CModule) {
         val bindTy = let.bindExpr.type
         // should not happen
         if (!bindTy.isFunction()) return let
-        
+
         val binder = let.binder + "\$rec"
         val recFunTy = Clazz(Type.getObjectType("novah/RecFunction"), bindTy.pars)
         val recCtor = Expr.NativeCtor(newRecFun, emptyList(), recFunTy, let.bindExpr.span)
         val recVar = Expr.LocalVar(binder, recFunTy, let.bindExpr.span)
         val getRec = Expr.NativeFieldGet(recFunField, recVar, bindTy, let.bindExpr.span)
-        
+
         val newBinderExpr = let.bindExpr.everywhere { e ->
             if (e is Expr.LocalVar && e.name == let.binder) getRec else e
         }
-        
+
         val innerLet = Expr.Let(let.binder, getRec, let.body, let.type, let.span)
         val fieldSet = Expr.NativeFieldSet(recFunField, recVar, newBinderExpr, newBinderExpr.type, newBinderExpr.span)
         val recBody = Expr.Do(listOf(fieldSet, innerLet), let.type, let.span)
@@ -324,7 +332,8 @@ class Optimizer(private val ast: CModule) {
             val castedExpr = Expr.Cast(ctorExpr, ctorType, ctorExpr.span)
             val field = Expr.ConstructorAccess(name, fieldIndex, castedExpr, fieldType, ctorExpr.span)
             return if (expectedFieldType == null || fieldType == expectedFieldType
-                || expectedFieldType.type == OBJECT_TYPE) field
+                || expectedFieldType.type == OBJECT_TYPE
+            ) field
             else Expr.Cast(field, expectedFieldType, ctorExpr.span)
         }
 
@@ -528,7 +537,7 @@ class Optimizer(private val ast: CModule) {
         val (pars, ret) = innerPeelArgs(emptyList(), type)
         return pars.map { it.convert() } to ret.convert()
     }
-    
+
     private fun getReturnType(type: Clazz): Clazz =
         if (type.pars.size > 1) type.pars[1] else type
 
@@ -541,6 +550,20 @@ class Optimizer(private val ast: CModule) {
             val unreacheable = res.redundantMatches.map { it.joinToString { p -> p.show() } }
             warnings += mkWarn(E.redundantMatches(unreacheable), expr.span)
         }
+    }
+
+    private fun checkUseImport(e: CExpr) {
+        if (unusedImports.isEmpty()) return
+        Desugar.collectVars(e).forEach { unusedImports.remove(it) }
+    }
+
+    private fun reportUnusedImports() {
+        if (unusedImports.isEmpty()) return
+        val errs = unusedImports.map { (vvar, span) ->
+            val msg = E.unusedImport(vvar)
+            CompilerProblem(msg, ProblemContext.DESUGAR, span, ast.sourceName, ast.name)
+        }
+        throw CompilationError(errs)
     }
 
     private fun mkWarn(msg: String, span: Span): CompilerProblem =

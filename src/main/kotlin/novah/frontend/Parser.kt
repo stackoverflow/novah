@@ -590,8 +590,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             true
         } else false
 
-        val origOffside = iter.offside() + 1
-
         val tk = iter.peek()
         val align = tk.offside()
         if (align <= iter.offside()) throwMismatchedIndentation(tk)
@@ -602,13 +600,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             if (inDo) {
                 while (!iter.peekIsOffside() && iter.peek().value !in statementEnding) {
                     defs += if (isInstance || iter.peek().value is Ident) {
-                        parseLetDefBind(isInstance, origOffside)
+                        parseLetDefBind(isInstance)
                     } else parseLetDefPattern()
                 }
             } else {
                 while (iter.peek().value != In) {
                     defs += if (isInstance || iter.peek().value is Ident) {
-                        parseLetDefBind(isInstance, origOffside)
+                        parseLetDefBind(isInstance)
                     } else parseLetDefPattern()
                 }
             }
@@ -626,7 +624,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return Expr.Let(defs, exp).withSpan(span).withComment(let.comment)
     }
 
-    private fun parseLetDefBind(isInstance: Boolean, origOffside: Int): LetDef {
+    private fun parseLetDefBind(isInstance: Boolean): LetDef {
         val ident = expect<Ident>(withError(E.LET_DECL))
         val name = ident.value.v
 
@@ -642,11 +640,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return withOffside {
             val vars = tryParseListOf { tryParsePattern(true) }
             expect<Equals>(withError(E.LET_EQUALS))
-            withOffside(origOffside) {
-                val exp = parseExpression()
-                val span = span(ident.span, exp.span)
-                LetDef.DefBind(Binder(ident.value.v, span), vars, exp, isInstance, type)
-            }
+            val exp = parseExpression()
+            val span = span(ident.span, exp.span)
+            LetDef.DefBind(Binder(ident.value.v, span), vars, exp, isInstance, type)
         }
     }
 

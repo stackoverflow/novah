@@ -33,7 +33,8 @@ import java.lang.reflect.Constructor as JConstructor
 data class Module(
     val name: String,
     val sourceName: String,
-    val decls: List<Decl>
+    val decls: List<Decl>,
+    val unusedImports: Map<String, Span>
 )
 
 sealed class Decl {
