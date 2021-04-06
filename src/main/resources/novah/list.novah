@@ -1,0 +1,65 @@
+module novah.list
+
+/**
+ * An immutable linked list.
+ * A vector should be prefered over this type unless the only needed operations are
+ * appending to or removing from the head of the list. Any other operation will be
+ * faster on vectors.
+ */
+pub+
+type List a = Nil | Cons a (List a)
+
+/**
+ * An alias to the Cons constructor of a list.
+ */
+pub
+(::) : a -> List a -> List a
+(::) = Cons
+
+countList_ : List a -> Int64
+countList_ = case _ of
+  Nil -> 0L
+  Cons _ xs -> 1L + (countList_ xs)
+
+/**
+ * Returns the size of this list.
+ * Runtime: O(n)
+ */
+pub instance
+countList : Count (List a)
+countList = Count { count: countList_ }
+
+showList_ : Show a -> List a -> String
+showList_ (Show s) l =
+  let innerShow = case _ of
+    Nil -> "Nil"
+    Cons x xs -> s.show x ++ " :: " ++ innerShow xs
+  in case l of
+    Nil -> "Nil"
+    Cons _ _ as list -> "(" ++ innerShow list ++ ")"
+
+pub instance
+showList : {{ Show a }} -> Show (List a)
+showList {{s}} = Show { show: showList_ s }
+
+eqList_ : Equals a -> List a -> List a -> Boolean
+eqList_ ((Equals eq) as equals) = case _, _ of
+  Nil, Nil -> true
+  Nil, _ -> false
+  _, Nil -> false
+  Cons x xs, Cons y ys -> eq.equals x y && eqList_ equals xs ys
+
+pub instance
+eqList : {{ Equals a }} -> Equals (List a)
+eqList {{eq}} = Equals { equals: eqList_ eq }
+
+appendList_ : List a -> List a -> List a
+appendList_ l1 l2 =
+  let addTo to = case _ of
+    Nil -> to
+    Cons x xs -> addTo (x :: to) xs
+  in addTo Nil l1 |> addTo l2
+
+pub instance
+appendList : Append (List a)
+appendList = Append { append: appendList_ }

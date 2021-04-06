@@ -1,5 +1,7 @@
 module test
 
+//import novah.list (::, List(..), appendList)
+import novah.list
 import novah.vector as V
 
 foreign import java.util.Arrays:toString(Array) as toStringArr

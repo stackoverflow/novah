@@ -806,16 +806,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                     Pattern.Unit(span(tk.span, end.span))
                 } else {
                     val pat = parsePattern()
-
-                    if (iter.peek().value.isDoubleColon()) {
-                        iter.next()
-                        val right = parsePattern()
-                        val tkEnd = expect<RParen>(withError(E.rparensExpected("list pattern declaration")))
-                        Pattern.ListP(pat, right, span(pat.span, tkEnd.span))
-                    } else {
-                        val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
-                        Pattern.Parens(pat, span(tk.span, tkEnd.span))
-                    }
+                    val tkEnd = expect<RParen>(withError(E.rparensExpected("pattern declaration")))
+                    Pattern.Parens(pat, span(tk.span, tkEnd.span))
                 }
             }
             is UpperIdent -> {

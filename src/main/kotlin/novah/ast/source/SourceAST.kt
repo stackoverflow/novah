@@ -303,7 +303,6 @@ sealed class Pattern(open val span: Span) {
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
     data class ImplicitPattern(val pat: Pattern, override val span: Span) : Pattern(span)
-    data class ListP(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
 }
 
 sealed class LiteralPattern {
