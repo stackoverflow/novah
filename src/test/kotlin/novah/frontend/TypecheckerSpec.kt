@@ -19,6 +19,7 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import novah.ast.Desugar
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
 import novah.frontend.typechecker.*
@@ -253,5 +254,16 @@ class TypecheckerSpec : StringSpec({
         val res = TestUtil.compileCode(code).env.decls
 
         res["fun"]?.type?.simpleName() shouldBe "Int32 -> t1 -> t1"
+    }
+
+    "Aliased operators are correctly compiled" {
+        val code = """
+            import novah.list as L
+            
+            x = 1 L.:: L.Nil
+        """.module()
+
+        val res = TestUtil.compileCode(code).env.decls
+        res["x"]?.type?.simpleName() shouldBe "List Int32"
     }
 })

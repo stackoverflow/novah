@@ -423,10 +423,20 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is UpperIdent -> {
                 val uident = expect<UpperIdent>(noErr())
-                if (iter.peek().value is Dot) {
-                    parseAliasedVar(uident)
-                } else {
-                    Expr.Constructor(uident.value.v).withSpanAndComment(uident)
+                val peek = iter.peek().value
+                when {
+                    peek is Dot -> {
+                        parseAliasedVar(uident)
+                    }
+                    peek.isDotStart() -> {
+                        val op = expect<Op>(noErr())
+                        Expr.Operator(op.value.op.substring(1), uident.value.v)
+                            .withSpan(uident.span, op.span)
+                            .withComment(uident.comment)
+                    }
+                    else -> {
+                        Expr.Constructor(uident.value.v).withSpanAndComment(uident)
+                    }
                 }
             }
             is Backslash -> parseLambda()
@@ -527,23 +537,16 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseAliasedVar(alias: Spanned<UpperIdent>): Expr {
         expect<Dot>(noErr())
-        return if (iter.peek().value is Op) {
-            val op = expect<Op>(noErr())
-            Expr.Operator(op.value.op, alias.value.v)
-                .withSpan(alias.span, op.span)
+        return if (iter.peek().value is Ident) {
+            val ident = expect<Ident>(withError(E.IMPORTED_DOT))
+            Expr.Var(ident.value.v, alias.value.v)
+                .withSpan(alias.span, ident.span)
                 .withComment(alias.comment)
         } else {
-            if (iter.peek().value is Ident) {
-                val ident = expect<Ident>(withError(E.IMPORTED_DOT))
-                Expr.Var(ident.value.v, alias.value.v)
-                    .withSpan(alias.span, ident.span)
-                    .withComment(alias.comment)
-            } else {
-                val ident = expect<UpperIdent>(withError(E.IMPORTED_DOT))
-                Expr.Constructor(ident.value.v, alias.value.v)
-                    .withSpan(alias.span, ident.span)
-                    .withComment(alias.comment)
-            }
+            val ident = expect<UpperIdent>(withError(E.IMPORTED_DOT))
+            Expr.Constructor(ident.value.v, alias.value.v)
+                .withSpan(alias.span, ident.span)
+                .withComment(alias.comment)
         }
     }
 

@@ -75,6 +75,8 @@ sealed class Token {
     data class Op(val op: String) : Token()
 
     fun isDoubleColon() = this is Op && op == "::"
+    
+    fun isDotStart() = this is Op && op.startsWith(".")
 
     override fun toString(): String = this.javaClass.simpleName
 }
