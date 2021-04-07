@@ -24,12 +24,11 @@ import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.CORE_MODULE
 import novah.frontend.typechecker.coreImport
 import novah.frontend.typechecker.primImport
+import kotlin.math.max
 import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
     private val iter = PeekableIterator(tokens, ::throwMismatchedIndentation)
-
-    private var nested = false
 
     private var moduleName: String? = null
 
@@ -273,7 +272,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseTypeDecl(visibility: Token?): Decl {
         val vis = if (visibility != null) Visibility.PUBLIC else Visibility.PRIVATE
         val typ = expect<TypeT>(noErr())
-        return withOffside(typ.offside() + 1, false) {
+        return withOffside(typ.offside() + 1) {
 
             val name = expect<UpperIdent>(withError(E.DATA_NAME)).value.v
 
@@ -296,7 +295,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val vis = if (visibility != null) Visibility.PUBLIC else Visibility.PRIVATE
         val tk = expect<Opaque>(noErr())
         expect<TypeT>(withError(E.INVALID_OPAQUE))
-        return withOffside(tk.offside() + 1, false) {
+        return withOffside(tk.offside() + 1) {
             val name = expect<UpperIdent>(withError(E.DATA_NAME)).value.v
 
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
@@ -331,11 +330,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             vis = Visibility.PUBLIC
         }
         val (nameTk, name) = parseName("")
-        return withOffside(nameTk.offside() + 1, false) {
+        return withOffside(nameTk.offside() + 1) {
             var type: Type? = null
             if (iter.peek().value is Colon) {
                 type = parseTypeSignature()
-                withOffside(nameTk.offside(), false) {
+                withOffside(nameTk.offside()) {
                     val (nameTk2, name2) = parseName(name)
                     if (name != name2) throwError(withError(E.expectedDefinition(name))(nameTk2))
                 }
@@ -357,7 +356,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
         val ta = expect<TypealiasT>(noErr())
         val name = expect<UpperIdent>(withError(E.TYPEALIAS_NAME))
-        return withOffside(ta.offside() + 1, false) {
+        return withOffside(ta.offside() + 1) {
             val tyVars = tryParseListOf { tryParseTypeVar() }
             val end = iter.current().span
             expect<Equals>(withError(E.TYPEALIAS_EQUALS))
@@ -372,6 +371,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseExpression(inDo: Boolean = false, allowDo: Boolean = true): Expr {
+        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val tk = iter.peek()
         val exps = tryParseListOf(true) { tryParseAtom(inDo, allowDo) }
         // sanity check
@@ -672,10 +672,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         expect<CatchT>(withError(E.NO_CATCH))
 
         val firstTk = iter.peek()
-        val align = firstTk.offside()
-        if (iter.peekIsOffside() || (nested && align <= iter.offside())) {
-            throwMismatchedIndentation(firstTk)
-        }
+        val align = max(firstTk.offside(), iter.offside() + 1)
+        if (firstTk.offside() > align) throwMismatchedIndentation(firstTk)
         val cases = withIgnoreOffside(false) {
             withOffside(align) {
                 val cases = mutableListOf<Case>()
@@ -714,10 +712,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val arity = exps.size
 
         val firstTk = iter.peek()
-        val align = firstTk.offside()
-        if (iter.peekIsOffside() || (nested && align <= iter.offside())) {
-            throwMismatchedIndentation(firstTk)
-        }
+        val align = max(firstTk.offside(), iter.offside() + 1)
+        if (firstTk.offside() > align) throwMismatchedIndentation(firstTk)
         return withIgnoreOffside(false) {
             withOffside(align) {
                 val cases = mutableListOf<Case>()
@@ -986,10 +982,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val doo = expect<Do>(noErr())
 
         val firstTk = iter.peek()
-        val align = firstTk.offside()
-        if (iter.peekIsOffside() || (nested && align <= iter.offside())) {
-            throwMismatchedIndentation(firstTk)
-        }
+        val align = max(firstTk.offside(), iter.offside() + 1)
+        if (firstTk.offside() > align) throwMismatchedIndentation(firstTk)
         return withIgnoreOffside(false) {
             withOffside(align) {
                 val exps = mutableListOf<Expr>()
@@ -1020,10 +1014,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         if (!cond.isSimple()) throwError(E.EXP_SIMPLE to cond.span)
 
         val firstTk = iter.peek()
-        val align = firstTk.offside()
-        if (iter.peekIsOffside() || (nested && align <= iter.offside())) {
-            throwMismatchedIndentation(firstTk)
-        }
+        val align = max(firstTk.offside(), iter.offside() + 1)
+        if (firstTk.offside() > align) throwMismatchedIndentation(firstTk)
         return withIgnoreOffside(false) {
             withOffside(align) {
                 val exps = mutableListOf<Expr>()
@@ -1223,14 +1215,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
     }
 
-    private fun <T> withOffside(off: Int = iter.offside() + 1, nested: Boolean = true, f: () -> T): T {
+    private fun <T> withOffside(off: Int = iter.offside() + 1, f: () -> T): T {
         val tmp = iter.offside()
-        val tmpNest = this.nested
-        this.nested = nested
         iter.withOffside(off)
         val res = f()
         iter.withOffside(tmp)
-        this.nested = tmpNest
         return res
     }
 
