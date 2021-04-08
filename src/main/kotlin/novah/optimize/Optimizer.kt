@@ -16,7 +16,9 @@
 package novah.optimize
 
 import novah.Core
+import novah.RecFunction
 import novah.Util.internalError
+import novah.ast.Desugar
 import novah.ast.canonical.*
 import novah.ast.optimized.*
 import novah.ast.optimized.Decl
@@ -25,10 +27,13 @@ import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
-import novah.frontend.typechecker.*
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
+import novah.frontend.typechecker.*
+import novah.main.CompilationError
+import novah.main.Environment
 import org.objectweb.asm.Type
+import java.lang.reflect.Constructor
 import java.util.function.Function
 import io.lacuna.bifurcan.List as PList
 import novah.ast.canonical.Binder as CBinder
@@ -48,6 +53,7 @@ class Optimizer(private val ast: CModule) {
 
     private var haslambda = false
     private val warnings = mutableListOf<CompilerProblem>()
+    private val unusedImports: MutableMap<String, Span> = ast.unusedImports.toMutableMap()
 
     private var genVar = 0
 
@@ -56,7 +62,9 @@ class Optimizer(private val ast: CModule) {
     fun convert(): Result<Module, CompilerProblem> {
         return try {
             PatternMatchingCompiler.addConsToCache(ast)
-            Ok(ast.convert())
+            val optimized = ast.convert()
+            reportUnusedImports()
+            Ok(optimized)
         } catch (ie: InferenceError) {
             Err(CompilerProblem(ie.msg, ie.ctx, ie.span, ast.sourceName, ast.name))
         }
@@ -108,9 +116,9 @@ class Optimizer(private val ast: CModule) {
                 }
                 if (implicitContext != null) {
                     var v = vvar
-                    val ri = resolvedImplicits()
-                    ri.forEach { e ->
-                        v = Expr.App(v, e.convert(locals), getReturnType(v.type), span)
+                    resolvedImplicits().forEach { instance ->
+                        checkUseImport(instance)
+                        v = Expr.App(v, instance.convert(locals), getReturnType(v.type), span)
                     }
                     v
                 } else vvar
@@ -170,8 +178,9 @@ class Optimizer(private val ast: CModule) {
                     }
                 } else {
                     if (implicitContext != null) {
-                        val app = resolvedImplicits().fold(fn.convert(locals)) { acc, argg ->
-                            Expr.App(acc, argg.convert(locals), getReturnType(acc.type), span)
+                        val app = resolvedImplicits().fold(fn.convert(locals)) { acc, instance ->
+                            checkUseImport(instance)
+                            Expr.App(acc, instance.convert(locals), getReturnType(acc.type), span)
                         }
                         Expr.App(app, arg.convert(locals), typ, span)
                     } else Expr.App(fn.convert(locals), arg.convert(locals), typ, span)
@@ -185,7 +194,9 @@ class Optimizer(private val ast: CModule) {
             )
             is CExpr.Let -> {
                 val binder = Names.convert(letDef.binder.convert())
-                Expr.Let(binder, letDef.expr.convert(locals), body.convert(locals + binder), typ, span)
+                val lcs = locals + binder
+                val let = Expr.Let(binder, letDef.expr.convert(lcs), body.convert(lcs), typ, span)
+                if (letDef.recursive) makeRecursiveLet(let) else let
             }
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ, span)
@@ -211,15 +222,17 @@ class Optimizer(private val ast: CModule) {
             )
             is CExpr.Unit -> Expr.Unit(typ, span)
             is CExpr.RecordEmpty -> Expr.RecordEmpty(typ, span)
-            is CExpr.RecordExtend -> Expr.RecordExtend(labels.mapList { it.convert(locals) },
-                exp.convert(locals), typ, span)
+            is CExpr.RecordExtend -> Expr.RecordExtend(
+                labels.mapList { it.convert(locals) },
+                exp.convert(locals), typ, span
+            )
             is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ, span)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ, span)
             is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Throw -> Expr.Throw(exp.convert(locals), span)
             is CExpr.TryCatch -> {
-                val catches = cases.map { 
+                val catches = cases.map {
                     val pat = it.patterns[0] as Pattern.TypeTest
                     val loc = if (pat.alias != null) locals + pat.alias else locals
                     Catch(pat.type.convert(), pat.alias, it.exp.convert(loc), pat.span)
@@ -261,6 +274,31 @@ class Optimizer(private val ast: CModule) {
         is TImplicit -> type.convert()
     }
 
+    /**
+     * Uses a fixpoint operator to make recursive lets
+     * work at runtime.
+     */
+    private fun makeRecursiveLet(let: Expr.Let): Expr {
+        val bindTy = let.bindExpr.type
+        // should not happen
+        if (!bindTy.isFunction()) return let
+
+        val binder = let.binder + "\$rec"
+        val recFunTy = Clazz(Type.getObjectType("novah/RecFunction"), bindTy.pars)
+        val recCtor = Expr.NativeCtor(newRecFun, emptyList(), recFunTy, let.bindExpr.span)
+        val recVar = Expr.LocalVar(binder, recFunTy, let.bindExpr.span)
+        val getRec = Expr.NativeFieldGet(recFunField, recVar, bindTy, let.bindExpr.span)
+
+        val newBinderExpr = let.bindExpr.everywhere { e ->
+            if (e is Expr.LocalVar && e.name == let.binder) getRec else e
+        }
+
+        val innerLet = Expr.Let(let.binder, getRec, let.body, let.type, let.span)
+        val fieldSet = Expr.NativeFieldSet(recFunField, recVar, newBinderExpr, newBinderExpr.type, newBinderExpr.span)
+        val recBody = Expr.Do(listOf(fieldSet, innerLet), let.type, let.span)
+        return Expr.Let(binder, recCtor, recBody, let.type, let.span)
+    }
+
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
     private val longType = tInt64.convert()
@@ -294,7 +332,8 @@ class Optimizer(private val ast: CModule) {
             val castedExpr = Expr.Cast(ctorExpr, ctorType, ctorExpr.span)
             val field = Expr.ConstructorAccess(name, fieldIndex, castedExpr, fieldType, ctorExpr.span)
             return if (expectedFieldType == null || fieldType == expectedFieldType
-                || expectedFieldType.type == OBJECT_TYPE) field
+                || expectedFieldType.type == OBJECT_TYPE
+            ) field
             else Expr.Cast(field, expectedFieldType, ctorExpr.span)
         }
 
@@ -336,13 +375,13 @@ class Optimizer(private val ast: CModule) {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                val (fieldTypes, _) = peelArgs(p.ctor.type!!)
-                val expectedFieldTypes = exp.type.pars
-
                 val ctor = p.ctor.convert(locals) as Expr.Constructor
-                val name = p.ctor.fullname(ast.name)
+                val name = p.ctor.fullname(p.ctor.moduleName ?: ast.name)
                 val ctorType = Clazz(Type.getObjectType(internalize(name)))
                 conds += Expr.InstanceOf(exp, ctorType, p.span)
+
+                val (fieldTypes, _) = peelArgs(Environment.findConstructor(name)!!)
+                val expectedFieldTypes = exp.type.pars
 
                 p.fields.forEachIndexed { i, pat ->
                     val idx = i + 1
@@ -392,9 +431,7 @@ class Optimizer(private val ast: CModule) {
                 conds += Expr.NativeStaticMethod(vecNotEmpty, listOf(exp), boolType, p.span)
                 val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
-                val sizeExp = Expr.NativeMethod(vecSize, exp, emptyList(), longType, p.span)
-                val tailExp = Expr.NativeMethod(vecSlice, exp,
-                    listOf(Expr.Int64(1, longType, p.span), sizeExp), type, p.span)
+                val tailExp = Expr.NativeMethod(vecTail, exp, emptyList(), type, p.span)
 
                 val (hCond, hVs) = desugarPattern(p.head, headExp)
                 val (tCond, tVs) = desugarPattern(p.tail, tailExp)
@@ -500,7 +537,7 @@ class Optimizer(private val ast: CModule) {
         val (pars, ret) = innerPeelArgs(emptyList(), type)
         return pars.map { it.convert() } to ret.convert()
     }
-    
+
     private fun getReturnType(type: Clazz): Clazz =
         if (type.pars.size > 1) type.pars[1] else type
 
@@ -513,6 +550,20 @@ class Optimizer(private val ast: CModule) {
             val unreacheable = res.redundantMatches.map { it.joinToString { p -> p.show() } }
             warnings += mkWarn(E.redundantMatches(unreacheable), expr.span)
         }
+    }
+
+    private fun checkUseImport(e: CExpr) {
+        if (unusedImports.isEmpty()) return
+        Desugar.collectVars(e).forEach { unusedImports.remove(it) }
+    }
+
+    private fun reportUnusedImports() {
+        if (unusedImports.isEmpty()) return
+        val errs = unusedImports.map { (vvar, span) ->
+            val msg = E.unusedImport(vvar)
+            CompilerProblem(msg, ProblemContext.DESUGAR, span, ast.sourceName, ast.name)
+        }
+        throw CompilationError(errs)
     }
 
     private fun mkWarn(msg: String, span: Span): CompilerProblem =
@@ -568,7 +619,7 @@ class Optimizer(private val ast: CModule) {
 
         val vecSize = PList::class.java.methods.find { it.name == "size" }!!
         private val vecAccess = PList::class.java.methods.find { it.name == "nth" }!!
-        private val vecSlice = PList::class.java.methods.find { it.name == "slice" }!!
+        private val vecTail = PList::class.java.methods.find { it.name == "removeFirst" }!!
         private val vecNotEmpty = Core::class.java.methods.find { it.name == "vectorNotEmpty" }!!
         val eqInt = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
@@ -589,5 +640,7 @@ class Optimizer(private val ast: CModule) {
             it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
         }!!
         val eqString = String::class.java.methods.find { it.name == "equals" }!!
+        val newRecFun: Constructor<*> = RecFunction::class.java.constructors.first()
+        val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
     }
 }

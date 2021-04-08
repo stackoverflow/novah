@@ -20,7 +20,6 @@ import io.lacuna.bifurcan.Set
 import novah.Core
 import novah.ast.optimized.*
 import novah.collections.Record
-import novah.data.mapList
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
 import novah.optimize.Optimizer.Companion.eqDouble
 import novah.optimize.Optimizer.Companion.eqFloat
@@ -51,7 +50,7 @@ object Optimization {
      * Ex.: ((Tuple 1) 2) -> new Tuple(1, 2)
      */
     private fun optimizeCtorApplication(expr: Expr): Expr {
-        return everywhere(expr) { e ->
+        return expr.everywhere { e ->
             if (e !is App) e
             else {
                 var level = 0
@@ -100,7 +99,7 @@ object Optimization {
      * Ex.: ((&& ((&& true) a)) y) -> (&& true a y)
      */
     private fun optimizeFunctionAndOperatorApplication(expr: Expr): Expr {
-        return everywhere(expr) { e ->
+        return expr.everywhere { e ->
             if (e !is App) e
             else {
                 val fn = e.fn
@@ -229,48 +228,65 @@ object Optimization {
                             && arg.type.isFloat64() -> {
                         Expr.NativeStaticMethod(ltEqDouble, listOf(fn.arg, arg), e.type, e.span)
                     }
+                    // optimize bitwise operations for Int and Long
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.bitNot" && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(bitNotInt, listOf(arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.bitNot" && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(bitNotLong, listOf(arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitAnd"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(bitAndInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitAnd"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(bitAndLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitOr"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(bitOrInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitOr"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(bitOrLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitXor"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(bitXorInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitXor"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(bitXorLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftLeft"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(bitShiftLeftInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftLeft"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(bitShiftLeftLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftRight"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(bitShiftRightInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftRight"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(bitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitUnsignedShiftRight"
+                            && arg.type.isInt32() -> {
+                        Expr.NativeStaticMethod(unsignedBitShiftRightInt, listOf(fn.arg, arg), e.type, e.span)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitUnsignedShiftRight"
+                            && arg.type.isInt64() -> {
+                        Expr.NativeStaticMethod(unsignedBitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
+                    }
                     else -> e
                 }
             }
         }
-    }
-
-    /**
-     * Visit every expression in this AST (bottom->up)
-     */
-    private fun everywhere(expr: Expr, f: (Expr) -> Expr): Expr {
-        fun go(e: Expr): Expr = when (e) {
-            is Expr.Lambda -> f(e.copy(body = go(e.body)))
-            is Expr.App -> f(e.copy(fn = go(e.fn), arg = go(e.arg)))
-            is Expr.CtorApp -> f(e.copy(ctor = go(e.ctor) as Expr.Constructor, args = e.args.map(::go)))
-            is Expr.If -> f(e.copy(conds = e.conds.map { (c, t) -> go(c) to go(t) }, elseCase = go(e.elseCase)))
-            is Expr.Let -> f(e.copy(bindExpr = go(e.bindExpr), body = go(e.body)))
-            is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
-            is Expr.OperatorApp -> f(e.copy(operands = e.operands.map(::go)))
-            is Expr.InstanceOf -> f(e.copy(exp = go(e.exp)))
-            is Expr.NativeFieldGet -> f(e.copy(thisPar = go(e.thisPar)))
-            is Expr.NativeFieldSet -> f(e.copy(thisPar = go(e.thisPar), par = go(e.par)))
-            is Expr.NativeStaticFieldSet -> f(e.copy(par = go(e.par)))
-            is Expr.NativeMethod -> f(e.copy(thisPar = go(e.thisPar), pars = e.pars.map(::go)))
-            is Expr.NativeStaticMethod -> f(e.copy(pars = e.pars.map(::go)))
-            is Expr.NativeCtor -> f(e.copy(pars = e.pars.map(::go)))
-            is Expr.Throw -> f(e.copy(expr = go(e.expr)))
-            is Expr.Cast -> f(e.copy(expr = go(e.expr)))
-            is Expr.RecordExtend -> f(e.copy(labels = e.labels.mapList(::go), expr = go(e.expr)))
-            is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
-            is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
-            is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
-            is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
-            is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))
-            is Expr.TryCatch -> {
-                val tryy = go(e.tryExpr)
-                val cs = e.catches.map { it.copy(expr = go(it.expr)) }
-                f(e.copy(tryExpr = tryy, catches = cs, finallyExp = e.finallyExp?.let(::go)))
-            }
-            is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
-            else -> f(e)
-        }
-        return go(expr)
     }
 
     private fun comp(vararg fs: (Expr) -> Expr): (Expr) -> Expr = { e ->
@@ -295,6 +311,20 @@ object Optimization {
     private val ltDouble = Core::class.java.methods.find { it.name == "smallerDouble" }!!
     private val gtEqDouble = Core::class.java.methods.find { it.name == "greaterOrEqualsDouble" }!!
     private val ltEqDouble = Core::class.java.methods.find { it.name == "smallerOrEqualsDouble" }!!
+    private val bitAndInt = Core::class.java.methods.find { it.name == "bitAndInt" }!!
+    private val bitOrInt = Core::class.java.methods.find { it.name == "bitOrInt" }!!
+    private val bitXorInt = Core::class.java.methods.find { it.name == "bitXorInt" }!!
+    private val bitNotInt = Core::class.java.methods.find { it.name == "bitNotInt" }!!
+    private val bitShiftLeftInt = Core::class.java.methods.find { it.name == "bitShiftLeftInt" }!!
+    private val bitShiftRightInt = Core::class.java.methods.find { it.name == "bitShiftRightInt" }!!
+    private val unsignedBitShiftRightInt = Core::class.java.methods.find { it.name == "unsignedBitShiftRightInt" }!!
+    private val bitAndLong = Core::class.java.methods.find { it.name == "bitAndLong" }!!
+    private val bitOrLong = Core::class.java.methods.find { it.name == "bitOrLong" }!!
+    private val bitXorLong = Core::class.java.methods.find { it.name == "bitXorLong" }!!
+    private val bitNotLong = Core::class.java.methods.find { it.name == "bitNotLong" }!!
+    private val bitShiftLeftLong = Core::class.java.methods.find { it.name == "bitShiftLeftLong" }!!
+    private val bitShiftRightLong = Core::class.java.methods.find { it.name == "bitShiftRightLong" }!!
+    private val unsignedBitShiftRightLong = Core::class.java.methods.find { it.name == "unsignedBitShiftRightLong" }!!
 }
 
 private typealias App = Expr.App

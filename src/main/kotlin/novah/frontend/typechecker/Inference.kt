@@ -4,8 +4,14 @@ import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
 import novah.ast.canonical.*
-import novah.data.*
+import novah.data.LabelMap
+import novah.data.isEmpty
+import novah.data.mapList
+import novah.data.singletonPMap
 import novah.frontend.Span
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.ProblemContext
+import novah.frontend.error.Severity
 import novah.frontend.typechecker.Type.Companion.nestArrows
 import novah.frontend.typechecker.Typechecker.context
 import novah.frontend.typechecker.Typechecker.env
@@ -22,13 +28,18 @@ import novah.frontend.error.Errors as E
 object Inference {
 
     private val implicitsToCheck = mutableListOf<Expr>()
+    private val warnings = mutableListOf<CompilerProblem>()
+    
+    fun getWarnings(): List<CompilerProblem> = warnings
 
     /**
      * Infer the whole module
      */
     fun infer(ast: Module): ModuleEnv {
+        warnings.clear()
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
+        val warner = makeWarner(ast)
 
         // add the fixpoint operator to the context for recursive functions
         // TODO: add this to the env as primitive
@@ -45,6 +56,7 @@ object Inference {
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
+                Environment.cacheConstructorType("${ast.name}.${dc.name}", dcty)
                 decls[dc.name] = DeclRef(dcty, dc.visibility, false)
             }
             types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
@@ -68,7 +80,8 @@ object Inference {
             implicitsToCheck.clear()
             context?.apply { this.decl = decl }
             val name = decl.name
-            if (decl.exp !is Expr.Ann) checkShadow(env, name, decl.span)
+            val isAnnotated = decl.exp is Expr.Ann
+            if (!isAnnotated) checkShadow(env, name, decl.span)
 
             val newEnv = env.fork()
             val ty = if (decl.recursive) {
@@ -82,6 +95,7 @@ object Inference {
             env.extend(name, genTy)
             if (decl.isInstance) env.extendInstance(name, genTy)
             decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance)
+            if (!isAnnotated) warner(E.noTypeAnnDecl(name, genTy.show()), decl.span)
         }
 
         return ModuleEnv(decls, types)
@@ -359,7 +373,7 @@ object Inference {
                 unify(ret, ty, pat.ctor.span)
 
                 if (ctorTypes.size - pat.fields.size != 0)
-                    internalError("unified two constructors with wrong kinds: $pat")
+                    inferError(E.wrongArityCtorPattern(pat.ctor.name, pat.fields.size, ctorTypes.size), pat.span)
 
                 if (ctorTypes.isEmpty()) emptyList()
                 else {
@@ -567,5 +581,11 @@ object Inference {
             }
             else -> internalError("Got absurd type for data constructor: $dataType")
         }
+    }
+
+    private fun makeWarner(ast: Module) = { msg: String, span: Span ->
+        val warn =
+            CompilerProblem(msg, ProblemContext.TYPECHECK, span, ast.sourceName, ast.name, severity = Severity.WARN)
+        warnings += warn
     }
 }

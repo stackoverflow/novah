@@ -184,7 +184,7 @@ class FailureSpec : StringSpec({
 
         """.trimIndent()
         withError(error) {
-            compiler.compile()
+            compiler.run(File("."), true)
         }
     }
 }) {

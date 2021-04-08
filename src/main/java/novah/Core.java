@@ -309,6 +309,14 @@ public class Core {
         }
         return res;
     }
+
+    public static void forEachVector(Function<Object, Object> f, List<Object> vec) {
+        vec.stream().forEach(f::apply);
+    }
+
+    public static void forEachArray(Function<Object, Object> f, Object[] arr) {
+        for (Object o : arr) f.apply(o);
+    }
     
     public static <T> boolean equalsVector(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
@@ -398,6 +406,152 @@ public class Core {
 
     public static boolean or(boolean cond1, boolean cond2) {
         return cond1 || cond2;
+    }
+    
+    public static int bitAndInt(int b1, int b2) {
+        return b1 & b2;
+    }
+
+    public static long bitAndLong(long b1, long b2) {
+        return b1 & b2;
+    }
+
+    public static int bitOrInt(int b1, int b2) {
+        return b1 | b2;
+    }
+
+    public static long bitOrLong(long b1, long b2) {
+        return b1 | b2;
+    }
+
+    public static int bitXorInt(int b1, int b2) {
+        return b1 ^ b2;
+    }
+
+    public static long bitXorLong(long b1, long b2) {
+        return b1 ^ b2;
+    }
+
+    public static int bitShiftLeftInt(int b1, int amount) {
+        return b1 << amount;
+    }
+
+    public static long bitShiftLeftLong(long b1, long amount) {
+        return b1 << amount;
+    }
+
+    public static int bitShiftRightInt(int b1, int amount) {
+        return b1 >> amount;
+    }
+
+    public static long bitShiftRightLong(long b1, long amount) {
+        return b1 >> amount;
+    }
+
+    public static int unsignedBitShiftRightInt(int b1, int amount) {
+        return b1 >>> amount;
+    }
+
+    public static long unsignedBitShiftRightLong(long b1, long amount) {
+        return b1 >>> amount;
+    }
+
+    public static int bitNotInt(int b) {
+        return ~b;
+    }
+
+    public static long bitNotLong(long b) {
+        return ~b;
+    }
+    
+    public static int charToInt(char c) {
+        return c;
+    }
+
+    public static char intToChar(int c) {
+        return (char) c;
+    }
+    
+    public static void eachRange(long begin, long end, int step, Function<Long, Object> f) {
+        if (begin <= end) {
+            for (long i = begin; i < end; i += step) {
+                f.apply(i);
+            }
+        } else {
+            for (long i = begin; i > end; i -= step) {
+                f.apply(i);
+            }
+        }
+    }
+    
+    public static List<Integer> vecIntRange(int begin, int end) {
+        var vec = new List<Integer>().linear();
+        if (begin <= end) {
+            for (int i = begin; i < end; i++) {
+                vec.addLast(i);
+            }
+        } else {
+            for (int i = begin; i > end; i--) {
+                vec.addLast(i);
+            }
+        }
+        return vec.forked();
+    }
+
+    public static List<Long> vecLongRange(long begin, long end) {
+        var vec = new List<Long>().linear();
+        if (begin <= end) {
+            for (long i = begin; i < end; i++) {
+                vec.addLast(i);
+            }
+        } else {
+            for (long i = begin; i > end; i--) {
+                vec.addLast(i);
+            }
+        }
+        return vec.forked();
+    }
+
+    public static List<Float> vecFloatRange(float begin, float end) {
+        var vec = new List<Float>().linear();
+        if (begin <= end) {
+            for (float i = begin; i < end; i++) {
+                vec.addLast(i);
+            }
+        } else {
+            for (float i = begin; i > end; i--) {
+                vec.addLast(i);
+            }
+        }
+        return vec.forked();
+    }
+
+    public static List<Double> vecDoubleRange(double begin, double end) {
+        var vec = new List<Double>().linear();
+        if (begin <= end) {
+            for (double i = begin; i < end; i++) {
+                vec.addLast(i);
+            }
+        } else {
+            for (double i = begin; i > end; i--) {
+                vec.addLast(i);
+            }
+        }
+        return vec.forked();
+    }
+
+    public static List<Character> vecCharRange(char begin, char end) {
+        var vec = new List<Character>().linear();
+        if (begin <= end) {
+            for (char i = begin; i < end; i++) {
+                vec.addLast(i);
+            }
+        } else {
+            for (char i = begin; i > end; i--) {
+                vec.addLast(i);
+            }
+        }
+        return vec.forked();
     }
     
     @SuppressWarnings("unchecked")

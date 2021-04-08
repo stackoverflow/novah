@@ -116,8 +116,13 @@ object Errors {
 
     const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
 
-    const val NOT_A_FUNCTION = "Expected expression to be a function."
-
+    val NOT_A_FUNCTION = """
+        Expected expression to be a function.
+        If you are trying to pass an instance argument to a function explicitily
+        make sure to use the {{}} syntax.
+        Ex.: myFunction {{parameter}}
+    """.trimIndent()
+    
     const val TYPEALIAS_NAME = "Expected name for typealias."
 
     const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
@@ -139,8 +144,6 @@ object Errors {
     const val INVALID_OPERATOR_DECL = "Operator declarations have to be defined between parentheses."
 
     const val INVALID_OPAQUE = "Opaque types should be in the form: opaque type <Name> = <type>."
-
-    const val EMPTY_OPAQUE = "Empty data constructor. Opaque types need at least one type."
 
     val IMPORT_RAW = """Raw imports should only be used for core namespaces.
         |Use an alias or explicit import instead.""".trimMargin()
@@ -206,10 +209,17 @@ object Errors {
     """.trimIndent()
 
     fun wrongArityToCase(got: Int, expected: Int) = "Case expression expected $expected patterns but got $got."
+    
+    fun wrongArityCtorPattern(name: String, got: Int, expected: Int) =
+        "Constructor pattern $name expected $expected parameter(s) but got $got."
 
-    fun noTypeAnnDecl(name: String) = """
+    fun noTypeAnnDecl(name: String, inferedType: String) = """
         No type annotation given for top-level declaration $name.
         Consider adding a type annotation.
+        
+        The inferred type was:
+        
+            $inferedType
     """.trimIndent()
 
     fun expectedDefinition(name: String) = "Expected definition to follow its type declaration for $name."

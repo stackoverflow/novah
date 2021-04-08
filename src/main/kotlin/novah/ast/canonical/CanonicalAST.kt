@@ -33,7 +33,8 @@ import java.lang.reflect.Constructor as JConstructor
 data class Module(
     val name: String,
     val sourceName: String,
-    val decls: List<Decl>
+    val decls: List<Decl>,
+    val unusedImports: Map<String, Span>
 )
 
 sealed class Decl {
@@ -103,6 +104,8 @@ sealed class Expr(open val span: Span) {
         Expr(span)
 
     data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
+
+    // end of subclasses
 
     var implicitContext: ImplicitContext? = null
 
@@ -199,6 +202,16 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.RecordSelect -> f(e.copy(exp = go(e.exp)))
         is Expr.RecordRestrict -> f(e.copy(exp = go(e.exp)))
         is Expr.RecordExtend -> f(e.copy(exp = go(e.exp), labels = e.labels.mapList(::go)))
+        is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.Throw -> f(e.copy(exp = go(e.exp)))
+        is Expr.TryCatch -> {
+            val cases = e.cases.map {
+                it.copy(exp = go(it.exp), guard = it.guard?.let { g -> go(g) })
+            }
+            f(e.copy(tryExp = go(e.tryExp), finallyExp = e.finallyExp?.let { go(it) }, cases = cases))
+        }
+        is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
         else -> f(e)
     }
     return go(this)

@@ -150,7 +150,7 @@ sealed class Decl(val name: String, val visibility: Visibility) {
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
         Decl(name, visibility) {
         var expanded: Type? = null
-        val freeVars = mutableSetOf<String>() 
+        val freeVars = mutableSetOf<String>()
     }
 
     var comment: Comment? = null
@@ -256,11 +256,10 @@ sealed class Expr {
         span = s.span
         comment = s.comment
     }
-    
-    fun isSimpleExpr(): Boolean = when (this) {
-        is If, is Let, is Match, is Do, is DoLet, is TryCatch
-            , is While -> false
-        is Ann -> exp.isSimpleExpr()
+
+    fun isSimple(): Boolean = when (this) {
+        is If, is Let, is Match, is Do, is DoLet, is TryCatch, is While -> false
+        is Ann -> exp.isSimple()
         else -> true
     }
 }
@@ -373,7 +372,7 @@ sealed class Type(open val span: Span) {
     fun substVars(map: Map<String, Type>): Type = everywhere { ty ->
         if (ty is TConst) map[ty.name] ?: ty else ty
     }
-    
+
     fun simpleName(): String? = when (this) {
         is TConst -> name
         is TApp -> type.simpleName()

@@ -40,21 +40,21 @@ class TypecheckerADTSpec : StringSpec({
     
     "test rigid type variables" {
         val code = """
-            type List a = Nil | Cons a (List a)
+            type Listt a = Empty | Conj a (Listt a)
             
-            cons x l = Cons x l
+            cons x l = Conj x l
             
             id x = x
             
-            single x = cons x Nil
+            single x = cons x Empty
             
-            //ids : List (forall a. a -> a)
+            //ids : Listt (forall a. a -> a)
             ids () = single id
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["ids"]?.type?.simpleName() shouldBe "Unit -> List (t1 -> t1)"
+        tys["ids"]?.type?.simpleName() shouldBe "Unit -> Listt (t1 -> t1)"
     }
 
     "typecheck one parameter ADTs" {
@@ -97,18 +97,18 @@ class TypecheckerADTSpec : StringSpec({
 
     "typecheck recursive ADT" {
         val code = """
-            type List a = Nil | Cons a (List a)
+            type LinkedList a = Empty | Conj a (LinkedList a)
             
-            x : Int -> List String
-            x _ = Nil : List String
+            x : Int -> LinkedList String
+            x _ = Empty : LinkedList String
             
-            y = Cons 1 (Cons 2 (Cons 3 Nil))
+            y = Conj 1 (Conj 2 (Conj 3 Empty))
         """.module()
 
         val tys = TestUtil.compileCode(code).env.decls
 
-        tys["x"]?.type?.simpleName() shouldBe "Int32 -> List String"
-        tys["y"]?.type?.simpleName() shouldBe "List Int32"
+        tys["x"]?.type?.simpleName() shouldBe "Int32 -> LinkedList String"
+        tys["y"]?.type?.simpleName() shouldBe "LinkedList Int32"
     }
 
     "typecheck complex type" {

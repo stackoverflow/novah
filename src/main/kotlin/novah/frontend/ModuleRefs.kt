@@ -60,7 +60,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
             errors += mkError(Errors.moduleNotFound(imp.module))
             continue
         }
-        val typealiases = modules[imp.module]?.aliases?.map { it.name to it }?.toMap() ?: emptyMap()
+        val typealiases = modules[imp.module]?.aliases?.associate { it.name to it } ?: emptyMap()
         val mname = imp.module
         when (imp) {
             // Import all declarations, types and type aliases from this module
@@ -373,7 +373,7 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
             }
         }
 
-        val types = ast.decls.filterIsInstance<Decl.TypeDecl>().map { it.name to it }.toMap()
+        val types = ast.decls.filterIsInstance<Decl.TypeDecl>().associateBy { it.name }
         consts.forEach { name ->
             val ty = types[name]
             if (ty != null && ty.visibility == Visibility.PRIVATE) {

@@ -28,6 +28,7 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
 import kotlin.math.max
@@ -54,6 +55,7 @@ class Desugar(private val smod: SModule) {
     private val warnings = mutableListOf<CompilerProblem>()
     private val errors = mutableListOf<CompilerProblem>()
     private val usedVars = mutableSetOf<String>()
+    private val unusedImports = mutableMapOf<String, Span>()
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
@@ -70,7 +72,7 @@ class Desugar(private val smod: SModule) {
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
             reportUnusedImports()
             if (errors.isNotEmpty()) desugarErrors(errors)
-            Ok(Module(moduleName, smod.sourceName, decls))
+            Ok(Module(moduleName, smod.sourceName, decls, unusedImports))
         } catch (pe: ParserError) {
             Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name)))
         } catch (ce: CompilationError) {
@@ -101,13 +103,10 @@ class Desugar(private val smod: SModule) {
 
             var expr = nestLambdaPatterns(patterns, exp.desugar(), emptyList())
 
-            // if the declaration has a type annotation, annotate it, else warn
+            // if the declaration has a type annotation, annotate it
             expr = if (type != null) {
                 Expr.Ann(expr, type.desugar(), span)
-            } else {
-                warnings += makeWarn(E.noTypeAnnDecl(name), span)
-                expr
-            }
+            } else expr
             if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
             Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
         }
@@ -291,17 +290,15 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SLetDef.DefBind.desugar(locals: List<String>): LetDef {
+        val exp = if (type != null)
+            Expr.Ann(expr.desugar(locals), type.desugar(), expr.span)
+        else expr.desugar(locals)
+        val vars = collectVars(exp)
+        val recursive = name.name in vars
+
         return if (patterns.isEmpty()) {
-            val exp = if (type != null)
-                Expr.Ann(expr.desugar(locals), type.desugar(), expr.span)
-            else expr.desugar(locals)
-            LetDef(name.desugar(), exp, false, isInstance)
+            LetDef(name.desugar(), exp, recursive, isInstance)
         } else {
-            val exp = if (type != null)
-                Expr.Ann(expr.desugar(locals), type.desugar(), expr.span)
-            else expr.desugar(locals)
-            val vars = collectVars(exp)
-            val recursive = name.name in vars
             LetDef(name.desugar(), nestLambdaPatterns(patterns, exp, locals), recursive, isInstance)
         }
     }
@@ -441,9 +438,6 @@ class Desugar(private val smod: SModule) {
         return if (labels.isEmpty()) exp
         else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], exp.span), labels.drop(1))
     }
-
-    private fun collectVars(exp: Expr): List<String> =
-        exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }
 
     /**
      * Expand type aliases and make sure they are not recursive
@@ -685,12 +679,12 @@ class Desugar(private val smod: SModule) {
             if (modName != PRIM && modName != CORE_MODULE && importName[0].isLowerCase() && importName !in usedVars) {
                 val span = findImport(modName)
                 if (span != null)
-                    errors += makeError(E.unusedImport(importName), span)
+                    unusedImports[importName] = span
             }
         }
         smod.foreignVars.forEach { (key, _) ->
             if (key !in usedVars && key != "unsafeCoerce")
-                errors += makeError(E.unusedImport(key), findForeignImport(key) ?: smod.span)
+                unusedImports[key] = findForeignImport(key) ?: smod.span
         }
     }
 
@@ -716,4 +710,9 @@ class Desugar(private val smod: SModule) {
 
     private fun makeError(msg: String, span: Span): CompilerProblem =
         CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
+    
+    companion object {
+        fun collectVars(exp: Expr): List<String> =
+            exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }
+    }
 }

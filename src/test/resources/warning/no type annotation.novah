@@ -1,3 +1,3 @@
 module test
 
-f x = x
+f () = 12

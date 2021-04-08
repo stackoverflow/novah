@@ -252,10 +252,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 when (e.name) {
                     "&&" -> genOperatorAnd(e, mv, ctx)
                     "||" -> genOperatorOr(e, mv, ctx)
-                    "+" -> genNumericOperator(e.name, e, mv, ctx)
-                    "-" -> genNumericOperator(e.name, e, mv, ctx)
-                    "*" -> genNumericOperator(e.name, e, mv, ctx)
-                    "/" -> genNumericOperator(e.name, e, mv, ctx)
+                    "+", "-", "*", "/" -> genNumericOperator(e.name, e, mv, ctx)
                 }
                 val prim = e.operands[0].type.type.primitive()
                 if (prim != null) box(prim, mv)
@@ -284,8 +281,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLabel(varStartLabel)
                 ctx.put(e.binder, num, varStartLabel)
 
-                // TODO: check if we need to define the variable before generating the letdef
-                // to allow recursion
                 genExpr(e.body, mv, ctx)
                 mv.visitLabel(varEndLabel)
                 ctx.setEndLabel(e.binder, varEndLabel)
@@ -776,10 +771,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 }
             }
             is Expr.Let -> {
+                go(exp.bindExpr)
                 for (l in lambdas) {
                     l.ignores += exp.binder
                 }
-                go(exp.bindExpr)
                 go(exp.body)
             }
             is Expr.App -> {
