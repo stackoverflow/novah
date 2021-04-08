@@ -408,6 +408,62 @@ public class Core {
         return cond1 || cond2;
     }
     
+    public static int bitAndInt(int b1, int b2) {
+        return b1 & b2;
+    }
+
+    public static long bitAndLong(long b1, long b2) {
+        return b1 & b2;
+    }
+
+    public static int bitOrInt(int b1, int b2) {
+        return b1 | b2;
+    }
+
+    public static long bitOrLong(long b1, long b2) {
+        return b1 | b2;
+    }
+
+    public static int bitXorInt(int b1, int b2) {
+        return b1 ^ b2;
+    }
+
+    public static long bitXorLong(long b1, long b2) {
+        return b1 ^ b2;
+    }
+
+    public static int bitShiftLeftInt(int b1, int amount) {
+        return b1 << amount;
+    }
+
+    public static long bitShiftLeftLong(long b1, long amount) {
+        return b1 << amount;
+    }
+
+    public static int bitShiftRightInt(int b1, int amount) {
+        return b1 >> amount;
+    }
+
+    public static long bitShiftRightLong(long b1, long amount) {
+        return b1 >> amount;
+    }
+
+    public static int unsignedBitShiftRightInt(int b1, int amount) {
+        return b1 >>> amount;
+    }
+
+    public static long unsignedBitShiftRightLong(long b1, long amount) {
+        return b1 >>> amount;
+    }
+
+    public static int bitNotInt(int b) {
+        return ~b;
+    }
+
+    public static long bitNotLong(long b) {
+        return ~b;
+    }
+    
     public static int charToInt(char c) {
         return c;
     }

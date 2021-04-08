@@ -14,7 +14,10 @@ foreign import type java.util.concurrent.atomic.AtomicReference
 foreign import get java.lang.System:out
 foreign import java.io.PrintStream.println(Object) as jprintln
 foreign import java.io.PrintStream.print(Object) as jprint
+foreign import new java.lang.AssertionError(String) as newAssertionError
 foreign import Int32.longValue()
+foreign import Int32.byteValue() as iToB
+foreign import Int32.shortValue() as iToS
 foreign import Object.toString() as jToString
 foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
@@ -101,6 +104,20 @@ foreign import Core:vecDoubleRange(Float64, Float64)
 foreign import Core:vecCharRange(Char, Char)
 foreign import Core:intToChar(Int32)
 foreign import Core:charToInt(Char)
+foreign import Core:bitAndInt(Int32, Int32)
+foreign import Core:bitOrInt(Int32, Int32)
+foreign import Core:bitXorInt(Int32, Int32)
+foreign import Core:bitShiftLeftInt(Int32, Int32)
+foreign import Core:bitShiftRightInt(Int32, Int32)
+foreign import Core:unsignedBitShiftRightInt(Int32, Int32)
+foreign import Core:bitNotInt(Int32)
+foreign import Core:bitAndLong(Int64, Int64)
+foreign import Core:bitOrLong(Int64, Int64)
+foreign import Core:bitXorLong(Int64, Int64)
+foreign import Core:bitShiftLeftLong(Int64, Int64)
+foreign import Core:bitShiftRightLong(Int64, Int64)
+foreign import Core:unsignedBitShiftRightLong(Int64, Int64)
+foreign import Core:bitNotLong(Int64)
 
 /**
  * A 32-bits Integer
@@ -242,6 +259,14 @@ toString x = jToString (unsafeCast x)
 pub
 hashCode : a -> Int32
 hashCode x = jHashCode (unsafeCast x)
+
+/**
+ * Throws an exception stating that this code is still undergoing implementation.
+ * Should be used a placeholder for future code.
+ */
+pub
+todo : String -> a
+todo msg = throw newAssertionError (format "Not implemented: %s" [msg])
 
 /**
  * Converts this 32-bit integer to a 64-bit integer.
@@ -903,6 +928,124 @@ compareOption (Ord _ o) = case _, _ of
 pub instance
 ordOption : {{ Ord a }} -> Ord (Option a)
 ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption ord }
+
+/**
+ * Represents a type that supports bitwise operations.
+ */
+pub+
+opaque type BitOperator a =
+  { and : a -> a -> a
+  , or : a -> a -> a
+  , xor : a -> a -> a
+  , not : a -> a
+  , shiftLeft : a -> a -> a
+  , shiftRight : a -> a -> a
+  , unsignedShiftRight: a -> a -> a
+  }
+
+/**
+ * Returns the biwise and between x and y.
+ * Equivalent to Java's `&`.
+ */
+pub
+bitAnd : {{ BitOperator a }} -> a -> a -> a
+bitAnd {{BitOperator b}} x y = b.and x y
+
+/**
+ * Returns the biwise or between x and y.
+ * Equivalent to Java's `|`.
+ */
+pub
+bitOr : {{ BitOperator a }} -> a -> a -> a
+bitOr {{BitOperator b}} x y = b.or x y
+
+/**
+ * Returns the biwise xor between x and y.
+ * Equivalent to Java's `^`.
+ */
+pub
+bitXor : {{ BitOperator a }} -> a -> a -> a
+bitXor {{BitOperator b}} x y = b.xor x y
+
+/**
+ * Returns the bit complement of x.
+ * Equivalent to Java's `~`.
+ */
+pub
+bitNot : {{ BitOperator a }} -> a -> a
+bitNot {{BitOperator b}} x = b.not x
+
+/**
+ * Shifts `x` bitwise to the left by `amount`.
+ * Equivalent to Java's `<<`.
+ */
+pub
+bitShiftLeft : {{ BitOperator a }} -> a -> a -> a
+bitShiftLeft {{BitOperator b}} x amount = b.shiftLeft x amount
+
+/**
+ * Shifts `x` bitwise to the right by `amount`.
+ * Equivalent to Java's `>>`.
+ */
+pub
+bitShiftRight : {{ BitOperator a }} -> a -> a -> a
+bitShiftRight {{BitOperator b}} x amount = b.shiftRight x amount
+
+/**
+ * Shifts `x` bitwise to the right by `amount` (unsigned).
+ * Equivalent to Java's `>>>`.
+ */
+pub
+bitUnsignedShiftRight : {{ BitOperator a }} -> a -> a -> a
+bitUnsignedShiftRight {{BitOperator b}} x amount = b.unsignedShiftRight x amount
+
+pub instance
+bitOperatorByte : BitOperator Byte
+bitOperatorByte = BitOperator
+  { and: \x y -> iToB (bitAndInt (bToI x) (bToI y))
+  , or: \x y -> iToB (bitOrInt (bToI x) (bToI y))
+  , xor: \x y -> iToB (bitXorInt (bToI x) (bToI y))
+  , shiftLeft: \x y -> iToB (bitShiftLeftInt (bToI x) (bToI y))
+  , shiftRight: \x y -> iToB (bitShiftRightInt (bToI x) (bToI y))
+  , unsignedShiftRight: \x y -> iToB (unsignedBitShiftRightInt (bToI x) (bToI y))
+  , not: \x -> iToB (bitNotInt (bToI x))
+  }
+
+pub instance
+bitOperatorInt16 : BitOperator Int16
+bitOperatorInt16 = BitOperator
+  { and: \x y -> iToS (bitAndInt (sToI x) (sToI y))
+  , or: \x y -> iToS (bitOrInt (sToI x) (sToI y))
+  , xor: \x y -> iToS (bitXorInt (sToI x) (sToI y))
+  , shiftLeft: \x y -> iToS (bitShiftLeftInt (sToI x) (sToI y))
+  , shiftRight: \x y -> iToS (bitShiftRightInt (sToI x) (sToI y))
+  , unsignedShiftRight: \x y -> iToS (unsignedBitShiftRightInt (sToI x) (sToI y))
+  , not: \x -> iToS (bitNotInt (sToI x))
+  }
+
+pub instance
+bitOperatorInt32 : BitOperator Int32
+bitOperatorInt32 = BitOperator
+  { and: \x y -> bitAndInt x y
+  , or: \x y -> bitOrInt x y
+  , xor: \x y -> bitXorInt x y
+  , shiftLeft: \x y -> bitShiftLeftInt x y
+  , shiftRight: \x y -> bitShiftRightInt x y
+  , unsignedShiftRight: \x y -> unsignedBitShiftRightInt x y
+  , not: \x -> bitNotInt x
+  }
+
+pub instance
+bitOperatorInt64 : BitOperator Int64
+bitOperatorInt64 = BitOperator
+  { and: \x y -> bitAndLong x y
+  , or: \x y -> bitOrLong x y
+  , xor: \x y -> bitXorLong x y
+  , shiftLeft: \x y -> bitShiftLeftLong x y
+  , shiftRight: \x y -> bitShiftRightLong x y
+  , unsignedShiftRight: \x y -> unsignedBitShiftRightLong x y
+  , not: \x -> bitNotLong x
+  }
 
 /**
  * Represents a computation that can fail.
