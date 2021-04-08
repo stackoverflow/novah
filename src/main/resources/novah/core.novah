@@ -803,7 +803,7 @@ showOrdering = Show { show: toString }
  * The type of things that can be ordered.
  */
 pub+
-opaque type Ord a = (Equals a) { compare : a -> a -> Ordering }
+type Ord a = Ord (Equals a) { compare : a -> a -> Ordering }
 
 /**
  * Returns true if x is greater than y.

@@ -15,7 +15,7 @@ foreign import Core:forEachVector(Function, Vector)
  * avoiding the allocations of a normal Vector before forking it again.
  */
 pub
-opaque type LinearVector a = (Vector a)
+opaque type LinearVector a = Vector a
 
 /**
  * Maps function f over all elements of this Vector
