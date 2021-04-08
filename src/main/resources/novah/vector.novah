@@ -3,7 +3,19 @@ module novah.vector
 foreign import type java.util.function.Function
 foreign import type novah.Core
 
+foreign import Vector.linear() as vecLinear
+foreign import Vector.forked() as vecForked
+
 foreign import Core:mapVector(Function, Vector) as vecMap
+foreign import Core:forEachVector(Function, Vector)
+
+/**
+ * A linear (mutable) version of a Vector.
+ * Should be used in an encapsulated function to build a Vector
+ * avoiding the allocations of a normal Vector before forking it again.
+ */
+pub
+opaque type LinearVector a = (Vector a)
 
 /**
  * Maps function f over all elements of this Vector
@@ -12,7 +24,7 @@ foreign import Core:mapVector(Function, Vector) as vecMap
  */
 pub
 map : (a -> b) -> Vector a -> Vector b
-map f vec = vecMap (unsafeCoerce f) (unsafeCoerce vec) |> unsafeCast
+map f vec = unsafeCast (vecMap (unsafeCast f) (unsafeCast vec))
 
 /**
  * Returns Some value at index for this Vector if it exists or None.
@@ -23,6 +35,118 @@ pub
 nth : Int64 -> Vector a -> Option a
 nth index vec =
   let size = count vec
-  in if index < 0L || index > size
+  in if index < 0L || index >= size
      then None
      else Some (vec ! index)
+
+/**
+ * Runs function f for every element of this vector, ignoring the result.
+ * Runtime: O(n)
+ */
+pub
+forEach : Vector a -> (a -> b) -> Unit
+forEach vec f = forEachVector (unsafeCast f) (unsafeCast vec)
+
+/**
+ * Creates a LinearVector out of this Vector.
+ */
+pub
+linear : Vector a -> LinearVector a
+linear vec = LinearVector (unsafeCast (vecLinear (unsafeCast vec)))
+
+/**
+ * Forks this LinearVector into a Vector.
+ */
+pub
+forked : LinearVector a -> Vector a
+forked (LinearVector vec) = (unsafeCast (vecForked (unsafeCast vec)))
+
+/**
+ * Creates a linear (mutable) version of the given vector and applies the function to it.
+ * Returns a forked (persistent) version of the returned linear vector.
+ * This function should be used when lots of expensive mutating operations have to be run on a vector
+ * and can be seen as a builder for the resulting vector.
+ */
+pub
+withLinear : Vector a -> (LinearVector a -> LinearVector a) -> Vector a
+withLinear vec f = linear vec |> f |> forked
+
+/**
+ * Appends x to the beginning of this vector, mutating it.
+ * Runtime: ~O(1)
+ */
+pub
+addFirstLinear : a -> LinearVector a -> LinearVector a
+addFirstLinear x ((LinearVector vec) as lvec) = do
+  addFirst x vec
+  lvec
+
+/**
+ * Appends x to the end of this vector, mutating it.
+ * Runtime: ~O(1)
+ */
+pub
+addLastLinear : a -> LinearVector a -> LinearVector a
+addLastLinear x ((LinearVector vec) as lvec) = do
+  addLast x vec
+  lvec
+
+/**
+ * Removes the first element of this vector, mutating it.
+ * Runtime: ~O(1)
+ */
+pub
+removeFirstLinear : LinearVector a -> LinearVector a
+removeFirstLinear ((LinearVector vec) as lvec) = do
+  removeFirst vec
+  lvec
+
+/**
+ * Removes the last element of this vector, mutating it.
+ * Runtime: ~O(1)
+ */
+pub
+removeLastLinear : LinearVector a -> LinearVector a
+removeLastLinear ((LinearVector vec) as lvec) = do
+  removeLast vec
+  lvec
+
+/**
+ * Sets the value of this vector at the specified index to x, mutating it.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: ~O(1)
+ */
+pub
+setAtLinear : Int64 -> a -> LinearVector a -> LinearVector a
+setAtLinear index x ((LinearVector vec) as lvec) = do
+  setAt index x vec
+  lvec
+
+pub instance
+countLinearVector : Count (LinearVector a)
+countLinearVector = Count { count: \(LinearVector v) -> count v }
+
+/**
+ * Returns a reversed version of this vector.
+ * Runtime: O(n)
+ */
+pub
+reverse : Vector a -> Vector a
+reverse vec =
+  if count vec < 10L
+  then reverse_ [] vec
+  else reverseLinear vec
+
+reverseLinear : Vector a -> Vector a
+reverseLinear vec = do
+  let lvec = linear vec
+  let size = count vec
+  forEachRange 0L size \i ->
+    let j = size - i - 1L
+    in setAtLinear j (vec ! i) lvec
+  forked lvec
+
+reverse_ : Vector a -> Vector a -> Vector a
+reverse_ acc = case _ of
+  [] -> acc
+  [x :: xs] -> reverse_ (addFirst x acc) xs

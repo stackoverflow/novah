@@ -14,3 +14,7 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Use ropes instead of char arrays to process strings
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
+- [ ] Fix indentation for `do` inside `let`
+- [ ] Better error reporting on single opaque types: `opaque type Single a = SomeType a`
+- [ ] Sort declarations before typechecking
+- [ ] Allow generic imported java types to work without unsafeCast
