@@ -46,13 +46,13 @@ object Reflection {
         "Set" -> "io.lacuna.bifurcan.Set"
         else -> type
     }
-    
+
     private enum class Match {
         YES, NO, MAYBE
     }
-    
+
     private fun match(b: Boolean) = if (b) Match.YES else Match.NO
-    
+
     private fun checkParameter(javaType: String, par: String): Match = when (javaType) {
         "boolean" -> match("java.lang.Boolean" == par)
         "byte" -> match("java.lang.Byte" == par)
@@ -71,23 +71,23 @@ object Reflection {
             } else match(javaType == par)
         }
     }
-    
+
     fun findMethod(clazz: Class<*>, name: String, pars: List<String>): Method? {
         var maybe: Method? = null
         val novahPars = pars.map { novahToJava(it) }
-        for (method in clazz.methods) {
-            if (method.name != name) continue
-            if (method.parameterCount != novahPars.size) continue
+        val methods = clazz.methods.filter { it.name == name && it.parameterCount == novahPars.size }
+            .sortedBy { it.isBridge }
+        for (method in methods) {
             val allPars = method.parameterTypes.toList().map { it.canonicalName }.zip(novahPars)
             val res = allPars.map { checkParameter(it.first, it.second) }
             if (res.all { it == Match.YES }) {
                 return method
             }
-            if (res.all { it != Match.NO }) maybe = method
+            if (maybe == null && res.all { it != Match.NO }) maybe = method
         }
         return maybe
     }
-    
+
     fun findConstructor(clazz: Class<*>, pars: List<String>): Constructor<*>? {
         var maybe: Constructor<*>? = null
         val novahPars = pars.map { novahToJava(it) }
@@ -102,14 +102,14 @@ object Reflection {
         }
         return maybe
     }
-    
+
     fun findField(clazz: Class<*>, name: String): Field? {
         return clazz.fields.find { it.name == name }
     }
-    
+
     fun isStatic(method: Method): Boolean = Modifier.isStatic(method.modifiers)
-    
+
     fun isStatic(field: Field): Boolean = Modifier.isStatic(field.modifiers)
-    
+
     fun isImutable(field: Field): Boolean = Modifier.isFinal(field.modifiers)
 }

@@ -16,4 +16,4 @@
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
 - [ ] Fix indentation for `do` inside `let`
 - [ ] Sort declarations before typechecking
-- [ ] Allow generic imported java types to work without unsafeCast
+- [ ] Cache stdlib compilation

@@ -24,7 +24,7 @@ opaque type LinearVector a = Vector a
  */
 pub
 map : (a -> b) -> Vector a -> Vector b
-map f vec = unsafeCast (vecMap (unsafeCast f) (unsafeCast vec))
+map f vec = vecMap f vec
 
 /**
  * Returns Some value at index for this Vector if it exists or None.
@@ -45,21 +45,21 @@ nth index vec =
  */
 pub
 forEach : Vector a -> (a -> b) -> Unit
-forEach vec f = forEachVector (unsafeCast f) (unsafeCast vec)
+forEach vec f = forEachVector f vec
 
 /**
  * Creates a LinearVector out of this Vector.
  */
 pub
 linear : Vector a -> LinearVector a
-linear vec = LinearVector (unsafeCast (vecLinear (unsafeCast vec)))
+linear vec = LinearVector (vecLinear vec)
 
 /**
  * Forks this LinearVector into a Vector.
  */
 pub
 forked : LinearVector a -> Vector a
-forked (LinearVector vec) = (unsafeCast (vecForked (unsafeCast vec)))
+forked (LinearVector vec) = vecForked vec
 
 /**
  * Creates a linear (mutable) version of the given vector and applies the function to it.
