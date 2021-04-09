@@ -89,7 +89,7 @@ class DAG<T, D> {
             stack.push(node)
         }
 
-        for (node in nodes) {
+        for (node in nodes.reversed()) {
             if (visited.contains(node.value)) continue
             helper(node)
         }

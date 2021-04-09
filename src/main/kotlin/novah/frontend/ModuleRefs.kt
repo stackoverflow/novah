@@ -29,8 +29,7 @@ import novah.main.DeclRef
 import novah.main.Environment
 import novah.main.FullModuleEnv
 import novah.main.TypeDeclRef
-import java.lang.reflect.Constructor
-import java.lang.reflect.Method
+import java.lang.reflect.*
 import novah.ast.source.Type as SType
 
 typealias VarRef = String
@@ -178,15 +177,17 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     val foreigVars = mutableMapOf<String, ForeignRef>()
     val env = Typechecker.env
     addUnsafeCoerce(foreigVars, env)
-    
+
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
     for (type in (types as List<ForeignImport.Type>)) {
         val fqType = type.type
-        if (cl.safeLoadClass(fqType) == null) {
+        val clazz = cl.safeLoadClass(fqType)
+        if (clazz == null) {
             errors += makeError(type.span)(Errors.classNotFound(fqType))
             continue
         }
-        env.extendType(fqType, TConst(fqType))
+        
+        env.extendType(fqType, collectType(clazz))
         if (type.alias != null) {
             if (mod.resolvedImports.containsKey(type.alias))
                 errors += makeError(type.span)(Errors.duplicatedImport(type.alias))
@@ -226,7 +227,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
                     errors += error(Errors.staticMethod(imp.name, type))
                     continue
                 }
-                val ctxType = methodTofunction(method, type, imp.static, pars)
+                val ctxType = methodTofunction(method, imp.static, pars)
                 val name = imp.alias ?: imp.name
                 if (mod.resolvedImports.containsKey(name)) {
                     errors += error(Errors.duplicatedImport(name))
@@ -241,7 +242,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
                     errors += error(Errors.ctorNotFound(type))
                     continue
                 }
-                val ctxType = ctorToFunction(ctor, type, pars)
+                val ctxType = ctorToFunction(ctor, pars)
                 if (mod.resolvedImports.containsKey(imp.alias)) {
                     errors += error(Errors.duplicatedImport(imp.alias))
                 }
@@ -268,11 +269,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
                     errors += error(Errors.duplicatedImport(name))
                 }
                 foreigVars[name] = ForeignRef.FieldRef(field, false)
-                val ctxType = if (imp.static) {
-                    toNovahType(javaToNovah(field.type.canonicalName))
-                } else {
-                    TArrow(listOf(toNovahType(type)), toNovahType(javaToNovah(field.type.canonicalName)))
-                }
+                val ctxType = getterToFunction(field, imp.static)
                 env.extend(name, ctxType)
             }
             is ForeignImport.Setter -> {
@@ -298,12 +295,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
                     errors += error(Errors.duplicatedImport(imp.alias))
                 }
                 foreigVars[imp.alias] = ForeignRef.FieldRef(field, true)
-                val parType = toNovahType(javaToNovah(field.type.canonicalName))
-                val ctxType = if (imp.static) {
-                    TArrow(listOf(parType), tUnit)
-                } else {
-                    TArrow(listOf(toNovahType(type), parType), tUnit)
-                }
+                val ctxType = setterToFunction(field, imp.static)
                 env.extend(imp.alias, ctxType)
             }
             else -> internalError("Got imported type: ${imp.type}")
@@ -332,30 +324,100 @@ private fun resolveImportedTypealiases(tas: List<Decl.TypealiasDecl>): Map<Strin
     }.toMap()
 }
 
-private fun methodTofunction(m: Method, type: String, static: Boolean, novahPars: List<String>): Type {
-    val mpars = mutableListOf<String>()
-    if (!static) mpars += type // `this` is always first paramenter of non-static methods
+private fun methodTofunction(m: Method, static: Boolean, novahPars: List<String>): Type {
+    val pars = mutableListOf<Type>()
+    if (!static) pars += collectType(m.declaringClass) // `this` is always first paramenter of non-static methods
 
-    if (static && m.parameterTypes.isEmpty()) mpars += primUnit
-    else mpars.addAll(novahPars.map { Reflection.novahToJava(it) })
+    if (static && m.parameterTypes.isEmpty()) pars += tUnit
+    else {
+        val givenArgs = novahPars.map { javaToNovah(Reflection.novahToJava(it)) }
+        pars.addAll(m.genericParameterTypes.zip(givenArgs).map { (ty, nty) -> matchTypes(ty, nty) })
+    }
+    
+    pars += if (m.returnType.canonicalName == "void") tUnit else collectType(m.genericReturnType)
 
-    mpars += if (m.returnType.canonicalName == "void") primUnit else m.returnType.canonicalName
-    val pars = mpars.map { javaToNovah(it) }
-    val tpars = pars.map { toNovahType(it) }
-
-    return tpars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
+    return pars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
 }
 
-private fun ctorToFunction(c: Constructor<*>, type: String, novahPars: List<String>): Type {
-    val mpars = if (c.parameterTypes.isEmpty()) listOf(primUnit) else novahPars.map { Reflection.novahToJava(it) }
-    val pars = (mpars + type).map { javaToNovah(it) }
-    val tpars = pars.map { toNovahType(it) }
+private fun ctorToFunction(c: Constructor<*>, novahPars: List<String>): Type {
+    val pars = if (c.parameterTypes.isEmpty()) listOf(tUnit)
+    else {
+        val givenArgs = novahPars.map { javaToNovah(Reflection.novahToJava(it)) }
+        c.genericParameterTypes.zip(givenArgs).map { (ty, nty) -> matchTypes(ty, nty) }
+    }
 
-    return tpars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
+    val typeCl = collectType(c.declaringClass)
+    return (pars + typeCl).reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
 }
+
+private fun getterToFunction(f: Field, static: Boolean): Type {
+    return if (static) {
+        collectType(f.genericType)
+    } else {
+        TArrow(listOf(collectType(f.declaringClass)), collectType(f.genericType))
+    }
+}
+
+private fun setterToFunction(f: Field, static: Boolean): Type {
+    val parType = collectType(f.genericType)
+    return if (static) {
+        TArrow(listOf(parType), tUnit)
+    } else {
+        TArrow(listOf(TArrow(listOf(collectType(f.declaringClass)), parType)), tUnit)
+    }
+}
+
+private fun matchTypes(jTy: java.lang.reflect.Type, nTy: String): Type {
+    if (jTy.typeName == "java.lang.Object" && nTy != primObject) return toNovahType(nTy)
+    
+    return collectType(jTy)
+}
+
+private val typeCache = mutableMapOf<String, Type>()
+
+private fun collectType(ty: java.lang.reflect.Type): Type {
+    if (typeCache.containsKey(ty.typeName)) return typeCache[ty.typeName]!!
+    val nty = when (ty) {
+        is GenericArrayType -> TApp(TConst(primArray), listOf(collectType(ty.genericComponentType)))
+        is TypeVariable<*> -> if (unbounded(ty)) Typechecker.newGenVar() else tObject
+        is WildcardType -> {
+            if (ty.lowerBounds.isNotEmpty()) tObject
+            else if (ty.upperBounds.size == 1 && ty.upperBounds[0] is TypeVariable<*>) {
+                collectType(ty.upperBounds[0])
+            } else tObject
+        }
+        is ParameterizedType -> {
+            val arity = ty.actualTypeArguments.size
+            val kind = if (arity == 0) Kind.Star else Kind.Constructor(arity)
+            if (ty.rawType.typeName == "java.util.function.Function") {
+                TArrow(listOf(collectType(ty.actualTypeArguments[0])), collectType(ty.actualTypeArguments[1]))
+            } else {
+                TApp(TConst(javaToNovah(ty.rawType.typeName), kind), ty.actualTypeArguments.map(::collectType))
+            }
+        }
+        is Class<*> -> {
+            if (ty.isArray) TApp(TConst(primArray), listOf(collectType(ty.componentType)))
+            else {
+                val arity = ty.typeParameters.size
+                if (arity == 0) TConst(javaToNovah(ty.canonicalName))
+                else {
+                    val type = TConst(javaToNovah(ty.canonicalName), Kind.Constructor(arity))
+                    TApp(type, ty.typeParameters.map(::collectType))
+                }
+            }
+        }
+        else -> internalError("Got unknown subtype from Type: ${ty.javaClass}")
+    }
+    typeCache[ty.typeName] = nty
+    return nty
+}
+
+private fun unbounded(ty: TypeVariable<*>): Boolean = ty.bounds.all { it.typeName == "java.lang.Object" }
 
 private fun toNovahType(ty: String): Type = when (ty) {
-    primArray, primVector, primSet -> TApp(TConst(ty), listOf(tObject))
+    primArray, primVector, primSet -> {
+        TApp(TConst(ty), listOf(Typechecker.newGenVar()))
+    }
     else -> TConst(ty)
 }
 

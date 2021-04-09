@@ -126,7 +126,7 @@ public class Core {
         return e1 == e2;
     }
     
-    public static boolean equivalentObject(Object o1, Object o2) {
+    public static <T> boolean equivalentObject(T o1, T o2) {
         if (o1 instanceof Integer && o2 instanceof Integer) {
             return ((Integer) o1).intValue() == ((Integer) o2).intValue();
         }
@@ -276,15 +276,15 @@ public class Core {
         return new Object[size];
     }
     
-    public static Object getArray(int index, Object[] arr) {
+    public static <T> T getArray(int index, T[] arr) {
         return arr[index];
     }
     
-    public static void setArray(int index, Object val, Object[] arr) {
+    public static <T> void setArray(int index, T val, T[] arr) {
         arr[index] = val;
     }
     
-    public static int getArrayLength(Object[] arr) {
+    public static <T> int getArrayLength(T[] arr) {
         return arr.length;
     }
     
@@ -296,26 +296,27 @@ public class Core {
         return vec.size() != 0;
     }
     
-    public static List<Object> mapVector(Function<Object, Object> f, List<Object> vec) {
-        var res = List.empty().linear();
+    public static <T, R> List<R> mapVector(Function<T, R> f, List<T> vec) {
+        var res = new List<R>().linear();
         vec.stream().forEach((elem) -> res.addLast(f.apply(elem)));
         return res.forked();
     }
-    
-    public static Object[] mapArray(Function<Object, Object> f, Object[] arr) {
+
+    @SuppressWarnings("unchecked")
+    public static <T, R> R[] mapArray(Function<T, R> f, T[] arr) {
         var res = new Object[arr.length];
         for (int i = 0; i < arr.length; i++) {
             res[i] = f.apply(arr[i]);
         }
-        return res;
+        return (R[]) res;
     }
 
-    public static void forEachVector(Function<Object, Object> f, List<Object> vec) {
+    public static <T, R> void forEachVector(Function<T, R> f, List<T> vec) {
         vec.stream().forEach(f::apply);
     }
 
-    public static void forEachArray(Function<Object, Object> f, Object[] arr) {
-        for (Object o : arr) f.apply(o);
+    public static <T, R> void forEachArray(Function<T, R> f, T[] arr) {
+        for (T o : arr) f.apply(o);
     }
     
     public static <T> boolean equalsVector(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
@@ -472,7 +473,7 @@ public class Core {
         return (char) c;
     }
     
-    public static void eachRange(long begin, long end, int step, Function<Long, Object> f) {
+    public static <T> void eachRange(long begin, long end, int step, Function<Long, T> f) {
         if (begin <= end) {
             for (long i = begin; i < end; i += step) {
                 f.apply(i);

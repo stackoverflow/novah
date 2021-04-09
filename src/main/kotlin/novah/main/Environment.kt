@@ -69,7 +69,11 @@ class Environment(classPath: String, private val verbose: Boolean) {
      */
     fun parseSources(sources: Sequence<Source>): Map<String, FullModuleEnv> {
         // stdlib
-        innerParseSources(stdlib)
+        if (stdlibCompiled.isNotEmpty()) modules.putAll(stdlibCompiled)
+        else {
+            innerParseSources(stdlib)
+            stdlibCompiled.putAll(modules)
+        }
         return innerParseSources(sources)
     }
 
@@ -115,7 +119,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
 
         val orderedMods = modGraph.topoSort()
         orderedMods.forEach { mod ->
-            Typechecker.resetEnv()
+            Typechecker.reset()
             val importErrs = resolveImports(mod.data, modules)
             val foreignErrs = resolveForeignImports(mod.data)
             val (warns, errs) = (importErrs + foreignErrs).partition { it.severity == Severity.WARN }
@@ -208,6 +212,8 @@ class Environment(classPath: String, private val verbose: Boolean) {
         }
         
         fun findConstructor(name: String): Type? = constructorTypes[name]
+        
+        private val stdlibCompiled = mutableMapOf<String, FullModuleEnv>()
     }
 }
 

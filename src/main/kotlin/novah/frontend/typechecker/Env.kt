@@ -66,14 +66,6 @@ const val primObject = "$PRIM.Object"
 const val primVector = "$PRIM.Vector"
 const val primSet = "$PRIM.Set"
 const val primArray = "$PRIM.Array"
-const val primByteArray = "$PRIM.ByteArray"
-const val primInt16Array = "$PRIM.Int16Array"
-const val primInt32Array = "$PRIM.Int32Array"
-const val primInt64Array = "$PRIM.Int64Array"
-const val primFloat32Array = "$PRIM.Float32Array"
-const val primFloat64Array = "$PRIM.Float64Array"
-const val primBooleanArray = "$PRIM.BooleanArray"
-const val primCharArray = "$PRIM.CharArray"
 
 val tByte = TConst(primByte)
 val tInt16 = TConst(primInt16)
@@ -89,14 +81,6 @@ val tUnit = TConst(primUnit)
 val tVector = TApp(TConst(primVector, Kind.Constructor(1)), listOf(tbound(-1)))
 val tSet = TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-2)))
 val tArray = TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-3)))
-val tByteArray = TConst(primByteArray)
-val tInt16Array = TConst(primInt16Array)
-val tInt32Array = TConst(primInt32Array)
-val tInt64Array = TConst(primInt64Array)
-val tFloat32Array = TConst(primFloat32Array)
-val tFloat64Array = TConst(primFloat64Array)
-val tBooleanArray = TConst(primBooleanArray)
-val tCharArray = TConst(primCharArray)
 
 val tUnsafeCoerce = TArrow(listOf(tbound(-4)), tbound(-5))
 
@@ -114,15 +98,7 @@ val primTypes = mapOf(
     primUnit to tUnit,
     primVector to tVector,
     primSet to tSet,
-    primArray to tArray,
-    primByteArray to tByteArray,
-    primInt16Array to tInt16Array,
-    primInt32Array to tInt32Array,
-    primInt64Array to tInt64Array,
-    primFloat32Array to tFloat32Array,
-    primFloat64Array to tFloat64Array,
-    primBooleanArray to tBooleanArray,
-    primCharArray to tCharArray
+    primArray to tArray
 )
 
 fun isVectorOf(type: Type, of: Type) =
@@ -153,19 +129,8 @@ fun javaToNovah(jname: String): String = when (jname) {
     "io.lacuna.bifurcan.List" -> primVector
     "io.lacuna.bifurcan.Set" -> primSet
     else -> {
-        if (jname.endsWith("[]")) {
-            when (jname.replace("[]", "")) {
-                "byte" -> primByteArray
-                "short" -> primInt16Array
-                "int" -> primInt32Array
-                "long" -> primInt64Array
-                "float" -> primFloat32Array
-                "double" -> primFloat64Array
-                "char" -> primCharArray
-                "boolean" -> primBooleanArray
-                else -> primArray
-            }
-        } else jname
+        if (jname.endsWith("[]")) primArray
+        else jname
     }
 }
 
@@ -191,14 +156,6 @@ val primModuleEnv = ModuleEnv(
         "Object" to tdecl(tObject),
         "Vector" to tdecl(tVector),
         "Set" to tdecl(tSet),
-        "Array" to tdecl(tArray),
-        "ByteArray" to tdecl(tByteArray),
-        "Int16Array" to tdecl(tInt16Array),
-        "Int32Array" to tdecl(tInt32Array),
-        "Int64Array" to tdecl(tInt64Array),
-        "Float32Array" to tdecl(tFloat32Array),
-        "Float64Array" to tdecl(tFloat64Array),
-        "CharArray" to tdecl(tCharArray),
-        "BooleanArray" to tdecl(tBooleanArray),
+        "Array" to tdecl(tArray)
     )
 )

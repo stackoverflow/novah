@@ -35,6 +35,11 @@ import novah.main.Environment
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
 import java.util.function.Function
+import kotlin.collections.List
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.plus
+import kotlin.collections.plusAssign
 import io.lacuna.bifurcan.List as PList
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
@@ -592,14 +597,6 @@ class Optimizer(private val ast: CModule) {
             primUnit -> OBJECT_TYPE
             primObject -> OBJECT_TYPE
             primArray -> ARRAY_TYPE
-            primByteArray -> Type.getType(ByteArray::class.java)
-            primInt16Array -> Type.getType(ShortArray::class.java)
-            primInt32Array -> Type.getType(IntArray::class.java)
-            primInt64Array -> Type.getType(LongArray::class.java)
-            primFloat32Array -> Type.getType(FloatArray::class.java)
-            primFloat64Array -> Type.getType(DoubleArray::class.java)
-            primCharArray -> Type.getType(CharArray::class.java)
-            primBooleanArray -> Type.getType(BooleanArray::class.java)
             primVector -> Type.getType(io.lacuna.bifurcan.List::class.java)
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             else -> Type.getObjectType(internalize(tvar.name))

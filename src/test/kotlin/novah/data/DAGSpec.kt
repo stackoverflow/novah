@@ -102,8 +102,8 @@ class DAGSpec : StringSpec({
         n4.link(n5)
         n5.link(n6)
 
-        dag.addNodes(listOf(n1, n2, n4, n5, n6))
+        dag.addNodes(listOf(n1, n2, n3, n4, n5, n6))
 
-        dag.topoSort().toList() shouldBe listOf(n4, n5, n6, n1, n2, n3)
+        dag.topoSort().toList() shouldBe listOf(n4, n1, n2, n3, n5, n6)
     }
 })

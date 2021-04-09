@@ -202,7 +202,7 @@ pub
  */
 pub
 (===) : a -> a -> Boolean
-(===) x y = equivalentObject (unsafeCast x) (unsafeCast y)
+(===) x y = equivalentObject x y
 
 /**
  * Returns true if the 2 objects *do not* point to the same object.
@@ -282,7 +282,7 @@ int64 i = longValue i
  */
 pub
 (!) : Vector a -> Int64 -> a
-(!) vec index = unsafeCast (nthVec (unsafeCast vec) index)
+(!) vec index = nthVec vec index
 
 /**
  * Sets the value of this vector at the specified index to x.
@@ -291,7 +291,7 @@ pub
  */
 pub
 setAt : Int64 -> a -> Vector a -> Vector a
-setAt index x vec = unsafeCast (setVec (unsafeCast vec) index (unsafeCast x))
+setAt index x vec = setVec vec index x
 
 /**
  * Updates the value of this vector at the specified index by applying function f to the old value.
@@ -300,7 +300,7 @@ setAt index x vec = unsafeCast (setVec (unsafeCast vec) index (unsafeCast x))
  */
 pub
 updateAt : Int64 -> (a -> a) -> Vector a -> Vector a
-updateAt index f vec = setAt index (f (vec ! index)) vec
+updateAt index f vec = setVec vec index (f (vec ! index))
 
 /**
  * Appends x to the beginning of this vector.
@@ -308,7 +308,7 @@ updateAt index f vec = setAt index (f (vec ! index)) vec
  */
 pub
 addFirst : a -> Vector a -> Vector a
-addFirst x vec = unsafeCast (addFirstVec (unsafeCast vec) (unsafeCast x))
+addFirst x vec = addFirstVec vec x
 
 /**
  * Appends x to the end of this vector.
@@ -316,7 +316,7 @@ addFirst x vec = unsafeCast (addFirstVec (unsafeCast vec) (unsafeCast x))
  */
 pub
 addLast : a -> Vector a -> Vector a
-addLast x vec = unsafeCast (addLastVec (unsafeCast vec) (unsafeCast x))
+addLast x vec = addLastVec vec x
 
 /**
  * Removes the first element of this vector.
@@ -324,7 +324,7 @@ addLast x vec = unsafeCast (addLastVec (unsafeCast vec) (unsafeCast x))
  */
 pub
 removeFirst : Vector a -> Vector a
-removeFirst vec = unsafeCast (remFirst (unsafeCast vec))
+removeFirst vec = remFirst vec
 
 /**
  * Removes the last element of this vector.
@@ -332,62 +332,62 @@ removeFirst vec = unsafeCast (remFirst (unsafeCast vec))
  */
 pub
 removeLast : Vector a -> Vector a
-removeLast vec = unsafeCast (remLast (unsafeCast vec))
+removeLast vec = remLast vec
 
 /**
  * Creates a byte array of the specified size.
  */
 pub
-byteArray : Int -> ByteArray
+byteArray : Int -> Array Byte
 byteArray size = mkByteArray size
 
 /**
  * Creates a int16 array of the specified size.
  */
 pub
-int16Array : Int -> Int16Array
+int16Array : Int -> Array Int16
 int16Array size = mkInt16Array size
 
 /**
  * Creates a int32 array of the specified size.
  */
 pub
-intArray : Int -> Int32Array
+intArray : Int -> Array Int32
 intArray size = mkInt32Array size
 
 /**
  * Creates a int64 array of the specified size.
  */
 pub
-int64Array : Int -> Int64Array
+int64Array : Int -> Array Int64
 int64Array size = mkInt64Array size
 
 /**
  * Creates a float32 array of the specified size.
  */
 pub
-float32Array : Int -> Float32Array
+float32Array : Int -> Array Float32
 float32Array size = mkFloat32Array size
 
 /**
  * Creates a float64 array of the specified size.
  */
 pub
-floatArray : Int -> Float64Array
+floatArray : Int -> Array Float64
 floatArray size = mkFloat64Array size
 
 /**
  * Creates a char array of the specified size.
  */
 pub
-charArray : Int -> CharArray
+charArray : Int -> Array Char
 charArray size = mkCharArray size
 
 /**
  * Creates a boolean array of the specified size.
  */
 pub
-booleanArray : Int -> BooleanArray
+booleanArray : Int -> Array Boolean
 booleanArray size = mkBooleanArray size
 
 /**
@@ -403,7 +403,7 @@ objectArray size = mkObjectArray size
  */
 pub
 arrayGet : Int -> Array a -> a
-arrayGet index arr = unsafeCast (getArray index (unsafeCast arr))
+arrayGet index arr = getArray index arr
 
 /**
  * Sets the element of the array at the
@@ -411,7 +411,7 @@ arrayGet index arr = unsafeCast (getArray index (unsafeCast arr))
  */
 pub
 arraySet : Int -> a -> Array a -> Unit
-arraySet index x arr = setArray index (unsafeCast x) (unsafeCast arr)
+arraySet index x arr = setArray index x arr
 
 /**
  * Converts a Vector of some type `a` to an Array of `a`.
@@ -464,11 +464,11 @@ concatString = Concat { concat: \s s2 -> concat s s2 }
 
 pub instance
 concatVector : Concat (Vector a)
-concatVector = Concat { concat: \v v2 -> unsafeCast (vecConcat (unsafeCast v) (unsafeCast v2)) }
+concatVector = Concat { concat: \v v2 -> unsafeCast (vecConcat v (unsafeCast v2)) }
 
 pub instance
 concatSet : Concat (Set a)
-concatSet = Concat { concat: \s s2 -> unsafeCast (union (unsafeCast s) (unsafeCast s2)) }
+concatSet = Concat { concat: \s s2 -> union s (unsafeCast s2) }
 
 concatOption_ : Concat a -> Option a -> Option a -> Option a
 concatOption_ (Concat ap) =
@@ -619,15 +619,15 @@ countString = Count { count: \s -> strLength s |> int64 }
 
 pub instance
 countVector : Count (Vector a)
-countVector = Count { count: \vec -> sizeVec (unsafeCast vec) }
+countVector = Count { count: \vec -> sizeVec vec }
 
 pub instance
 countSet : Count (Set a)
-countSet = Count { count: \set -> sizeSet (unsafeCast set) }
+countSet = Count { count: \set -> sizeSet set }
 
 pub instance
 countArray : Count (Array a)
-countArray = Count { count: \arr -> getArrayLength (unsafeCast arr) |> int64 }
+countArray = Count { count: \arr -> getArrayLength arr |> int64 }
 
 pub instance
 countRecord : Count { | a }
@@ -701,15 +701,15 @@ showOption {{s}} = Show { show: showOpt s }
 
 pub instance
 showVector : {{ Show a }} -> Show (Vector a)
-showVector {{Show s}} = Show { show: \v -> toStringVector (unsafeCast v) (unsafeCast s.show) }
+showVector {{Show s}} = Show { show: \v -> toStringVector v s.show }
 
 pub instance
 showSet : {{ Show a }} -> Show (Set a)
-showSet {{Show s}} = Show { show: \set -> toStringSet (unsafeCast set) (unsafeCast s.show) }
+showSet {{Show s}} = Show { show: \set -> toStringSet set s.show }
 
 pub instance
 showArray : {{ Show a }} -> Show (Array a)
-showArray {{Show s}} = Show { show: \a -> toStringArray (unsafeCast a) (unsafeCast s.show) }
+showArray {{Show s}} = Show { show: \a -> toStringArray a s.show }
 
 /**
  * The type of things that support equality comparison.
@@ -776,15 +776,15 @@ eqString = Equals { equals: \x y -> equalsString x y }
 
 pub instance
 eqVector : {{ Equals a }} -> Equals (Vector a)
-eqVector {{Equals eq}} = Equals { equals: \x y -> equalsVector (unsafeCast x) (unsafeCast y) (unsafeCast eq.equals) }
+eqVector {{Equals eq}} = Equals { equals: \x y -> equalsVector x y eq.equals }
 
 pub instance
 eqSet : {{ Equals a }} -> Equals (Set a)
-eqSet {{Equals eq}} = Equals { equals: \x y -> equalsSet (unsafeCast x) (unsafeCast y) (unsafeCast eq.equals) }
+eqSet {{Equals eq}} = Equals { equals: \x y -> equalsSet x y eq.equals }
 
 pub instance
 eqArray : {{ Equals a }} -> Equals (Array a)
-eqArray {{Equals eq}} = Equals { equals: \x y -> equalsArray (unsafeCast x) (unsafeCast y) (unsafeCast eq.equals) }
+eqArray {{Equals eq}} = Equals { equals: \x y -> equalsArray x y eq.equals }
 
 equalsOption : Equals a -> Option a -> Option a -> Boolean
 equalsOption (Equals eq) =
@@ -1079,7 +1079,7 @@ showResult {{s1}} {{s2}} = Show { show: showRes s1 s2 }
  * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
  */
 pub
-opaque type Atom a = AtomicReference
+opaque type Atom a = AtomicReference a
 
 /**
  * Creates a new Atom to hold x.
@@ -1087,14 +1087,14 @@ opaque type Atom a = AtomicReference
  */
 pub
 atom : a -> Atom a
-atom x = Atom (newAtom (unsafeCast x))
+atom x = Atom (newAtom x)
 
 /**
  * Returns the value inside this Atom.
  */
 pub
 deref : Atom a -> a
-deref (Atom a) = unsafeCast (atomGet a)
+deref (Atom a) = atomGet a
 
 /**
  * Resets the value of this Atom to x, discarding the old value.
@@ -1103,7 +1103,7 @@ deref (Atom a) = unsafeCast (atomGet a)
 pub
 reset : a -> Atom a -> a
 reset x (Atom a) = do
-  atomSet a (unsafeCast x)
+  atomSet a x
   x
 
 /**
@@ -1113,7 +1113,7 @@ reset x (Atom a) = do
  */
 pub
 swap : (a -> a) -> Atom a -> a
-swap f (Atom a) = unsafeCast (swapAtom a (unsafeCast f))
+swap f (Atom a) = swapAtom a f
 
 /**
  * Low-level function that receives the old value, the new value and attempts
@@ -1123,7 +1123,7 @@ swap f (Atom a) = unsafeCast (swapAtom a (unsafeCast f))
  */
 pub
 compareAndSet : a -> a -> Atom a -> Boolean
-compareAndSet old new (Atom atm) = atomCmpAndSet atm (unsafeCast old) (unsafeCast new)
+compareAndSet old new (Atom atm) = atomCmpAndSet atm old new
 
 equalsAtom : Equals a -> Atom a -> Atom a -> Boolean
 equalsAtom (Equals eq) x y = eq.equals (deref x) (deref y)
@@ -1142,14 +1142,14 @@ showAtom {{Show s}} = Show { show: \atm -> format "(Atom %s)" [s.show (deref atm
  */
 pub
 forEachRange : Int64 -> Int64 -> (Int64 -> a) -> Unit
-forEachRange begin end f = eachRange begin end 1 (unsafeCast f)
+forEachRange begin end f = eachRange begin end 1 f
 
 /**
  * Executes the function starting at begin (inclusive) ending in end (exclusive) with the specified step.
  */
 pub
 forEachStep : Int64 -> Int64 -> Int -> (Int64 -> a) -> Unit
-forEachStep begin end step f = eachRange begin end step (unsafeCast f)
+forEachStep begin end step f = eachRange begin end step f
 
 /**
  * Types that can generate a vector over a range.
@@ -1177,34 +1177,34 @@ pub
 pub instance
 rangeInt32 : Range Int32
 rangeInt32 = Range
-  { range: \begin end -> unsafeCast (vecIntRange begin end)
-  , rangeInclusive: \begin end -> unsafeCast (vecIntRange begin (end + 1))
+  { range: \begin end -> vecIntRange begin end
+  , rangeInclusive: \begin end -> vecIntRange begin (end + 1)
   }
 
 pub instance
 rangeInt64 : Range Int64
 rangeInt64 = Range
-  { range: \begin end -> unsafeCast (vecLongRange begin end)
-  , rangeInclusive: \begin end -> unsafeCast (vecLongRange begin (end + 1L))
+  { range: \begin end -> vecLongRange begin end
+  , rangeInclusive: \begin end -> vecLongRange begin (end + 1L)
   }
 
 pub instance
 rangeFloat32 : Range Float32
 rangeFloat32 = Range
-  { range: \begin end -> unsafeCast (vecFloatRange begin end)
-  , rangeInclusive: \begin end -> unsafeCast (vecFloatRange begin (end + 1.0F))
+  { range: \begin end -> vecFloatRange begin end
+  , rangeInclusive: \begin end -> vecFloatRange begin (end + 1.0F)
   }
 
 pub instance
 rangeFloat64 : Range Float64
 rangeFloat64 = Range
-  { range: \begin end -> unsafeCast (vecDoubleRange begin end)
-  , rangeInclusive: \begin end -> unsafeCast (vecDoubleRange begin (end + 1.0))
+  { range: \begin end -> vecDoubleRange begin end
+  , rangeInclusive: \begin end -> vecDoubleRange begin (end + 1.0)
   }
 
 pub instance
 rangeChar : Range Char
 rangeChar = Range
-  { range: \begin end -> unsafeCast (vecCharRange begin end)
-  , rangeInclusive: \begin end -> unsafeCast (vecCharRange begin (intToChar (charToInt end + 1)))
+  { range: \begin end -> vecCharRange begin end
+  , rangeInclusive: \begin end -> vecCharRange begin (intToChar (charToInt end + 1))
   }
