@@ -1,5 +1,7 @@
 module novah.option
 
+foreign import new java.lang.AssertionError(String) as assertErr
+
 /**
  * Maps a function over this option if it has a value.
  * Runtime: O(1)
@@ -10,3 +12,43 @@ map f =
   case _ of
     Some x -> Some (f x)
     None -> None
+
+/**
+ * Takes a default value, a function and an Option
+ * and returns the result of the function applied to this Option's value
+ * or the default value if the Option is empty.
+ */
+pub
+maybe : b -> (a -> b) -> Option a -> b
+maybe def f =
+  case _ of
+    Some x -> f x
+    None -> def
+
+/**
+ * Returns true if this Option contains a value.
+ */
+pub
+isSome : Option a -> Boolean
+isSome = case _ of
+  Some _ -> true
+  None -> false
+
+/**
+ * Returns true if this Option *doesn't* contain a value.
+ */
+pub
+isNone : Option a -> Boolean
+isNone = case _ of
+  Some _ -> false
+  None -> true
+
+/**
+ * Extracts the value out of this Option.
+ * *Unsafe*: Will thrown an assertion error if the Option is empty.
+ */
+pub
+unwrap : Option a -> a
+unwrap = case _ of
+  Some x -> x
+  None -> throw (assertErr "Empty Option")

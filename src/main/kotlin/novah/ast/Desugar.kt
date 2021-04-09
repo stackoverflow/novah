@@ -230,6 +230,22 @@ class Desugar(private val smod: SModule) {
                 nestLambdas(listOf(Binder(v, span)), nestRecordRestrictions(Expr.Var(v, span), labels))
             } else nestRecordRestrictions(exp.desugar(locals), labels)
         }
+        is SExpr.RecordUpdate -> {
+            val lvars = mutableListOf<Binder>()
+            val lvalue = if (value is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else value.desugar(locals)
+
+            val lexpr = if (exp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp.desugar(locals)
+            
+            nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue))
+        }
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.BinApp -> {
@@ -439,6 +455,15 @@ class Desugar(private val smod: SModule) {
         else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], exp.span), labels.drop(1))
     }
 
+    private fun nestRecordUpdates(exp: Expr, labels: List<String>, value: Expr): Expr {
+        return if (labels.isEmpty()) exp
+        else {
+            val tail = labels.drop(1)
+            val select = if (tail.isEmpty()) value else Expr.RecordSelect(exp, labels[0], value.span)
+            Expr.RecordUpdate(exp, labels[0], nestRecordUpdates(select, labels.drop(1), value), exp.span)
+        }
+    }
+
     /**
      * Expand type aliases and make sure they are not recursive
      */
@@ -447,7 +472,7 @@ class Desugar(private val smod: SModule) {
         smod.resolvedTypealiases.forEach { ta ->
             if (ta.expanded == null) internalError("Got unexpanded imported typealias: $ta")
         }
-        val map = (typealiases + smod.resolvedTypealiases).map { it.name to it }.toMap()
+        val map = (typealiases + smod.resolvedTypealiases).associateBy { it.name }
 
         fun expandAndcheck(ta: TypealiasDecl, ty: SType, vars: List<SType> = listOf()): SType = when (ty) {
             is SType.TConst -> {
@@ -560,10 +585,10 @@ class Desugar(private val smod: SModule) {
         }
 
         val (decls, types) = desugared.partitionIsInstance<Decl.ValDecl, Decl>()
-        val deps = decls.map { it.name to collectDependencies(it.exp) }.toMap()
+        val deps = decls.associate { it.name to collectDependencies(it.exp) }
 
         val dag = DAG<String, Decl.ValDecl>()
-        val nodes = decls.map { it.name to DagNode(it.name, it) }.toMap()
+        val nodes = decls.associate { it.name to DagNode(it.name, it) }
         dag.addNodes(nodes.values)
 
         nodes.values.forEach { node ->
@@ -704,9 +729,6 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
-
-    private fun makeWarn(msg: String, span: Span): CompilerProblem =
-        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name, null, Severity.WARN)
 
     private fun makeError(msg: String, span: Span): CompilerProblem =
         CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)

@@ -46,6 +46,8 @@ object Errors {
 
     const val RECORD_COLON = "Expected `:` after record label."
 
+    const val RECORD_EQUALS = "Expected `=` after record labels in update expression."
+
     const val TYPE_VAR = "Expected type variable (lower case identifier)."
 
     const val TYPE_DEF = "Expected a type definition."

@@ -282,6 +282,13 @@ object Inference {
                 unify(param, infer(env, level, exp.exp), exp.span)
                 exp.withType(returnTy)
             }
+            is Expr.RecordUpdate -> {
+                val field = infer(env, level, exp.value)
+                val rest = newVar(level)
+                val recTy = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
+                unify(recTy, infer(env, level, exp.exp), exp.span)
+                exp.withType(recTy)
+            }
             is Expr.RecordExtend -> {
                 val labelTys = exp.labels.mapList { infer(env, level, it) }
                 val rest = newVar(level)

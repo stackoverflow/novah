@@ -24,7 +24,6 @@ import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.CORE_MODULE
 import novah.frontend.typechecker.coreImport
 import novah.frontend.typechecker.primImport
-import kotlin.math.max
 import novah.frontend.error.Errors as E
 
 class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
@@ -915,6 +914,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             } else if (nex is RBracket) {
                 val end = iter.next()
                 Expr.RecordEmpty().withSpan(begin.span, end.span).withComment(begin.comment)
+            } else if (nex is Dot) {
+                iter.next()
+                parseRecordUpdate(begin)
             } else if (nex is Op && nex.op == "-") {
                 iter.next()
                 parseRecordRestriction(begin)
@@ -936,6 +938,17 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         expect<Colon>(withError(E.RECORD_COLON))
         val exp = parseExpression()
         return label.first to exp
+    }
+
+    private fun parseRecordUpdate(begin: Spanned<Token>): Expr {
+        val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
+        expect<Equals>(withError(E.RECORD_EQUALS))
+        val value = parseExpression()
+        expect<Pipe>(withError(E.pipeExpected("record update")))
+        val record = parseExpression()
+        val end = expect<RBracket>(withError(E.rbracketExpected("record update")))
+        return Expr.RecordUpdate(record, labels.map { it.first }, value)
+            .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 
     private fun parseRecordRestriction(begin: Spanned<Token>): Expr {

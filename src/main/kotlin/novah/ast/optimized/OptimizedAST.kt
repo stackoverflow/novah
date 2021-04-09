@@ -168,6 +168,14 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
     data class RecordRestrict(val expr: Expr, val label: String, override val type: Clazz, override val span: Span) :
         Expr(type, span)
 
+    data class RecordUpdate(
+        val expr: Expr,
+        val label: String,
+        val value: Expr,
+        override val type: Clazz,
+        override val span: Span
+    ) : Expr(type, span)
+
     data class VectorLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class SetLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ArrayLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
@@ -211,6 +219,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.RecordExtend -> f(e.copy(labels = e.labels.mapList(::go), expr = go(e.expr)))
         is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
         is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
+        is Expr.RecordUpdate -> f(e.copy(expr = go(e.expr), value = go(e.value)))
         is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))

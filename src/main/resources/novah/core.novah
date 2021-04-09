@@ -261,6 +261,16 @@ hashCode : a -> Int32
 hashCode x = jHashCode (unsafeCast x)
 
 /**
+ * Throws an assetion error if the condition is false.
+ */
+pub
+assert : Boolean -> String -> Unit
+assert cond msg =
+  if cond
+  then ()
+  else throw newAssertionError (format "Assert failed: %s" [msg])
+
+/**
  * Throws an exception stating that this code is still undergoing implementation.
  * Should be used a placeholder for future code.
  */

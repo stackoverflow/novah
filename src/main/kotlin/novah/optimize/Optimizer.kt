@@ -233,6 +233,7 @@ class Optimizer(private val ast: CModule) {
             )
             is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ, span)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ, span)
+            is CExpr.RecordUpdate -> Expr.RecordUpdate(exp.convert(locals), label, value.convert(locals), typ, span)
             is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Throw -> Expr.Throw(exp.convert(locals), span)

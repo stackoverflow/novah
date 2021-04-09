@@ -433,6 +433,13 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLdcInsn(e.label)
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "dissoc", "($STRING_DESC)$RECORD_DESC", false)
             }
+            is Expr.RecordUpdate -> {
+                genExpr(e.expr, mv, ctx)
+                mv.visitLdcInsn(e.label)
+                genExpr(e.value, mv, ctx)
+                val descriptor = "(${STRING_DESC}$OBJECT_DESC)$RECORD_DESC"
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "set", descriptor, false)
+            }
             is Expr.RecordExtend -> {
                 val shouldLinearize = e.labels.size() > MAP_LINEAR_THRESHOLD
                 genExpr(e.expr, mv, ctx)

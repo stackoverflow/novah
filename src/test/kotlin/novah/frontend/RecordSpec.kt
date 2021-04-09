@@ -129,17 +129,23 @@ class RecordSpec : StringSpec({
     }
 
     "record update" {
-        // this is a hack, would be better to have type level strings or direct syntax
-        // so we could generically update a record
         val code = """
-            same : a -> a -> a
-            same _ y = y
+            rec = { name: "Snuffles", age: 20 }
             
-            update newName named = { name: same named.name newName | { - name | named } }
+            nested = { address: { country: { number: 10 } } }
+            
+            update r name = { .name = name | r }
+            
+            update2 r code = { .address.country.number = code + 10 | r }
+            
+            x = update rec "Mr. Snuffles"
+            y = update2 nested 25
         """.module()
 
-        val user = TestUtil.compileCode(code).env.decls["update"]
-        user?.type?.simpleName() shouldBe "t1 -> { name : t1 | t2 } -> { name : t1 | t2 }"
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["update"]?.type?.simpleName() shouldBe "{ name : t2 | t1 } -> t2 -> { name : t2 | t1 }"
+        ds["update2"]?.type?.simpleName() shouldBe
+                "{ address : { country : { number : Int32 | t3 } | t2 } | t1 } -> Int32 -> { address : { country : { number : Int32 | t3 } | t2 } | t1 }"
     }
 
     "1st class modules" {

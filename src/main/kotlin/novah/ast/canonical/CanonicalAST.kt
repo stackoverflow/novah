@@ -97,6 +97,7 @@ sealed class Expr(open val span: Span) {
     data class RecordSelect(val exp: Expr, val label: String, override val span: Span) : Expr(span)
     data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
+    data class RecordUpdate(val exp: Expr, val label: String, val value: Expr, override val span: Span) : Expr(span)
     data class VectorLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class Throw(val exp: Expr, override val span: Span) : Expr(span)
@@ -201,6 +202,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.RecordSelect -> f(e.copy(exp = go(e.exp)))
         is Expr.RecordRestrict -> f(e.copy(exp = go(e.exp)))
+        is Expr.RecordUpdate -> f(e.copy(exp = go(e.exp), value = go(e.value)))
         is Expr.RecordExtend -> f(e.copy(exp = go(e.exp), labels = e.labels.mapList(::go)))
         is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
@@ -260,6 +262,7 @@ fun Expr.show(): String = when (this) {
     is Expr.RecordEmpty -> "{}"
     is Expr.RecordSelect -> "${exp.show()}.$label"
     is Expr.RecordRestrict -> "{ - $label | ${exp.show()} }"
+    is Expr.RecordUpdate -> "{ .$label = ${value.show()} | ${exp.show()} }"
     is Expr.RecordExtend -> {
         val rest = if (exp is Expr.RecordEmpty) "" else " | ${exp.show()} "
         "{ ${labels.show { s, expr -> "$s: ${expr.show()}" }} $rest}"

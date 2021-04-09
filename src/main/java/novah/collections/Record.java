@@ -43,7 +43,7 @@ public class Record implements IMap<String, ListValue> {
 
     @Override
     public String toString() {
-        return inner.toString();
+        return Maps.toString(inner, (String k) -> k + ":", ListValue::toString);
     }
 
     @Override
@@ -104,28 +104,27 @@ public class Record implements IMap<String, ListValue> {
 //
 //    }
 
-    public IMap<String, ListValue> merge(IMap<String, ListValue> b, Function<ListValue, Function<ListValue, ListValue>> mergeFn) {
+    public Record merge(IMap<String, ListValue> b, Function<ListValue, Function<ListValue, ListValue>> mergeFn) {
         return merge(b, (e1, e2) -> mergeFn.apply(e1).apply(e2));
     }
 
     @Override
-    public IMap<String, ListValue> merge(IMap<String, ListValue> b, BinaryOperator<ListValue> mergeFn) {
+    public Record merge(IMap<String, ListValue> b, BinaryOperator<ListValue> mergeFn) {
         return new Record(inner.merge(b, mergeFn));
     }
 
     @Override
-    public IMap<String, ListValue> difference(ISet<String> keys) {
+    public Record difference(ISet<String> keys) {
         return new Record(inner.difference(keys));
     }
 
     @Override
-    public IMap<String, ListValue> intersection(ISet<String> keys) {
+    public Record intersection(ISet<String> keys) {
         return new Record(inner.intersection(keys));
     }
 
-    @Override
-    public IMap<String, ListValue> union(IMap<String, ListValue> m) {
-        return new Record(inner.union(m));
+    public Record union(Record m) {
+        return new Record(inner.union(m.inner));
     }
 
     @Override
@@ -167,6 +166,17 @@ public class Record implements IMap<String, ListValue> {
         return new Record(inner.put(key, value));
     }
 
+    /**
+     * Sets the key to val.
+     * The typechecker makes sure the key is present.
+     */
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    public Record set(String key, Object val) {
+        var oldVal = inner.nth(inner.indexOf(key).getAsLong()).value();
+        var newVal = ListValue.of(val, oldVal.next);
+        return new Record(inner.put(key, newVal));
+    }
+    
     /**
      * Adds a key to the map.
      * Accept duplicates.

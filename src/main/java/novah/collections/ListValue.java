@@ -29,7 +29,7 @@ public class ListValue {
     @Override
     public String toString() {
         if (next == null) return value.toString();
-        return value.toString() + ", " + next.toString();
+        return value.toString() + ", " + next;
     }
 
     @Override
