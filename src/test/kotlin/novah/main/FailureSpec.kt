@@ -26,7 +26,7 @@ class FailureSpec : StringSpec({
 
     "run all failure tests" {
         File("src/test/resources/failure").walkTopDown().filter { it.extension == "novah" }.forEach { file ->
-            Typechecker.resetId()
+            Typechecker.reset()
             val path = file.toPath()
             val testName = file.nameWithoutExtension
             val output = File("${file.parent}/$testName.txt")
@@ -46,7 +46,7 @@ class FailureSpec : StringSpec({
 
     "run all warning tests" {
         File("src/test/resources/warning").walkTopDown().filter { it.extension == "novah" }.forEach { file ->
-            Typechecker.resetId()
+            Typechecker.reset()
             val path = file.toPath()
             val testName = file.nameWithoutExtension
             val output = File("${file.parent}/$testName.txt")

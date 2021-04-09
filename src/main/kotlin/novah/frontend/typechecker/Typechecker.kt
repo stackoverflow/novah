@@ -23,12 +23,10 @@ object Typechecker {
         private set
 
     private fun nextId(): Int = ++currentId
-    fun resetId() {
-        currentId = 0
-    }
 
-    fun resetEnv() {
+    fun reset() {
         env = Env.new()
+        currentId = 0
     }
 
     fun newVar(level: Level) = TVar(TypeVar.Unbound(nextId(), level))
