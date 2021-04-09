@@ -161,6 +161,28 @@ class ParserSpec : StringSpec({
             des.desugar()
         }
     }
+    
+    "Indentation is correctly parsed" {
+        val code = """
+            
+            fun () = do
+              let x = do
+                   1
+                   2
+              x
+            
+            fun x =
+              case x of
+              Some _ -> 1
+              None -> 0
+        """.module()
+
+        val ast = parseString(code)
+        val des = Desugar(ast)
+        shouldNotThrowAny {
+            des.desugar()
+        }
+    }
 
     "Exported definitions have correct visibility" {
         val ast = parseResource("Example.novah")

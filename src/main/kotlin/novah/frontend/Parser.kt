@@ -670,9 +670,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         val tryExp = withOffside { parseExpression() }
         expect<CatchT>(withError(E.NO_CATCH))
 
-        val firstTk = iter.peek()
-        val align = max(firstTk.offside(), iter.offside() + 1)
-        if (firstTk.offside() > align) throwMismatchedIndentation(firstTk)
+        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
+        val align = iter.peek().offside()
         val cases = withIgnoreOffside(false) {
             withOffside(align) {
                 val cases = mutableListOf<Case>()
@@ -710,9 +709,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
         val arity = exps.size
 
-        val firstTk = iter.peek()
-        val align = max(firstTk.offside(), iter.offside() + 1)
-        if (firstTk.offside() > align) throwMismatchedIndentation(firstTk)
+        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
+        val align = iter.peek().offside()
         return withIgnoreOffside(false) {
             withOffside(align) {
                 val cases = mutableListOf<Case>()
@@ -980,9 +978,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseDo(): Expr {
         val doo = expect<Do>(noErr())
 
-        val firstTk = iter.peek()
-        val align = max(firstTk.offside(), iter.offside() + 1)
-        if (firstTk.offside() > align) throwMismatchedIndentation(firstTk)
+        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
+        val align = iter.peek().offside()
         return withIgnoreOffside(false) {
             withOffside(align) {
                 val exps = mutableListOf<Expr>()
@@ -1012,9 +1009,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
         if (!cond.isSimple()) throwError(E.EXP_SIMPLE to cond.span)
 
-        val firstTk = iter.peek()
-        val align = max(firstTk.offside(), iter.offside() + 1)
-        if (firstTk.offside() > align) throwMismatchedIndentation(firstTk)
+        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
+        val align = iter.peek().offside()
         return withIgnoreOffside(false) {
             withOffside(align) {
                 val exps = mutableListOf<Expr>()
