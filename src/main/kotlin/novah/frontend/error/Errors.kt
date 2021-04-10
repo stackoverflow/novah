@@ -35,6 +35,8 @@ object Errors {
 
     const val UPPER_LOWER = "Expected upper or lower case starting identifier."
 
+    const val UPPER_LOWER_STR = "Expected a string or an identifier."
+
     const val EXPORT_REFER =
         "Expected exposing/hiding definitions to be a comma-separated list of upper or lower case identifiers."
 
@@ -237,7 +239,7 @@ object Errors {
 
     fun staticMethod(name: String, type: String) = "Method $name of class $type is static."
 
-    fun ctorNotFound(type: String) = "Could not find constructor of class $type."
+    fun ctorNotFound(type: String) = "Could not find constructor $type."
 
     fun fieldNotFound(name: String, type: String) = "Could not find field $name for class $type."
 

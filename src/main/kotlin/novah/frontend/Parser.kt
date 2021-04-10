@@ -174,8 +174,8 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         fun forceAlias(ctx: String, lower: Boolean = true) =
             parseAlias(lower) ?: throwError(E.invalidForeign(ctx) to mkspan())
-
-        fun parseFullName() = between<Dot, String>(::parseUpperOrLowerIdent).joinToString(".")
+        
+        fun parseFullName() = between<Dot, String>(::parseIdentOrString).joinToString(".")
         fun parsePars(ctx: String): List<String> {
             expect<LParen>(withError(E.invalidForeign(ctx)))
             if (iter.peek().value is RParen) {
@@ -208,7 +208,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val maybename = parseFullName()
                 val static = parseStatic()
                 val idx = maybename.lastIndexOf('.')
-                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseUpperOrLowerIdent()
+                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseIdentOrString()
                 if (tk.v == "get") {
                     val alias = parseAlias()
                     if (alias == null && name[0].isUpperCase()) {
@@ -221,7 +221,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val maybename = parseFullName()
                 val static = parseStatic()
                 val idx = maybename.lastIndexOf('.')
-                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseUpperOrLowerIdent()
+                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseIdentOrString()
                 val pars = parsePars("method")
                 val alias = parseAlias()
                 if (alias == null && name[0].isUpperCase()) {
@@ -1156,6 +1156,16 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is UpperIdent -> tk.value.v
             is Ident -> tk.value.v
             else -> throwError(withError(E.UPPER_LOWER)(tk))
+        }
+    }
+
+    private fun parseIdentOrString(): String {
+        val tk = iter.next()
+        return when (tk.value) {
+            is UpperIdent -> tk.value.v
+            is Ident -> tk.value.v
+            is StringT -> tk.value.s
+            else -> throwError(withError(E.UPPER_LOWER_STR)(tk))
         }
     }
 
