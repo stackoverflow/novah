@@ -18,8 +18,11 @@ package novah;
 import io.lacuna.bifurcan.List;
 import io.lacuna.bifurcan.Set;
 
+import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Core language functions
@@ -295,30 +298,7 @@ public class Core {
     public static boolean vectorNotEmpty(List<?> vec) {
         return vec.size() != 0;
     }
-    
-    public static <T, R> List<R> mapVector(Function<T, R> f, List<T> vec) {
-        var res = new List<R>().linear();
-        vec.stream().forEach((elem) -> res.addLast(f.apply(elem)));
-        return res.forked();
-    }
 
-    @SuppressWarnings("unchecked")
-    public static <T, R> R[] mapArray(Function<T, R> f, T[] arr) {
-        var res = new Object[arr.length];
-        for (int i = 0; i < arr.length; i++) {
-            res[i] = f.apply(arr[i]);
-        }
-        return (R[]) res;
-    }
-
-    public static <T, R> void forEachVector(Function<T, R> f, List<T> vec) {
-        vec.stream().forEach(f::apply);
-    }
-
-    public static <T, R> void forEachArray(Function<T, R> f, T[] arr) {
-        for (T o : arr) f.apply(o);
-    }
-    
     public static <T> boolean equalsVector(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
         
@@ -473,6 +453,22 @@ public class Core {
         return (char) c;
     }
     
+    public static int intRemainder(int i, int i2) {
+        return i % i2;
+    }
+    
+    public static long longRemainder(long i, long i2) {
+        return i % i2;
+    }
+
+    public static float floatRemainder(float i, float i2) {
+        return i % i2;
+    }
+
+    public static double doubleRemainder(double i, double i2) {
+        return i % i2;
+    }
+    
     public static <T> void eachRange(long begin, long end, int step, Function<Long, T> f) {
         if (begin <= end) {
             for (long i = begin; i < end; i += step) {
@@ -553,6 +549,18 @@ public class Core {
             }
         }
         return vec.forked();
+    }
+    
+    public static <T> Comparator<T> makeComparator(Function<T, Function<T, Integer>> compare) {
+        return (o1, o2) -> compare.apply(o1).apply(o2);
+    }
+    
+    public static <T, R> Consumer<T> makeConsumer(Function<T, R> f) {
+        return f::apply;
+    }
+    
+    public static <T> Predicate<T> makePredicate(Function<T, Boolean> f) {
+        return f::apply;
     }
     
     @SuppressWarnings("unchecked")

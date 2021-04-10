@@ -44,6 +44,7 @@ object Reflection {
         "BooleanArray" -> "boolean[]"
         "Vector" -> "io.lacuna.bifurcan.List"
         "Set" -> "io.lacuna.bifurcan.Set"
+        "Function" -> "java.util.function.Function"
         else -> type
     }
 

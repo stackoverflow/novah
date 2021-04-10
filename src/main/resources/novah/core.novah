@@ -6,7 +6,6 @@ module novah.core
 
 foreign import type io.lacuna.bifurcan.IList
 foreign import type io.lacuna.bifurcan.ISet
-foreign import type java.util.function.Function
 foreign import type novah.Core
 foreign import type novah.collections.Record
 foreign import type java.util.concurrent.atomic.AtomicReference
@@ -18,6 +17,7 @@ foreign import new java.lang.AssertionError(String) as newAssertionError
 foreign import Int32.longValue()
 foreign import Int32.byteValue() as iToB
 foreign import Int32.shortValue() as iToS
+foreign import Int64.intValue() as lToI
 foreign import Object.toString() as jToString
 foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
@@ -118,6 +118,10 @@ foreign import Core:bitShiftLeftLong(Int64, Int64)
 foreign import Core:bitShiftRightLong(Int64, Int64)
 foreign import Core:unsignedBitShiftRightLong(Int64, Int64)
 foreign import Core:bitNotLong(Int64)
+foreign import Core:intRemainder(Int32, Int32)
+foreign import Core:longRemainder(Int64, Int64)
+foreign import Core:floatRemainder(Float32, Float32)
+foreign import Core:doubleRemainder(Float64, Float64)
 
 /**
  * A 32-bits Integer
@@ -279,6 +283,13 @@ todo : String -> a
 todo msg = throw newAssertionError (format "Not implemented: %s" [msg])
 
 /**
+ * Converts this 64-bit integer to a 32-bit integer.
+ */
+pub
+int : Int64 -> Int32
+int l = lToI l
+
+/**
  * Converts this 32-bit integer to a 64-bit integer.
  */
 pub
@@ -410,6 +421,8 @@ objectArray size = mkObjectArray size
 /**
  * Gets the element of the array at the
  * specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
  */
 pub
 arrayGet : Int -> Array a -> a
@@ -418,6 +431,8 @@ arrayGet index arr = getArray index arr
 /**
  * Sets the element of the array at the
  * specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
  */
 pub
 arraySet : Int -> a -> Array a -> Unit
@@ -425,6 +440,7 @@ arraySet index x arr = setArray index x arr
 
 /**
  * Converts a Vector of some type `a` to an Array of `a`.
+ * Runtime: O(n)
  */
 pub
 arrayOf : Vector a -> Array a
@@ -437,6 +453,19 @@ arrayOf vec = unsafeCast (vecToArr (unsafeCast vec))
 pub
 format : String -> Vector a -> String
 format str vec = sformat str (unsafeCast (arrayOf vec))
+
+/**
+ * Executes the action when the condition is `true`.
+ * Used for side effects.
+ */
+pub
+when : Boolean -> (Unit -> a) -> Unit
+when cond action =
+  if cond
+  then do
+    action ()
+    ()
+  else ()
 
 /**
  * Represents the possibility of a missing value.
@@ -609,6 +638,69 @@ divideFloat32 = Divide { divide: \x y -> divFloat32 x y }
 pub instance
 divideFloat64 : Divide Float64
 divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
+
+/**
+ * A type for some miscelaneous number operations.
+ */
+pub+
+opaque type NumberOps a =
+  { remainder : a -> a -> a
+  , zero : a
+  , even: a -> Boolean
+  }
+
+/**
+ * Returns the remainder of dividing x by y.
+ */
+pub
+(%) : {{ NumberOps a }} -> a -> a -> a
+(%) {{NumberOps r}} x y = r.remainder x y
+
+/**
+ * Returns true if this number is odd.
+ */
+pub
+odd : {{ NumberOps a }} -> a -> Boolean
+odd {{NumberOps r}} x = not (r.even x)
+
+/**
+ * Returns true if this number is even.
+ */
+pub
+even : {{ NumberOps a }} -> a -> Boolean
+even {{NumberOps r}} x = r.even x
+
+pub instance
+numberOpsInt32 : NumberOps Int32
+numberOpsInt32 = NumberOps
+  { remainder: \x y -> intRemainder x y
+  , zero: 0
+  , even: \x -> intRemainder x 2 == 0
+  }
+
+pub instance
+numberOpsInt64 : NumberOps Int64
+numberOpsInt64 = NumberOps
+  { remainder: \x y -> longRemainder x y
+  , zero: 0L
+  , even: \x -> longRemainder x 2L == 0L
+  }
+
+pub instance
+numberOpsFloat32 : NumberOps Float32
+numberOpsFloat32 = NumberOps
+  { remainder: \x y -> floatRemainder x y
+  , zero: 0F
+  , even: \x -> floatRemainder x 2F == 0F
+  }
+
+pub instance
+numberOpsFloat64 : NumberOps Float64
+numberOpsFloat64 = NumberOps
+  { remainder: \x y -> doubleRemainder x y
+  , zero: 0.0
+  , even: \x -> doubleRemainder x 2.0 == 0.0
+  }
 
 /**
  * The type of things that can be counted / have size.

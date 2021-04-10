@@ -26,7 +26,6 @@ import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
@@ -243,7 +242,7 @@ class Desugar(private val smod: SModule) {
                 lvars += Binder(v, span)
                 Expr.Var(v, span)
             } else exp.desugar(locals)
-            
+
             nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue))
         }
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
@@ -483,6 +482,7 @@ class Desugar(private val smod: SModule) {
                 }
                 val pointer = map[ty.fullname()]
                 if (pointer != null) {
+                    // recursively resolved inner typealiases
                     if (vars.size != pointer.tyVars.size)
                         parserError(E.partiallyAppliedAlias(pointer.name, pointer.tyVars.size, vars.size), ta.span)
 
@@ -732,7 +732,7 @@ class Desugar(private val smod: SModule) {
 
     private fun makeError(msg: String, span: Span): CompilerProblem =
         CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
-    
+
     companion object {
         fun collectVars(exp: Expr): List<String> =
             exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }

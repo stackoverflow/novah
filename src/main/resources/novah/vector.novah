@@ -1,33 +1,70 @@
 module novah.vector
 
-foreign import type java.util.function.Function
-foreign import type novah.Core
+foreign import type java.util.Comparator
+foreign import type java.util.stream.Stream
+foreign import type io.lacuna.bifurcan.IList
 
 foreign import Vector.linear() as vecLinear
 foreign import Vector.forked() as vecForked
+foreign import Vector:"of"(Array) as fromArray
+foreign import java.util.Arrays:sort(Array, Comparator) as arraySort
+foreign import IList.stream() as vecStream
 
-foreign import Core:mapVector(Function, Vector) as vecMap
-foreign import Core:forEachVector(Function, Vector)
+import novah.java (toComparator)
+import novah.stream as S
 
 /**
- * A linear (mutable) version of a Vector.
- * Should be used in an encapsulated function to build a Vector
- * avoiding the allocations of a normal Vector before forking it again.
+ * A linear (mutable) version of a vector.
+ * Should be used in an encapsulated function to build a vector
+ * avoiding the allocations of a normal vector before forking it again.
  */
 pub
 opaque type LinearVector a = Vector a
 
 /**
- * Maps function f over all elements of this Vector
- * returning a Vector of the same size.
+ * Returns a stream for this vector.
+ */
+pub
+stream : Vector a -> Stream a
+stream vec = vecStream (unsafeCast vec)
+
+/**
+ * Collects this stream into a vector.
+ * Runtime: O(n)
+ */
+pub
+into : Stream a -> Vector a
+into st =
+  let lvec = vecLinear []
+  in do
+    S.forEach st \x -> addLast x lvec
+    vecForked lvec
+
+/**
+ * Runs function f for every element of this vector, ignoring the result.
+ * Runtime: O(n)
+ */
+pub
+forEach : Vector a -> (a -> b) -> Unit
+forEach vec f = forEachRange 0L (count vec) \idx ->
+  f (vec ! idx)
+
+/**
+ * Maps function f over all elements of this vector
+ * returning a vector of the same size.
  * Runtime: O(n)
  */
 pub
 map : (a -> b) -> Vector a -> Vector b
-map f vec = vecMap f vec
+map f vec =
+  let lvec = vecLinear []
+  in do
+    forEachRange 0L (count vec) \idx ->
+      addLast (f (vec ! idx)) lvec
+    vecForked lvec
 
 /**
- * Returns Some value at index for this Vector if it exists or None.
+ * Returns some value at index for this vector if it exists or none.
  * This is a safe version of !
  * Runtime: ~O(1)
  */
@@ -40,22 +77,58 @@ nth index vec =
      else Some (vec ! index)
 
 /**
- * Runs function f for every element of this vector, ignoring the result.
- * Runtime: O(n)
+ * Returns a vector of the elements that match the given predicate.
  */
 pub
-forEach : Vector a -> (a -> b) -> Unit
-forEach vec f = forEachVector f vec
+filter : (a -> Boolean) -> Vector a -> Vector a
+filter f vec =
+  let lvec = vecLinear []
+  in do
+    forEachRange 0L (count vec) \idx ->
+      let elem = vec ! idx
+      in when (f elem) \_ ->
+        addLast elem lvec
+    vecForked lvec
 
 /**
- * Creates a LinearVector out of this Vector.
+ * Sorts this vector according to the elements Ord instance.
+ */
+pub
+sort : {{ Ord a }} -> Vector a -> Vector a
+sort {{ord}} = case _ of
+  [] -> []
+  [_] as vec -> vec
+  vec -> do
+    let arr = arrayOf vec
+    let comp = toComparator ord
+    arraySort arr (unsafeCast comp)
+    fromArray arr
+
+/**
+ * An alias to `addFirst`.
+ * Should be used when using this vector as a stack/linked list.
+ */
+pub
+push : a -> Vector a -> Vector a
+push = addFirst
+
+/**
+ * An alias to `removeFirst`.
+ * Should be used when using this vector as a stack/linked list.
+ */
+pub
+pop : Vector a -> Vector a
+pop = removeFirst
+
+/**
+ * Creates a linear vector out of this vector.
  */
 pub
 linear : Vector a -> LinearVector a
 linear vec = LinearVector (vecLinear vec)
 
 /**
- * Forks this LinearVector into a Vector.
+ * Forks this linear vector into a vector.
  */
 pub
 forked : LinearVector a -> Vector a
@@ -139,12 +212,12 @@ reverse vec =
 
 reverseLinear : Vector a -> Vector a
 reverseLinear vec = do
-  let lvec = linear vec
+  let lvec = vecLinear vec
   let size = count vec
   forEachRange 0L size \i ->
     let j = size - i - 1L
-    in setAtLinear j (vec ! i) lvec
-  forked lvec
+    in setAt j (vec ! i) lvec
+  vecForked lvec
 
 reverse_ : Vector a -> Vector a -> Vector a
 reverse_ acc = case _ of

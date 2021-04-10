@@ -17,6 +17,24 @@ pub
 (::) = Cons
 
 /**
+ * Returns the head of this list if it's not empty.
+ */
+pub
+head : List a -> Option a
+head = case _ of
+  Nil -> None
+  Cons x _ -> Some x
+
+/**
+ * Returns the tail of this list if it's not empty.
+ */
+pub
+tail : List a -> Option (List a)
+tail = case _ of
+  Nil -> None
+  Cons _ xs -> Some xs
+
+/**
  * Maps function f over all elements of this List
  * returning a List of the same size.
  * Runtime: O(n)
@@ -39,6 +57,25 @@ forEach list f =
     Cons x xs -> do
       f x
       forEach xs f
+
+/**
+ * Returns a list of the elements that match the given predicate.
+ * Runtime: O(n)
+ */
+pub
+filter : (a -> Boolean) -> List a -> List a
+filter f = case _ of
+  Nil -> Nil
+  Cons x xs -> if f x then x :: filter f xs else filter f xs
+
+/**
+ * Like `map` but it will flatten the resulting stream.
+ */
+pub
+flatMap : (a -> List b) -> List a -> List b
+flatMap f = case _ of
+  Nil -> Nil
+  Cons x xs -> f x ++ flatMap f xs
 
 countList_ : List a -> Int64
 countList_ = case _ of

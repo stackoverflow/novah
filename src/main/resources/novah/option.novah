@@ -45,7 +45,7 @@ isNone = case _ of
 
 /**
  * Extracts the value out of this Option.
- * *Unsafe*: Will thrown an assertion error if the Option is empty.
+ * *Unsafe*: Will thrown an exception if the Option is empty.
  */
 pub
 unwrap : Option a -> a

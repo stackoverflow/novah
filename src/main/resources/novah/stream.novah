@@ -1,0 +1,56 @@
+module novah.stream
+
+foreign import type java.util.function.Consumer
+foreign import type java.util.function.Predicate
+foreign import type java.util.stream.Stream
+foreign import type novah.Core
+
+foreign import Stream.forEach(Consumer) as sforEach
+foreign import Stream.count() as scount
+foreign import Stream.toArray() as stoArray
+foreign import Stream.map(Function) as smap
+foreign import Stream.flatMap(Function) as sflatMap
+foreign import Stream.filter(Predicate) as sfilter
+foreign import Core:makeConsumer(Function)
+foreign import Core:makePredicate(Function)
+
+/**
+ * Runs function f for every element of this Stream, ignoring the result.
+ * Runtime: O(n)
+ */
+pub
+forEach : Stream a -> (a -> b) -> Unit
+forEach stream f = sforEach stream (unsafeCast (makeConsumer f))
+
+/**
+ * Collects this Stream into an Array.
+ */
+pub
+toArray : Stream a -> Array a
+toArray st = unsafeCast (stoArray st)
+
+pub instance
+countStream : Count (Stream a)
+countStream = Count { count: \st -> scount st }
+
+/**
+ * Returns a stream of the elements that match the given predicate.
+ */
+pub
+filter : (a -> Boolean) -> Stream a -> Stream a
+filter f st = sfilter st (unsafeCast (makePredicate f))
+
+/**
+ * Maps function f over all elements of this Stream returning a Stream.
+ * Runtime: O(n)
+ */
+pub
+map : (a -> b) -> Stream a -> Stream b
+map f st = smap st (unsafeCast f)
+
+/**
+ * Like `map` but it will flatten the resulting stream.
+ */
+pub
+flatMap : (a -> Stream b) -> Stream a -> Stream b
+flatMap f st = sflatMap st (unsafeCast f)

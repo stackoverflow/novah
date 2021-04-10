@@ -1,0 +1,97 @@
+module novah.set
+
+foreign import type java.util.stream.Stream
+foreign import type io.lacuna.bifurcan.ISet
+
+foreign import ISet.stream() as setStream
+foreign import Set.linear() as setLinear
+foreign import Set.forked() as setForked
+foreign import Set.add(Object) as setAdd
+foreign import Set.remove(Object) as setRemove
+foreign import Set.nth(Int64) as setNth
+
+import novah.stream as S
+
+/**
+ * Inserts this element in the set.
+ * Runtime: ~O(1)
+ */
+pub
+add : a -> Set a -> Set a
+add x set = setAdd set x
+
+/**
+ * Removes this element from the set.
+ * Runtime: ~O(1)
+ */
+pub
+remove : a -> Set a -> Set a
+remove x set = setRemove set x
+
+/**
+ * Returns some value at index for this set if it exists or none.
+ * Runtime: ~O(1)
+ */
+pub
+nth : Int64 -> Set a -> Option a
+nth index set =
+  let size = count set
+  in if index < 0L || index >= size
+     then None
+     else Some (setNth set index)
+
+/**
+ * Returns a stream for this set.
+ */
+pub
+stream : Set a -> Stream a
+stream set = setStream (unsafeCast set)
+
+/**
+ * Collects this stream into a set.
+ * Runtime: O(n)
+ */
+pub
+into : Stream a -> Set a
+into st =
+  let lset = setLinear #{}
+  in do
+    S.forEach st \x -> add x lset
+    setForked lset
+
+/**
+ * Runs function f for every element of this set, ignoring the result.
+ * Runtime: O(n)
+ */
+pub
+forEach : Set a -> (a -> b) -> Unit
+forEach set f = forEachRange 0L (count set) \idx ->
+  f (setNth set idx)
+
+/**
+ * Maps function f over all elements of this set
+ * returning a set of the same size.
+ * Runtime: O(n)
+ */
+pub
+map : (a -> b) -> Set a -> Set b
+map f set =
+  let lset = setLinear #{}
+  in do
+    forEachRange 0L (count set) \idx ->
+      add (f (setNth set idx)) lset
+    setForked lset
+
+/**
+ * Returns an array of the elements that match the given predicate.
+ */
+pub
+filter : (a -> Boolean) -> Set a -> Set a
+filter f set =
+  let lset = setLinear #{}
+  in do
+    forEachRange 0L (count set) \idx ->
+      let elem = setNth set idx
+      in when (f elem) \_ ->
+        add elem lset
+    setForked lset

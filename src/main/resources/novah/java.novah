@@ -1,0 +1,47 @@
+/**
+ * Functions for Java interoperability.
+ */
+module novah.java
+
+foreign import type java.lang.Class
+foreign import type java.util.Comparator
+foreign import type java.util.function.Consumer
+foreign import type java.util.function.Predicate
+foreign import type novah.Core
+
+foreign import Object.getClass()
+foreign import Core:makeComparator(Function)
+foreign import Core:makeConsumer(Function)
+foreign import Core:makePredicate(Function)
+
+/**
+ * Returns the Java class of this object.
+ */
+pub
+class : a -> Class a
+class obj = unsafeCast (getClass (unsafeCast obj))
+
+/**
+ * Returns a `java.util.Comparator` based on this Ord instance.
+ */
+pub
+toComparator : Ord a -> Comparator a
+toComparator (Ord _ cmp) =
+  makeComparator \x y -> case cmp.compare x y of
+    LT -> -1
+    EQ -> 0
+    GT -> 1
+
+/**
+ * Creates a `java.util.function.Consumer` out of this function, ignoring the result.
+ */
+pub
+consumer : (a -> b) -> Consumer a
+consumer f = makeConsumer f
+
+/**
+ * Creates a `java.util.function.Predicate` out of this function.
+ */
+pub
+predicate : (a -> Boolean) -> Predicate a
+predicate f = makePredicate f
