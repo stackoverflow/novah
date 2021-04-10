@@ -361,7 +361,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         if (!iter.hasNext()) {
             return genNumIntToken("$init".toSafeLong(10) * n, "$init")
         }
-        return if (init == '0') {
+        return if (init == '0' && iter.peek() != '.') {
             when (val c = iter.peek()) {
                 // binary numbers
                 'b', 'B' -> {
@@ -385,7 +385,11 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     if (c.isDigit()) lexError("Number 0 can only be followed by b|B or x|X: `$c`")
                     val l = accept("L")
                     if (l != null) LongT(0, "0L")
-                    else IntT(0, "0")
+                    else {
+                        val f = accept("F")
+                        if (f != null) FloatT(0F, "0F")
+                        else IntT(0, "0")
+                    }
                 }
             }
         } else {
