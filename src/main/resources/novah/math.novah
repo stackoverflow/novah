@@ -1,0 +1,177 @@
+module novah.math
+
+foreign import type java.lang.Math
+
+foreign import get Math:E as mathE
+foreign import get Math:PI as mathPi
+foreign import Math:sin(Float64) as mathSin
+foreign import Math:cos(Float64) as mathCos
+foreign import Math:tan(Float64) as mathTan
+foreign import Math:asin(Float64) as mathAsin
+foreign import Math:acos(Float64) as mathAcos
+foreign import Math:atan(Float64) as mathAtan
+foreign import Math:toRadians(Float64) as mathToRadians
+foreign import Math:toDegrees(Float64) as mathToDegrees
+foreign import Math:exp(Float64) as mathExp
+foreign import Math:log(Float64) as mathLog
+foreign import Math:log10(Float64) as mathLog10
+foreign import Math:sqrt(Float64) as mathSqrt
+foreign import Math:cbrt(Float64) as mathCbrt
+foreign import Math:ceil(Float64) as mathCeil
+foreign import Math:floor(Float64) as mathFloor
+foreign import Math:round(Float32) as mathRoundInt
+foreign import Math:round(Float64) as mathRoundLong
+
+/**
+ * The base of natural logarithms.
+ */
+pub
+e : Float64
+e = mathE
+
+/**
+ * The ratio of the circumference of a circle to its diameter.
+ */
+pub
+pi : Float64
+pi = mathPi
+
+/**
+ * Returns the smaller of two numbers.
+ */
+pub
+min : {{ NumberOps a }} -> a -> a -> a
+min {{NumberOps ops}} x y = ops.min x y
+
+/**
+ * Returns the bigger of two numbers.
+ */
+pub
+max : {{ NumberOps a }} -> a -> a -> a
+max {{NumberOps ops}} x y = ops.max x y
+
+/**
+ * Returns n clamped between min and max.
+ */
+pub
+clamp : {{ NumberOps a }} -> a -> a -> a -> a
+clamp {{NumberOps ops}} min_ max_ n = min max_ (max min_ n)
+
+/**
+ * Returns the trigonometric sine of an angle (in radians).
+ */
+pub
+sin : Float64 -> Float64
+sin x = mathSin x
+
+/**
+ * Returns the trigonometric cosine of an angle (in radians).
+ */
+pub
+cos : Float64 -> Float64
+cos x = mathCos x
+
+/**
+ * Returns the trigonometric tangent of an angle (in radians).
+ */
+pub
+tan : Float64 -> Float64
+tan x = mathTan x
+
+/**
+ * Returns the arc sine of a value; the returned angle is in the range -pi/2 through pi/2.
+ */
+pub
+asin : Float64 -> Float64
+asin x = mathAsin x
+
+/**
+ * Returns the arc cosine of a value; the returned angle is in the range 0.0 through pi.
+ */
+pub
+acos : Float64 -> Float64
+acos x = mathAcos x
+
+/**
+ * Returns the arc tangent of a value; the returned angle is in the range -pi/2 through pi/2.
+ */
+pub
+atan : Float64 -> Float64
+atan x = mathAtan x
+
+/**
+ * Converts an angle in degrees to its approximation in radians.
+ */
+pub
+toRadians : Float64 -> Float64
+toRadians angle = mathToRadians angle
+
+/**
+ * Converts an angle in radians to its approximation in degrees.
+ */
+pub
+toDegrees : Float64 -> Float64
+toDegrees angle = mathToDegrees angle
+
+/**
+ * Returns Euler's number e raised to the power of x.
+ */
+pub
+exp : Float64 -> Float64
+exp x = mathExp x
+
+/**
+ * Returns the natural logarithm (base e) of x.
+ */
+pub
+log : Float64 -> Float64
+log x = mathLog x
+
+/**
+ * Returns the base 10 logarithm of x.
+ */
+pub
+log10 : Float64 -> Float64
+log10 x = mathLog10 x
+
+/**
+ * Returns the square root of x.
+ */
+pub
+sqrt : Float64 -> Float64
+sqrt x = mathSqrt x
+
+/**
+ * Returns the cube root of x.
+ */
+pub
+cbrt : Float64 -> Float64
+cbrt x = mathCbrt x
+
+/**
+ * Returns the smallest Float64 number that is greater than x and equals to an integer (round up).
+ */
+pub
+ceil : Float64 -> Float64
+ceil x = mathCeil x
+
+/**
+ * Returns the greatest Float64 number that is less than or equal x and equals to an integer (round down).
+ */
+pub
+floor : Float64 -> Float64
+floor x = mathFloor x
+
+/**
+ * Returns the Int32 closest to x.
+ */
+pub
+round : Float32 -> Int32
+round x = mathRoundInt x
+
+/**
+ * Returns the Int64 closest to x.
+ */
+pub
+round64 : Float64 -> Int64
+round64 x = mathRoundLong x
