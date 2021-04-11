@@ -677,6 +677,7 @@ class Desugar(private val smod: SModule) {
             is Expr.NativeMethod -> {
                 var count = exp.method.parameterCount
                 if (!exp.isStatic) count++
+                if (count == 0) count++
                 if (depth != count) throwArgs(exp.name, exp.span, "method", count, depth)
             }
             is Expr.NativeConstructor -> {

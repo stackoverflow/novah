@@ -79,3 +79,18 @@ sort {{ord}} arr = do
   let comp = toComparator ord
   arraySort arr (unsafeCast comp)
   arr
+
+/**
+ * Returns a new array with the same elements in the reverse order of the input array.
+ */
+pub
+reverse : Array a -> Array a
+reverse arr =
+  let size = count arr
+      res = unsafeCast (objectArray (int size))
+  in do
+    forEachRange 0L size \idx ->
+      let i = int (size - idx - 1L)
+          elem = arrayGet (int idx) arr
+      in arraySet i elem res
+    res

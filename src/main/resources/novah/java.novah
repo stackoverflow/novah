@@ -7,12 +7,22 @@ foreign import type java.lang.Class
 foreign import type java.util.Comparator
 foreign import type java.util.function.Consumer
 foreign import type java.util.function.Predicate
+foreign import type java.util.function.BiPredicate
+foreign import type java.util.function.BinaryOperator
+foreign import type java.util.function.ToLongFunction
+foreign import type java.util.function.ToIntFunction
 foreign import type novah.Core
 
 foreign import Object.getClass()
+foreign import Object.hashCode() as jHashCode
+foreign import Object.equals(Object) as jEquals
 foreign import Core:makeComparator(Function)
 foreign import Core:makeConsumer(Function)
 foreign import Core:makePredicate(Function)
+foreign import Core:makeBiPredicate(Function)
+foreign import Core:makeToLongFunction(Function)
+foreign import Core:makeToIntFunction(Function)
+foreign import Core:makeBinaryOperator(Function)
 
 /**
  * Returns the Java class of this object.
@@ -20,6 +30,22 @@ foreign import Core:makePredicate(Function)
 pub
 class : a -> Class a
 class obj = unsafeCast (getClass (unsafeCast obj))
+
+/**
+ * Returns the hash code for this value using
+ * the native Java `hashCode` method of x.
+ */
+pub
+hashCode : a -> Int32
+hashCode x = jHashCode (unsafeCast x)
+
+/**
+ * Returns true if x is equals y using
+ * the native Java `equals` method of x.
+ */
+pub
+equals : a -> a -> Boolean
+equals x y = jEquals (unsafeCast x) (unsafeCast y)
 
 /**
  * Returns a `java.util.Comparator` based on this Ord instance.
@@ -45,3 +71,31 @@ consumer f = makeConsumer f
 pub
 predicate : (a -> Boolean) -> Predicate a
 predicate f = makePredicate f
+
+/**
+ * Creates a `java.util.function.BiPredicate` out of this function.
+ */
+pub
+bipredicate : (a -> b -> Boolean) -> BiPredicate a b
+bipredicate f = makeBiPredicate f
+
+/**
+ * Creates a `java.util.function.ToLongFunction` out of this function.
+ */
+pub
+toLong : (a -> Int64) -> ToLongFunction a
+toLong f = makeToLongFunction f
+
+/**
+ * Creates a `java.util.function.ToIntFunction` out of this function.
+ */
+pub
+toInt : (a -> Int32) -> ToIntFunction a
+toInt f = makeToIntFunction f
+
+/**
+ * Creates a `java.util.function.BinaryOperator` out of this function.
+ */
+pub
+binaryOperator : (a -> a -> a) -> BinaryOperator a
+binaryOperator f = makeBinaryOperator f

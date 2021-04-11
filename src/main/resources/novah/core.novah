@@ -9,17 +9,18 @@ foreign import type io.lacuna.bifurcan.ISet
 foreign import type novah.Core
 foreign import type novah.collections.Record
 foreign import type java.util.concurrent.atomic.AtomicReference
+foreign import type java.lang.Math
 
 foreign import get java.lang.System:out
 foreign import java.io.PrintStream.println(Object) as jprintln
 foreign import java.io.PrintStream.print(Object) as jprint
 foreign import new java.lang.AssertionError(String) as newAssertionError
+foreign import java.lang.Math:pow(Float64, Float64)
 foreign import Int32.longValue()
 foreign import Int32.byteValue() as iToB
 foreign import Int32.shortValue() as iToS
 foreign import Int64.intValue() as lToI
 foreign import Object.toString() as jToString
-foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
 foreign import String.equals(String) as equalsString
 foreign import IList.toArray() as vecToArr
@@ -44,6 +45,14 @@ foreign import new AtomicReference(Object) as newAtom
 foreign import AtomicReference.get() as atomGet
 foreign import AtomicReference.set(Object) as atomSet
 foreign import AtomicReference.compareAndSet(Object, Object) as atomCmpAndSet
+foreign import Math:min(Int32, Int32) as minInt
+foreign import Math:min(Int64, Int64) as minLong
+foreign import Math:min(Float32, Float32) as minFloat
+foreign import Math:min(Float64, Float64) as minDouble
+foreign import Math:max(Int32, Int32) as maxInt
+foreign import Math:max(Int64, Int64) as maxLong
+foreign import Math:max(Float32, Float32) as maxFloat
+foreign import Math:max(Float64, Float64) as maxDouble
 
 foreign import Core:not(Boolean) as negate
 foreign import Core:mkByteArray(Int32)
@@ -97,6 +106,7 @@ foreign import Core:swapAtom(AtomicReference, Function)
 foreign import Core:and(Boolean, Boolean)
 foreign import Core:or(Boolean, Boolean)
 foreign import Core:eachRange(Int64, Int64, Int32, Function)
+foreign import Core:eachRangeBreak(Int64, Int64, Function)
 foreign import Core:vecIntRange(Int32, Int32)
 foreign import Core:vecLongRange(Int64, Int64)
 foreign import Core:vecFloatRange(Float32, Float32)
@@ -255,14 +265,6 @@ print x = jprint out (unsafeCast x)
 pub
 toString : a -> String
 toString x = jToString (unsafeCast x)
-
-/**
- * Returns the hash code for this value using
- * the native Java hashCode method.
- */
-pub
-hashCode : a -> Int32
-hashCode x = jHashCode (unsafeCast x)
 
 /**
  * Throws an assetion error if the condition is false.
@@ -640,6 +642,14 @@ divideFloat64 : Divide Float64
 divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
 
 /**
+ * Returns x raised to the power of y.
+ * Follows the same special cases as `java.lang.Math.pow`.
+ */
+pub
+(^) : Float64 -> Float64 -> Float64
+(^) x y = pow x y
+
+/**
  * A type for some miscelaneous number operations.
  */
 pub+
@@ -647,6 +657,8 @@ opaque type NumberOps a =
   { remainder : a -> a -> a
   , zero : a
   , even: a -> Boolean
+  , min: a -> a -> a
+  , max: a -> a -> a
   }
 
 /**
@@ -676,6 +688,8 @@ numberOpsInt32 = NumberOps
   { remainder: \x y -> intRemainder x y
   , zero: 0
   , even: \x -> intRemainder x 2 == 0
+  , min: \x y -> minInt x y
+  , max: \x y -> maxInt x y
   }
 
 pub instance
@@ -684,6 +698,8 @@ numberOpsInt64 = NumberOps
   { remainder: \x y -> longRemainder x y
   , zero: 0L
   , even: \x -> longRemainder x 2L == 0L
+  , min: \x y -> minLong x y
+  , max: \x y -> maxLong x y
   }
 
 pub instance
@@ -692,6 +708,8 @@ numberOpsFloat32 = NumberOps
   { remainder: \x y -> floatRemainder x y
   , zero: 0F
   , even: \x -> floatRemainder x 2F == 0F
+  , min: \x y -> minFloat x y
+  , max: \x y -> maxFloat x y
   }
 
 pub instance
@@ -700,6 +718,8 @@ numberOpsFloat64 = NumberOps
   { remainder: \x y -> doubleRemainder x y
   , zero: 0.0
   , even: \x -> doubleRemainder x 2.0 == 0.0
+  , min: \x y -> minDouble x y
+  , max: \x y -> maxDouble x y
   }
 
 /**
@@ -1252,6 +1272,14 @@ forEachRange begin end f = eachRange begin end 1 f
 pub
 forEachStep : Int64 -> Int64 -> Int -> (Int64 -> a) -> Unit
 forEachStep begin end step f = eachRange begin end step f
+
+/**
+ * Executes the function for every number from begin (inclusive) to end (exclusive).
+ * The for breaks if the function returns a number < 0.
+ */
+pub
+forEachBreak : Int64 -> Int64 -> (Int64 -> Int32) -> Unit
+forEachBreak begin end f = eachRangeBreak begin end f
 
 /**
  * Types that can generate a vector over a range.

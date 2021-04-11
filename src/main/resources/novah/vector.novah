@@ -3,15 +3,19 @@ module novah.vector
 foreign import type java.util.Comparator
 foreign import type java.util.stream.Stream
 foreign import type io.lacuna.bifurcan.IList
+foreign import type novah.Core
 
 foreign import Vector.linear() as vecLinear
 foreign import Vector.forked() as vecForked
 foreign import Vector:"of"(Array) as fromArray
 foreign import java.util.Arrays:sort(Array, Comparator) as arraySort
 foreign import IList.stream() as vecStream
+foreign import Core:foldVector(Function, Object, Vector)
+foreign import Core:findVector(Function, Vector)
 
 import novah.java (toComparator)
 import novah.stream as S
+import novah.option as O
 
 /**
  * A linear (mutable) version of a vector.
@@ -77,6 +81,27 @@ nth index vec =
      else Some (vec ! index)
 
 /**
+ * Returns the first element of this vector if it's not empty.
+ */
+pub
+first : Vector a -> Option a
+first vec = nth 0L vec
+
+/**
+ * Returns the last element of this vector if it's not empty.
+ */
+pub
+last : Vector a -> Option a
+last vec = nth (count vec - 1L) vec
+
+/**
+ * Returns true if this vector is empty.
+ */
+pub
+isEmpty : Vector a -> Boolean
+isEmpty vec = count vec == 0L
+
+/**
  * Returns a vector of the elements that match the given predicate.
  */
 pub
@@ -89,6 +114,14 @@ filter f vec =
       in when (f elem) \_ ->
         addLast elem lvec
     vecForked lvec
+
+/**
+ * Returns the first occurrence of elem in the vector for which the predicate returns true.
+ * Runtime: O(n)
+ */
+pub
+find : (a -> Boolean) -> Vector a -> Option a
+find pred vec = findVector pred vec |> O.fromOptional
 
 /**
  * Sorts this vector according to the elements Ord instance.
@@ -119,6 +152,45 @@ push = addFirst
 pub
 pop : Vector a -> Vector a
 pop = removeFirst
+
+/**
+ * Returns true if the element is inside the vector.
+ * Runtime: O(n)
+ */
+pub
+contains : {{ Equals a }} -> a -> Vector a -> Boolean
+contains {{Equals eq}} elem vec = case find (\e -> eq.equals e elem) vec of
+  Some _ -> true
+  None -> false
+
+/**
+ * Reduces this vector to a single value according to the reducing function.
+ * Goes from the left to the right.
+ * Runtime: O(n)
+ */
+pub
+foldl : (b -> a -> b) -> b -> Vector a -> b
+foldl f init vec = foldVector f init vec
+
+/**
+ * A specialized version of `foldl` where the first element of the vector is used as initial value.
+ * Returns none if the vector is empty
+ * Runtime: O(n)
+ */
+pub
+reduce : (a -> a -> a) -> Vector a -> Option a
+reduce f = case _ of
+  [] -> None
+  [x :: xs] -> Some (foldl f x xs)
+
+/**
+ * Reduces this vector to a single value according to the reducing function.
+ * Goes from the right to the left.
+ * Runtime: O(n)
+ */
+pub
+foldr : (a -> b -> b) -> b -> Vector a -> b
+foldr f init = foldl (flip f) init << reverse
 
 /**
  * Creates a linear vector out of this vector.
@@ -205,21 +277,8 @@ countLinearVector = Count { count: \(LinearVector v) -> count v }
  */
 pub
 reverse : Vector a -> Vector a
-reverse vec =
-  if count vec < 10L
-  then reverse_ [] vec
-  else reverseLinear vec
-
-reverseLinear : Vector a -> Vector a
-reverseLinear vec = do
-  let lvec = vecLinear vec
-  let size = count vec
-  forEachRange 0L size \i ->
-    let j = size - i - 1L
-    in setAt j (vec ! i) lvec
+reverse vec = do
+  let lvec = vecLinear []
+  forEachRange 0L (count vec) \i ->
+    addFirst (vec ! i) lvec
   vecForked lvec
-
-reverse_ : Vector a -> Vector a -> Vector a
-reverse_ acc = case _ of
-  [] -> acc
-  [x :: xs] -> reverse_ (addFirst x acc) xs

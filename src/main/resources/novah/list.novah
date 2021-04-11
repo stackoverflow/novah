@@ -35,6 +35,15 @@ tail = case _ of
   Cons _ xs -> Some xs
 
 /**
+ * Returns true if this list is empty.
+ */
+pub
+isEmpty : List a -> Boolean
+isEmpty = case _ of
+  Nil -> true
+  _ -> false
+
+/**
  * Maps function f over all elements of this List
  * returning a List of the same size.
  * Runtime: O(n)
@@ -136,3 +145,50 @@ reverse list =
         Nil -> to
         Cons x xs -> addTo (x :: to) xs
   in addTo Nil list
+
+/**
+ * Reduces this list to a single value according to the reducing function.
+ * Goes from the left to the right.
+ * Runtime: O(n)
+ */
+pub
+foldl : (b -> a -> b) -> b -> List a -> b
+foldl f =
+  let go b = case _ of
+        Nil -> b
+        Cons x xs -> go (f b x) xs
+  in go
+
+/**
+ * Reduces this list to a single value according to the reducing function.
+ * Goes from the right to the left.
+ * Runtime: O(n)
+ */
+pub
+foldr : (a -> b -> b) -> b -> List a -> b
+foldr f init = foldl (flip f) init << reverse
+
+/**
+ * A specialized version of `foldl` where the first element of the list is used as initial value.
+ * Returns none if the list is empty
+ * Runtime: O(n)
+ */
+pub
+reduce : (a -> a -> a) -> List a -> Option a
+reduce f = case _ of
+  Nil -> None
+  Cons x xs -> Some (foldl f x xs)
+
+/**
+ * Returns a list in the range from begin (inclusive) to end (exclusive).
+ * Runtime: O(n)
+ */
+pub
+range : Int32 -> Int32 -> List Int32
+range begin end =
+  let op = if begin <= end then (_ + 1) else (_ - 1)
+      go b e acc =
+        if b == e
+        then acc
+        else go (op b) e (b :: acc)
+  in go begin end Nil |> reverse
