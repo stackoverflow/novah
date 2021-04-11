@@ -49,8 +49,30 @@ class Env private constructor(
     }
 }
 
+// all imports that should be automatically added to every module
 const val PRIM = "prim"
 const val CORE_MODULE = "novah.core"
+const val ARRAY_MODULE = "novah.array"
+const val JAVA_MODULE = "novah.java"
+const val LIST_MODULE = "novah.list"
+const val MATH_MODULE = "novah.math"
+const val OPTION_MODULE = "novah.option"
+const val SET_MODULE = "novah.set"
+const val STREAM_MODULE = "novah.stream"
+const val STRING_MODULE = "novah.string"
+const val VECTOR_MODULE = "novah.vector"
+
+val primImport = Import.Raw(PRIM, Span.empty())
+val coreImport = Import.Raw(CORE_MODULE, Span.empty())
+val arrayImport = Import.Raw(ARRAY_MODULE, Span.empty(), "Array")
+val javaImport = Import.Raw(JAVA_MODULE, Span.empty(), "Java")
+val listImport = Import.Raw(LIST_MODULE, Span.empty(), "List")
+val mathImport = Import.Raw(MATH_MODULE, Span.empty(), "Math")
+val optionImport = Import.Raw(OPTION_MODULE, Span.empty(), "Option")
+val setImport = Import.Raw(SET_MODULE, Span.empty(), "Set")
+val streamImport = Import.Raw(STREAM_MODULE, Span.empty(), "Stream")
+val stringImport = Import.Raw(STRING_MODULE, Span.empty(), "String")
+val vectorImport = Import.Raw(VECTOR_MODULE, Span.empty(), "Vector")
 
 const val primByte = "$PRIM.Byte"
 const val primInt16 = "$PRIM.Int16"
@@ -133,9 +155,6 @@ fun javaToNovah(jname: String): String = when (jname) {
         else jname
     }
 }
-
-val primImport = Import.Raw(PRIM, Span.empty())
-val coreImport = Import.Raw(CORE_MODULE, Span.empty())
 
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))

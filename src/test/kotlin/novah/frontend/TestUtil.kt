@@ -60,7 +60,7 @@ object TestUtil {
 
     fun parseString(code: String): Module {
         val lexer = Lexer(code.iterator())
-        val parser = Parser(lexer)
+        val parser = Parser(lexer, false)
         return parser.parseFullModule().unwrapOrElse {
             println(it.formatToConsole())
             throw CompilationError(listOf(it))

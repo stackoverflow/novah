@@ -17,16 +17,19 @@ package novah.frontend
 
 import novah.Util.splitAt
 import novah.ast.source.*
+import novah.ast.source.Type
 import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.typechecker.CORE_MODULE
-import novah.frontend.typechecker.coreImport
-import novah.frontend.typechecker.primImport
+import novah.frontend.typechecker.*
 import novah.frontend.error.Errors as E
 
-class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
+class Parser(
+    tokens: Iterator<Spanned<Token>>,
+    private val isStdlib: Boolean,
+    private val sourceName: String = "Unknown"
+) {
     private val iter = PeekableIterator(tokens, ::throwMismatchedIndentation)
 
     private var moduleName: String? = null
@@ -119,12 +122,26 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     /**
-     * Adds the primitive and core imports if needed.
+     * Adds the primitive and base imports if needed.
      */
     private fun addDefaultImports(imports: MutableList<Import>) {
         imports += primImport
-        if (!imports.any { it.module == CORE_MODULE } && moduleName != CORE_MODULE) {
+        if (imports.none { it.module == CORE_MODULE } && moduleName != CORE_MODULE) {
             imports += coreImport
+        }
+        if (!isStdlib) {
+            // all aliased modules
+            val aliased = imports.filter { it.alias() != null }.map { it.module }.toSet()
+            
+            if (!aliased.contains(ARRAY_MODULE)) imports += arrayImport
+            if (!aliased.contains(JAVA_MODULE)) imports += javaImport
+            if (!aliased.contains(LIST_MODULE)) imports += listImport
+            if (!aliased.contains(MATH_MODULE)) imports += mathImport
+            if (!aliased.contains(OPTION_MODULE)) imports += optionImport
+            if (!aliased.contains(SET_MODULE)) imports += setImport
+            if (!aliased.contains(STREAM_MODULE)) imports += streamImport
+            if (!aliased.contains(STRING_MODULE)) imports += stringImport
+            if (!aliased.contains(VECTOR_MODULE)) imports += vectorImport
         }
     }
 
@@ -174,7 +191,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         fun forceAlias(ctx: String, lower: Boolean = true) =
             parseAlias(lower) ?: throwError(E.invalidForeign(ctx) to mkspan())
-        
+
         fun parseFullName() = between<Dot, String>(::parseIdentOrString).joinToString(".")
         fun parsePars(ctx: String): List<String> {
             expect<LParen>(withError(E.invalidForeign(ctx)))
@@ -1148,15 +1165,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         expect<Colon>(withError(E.RECORD_COLON))
         val ty = parseType()
         return label to ty
-    }
-
-    private fun parseUpperOrLowerIdent(): String {
-        val tk = iter.next()
-        return when (tk.value) {
-            is UpperIdent -> tk.value.v
-            is Ident -> tk.value.v
-            else -> throwError(withError(E.UPPER_LOWER)(tk))
-        }
     }
 
     private fun parseIdentOrString(): String {
