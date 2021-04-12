@@ -305,16 +305,20 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SLetDef.DefBind.desugar(locals: List<String>): LetDef {
-        val exp = if (type != null)
-            Expr.Ann(expr.desugar(locals), type.desugar(), expr.span)
-        else expr.desugar(locals)
-        val vars = collectVars(exp)
+        val e = expr.desugar(locals)
+        val vars = collectVars(e)
         val recursive = name.name in vars
-
         return if (patterns.isEmpty()) {
+            val exp = if (type != null)
+                Expr.Ann(e, type.desugar(), expr.span)
+            else e
             LetDef(name.desugar(), exp, recursive, isInstance)
         } else {
-            LetDef(name.desugar(), nestLambdaPatterns(patterns, exp, locals), recursive, isInstance)
+            val binder = nestLambdaPatterns(patterns, e, locals)
+            val exp = if (type != null) {
+                Expr.Ann(binder, type.desugar(), expr.span)
+            } else binder
+            LetDef(name.desugar(), exp, recursive, isInstance)
         }
     }
 

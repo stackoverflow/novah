@@ -455,4 +455,4 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
 }
 
 private fun warnOnRawImport(imp: Import.Raw): Boolean =
-    imp.alias == null && imp.module != PRIM && imp.module != CORE_MODULE
+    imp.alias == null && imp.module != PRIM && imp.module != CORE_MODULE && imp.module != TEST_MODULE

@@ -62,6 +62,8 @@ const val STREAM_MODULE = "novah.stream"
 const val STRING_MODULE = "novah.string"
 const val VECTOR_MODULE = "novah.vector"
 
+const val TEST_MODULE = "novah.test"
+
 val primImport = Import.Raw(PRIM, Span.empty())
 val coreImport = Import.Raw(CORE_MODULE, Span.empty())
 val arrayImport = Import.Raw(ARRAY_MODULE, Span.empty(), "Array")
