@@ -1,0 +1,82 @@
+module novah.test
+
+foreign import type java.lang.AssertionError
+foreign import type java.lang.Exception
+
+foreign import java.lang.Throwable.getMessage() as getMessage
+foreign import new AssertionError(String) as newAssert
+
+import novah.vector (forEach)
+
+pub
+typealias TestFun = Unit -> Unit
+
+pub+
+type Suite
+  = Test String TestFun
+  | Tests String (Vector TestFun)
+  | Setup TestFun TestFun Suite
+
+pub
+assert : String -> Boolean -> Unit
+assert desc cond =
+  if cond
+  then ()
+  else throw newAssert desc
+
+pub
+runTests : Vector Suite -> Unit
+runTests suites = do
+  let total = atom 0
+      stats = arrayOf [0, 0, 0]
+      addStats [s, f, e] = do
+        aupdate 0 (_ + s) stats
+        aupdate 1 (_ + f) stats
+        aupdate 2 (_ + e) stats
+      
+      runSuite = case _ of
+        Test desc fun -> do
+          printfln "testing: %s" [desc]
+          check fun |> addStats
+        Tests desc funs -> do
+          printfln "testing: %s" [desc]
+          forEach funs (check >> addStats)
+        Setup before after su -> do
+          try do
+            before ()
+            runSuite su
+          finally after ()
+
+  forEach suites \suite -> do
+    swap (_ + 1) total
+    runSuite suite
+
+  println "Summary"
+  printfln "%s/%s tests passed" [aget 0 stats, deref total]
+
+check : TestFun -> Vector Int
+check fun = do
+  try do
+    fun ()
+    [1, 0, 0]
+  catch
+    :? AssertionError as err -> do
+      printfln "failure:\t%s" [assertMessage err]
+      [0, 1, 0]
+    :? Exception as err -> do
+      printfln "error:\t%s" [exceptMessage err]
+      [0, 0, 1]
+
+typealias Report = { succ : Atom Int, fail : Atom Int, errs : Atom Int }
+
+printf : String -> Vector a -> Unit
+printf form args = print (format form args)
+
+printfln : String -> Vector a -> Unit
+printfln form args = println (format form args)
+
+assertMessage : AssertionError -> String
+assertMessage err = getMessage (unsafeCast err)
+
+exceptMessage : Exception -> String
+exceptMessage err = getMessage (unsafeCast err)

@@ -16,6 +16,7 @@ foreign import type novah.Core
 foreign import Object.getClass()
 foreign import Object.hashCode() as jHashCode
 foreign import Object.equals(Object) as jEquals
+foreign import new java.lang.AssertionError(String) as newAssertionError
 foreign import Core:makeComparator(Function)
 foreign import Core:makeConsumer(Function)
 foreign import Core:makePredicate(Function)
@@ -46,6 +47,16 @@ hashCode x = jHashCode (unsafeCast x)
 pub
 equals : a -> a -> Boolean
 equals x y = jEquals (unsafeCast x) (unsafeCast y)
+
+/**
+ * Throws an assetion error if the condition is false.
+ */
+pub
+assert : Boolean -> String -> Unit
+assert cond msg =
+  if cond
+  then ()
+  else throw newAssertionError (format "Assert failed: %s" [msg])
 
 /**
  * Returns a `java.util.Comparator` based on this Ord instance.

@@ -35,7 +35,7 @@ nth index arr =
   let size = count arr
   in if index < 0 || index >= (int size)
      then None
-     else Some (arrayGet index arr)
+     else Some (aget index arr)
 
 /**
  * Runs function f for every element of this array, ignoring the result.
@@ -44,7 +44,7 @@ nth index arr =
 pub
 forEach : Array a -> (a -> b) -> Unit
 forEach arr f = forEachRange 0L (count arr) \idx ->
-  f (arrayGet (int idx) arr)
+  f (aget (int idx) arr)
 
 /**
  * Maps function f over all elements of this array
@@ -59,7 +59,7 @@ map f arr =
   in do
     forEachRange 0L size \idx ->
       let i = int idx
-      in arraySet i (f (arrayGet i arr)) res
+      in aset i (f (aget i arr)) res
     res
 
 /**
@@ -91,6 +91,6 @@ reverse arr =
   in do
     forEachRange 0L size \idx ->
       let i = int (size - idx - 1L)
-          elem = arrayGet (int idx) arr
-      in arraySet i elem res
+          elem = aget (int idx) arr
+      in aset i elem res
     res

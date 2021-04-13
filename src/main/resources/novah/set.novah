@@ -169,7 +169,7 @@ find pred set =
           add elem lset
           -1
         else 0 
-    if isEmpty lset then None else Some (setNth set 0L)
+    nth 0L lset
 
 /**
  * Returns true if the element is inside the set.

@@ -33,8 +33,6 @@ object Errors {
         |Example: foreign import java.util.ArrayList as AList
     """.trimMargin()
 
-    const val UPPER_LOWER = "Expected upper or lower case starting identifier."
-
     const val UPPER_LOWER_STR = "Expected a string or an identifier."
 
     const val EXPORT_REFER =
@@ -159,7 +157,7 @@ object Errors {
 
     const val APPLIED_DO_LET = "Cannot apply let statement as a function."
 
-    const val NO_CATCH = "Expected `catch` definition after try expression."
+    const val NO_FINALLY = "Expected `finally` definition after try expression without cases."
 
     const val WRONG_CATCH = "Catch patterns can only be a type test and cannot have guards."
     
@@ -302,10 +300,6 @@ object Errors {
     """.trimIndent()
 
     fun infiniteType(name: String) = "Occurs check failed: infinite type $name."
-
-    fun typeIsNotInstance(a: String, b: String) = """
-        Type $a is not an instance of type $b.
-    """.trimIndent()
 
     fun typesDontMatch(a: String, b: String) = """
         Cannot match type

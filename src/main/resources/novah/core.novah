@@ -267,16 +267,6 @@ toString : a -> String
 toString x = jToString (unsafeCast x)
 
 /**
- * Throws an assetion error if the condition is false.
- */
-pub
-assert : Boolean -> String -> Unit
-assert cond msg =
-  if cond
-  then ()
-  else throw newAssertionError (format "Assert failed: %s" [msg])
-
-/**
  * Throws an exception stating that this code is still undergoing implementation.
  * Should be used a placeholder for future code.
  */
@@ -421,24 +411,32 @@ objectArray : Int -> Array Object
 objectArray size = mkObjectArray size
 
 /**
- * Gets the element of the array at the
- * specified index.
+ * Gets the element of the array at the specified index.
  * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: O(1)
  */
 pub
-arrayGet : Int -> Array a -> a
-arrayGet index arr = getArray index arr
+aget : Int -> Array a -> a
+aget index arr = getArray index arr
 
 /**
- * Sets the element of the array at the
- * specified index.
+ * Sets the element of the array at the specified index.
  * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: O(1)
  */
 pub
-arraySet : Int -> a -> Array a -> Unit
-arraySet index x arr = setArray index x arr
+aset : Int -> a -> Array a -> Unit
+aset index x arr = setArray index x arr
+
+/**
+ * Updates the element of the array at the specified index by applying this function
+ * to the old value.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+aupdate : Int -> (a -> a) -> Array a -> Unit
+aupdate index updateFn arr = setArray index (updateFn (getArray index arr)) arr
 
 /**
  * Converts a Vector of some type `a` to an Array of `a`.
@@ -648,79 +646,6 @@ divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
 pub
 (^) : Float64 -> Float64 -> Float64
 (^) x y = pow x y
-
-/**
- * A type for some miscelaneous number operations.
- */
-pub+
-opaque type NumberOps a =
-  { remainder : a -> a -> a
-  , zero : a
-  , even: a -> Boolean
-  , min: a -> a -> a
-  , max: a -> a -> a
-  }
-
-/**
- * Returns the remainder of dividing x by y.
- */
-pub
-(%) : {{ NumberOps a }} -> a -> a -> a
-(%) {{NumberOps r}} x y = r.remainder x y
-
-/**
- * Returns true if this number is odd.
- */
-pub
-odd : {{ NumberOps a }} -> a -> Boolean
-odd {{NumberOps r}} x = not (r.even x)
-
-/**
- * Returns true if this number is even.
- */
-pub
-even : {{ NumberOps a }} -> a -> Boolean
-even {{NumberOps r}} x = r.even x
-
-pub instance
-numberOpsInt32 : NumberOps Int32
-numberOpsInt32 = NumberOps
-  { remainder: \x y -> intRemainder x y
-  , zero: 0
-  , even: \x -> intRemainder x 2 == 0
-  , min: \x y -> minInt x y
-  , max: \x y -> maxInt x y
-  }
-
-pub instance
-numberOpsInt64 : NumberOps Int64
-numberOpsInt64 = NumberOps
-  { remainder: \x y -> longRemainder x y
-  , zero: 0L
-  , even: \x -> longRemainder x 2L == 0L
-  , min: \x y -> minLong x y
-  , max: \x y -> maxLong x y
-  }
-
-pub instance
-numberOpsFloat32 : NumberOps Float32
-numberOpsFloat32 = NumberOps
-  { remainder: \x y -> floatRemainder x y
-  , zero: 0F
-  , even: \x -> floatRemainder x 2F == 0F
-  , min: \x y -> minFloat x y
-  , max: \x y -> maxFloat x y
-  }
-
-pub instance
-numberOpsFloat64 : NumberOps Float64
-numberOpsFloat64 = NumberOps
-  { remainder: \x y -> doubleRemainder x y
-  , zero: 0.0
-  , even: \x -> doubleRemainder x 2.0 == 0.0
-  , min: \x y -> minDouble x y
-  , max: \x y -> maxDouble x y
-  }
 
 /**
  * The type of things that can be counted / have size.
@@ -1050,6 +975,79 @@ compareOption (Ord _ o) = case _, _ of
 pub instance
 ordOption : {{ Ord a }} -> Ord (Option a)
 ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption ord }
+
+/**
+ * A type for some miscelaneous number operations.
+ */
+pub+
+opaque type NumberOps a =
+  { remainder : a -> a -> a
+  , zero : a
+  , even: a -> Boolean
+  , min: a -> a -> a
+  , max: a -> a -> a
+  }
+
+/**
+ * Returns the remainder of dividing x by y.
+ */
+pub
+(%) : {{ NumberOps a }} -> a -> a -> a
+(%) {{NumberOps r}} x y = r.remainder x y
+
+/**
+ * Returns true if this number is odd.
+ */
+pub
+odd : {{ NumberOps a }} -> a -> Boolean
+odd {{NumberOps r}} x = not (r.even x)
+
+/**
+ * Returns true if this number is even.
+ */
+pub
+even : {{ NumberOps a }} -> a -> Boolean
+even {{NumberOps r}} x = r.even x
+
+pub instance
+numberOpsInt32 : NumberOps Int32
+numberOpsInt32 = NumberOps
+  { remainder: \x y -> intRemainder x y
+  , zero: 0
+  , even: \x -> intRemainder x 2 == 0
+  , min: \x y -> minInt x y
+  , max: \x y -> maxInt x y
+  }
+
+pub instance
+numberOpsInt64 : NumberOps Int64
+numberOpsInt64 = NumberOps
+  { remainder: \x y -> longRemainder x y
+  , zero: 0L
+  , even: \x -> longRemainder x 2L == 0L
+  , min: \x y -> minLong x y
+  , max: \x y -> maxLong x y
+  }
+
+pub instance
+numberOpsFloat32 : NumberOps Float32
+numberOpsFloat32 = NumberOps
+  { remainder: \x y -> floatRemainder x y
+  , zero: 0F
+  , even: \x -> floatRemainder x 2F == 0F
+  , min: \x y -> minFloat x y
+  , max: \x y -> maxFloat x y
+  }
+
+pub instance
+numberOpsFloat64 : NumberOps Float64
+numberOpsFloat64 = NumberOps
+  { remainder: \x y -> doubleRemainder x y
+  , zero: 0.0
+  , even: \x -> doubleRemainder x 2.0 == 0.0
+  , min: \x y -> minDouble x y
+  , max: \x y -> maxDouble x y
+  }
 
 /**
  * Represents a type that supports bitwise operations.

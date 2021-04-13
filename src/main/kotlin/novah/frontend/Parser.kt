@@ -684,30 +684,31 @@ class Parser(
 
         val tryTk = expect<TryT>(noErr())
         val tryExp = withOffside { parseExpression() }
-        expect<CatchT>(withError(E.NO_CATCH))
+        val cases = mutableListOf<Case>()
+        if (iter.peek().value is CatchT) {
+            expect<CatchT>(noErr())
 
-        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
-        val align = iter.peek().offside()
-        val cases = withIgnoreOffside(false) {
-            withOffside(align) {
-                val cases = mutableListOf<Case>()
-                val first = parseCase()
-                validCase(first)
-                cases += first
+            if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
+            val align = iter.peek().offside()
+            withIgnoreOffside(false) {
+                withOffside(align) {
+                    val first = parseCase()
+                    validCase(first)
+                    cases += first
 
-                var tk = iter.peek()
-                while (!iter.peekIsOffside() && tk.value !in statementEnding) {
-                    val case = parseCase()
-                    validCase(case)
-                    cases += case
-                    tk = iter.peek()
+                    var tk = iter.peek()
+                    while (!iter.peekIsOffside() && tk.value !in statementEnding) {
+                        val case = parseCase()
+                        validCase(case)
+                        cases += case
+                        tk = iter.peek()
+                    }
                 }
-                cases
             }
         }
 
-        val fin = if (iter.peek().value is FinallyT) {
-            iter.next()
+        val fin = if (iter.peek().value is FinallyT || cases.isEmpty()) {
+            expect<FinallyT>(withError(E.NO_FINALLY))
             withOffside { parseExpression() }
         } else null
         return Expr.TryCatch(tryExp, cases, fin)
