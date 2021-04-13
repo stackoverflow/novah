@@ -542,7 +542,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 genExpr(e.tryExpr, mv, ctx)
                 mv.visitVarInsn(ASTORE, retVar)
                 mv.visitLabel(endTry)
-                if (finallyLb != null) genExpr(e.finallyExp!!, mv, ctx)
+                if (finallyLb != null) {
+                    genExpr(e.finallyExp!!, mv, ctx)
+                    mv.visitInsn(POP)
+                }
                 mv.visitJumpInsn(GOTO, end)
 
                 e.catches.forEachIndexed { i, catch ->
@@ -553,7 +556,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     genExpr(catch.expr, mv, ctx)
                     mv.visitVarInsn(ASTORE, retVar)
                     mv.visitLabel(elabel)
-                    if (finallyLb != null) genExpr(e.finallyExp!!, mv, ctx)
+                    if (finallyLb != null) {
+                        genExpr(e.finallyExp!!, mv, ctx)
+                        mv.visitInsn(POP)
+                    }
                     if (i != e.catches.lastIndex || finallyLb != null)
                         mv.visitJumpInsn(GOTO, end)
                 }
@@ -561,9 +567,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitLabel(finallyLb)
                     mv.visitVarInsn(ASTORE, excVar)
                     genExpr(e.finallyExp!!, mv, ctx)
+                    mv.visitInsn(POP)
                     mv.visitVarInsn(ALOAD, excVar)
                     mv.visitInsn(ATHROW)
-                    mv.visitInsn(POP)
                 }
                 mv.visitLabel(end)
                 mv.visitVarInsn(ALOAD, retVar)
