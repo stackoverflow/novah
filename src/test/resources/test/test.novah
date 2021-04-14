@@ -1,23 +1,18 @@
 module test
 
 import novah.list (::, List(..))
+import novah.test
 
 foreign import java.util.Arrays:toString(Array) as toStringArr
 
 toStr : Array a -> String
 toStr arr = toStringArr (unsafeCast arr)
 
+myTest : Unit -> Unit
+myTest () =
+  2 == 2 |> assert "2 != 2"
+  2 == 3 |> assert "2 != 3"
+
 pub
 main : Array String -> Unit
-main _ = do
-  let arr = arrayOf [4, 5, 6, 7]
-  let printArr = toStr >> println
-  arraySet 2 99 arr
-  printArr (Array.reverse arr)
-  Vector.contains 10 [2, 4, 5, 6, 7] |> println
-  format "these options are equal: %s" [Some 3 == Some 4] |> println
-  #{1, 2, 3} ++ #{5, 6, 7} |> println
-  printArr arr
-  println (show (Err 45 : Result Int Int))
-  format "some %s once told %s" ["body", "me"] |> println
-  println (true && false)
+main _ = runTests [Test "my test works" myTest]

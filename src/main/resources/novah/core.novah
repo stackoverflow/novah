@@ -462,7 +462,7 @@ pub
 when : Boolean -> (Unit -> a) -> Unit
 when cond action =
   if cond
-  then do
+  then
     action ()
     ()
   else ()
@@ -1011,43 +1011,47 @@ even {{NumberOps r}} x = r.even x
 
 pub instance
 numberOpsInt32 : NumberOps Int32
-numberOpsInt32 = NumberOps
-  { remainder: \x y -> intRemainder x y
-  , zero: 0
-  , even: \x -> intRemainder x 2 == 0
-  , min: \x y -> minInt x y
-  , max: \x y -> maxInt x y
-  }
+numberOpsInt32 =
+  NumberOps
+    { remainder: \x y -> intRemainder x y
+    , zero: 0
+    , even: \x -> intRemainder x 2 == 0
+    , min: \x y -> minInt x y
+    , max: \x y -> maxInt x y
+    }
 
 pub instance
 numberOpsInt64 : NumberOps Int64
-numberOpsInt64 = NumberOps
-  { remainder: \x y -> longRemainder x y
-  , zero: 0L
-  , even: \x -> longRemainder x 2L == 0L
-  , min: \x y -> minLong x y
-  , max: \x y -> maxLong x y
-  }
+numberOpsInt64 =
+  NumberOps
+    { remainder: \x y -> longRemainder x y
+    , zero: 0L
+    , even: \x -> longRemainder x 2L == 0L
+    , min: \x y -> minLong x y
+    , max: \x y -> maxLong x y
+    }
 
 pub instance
 numberOpsFloat32 : NumberOps Float32
-numberOpsFloat32 = NumberOps
-  { remainder: \x y -> floatRemainder x y
-  , zero: 0F
-  , even: \x -> floatRemainder x 2F == 0F
-  , min: \x y -> minFloat x y
-  , max: \x y -> maxFloat x y
-  }
+numberOpsFloat32 =
+  NumberOps
+    { remainder: \x y -> floatRemainder x y
+    , zero: 0F
+    , even: \x -> floatRemainder x 2F == 0F
+    , min: \x y -> minFloat x y
+    , max: \x y -> maxFloat x y
+    }
 
 pub instance
 numberOpsFloat64 : NumberOps Float64
-numberOpsFloat64 = NumberOps
-  { remainder: \x y -> doubleRemainder x y
-  , zero: 0.0
-  , even: \x -> doubleRemainder x 2.0 == 0.0
-  , min: \x y -> minDouble x y
-  , max: \x y -> maxDouble x y
-  }
+numberOpsFloat64 =
+  NumberOps
+    { remainder: \x y -> doubleRemainder x y
+    , zero: 0.0
+    , even: \x -> doubleRemainder x 2.0 == 0.0
+    , min: \x y -> minDouble x y
+    , max: \x y -> maxDouble x y
+    }
 
 /**
  * Represents a type that supports bitwise operations.
@@ -1121,51 +1125,55 @@ bitUnsignedShiftRight {{BitOperator b}} x amount = b.unsignedShiftRight x amount
 
 pub instance
 bitOperatorByte : BitOperator Byte
-bitOperatorByte = BitOperator
-  { and: \x y -> iToB (bitAndInt (bToI x) (bToI y))
-  , or: \x y -> iToB (bitOrInt (bToI x) (bToI y))
-  , xor: \x y -> iToB (bitXorInt (bToI x) (bToI y))
-  , shiftLeft: \x y -> iToB (bitShiftLeftInt (bToI x) (bToI y))
-  , shiftRight: \x y -> iToB (bitShiftRightInt (bToI x) (bToI y))
-  , unsignedShiftRight: \x y -> iToB (unsignedBitShiftRightInt (bToI x) (bToI y))
-  , not: \x -> iToB (bitNotInt (bToI x))
-  }
+bitOperatorByte =
+  BitOperator
+    { and: \x y -> iToB (bitAndInt (bToI x) (bToI y))
+    , or: \x y -> iToB (bitOrInt (bToI x) (bToI y))
+    , xor: \x y -> iToB (bitXorInt (bToI x) (bToI y))
+    , shiftLeft: \x y -> iToB (bitShiftLeftInt (bToI x) (bToI y))
+    , shiftRight: \x y -> iToB (bitShiftRightInt (bToI x) (bToI y))
+    , unsignedShiftRight: \x y -> iToB (unsignedBitShiftRightInt (bToI x) (bToI y))
+    , not: \x -> iToB (bitNotInt (bToI x))
+    }
 
 pub instance
 bitOperatorInt16 : BitOperator Int16
-bitOperatorInt16 = BitOperator
-  { and: \x y -> iToS (bitAndInt (sToI x) (sToI y))
-  , or: \x y -> iToS (bitOrInt (sToI x) (sToI y))
-  , xor: \x y -> iToS (bitXorInt (sToI x) (sToI y))
-  , shiftLeft: \x y -> iToS (bitShiftLeftInt (sToI x) (sToI y))
-  , shiftRight: \x y -> iToS (bitShiftRightInt (sToI x) (sToI y))
-  , unsignedShiftRight: \x y -> iToS (unsignedBitShiftRightInt (sToI x) (sToI y))
-  , not: \x -> iToS (bitNotInt (sToI x))
-  }
+bitOperatorInt16 =
+  BitOperator
+    { and: \x y -> iToS (bitAndInt (sToI x) (sToI y))
+    , or: \x y -> iToS (bitOrInt (sToI x) (sToI y))
+    , xor: \x y -> iToS (bitXorInt (sToI x) (sToI y))
+    , shiftLeft: \x y -> iToS (bitShiftLeftInt (sToI x) (sToI y))
+    , shiftRight: \x y -> iToS (bitShiftRightInt (sToI x) (sToI y))
+    , unsignedShiftRight: \x y -> iToS (unsignedBitShiftRightInt (sToI x) (sToI y))
+    , not: \x -> iToS (bitNotInt (sToI x))
+    }
 
 pub instance
 bitOperatorInt32 : BitOperator Int32
-bitOperatorInt32 = BitOperator
-  { and: \x y -> bitAndInt x y
-  , or: \x y -> bitOrInt x y
-  , xor: \x y -> bitXorInt x y
-  , shiftLeft: \x y -> bitShiftLeftInt x y
-  , shiftRight: \x y -> bitShiftRightInt x y
-  , unsignedShiftRight: \x y -> unsignedBitShiftRightInt x y
-  , not: \x -> bitNotInt x
-  }
+bitOperatorInt32 =
+  BitOperator
+    { and: \x y -> bitAndInt x y
+    , or: \x y -> bitOrInt x y
+    , xor: \x y -> bitXorInt x y
+    , shiftLeft: \x y -> bitShiftLeftInt x y
+    , shiftRight: \x y -> bitShiftRightInt x y
+    , unsignedShiftRight: \x y -> unsignedBitShiftRightInt x y
+    , not: \x -> bitNotInt x
+    }
 
 pub instance
 bitOperatorInt64 : BitOperator Int64
-bitOperatorInt64 = BitOperator
-  { and: \x y -> bitAndLong x y
-  , or: \x y -> bitOrLong x y
-  , xor: \x y -> bitXorLong x y
-  , shiftLeft: \x y -> bitShiftLeftLong x y
-  , shiftRight: \x y -> bitShiftRightLong x y
-  , unsignedShiftRight: \x y -> unsignedBitShiftRightLong x y
-  , not: \x -> bitNotLong x
-  }
+bitOperatorInt64 =
+  BitOperator
+    { and: \x y -> bitAndLong x y
+    , or: \x y -> bitOrLong x y
+    , xor: \x y -> bitXorLong x y
+    , shiftLeft: \x y -> bitShiftLeftLong x y
+    , shiftRight: \x y -> bitShiftRightLong x y
+    , unsignedShiftRight: \x y -> unsignedBitShiftRightLong x y
+    , not: \x -> bitNotLong x
+    }
 
 /**
  * Represents a computation that can fail.
@@ -1222,7 +1230,7 @@ deref (Atom a) = atomGet a
  */
 pub
 reset : a -> Atom a -> a
-reset x (Atom a) = do
+reset x (Atom a) =
   atomSet a x
   x
 
@@ -1304,35 +1312,40 @@ pub
 
 pub instance
 rangeInt32 : Range Int32
-rangeInt32 = Range
-  { range: \begin end -> vecIntRange begin end
-  , rangeInclusive: \begin end -> vecIntRange begin (end + 1)
-  }
+rangeInt32 =
+  Range
+    { range: \begin end -> vecIntRange begin end
+    , rangeInclusive: \begin end -> vecIntRange begin (end + 1)
+    }
 
 pub instance
 rangeInt64 : Range Int64
-rangeInt64 = Range
-  { range: \begin end -> vecLongRange begin end
-  , rangeInclusive: \begin end -> vecLongRange begin (end + 1L)
-  }
+rangeInt64 =
+  Range
+    { range: \begin end -> vecLongRange begin end
+    , rangeInclusive: \begin end -> vecLongRange begin (end + 1L)
+    }
 
 pub instance
 rangeFloat32 : Range Float32
-rangeFloat32 = Range
-  { range: \begin end -> vecFloatRange begin end
-  , rangeInclusive: \begin end -> vecFloatRange begin (end + 1.0F)
-  }
+rangeFloat32 =
+  Range
+    { range: \begin end -> vecFloatRange begin end
+    , rangeInclusive: \begin end -> vecFloatRange begin (end + 1.0F)
+    }
 
 pub instance
 rangeFloat64 : Range Float64
-rangeFloat64 = Range
-  { range: \begin end -> vecDoubleRange begin end
-  , rangeInclusive: \begin end -> vecDoubleRange begin (end + 1.0)
-  }
+rangeFloat64 =
+  Range
+    { range: \begin end -> vecDoubleRange begin end
+    , rangeInclusive: \begin end -> vecDoubleRange begin (end + 1.0)
+    }
 
 pub instance
 rangeChar : Range Char
-rangeChar = Range
-  { range: \begin end -> vecCharRange begin end
-  , rangeInclusive: \begin end -> vecCharRange begin (intToChar (charToInt end + 1))
-  }
+rangeChar =
+  Range
+    { range: \begin end -> vecCharRange begin end
+    , rangeInclusive: \begin end -> vecCharRange begin (intToChar (charToInt end + 1))
+    }

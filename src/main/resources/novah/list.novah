@@ -63,7 +63,7 @@ forEach : List a -> (a -> b) -> Unit
 forEach list f =
   case list of
     Nil -> ()
-    Cons x xs -> do
+    Cons x xs ->
       f x
       forEach xs f
 
@@ -104,7 +104,7 @@ showList_ (Show s) l =
   let innerShow = case _ of
         Nil -> "Nil"
         Cons x xs -> s.show x ++ " :: " ++ innerShow xs
-  in case l of
+  case l of
     Nil -> "Nil"
     (Cons _ _) as list -> "(" ++ innerShow list ++ ")"
 
@@ -128,7 +128,7 @@ concatList_ l1 l2 =
   let addTo to = case _ of
         Nil -> to
         Cons x xs -> addTo (x :: to) xs
-  in addTo Nil l1 |> addTo l2
+  addTo Nil l1 |> addTo l2
 
 pub instance
 concatList : Concat (List a)
@@ -144,7 +144,7 @@ reverse list =
   let addTo to = case _ of
         Nil -> to
         Cons x xs -> addTo (x :: to) xs
-  in addTo Nil list
+  addTo Nil list
 
 /**
  * Reduces this list to a single value according to the reducing function.
@@ -157,7 +157,7 @@ foldl f =
   let go b = case _ of
         Nil -> b
         Cons x xs -> go (f b x) xs
-  in go
+  go
 
 /**
  * Reduces this list to a single value according to the reducing function.
@@ -191,4 +191,4 @@ range begin end =
         if b == e
         then acc
         else go (op b) e (b :: acc)
-  in go begin end Nil |> reverse
+  go begin end Nil |> reverse

@@ -40,9 +40,8 @@ pub
 into : Stream a -> Vector a
 into st =
   let lvec = vecLinear []
-  in do
-    S.forEach st \x -> addLast x lvec
-    vecForked lvec
+  S.forEach st \x -> addLast x lvec
+  vecForked lvec
 
 /**
  * Runs function f for every element of this vector, ignoring the result.
@@ -50,8 +49,7 @@ into st =
  */
 pub
 forEach : Vector a -> (a -> b) -> Unit
-forEach vec f = forEachRange 0L (count vec) \idx ->
-  f (vec ! idx)
+forEach vec f = forEachRange 0L (count vec) \idx -> f (vec ! idx)
 
 /**
  * Maps function f over all elements of this vector
@@ -62,10 +60,9 @@ pub
 map : (a -> b) -> Vector a -> Vector b
 map f vec =
   let lvec = vecLinear []
-  in do
-    forEachRange 0L (count vec) \idx ->
-      addLast (f (vec ! idx)) lvec
-    vecForked lvec
+  forEachRange 0L (count vec) \idx ->
+    addLast (f (vec ! idx)) lvec
+  vecForked lvec
 
 /**
  * Returns some value at index for this vector if it exists or none.
@@ -76,9 +73,9 @@ pub
 nth : Int64 -> Vector a -> Option a
 nth index vec =
   let size = count vec
-  in if index < 0L || index >= size
-     then None
-     else Some (vec ! index)
+  if index < 0L || index >= size
+    then None
+    else Some (vec ! index)
 
 /**
  * Returns the first element of this vector if it's not empty.
@@ -108,12 +105,11 @@ pub
 filter : (a -> Boolean) -> Vector a -> Vector a
 filter f vec =
   let lvec = vecLinear []
-  in do
-    forEachRange 0L (count vec) \idx ->
-      let elem = vec ! idx
-      in when (f elem) \_ ->
-        addLast elem lvec
-    vecForked lvec
+  forEachRange 0L (count vec) \idx ->
+    let elem = vec ! idx
+    when (f elem) \_ ->
+      addLast elem lvec
+  vecForked lvec
 
 /**
  * Returns the first occurrence of elem in the vector for which the predicate returns true.
@@ -131,7 +127,7 @@ sort : {{ Ord a }} -> Vector a -> Vector a
 sort {{ord}} = case _ of
   [] -> []
   [_] as vec -> vec
-  vec -> do
+  vec ->
     let arr = arrayOf vec
     let comp = toComparator ord
     arraySort arr (unsafeCast comp)
@@ -222,7 +218,7 @@ withLinear vec f = linear vec |> f |> forked
  */
 pub
 addFirstLinear : a -> LinearVector a -> LinearVector a
-addFirstLinear x ((LinearVector vec) as lvec) = do
+addFirstLinear x ((LinearVector vec) as lvec) =
   addFirst x vec
   lvec
 
@@ -232,7 +228,7 @@ addFirstLinear x ((LinearVector vec) as lvec) = do
  */
 pub
 addLastLinear : a -> LinearVector a -> LinearVector a
-addLastLinear x ((LinearVector vec) as lvec) = do
+addLastLinear x ((LinearVector vec) as lvec) =
   addLast x vec
   lvec
 
@@ -242,7 +238,7 @@ addLastLinear x ((LinearVector vec) as lvec) = do
  */
 pub
 removeFirstLinear : LinearVector a -> LinearVector a
-removeFirstLinear ((LinearVector vec) as lvec) = do
+removeFirstLinear ((LinearVector vec) as lvec) =
   removeFirst vec
   lvec
 
@@ -252,7 +248,7 @@ removeFirstLinear ((LinearVector vec) as lvec) = do
  */
 pub
 removeLastLinear : LinearVector a -> LinearVector a
-removeLastLinear ((LinearVector vec) as lvec) = do
+removeLastLinear ((LinearVector vec) as lvec) =
   removeLast vec
   lvec
 
@@ -263,7 +259,7 @@ removeLastLinear ((LinearVector vec) as lvec) = do
  */
 pub
 setAtLinear : Int64 -> a -> LinearVector a -> LinearVector a
-setAtLinear index x ((LinearVector vec) as lvec) = do
+setAtLinear index x ((LinearVector vec) as lvec) =
   setAt index x vec
   lvec
 
@@ -277,7 +273,7 @@ countLinearVector = Count { count: \(LinearVector v) -> count v }
  */
 pub
 reverse : Vector a -> Vector a
-reverse vec = do
+reverse vec =
   let lvec = vecLinear []
   forEachRange 0L (count vec) \i ->
     addFirst (vec ! i) lvec

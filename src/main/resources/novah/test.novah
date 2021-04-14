@@ -26,28 +26,28 @@ assert desc cond =
 
 pub
 runTests : Vector Suite -> Unit
-runTests suites = do
+runTests suites =
   let total = atom 0
       stats = arrayOf [0, 0, 0]
-      addStats [s, f, e] = do
+      addStats [s, f, e] =
         aupdate 0 (_ + s) stats
         aupdate 1 (_ + f) stats
         aupdate 2 (_ + e) stats
       
       runSuite = case _ of
-        Test desc fun -> do
+        Test desc fun -> 
           printfln "testing: %s" [desc]
           check fun |> addStats
-        Tests desc funs -> do
+        Tests desc funs -> 
           printfln "testing: %s" [desc]
           forEach funs (check >> addStats)
-        Setup before after su -> do
-          try do
+        Setup before after su ->
+          try
             before ()
             runSuite su
           finally after ()
 
-  forEach suites \suite -> do
+  forEach suites \suite ->
     swap (_ + 1) total
     runSuite suite
 
@@ -55,19 +55,17 @@ runTests suites = do
   printfln "%s/%s tests passed" [aget 0 stats, deref total]
 
 check : TestFun -> Vector Int
-check fun = do
-  try do
+check fun =
+  try
     fun ()
     [1, 0, 0]
   catch
-    :? AssertionError as err -> do
+    :? AssertionError as err ->
       printfln "failure:\t%s" [assertMessage err]
       [0, 1, 0]
-    :? Exception as err -> do
+    :? Exception as err ->
       printfln "error:\t%s" [exceptMessage err]
       [0, 0, 1]
-
-typealias Report = { succ : Atom Int, fail : Atom Int, errs : Atom Int }
 
 printf : String -> Vector a -> Unit
 printf form args = print (format form args)

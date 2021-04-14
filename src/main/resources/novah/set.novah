@@ -110,9 +110,8 @@ pub
 into : Stream a -> Set a
 into st =
   let lset = setLinear #{}
-  in do
-    S.forEach st \x -> add x lset
-    setForked lset
+  S.forEach st \x -> add x lset
+  setForked lset
 
 /**
  * Runs function f for every element of this set, ignoring the result.
@@ -120,8 +119,9 @@ into st =
  */
 pub
 forEach : Set a -> (a -> b) -> Unit
-forEach set f = forEachRange 0L (count set) \idx ->
-  f (setNth set idx)
+forEach set f =
+  forEachRange 0L (count set) \idx ->
+    f (setNth set idx)
 
 /**
  * Maps function f over all elements of this set
@@ -132,10 +132,9 @@ pub
 map : (a -> b) -> Set a -> Set b
 map f set =
   let lset = setLinear #{}
-  in do
-    forEachRange 0L (count set) \idx ->
-      add (f (setNth set idx)) lset
-    setForked lset
+  forEachRange 0L (count set) \idx ->
+    add (f (setNth set idx)) lset
+  setForked lset
 
 /**
  * Returns an array of the elements that match the given predicate.
@@ -145,12 +144,11 @@ pub
 filter : (a -> Boolean) -> Set a -> Set a
 filter pred set =
   let lset = setLinear #{}
-  in do
-    forEachRange 0L (count set) \idx ->
-      let elem = setNth set idx
-      in when (pred elem) \_ ->
-        add elem lset
-    setForked lset
+  forEachRange 0L (count set) \idx ->
+    let elem = setNth set idx
+    when (pred elem) \_ ->
+      add elem lset
+  setForked lset
 
 /**
  * Returns the first occurrence of elem in the set for which the predicate returns true.
@@ -161,15 +159,14 @@ pub
 find : (a -> Boolean) -> Set a -> Option a
 find pred set =
   let lset = setLinear #{}
-  in do
-    forEachBreak 0L (count set) \idx ->
-      let elem = setNth set idx
-      in if pred elem
-        then do
-          add elem lset
-          -1
-        else 0 
-    nth 0L lset
+  forEachBreak 0L (count set) \idx ->
+    let elem = setNth set idx
+    if pred elem
+    then
+      add elem lset
+      -1
+    else 0 
+  nth 0L lset
 
 /**
  * Returns true if the element is inside the set.

@@ -43,8 +43,9 @@ nth index arr =
  */
 pub
 forEach : Array a -> (a -> b) -> Unit
-forEach arr f = forEachRange 0L (count arr) \idx ->
-  f (aget (int idx) arr)
+forEach arr f =
+  forEachRange 0L (count arr) \idx ->
+    f (aget (int idx) arr)
 
 /**
  * Maps function f over all elements of this array
@@ -56,11 +57,10 @@ map : (a -> b) -> Array a -> Array b
 map f arr =
   let size = count arr
       res = unsafeCast (objectArray (int size))
-  in do
-    forEachRange 0L size \idx ->
-      let i = int idx
-      in aset i (f (aget i arr)) res
-    res
+  forEachRange 0L size \idx ->
+    let i = int idx
+    aset i (f (aget i arr)) res
+  res
 
 /**
  * Returns an array of the elements that match the given predicate.
@@ -75,7 +75,7 @@ filter f arr = stream arr |> S.filter f |> into
  */
 pub
 sort : {{ Ord a }} -> Array a -> Array a
-sort {{ord}} arr = do
+sort {{ord}} arr =
   let comp = toComparator ord
   arraySort arr (unsafeCast comp)
   arr
@@ -88,9 +88,8 @@ reverse : Array a -> Array a
 reverse arr =
   let size = count arr
       res = unsafeCast (objectArray (int size))
-  in do
-    forEachRange 0L size \idx ->
-      let i = int (size - idx - 1L)
-          elem = aget (int idx) arr
-      in aset i elem res
-    res
+  forEachRange 0L size \idx ->
+    let i = int (size - idx - 1L)
+        elem = aget (int idx) arr
+    aset i elem res
+  res
