@@ -182,12 +182,12 @@ sealed class Expr {
         override fun toString(): String = text
     }
 
-    data class StringE(val v: String, val multi: Boolean = false) : Expr() {
-        override fun toString(): String = "\"$v\""
+    data class StringE(val v: String, val raw: String, val multi: Boolean = false) : Expr() {
+        override fun toString(): String = "\"$raw\""
     }
 
-    data class CharE(val v: Char) : Expr() {
-        override fun toString(): String = "'$v'"
+    data class CharE(val v: Char, val raw: String) : Expr() {
+        override fun toString(): String = "'$raw'"
     }
 
     data class Bool(val v: Boolean) : Expr() {

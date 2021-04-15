@@ -34,7 +34,7 @@ import novah.ast.optimized.Module as OModule
 
 object TestUtil {
 
-    private fun lexString(input: String): MutableList<Spanned<Token>> {
+    fun lexString(input: String): MutableList<Spanned<Token>> {
         val lex = Lexer(input.iterator())
         val tks = mutableListOf<Spanned<Token>>()
         while (lex.hasNext()) {
@@ -111,23 +111,6 @@ object TestUtil {
     fun abs(n: String, e: Expr) = Expr.Lambda(listOf(Pattern.Var(n, Span.empty())), e)
 
     fun String.module() = "module test\n\n${this.trimIndent()}"
-
-    fun Type.findUnbound(): List<Type> = when (this) {
-        is TArrow -> args.flatMap { it.findUnbound() } + ret.findUnbound()
-        is TApp -> type.findUnbound() + types.flatMap { it.findUnbound() }
-        is TVar -> {
-            when (val tv = tvar) {
-                is TypeVar.Link -> tv.type.findUnbound()
-                is TypeVar.Unbound -> listOf(this)
-                else -> emptyList()
-            }
-        }
-        is TConst -> emptyList()
-        is TRowEmpty -> emptyList()
-        is TRecord -> row.findUnbound()
-        is TRowExtend -> row.findUnbound() + labels.flatMapList { it.findUnbound() }
-        is TImplicit -> type.findUnbound()
-    }
 
     private fun Type.everywhere(f: (Type) -> Type): Type {
         fun go(t: Type): Type = when (t) {

@@ -525,17 +525,17 @@ class Parser(
 
     private fun parseString(): Expr {
         val str = expect<StringT>(withError(E.literalExpected("string")))
-        return Expr.StringE(str.value.s).withSpanAndComment(str)
+        return Expr.StringE(str.value.s, str.value.raw).withSpanAndComment(str)
     }
 
     private fun parseMultilineString(): Expr {
         val str = expect<MultilineStringT>(withError(E.literalExpected("multiline string")))
-        return Expr.StringE(str.value.s, multi = true).withSpanAndComment(str)
+        return Expr.StringE(str.value.s, str.value.s, multi = true).withSpanAndComment(str)
     }
 
     private fun parseChar(): Expr {
         val str = expect<CharT>(withError(E.literalExpected("char")))
-        return Expr.CharE(str.value.c).withSpanAndComment(str)
+        return Expr.CharE(str.value.c, str.value.raw).withSpanAndComment(str)
     }
 
     private fun parseBool(): Expr {
@@ -803,11 +803,11 @@ class Parser(
             }
             is CharT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.CharLiteral(Expr.CharE(tk.value.c)), tk.span)
+                Pattern.LiteralP(LiteralPattern.CharLiteral(Expr.CharE(tk.value.c, tk.value.raw)), tk.span)
             }
             is StringT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.StringLiteral(Expr.StringE(tk.value.s)), tk.span)
+                Pattern.LiteralP(LiteralPattern.StringLiteral(Expr.StringE(tk.value.s, tk.value.raw)), tk.span)
             }
             is LParen -> {
                 iter.next()

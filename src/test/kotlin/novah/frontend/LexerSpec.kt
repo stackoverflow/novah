@@ -20,6 +20,8 @@ import io.kotest.matchers.types.beInstanceOf
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.lexResource
+import novah.frontend.TestUtil.lexString
+import io.kotest.matchers.types.shouldBeInstanceOf
 
 class LexerSpec : StringSpec({
 
@@ -50,5 +52,14 @@ class LexerSpec : StringSpec({
 
         myFun.span shouldBe span(10 to 1, 10 to 6)
         myFun.comment shouldBe Comment("comments on var\n types work", true)
+    }
+    
+    "Lex UTF escapes correctly" {
+        val tk = lexString(""" "bla bla \u0062 a" """)[0]
+
+        tk.value.shouldBeInstanceOf<Token.StringT>()
+        val str = tk.value as Token.StringT
+        str.s shouldBe "bla bla b a"
+        str.raw shouldBe "bla bla \\u0062 a"
     }
 })
