@@ -13,6 +13,13 @@ myTest () =
   2 == 2 |> assert "2 != 2"
   2 == 3 |> assert "2 != 3"
 
+goodTest : TestFun
+goodTest () = 1 == 1 |> assert "1 == 1"
+
 pub
 main : Array String -> Unit
-main _ = runTests [Test "my test works" myTest]
+main _ =
+  runTests
+    [ Test "let's see" myTest
+    , Test "should work" goodTest
+    ]
