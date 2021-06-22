@@ -33,9 +33,9 @@ pub
 nth : Int -> Array a -> Option a
 nth index arr =
   let size = count arr
-  in if index < 0 || index >= (int size)
-     then None
-     else Some (aget index arr)
+  if index < 0 || index >= (int size)
+  then None
+  else Some (aget index arr)
 
 /**
  * Runs function f for every element of this array, ignoring the result.
