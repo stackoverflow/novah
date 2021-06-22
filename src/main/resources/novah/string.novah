@@ -131,8 +131,18 @@ capitalize str = case count str of
        in format "%s%s" [head, tail]
 
 /**
- * Split this string at \r and \n.
+ * Split this string at new lines.
  */
 pub
 splitLines : String -> Vector String
 splitLines str = fromArray (ssplit str "[\\r|\\n]+")
+
+/**
+ * Returns the character at the specified index if it exists.
+ */
+pub
+charAt : Int32 -> String -> Option Char
+charAt idx str =
+  if idx < int (count str) 
+  then Some (scharAt str idx)
+  else None
