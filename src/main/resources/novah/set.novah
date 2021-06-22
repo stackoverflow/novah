@@ -153,7 +153,7 @@ filter pred set =
 /**
  * Returns the first occurrence of elem in the set for which the predicate returns true.
  * This function uses the set's equality function, set at creation time.
- * Runtime: ~O(1)
+ * Runtime: O(n)
  */
 pub
 find : (a -> Boolean) -> Set a -> Option a
