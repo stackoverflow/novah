@@ -78,7 +78,7 @@ filter f = case _ of
   Cons x xs -> if f x then x :: filter f xs else filter f xs
 
 /**
- * Like `map` but it will flatten the resulting stream.
+ * Like `map` but it will flatten the resulting list.
  */
 pub
 flatMap : (a -> List b) -> List a -> List b
