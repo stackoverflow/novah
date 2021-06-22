@@ -177,6 +177,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     val foreigVars = mutableMapOf<String, ForeignRef>()
     val env = Typechecker.env
     addUnsafeCoerce(foreigVars, env)
+    typeCache.clear()
 
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
     for (type in (types as List<ForeignImport.Type>)) {
@@ -215,7 +216,8 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
                 val pars = imp.pars.map { typealiases[it] ?: it }
                 val method = Reflection.findMethod(clazz, imp.name, pars)
                 if (method == null) {
-                    errors += error(Errors.methodNotFound(imp.name, type))
+                    val sig = imp.pars.joinToString(prefix = "${imp.name}(", postfix = ")")
+                    errors += error(Errors.methodNotFound(sig, type))
                     continue
                 }
                 val isStatic = Reflection.isStatic(method)
@@ -239,7 +241,8 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
                 val pars = imp.pars.map { typealiases[it] ?: it }
                 val ctor = Reflection.findConstructor(clazz, pars)
                 if (ctor == null) {
-                    errors += error(Errors.ctorNotFound(type))
+                    val sig = imp.pars.joinToString(prefix = "$type(", postfix = ")")
+                    errors += error(Errors.ctorNotFound(sig))
                     continue
                 }
                 val ctxType = ctorToFunction(ctor, pars)
@@ -453,4 +456,4 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
 }
 
 private fun warnOnRawImport(imp: Import.Raw): Boolean =
-    imp.alias == null && imp.module != PRIM && imp.module != CORE_MODULE
+    imp.alias == null && imp.module != PRIM && imp.module != CORE_MODULE && imp.module != TEST_MODULE

@@ -182,12 +182,12 @@ sealed class Expr {
         override fun toString(): String = text
     }
 
-    data class StringE(val v: String, val multi: Boolean = false) : Expr() {
-        override fun toString(): String = "\"$v\""
+    data class StringE(val v: String, val raw: String, val multi: Boolean = false) : Expr() {
+        override fun toString(): String = "\"$raw\""
     }
 
-    data class CharE(val v: Char) : Expr() {
-        override fun toString(): String = "'$v'"
+    data class CharE(val v: Char, val raw: String) : Expr() {
+        override fun toString(): String = "'$raw'"
     }
 
     data class Bool(val v: Boolean) : Expr() {
@@ -237,6 +237,7 @@ sealed class Expr {
     data class RecordSelect(val exp: Expr, val labels: List<String>) : Expr()
     data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val labels: List<String>) : Expr()
+    data class RecordUpdate(val exp: Expr, val labels: List<String>, val value: Expr) : Expr()
     data class VectorLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
     class Underscore : Expr()

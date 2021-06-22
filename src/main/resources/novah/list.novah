@@ -17,6 +17,33 @@ pub
 (::) = Cons
 
 /**
+ * Returns the head of this list if it's not empty.
+ */
+pub
+head : List a -> Option a
+head = case _ of
+  Nil -> None
+  Cons x _ -> Some x
+
+/**
+ * Returns the tail of this list if it's not empty.
+ */
+pub
+tail : List a -> Option (List a)
+tail = case _ of
+  Nil -> None
+  Cons _ xs -> Some xs
+
+/**
+ * Returns true if this list is empty.
+ */
+pub
+isEmpty : List a -> Boolean
+isEmpty = case _ of
+  Nil -> true
+  _ -> false
+
+/**
  * Maps function f over all elements of this List
  * returning a List of the same size.
  * Runtime: O(n)
@@ -36,9 +63,28 @@ forEach : List a -> (a -> b) -> Unit
 forEach list f =
   case list of
     Nil -> ()
-    Cons x xs -> do
+    Cons x xs ->
       f x
       forEach xs f
+
+/**
+ * Returns a list of the elements that match the given predicate.
+ * Runtime: O(n)
+ */
+pub
+filter : (a -> Boolean) -> List a -> List a
+filter f = case _ of
+  Nil -> Nil
+  Cons x xs -> if f x then x :: filter f xs else filter f xs
+
+/**
+ * Like `map` but it will flatten the resulting list.
+ */
+pub
+flatMap : (a -> List b) -> List a -> List b
+flatMap f = case _ of
+  Nil -> Nil
+  Cons x xs -> f x ++ flatMap f xs
 
 countList_ : List a -> Int64
 countList_ = case _ of
@@ -58,7 +104,7 @@ showList_ (Show s) l =
   let innerShow = case _ of
         Nil -> "Nil"
         Cons x xs -> s.show x ++ " :: " ++ innerShow xs
-  in case l of
+  case l of
     Nil -> "Nil"
     (Cons _ _) as list -> "(" ++ innerShow list ++ ")"
 
@@ -82,7 +128,7 @@ concatList_ l1 l2 =
   let addTo to = case _ of
         Nil -> to
         Cons x xs -> addTo (x :: to) xs
-  in addTo Nil l1 |> addTo l2
+  addTo Nil l1 |> addTo l2
 
 pub instance
 concatList : Concat (List a)
@@ -98,4 +144,51 @@ reverse list =
   let addTo to = case _ of
         Nil -> to
         Cons x xs -> addTo (x :: to) xs
-  in addTo Nil list
+  addTo Nil list
+
+/**
+ * Reduces this list to a single value according to the reducing function.
+ * Goes from the left to the right.
+ * Runtime: O(n)
+ */
+pub
+foldl : (b -> a -> b) -> b -> List a -> b
+foldl f =
+  let go b = case _ of
+        Nil -> b
+        Cons x xs -> go (f b x) xs
+  go
+
+/**
+ * Reduces this list to a single value according to the reducing function.
+ * Goes from the right to the left.
+ * Runtime: O(n)
+ */
+pub
+foldr : (a -> b -> b) -> b -> List a -> b
+foldr f init = foldl (flip f) init << reverse
+
+/**
+ * A specialized version of `foldl` where the first element of the list is used as initial value.
+ * Returns none if the list is empty
+ * Runtime: O(n)
+ */
+pub
+reduce : (a -> a -> a) -> List a -> Option a
+reduce f = case _ of
+  Nil -> None
+  Cons x xs -> Some (foldl f x xs)
+
+/**
+ * Returns a list in the range from begin (inclusive) to end (exclusive).
+ * Runtime: O(n)
+ */
+pub
+range : Int32 -> Int32 -> List Int32
+range begin end =
+  let op = if begin <= end then (_ + 1) else (_ - 1)
+      go b e acc =
+        if b == e
+        then acc
+        else go (op b) e (b :: acc)
+  go begin end Nil |> reverse

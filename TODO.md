@@ -5,7 +5,6 @@
 - [ ] Add primitive types to code generation when JEP 401/402 is done
 - [ ] Add spans to individual imports with error reporting
 - [ ] 0-cost opaque types
-- [ ] Syntax for record update (probably with type-level strings or macros?)
 - [ ] Disallow duplicate labels in pattern matching
 - [ ] Rename operators and java keywords to be more java-friendly (WIP)
 - [ ] Fix pattern matching warnings (records)
@@ -14,3 +13,5 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Use ropes instead of char arrays to process strings
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
+- [ ] Delay unused variables reporting to after type checking
+- [ ] Fix error report span for unused foreign import

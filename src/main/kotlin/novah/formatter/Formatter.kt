@@ -184,14 +184,17 @@ class Formatter {
             is Expr.Int64 -> e.text
             is Expr.Float32 -> e.text
             is Expr.Float64 -> e.text
-            is Expr.StringE -> if (e.multi) "\"\"\"${e.v}\"\"\"" else "\"${escapeString(e.v)}\""
-            is Expr.CharE -> "'${e.v}'"
+            is Expr.StringE -> if (e.multi) "\"\"\"${e.v}\"\"\"" else "\"${e.raw}\""
+            is Expr.CharE -> "'${e.raw}'"
             is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
             is Expr.Unit -> "()"
             is Expr.RecordEmpty -> "{}"
             is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".")}"
             is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
+            is Expr.RecordUpdate -> {
+                "{ .${e.labels.joinToString(".") { showLabel(it) }} = ${show(e.value)} | ${show(e.exp)} }"
+            }
             is Expr.RecordExtend -> "{ ${e.labels.show(::showLabelExpr)} | ${show(e.exp)} }"
             is Expr.VectorLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
@@ -211,25 +214,6 @@ class Formatter {
                 "while $cond do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
         }
-    }
-
-    private val escapes = mapOf(
-        '\n' to "\\n",
-        '\\' to "\\\\",
-        '\"' to "\\\"",
-        '\'' to "\\'",
-        '\r' to "\\r",
-        '\t' to "\\t",
-        '\b' to "\\b",
-    )
-
-    private fun escapeString(s: String): String {
-        val bld = java.lang.StringBuilder()
-        for (c in s) {
-            val esc = escapes[c]
-            if (esc != null) bld.append(esc) else bld.append(c)
-        }
-        return bld.toString()
     }
 
     private fun showLabelExpr(l: String, e: Expr): String = "$l: ${show(e)}"

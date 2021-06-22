@@ -1,0 +1,168 @@
+module novah.array
+
+foreign import type java.util.Arrays
+foreign import type java.util.Comparator
+foreign import type java.util.stream.Stream
+foreign import type novah.Core
+
+foreign import Arrays:sort(Array, Comparator) as arraySort
+foreign import Arrays:stream(Array) as arrStream
+foreign import Core:mkByteArray(Int32)
+foreign import Core:mkInt16Array(Int32)
+foreign import Core:mkInt32Array(Int32)
+foreign import Core:mkInt64Array(Int32)
+foreign import Core:mkFloat32Array(Int32)
+foreign import Core:mkFloat64Array(Int32)
+foreign import Core:mkCharArray(Int32)
+foreign import Core:mkBooleanArray(Int32)
+foreign import Core:mkObjectArray(Int32)
+
+import novah.java (toComparator)
+import novah.stream as S
+
+/**
+ * Returns a Stream for this array.
+ */
+pub
+stream : Array a -> Stream a
+stream arr = arrStream arr
+
+/**
+ * Collects this stream into an array.
+ */
+pub
+into : Stream a -> Array a
+into = S.toArray
+
+/**
+ * Returns some value at index for this array if it exists or none.
+ * This is a safe version of `arrayGet`.
+ * Runtime: O(1)
+ */
+pub
+nth : Int -> Array a -> Option a
+nth index arr =
+  let size = count arr
+  if index < 0 || index >= (int size)
+  then None
+  else Some (aget index arr)
+
+/**
+ * Runs function f for every element of this array, ignoring the result.
+ * Runtime: O(n)
+ */
+pub
+forEach : Array a -> (a -> b) -> Unit
+forEach arr f =
+  forEachRange 0L (count arr) \idx ->
+    f (aget (int idx) arr)
+
+/**
+ * Maps function f over all elements of this array
+ * returning an array of the same size.
+ * Runtime: O(n)
+ */
+pub
+map : (a -> b) -> Array a -> Array b
+map f arr =
+  let size = count arr
+      res = unsafeCast (objectArray (int size))
+  forEachRange 0L size \idx ->
+    let i = int idx
+    aset i (f (aget i arr)) res
+  res
+
+/**
+ * Returns an array of the elements that match the given predicate.
+ */
+pub
+filter : (a -> Boolean) -> Array a -> Array a
+filter f arr = stream arr |> S.filter f |> into
+
+/**
+ * Sorts this array according to the elements Ord instance.
+ * Runtime: between O(n) and O(n log n)
+ */
+pub
+sort : {{ Ord a }} -> Array a -> Array a
+sort {{ord}} arr =
+  let comp = toComparator ord
+  arraySort arr (unsafeCast comp)
+  arr
+
+/**
+ * Returns a new array with the same elements in the reverse order of the input array.
+ */
+pub
+reverse : Array a -> Array a
+reverse arr =
+  let size = count arr
+      res = unsafeCast (objectArray (int size))
+  forEachRange 0L size \idx ->
+    let i = int (size - idx - 1L)
+        elem = aget (int idx) arr
+    aset i elem res
+  res
+
+/**
+ * Creates a byte array of the specified size.
+ */
+pub
+byteArray : Int -> Array Byte
+byteArray size = mkByteArray size
+
+/**
+ * Creates a int16 array of the specified size.
+ */
+pub
+int16Array : Int -> Array Int16
+int16Array size = mkInt16Array size
+
+/**
+ * Creates a int32 array of the specified size.
+ */
+pub
+intArray : Int -> Array Int32
+intArray size = mkInt32Array size
+
+/**
+ * Creates a int64 array of the specified size.
+ */
+pub
+int64Array : Int -> Array Int64
+int64Array size = mkInt64Array size
+
+/**
+ * Creates a float32 array of the specified size.
+ */
+pub
+float32Array : Int -> Array Float32
+float32Array size = mkFloat32Array size
+
+/**
+ * Creates a float64 array of the specified size.
+ */
+pub
+floatArray : Int -> Array Float64
+floatArray size = mkFloat64Array size
+
+/**
+ * Creates a char array of the specified size.
+ */
+pub
+charArray : Int -> Array Char
+charArray size = mkCharArray size
+
+/**
+ * Creates a boolean array of the specified size.
+ */
+pub
+booleanArray : Int -> Array Boolean
+booleanArray size = mkBooleanArray size
+
+/**
+ * Creates an Object array of the specified size.
+ */
+pub
+objectArray : Int -> Array Object
+objectArray size = mkObjectArray size

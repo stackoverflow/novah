@@ -26,7 +26,6 @@ import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
@@ -230,6 +229,22 @@ class Desugar(private val smod: SModule) {
                 nestLambdas(listOf(Binder(v, span)), nestRecordRestrictions(Expr.Var(v, span), labels))
             } else nestRecordRestrictions(exp.desugar(locals), labels)
         }
+        is SExpr.RecordUpdate -> {
+            val lvars = mutableListOf<Binder>()
+            val lvalue = if (value is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else value.desugar(locals)
+
+            val lexpr = if (exp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp.desugar(locals)
+
+            nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue))
+        }
         is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.BinApp -> {
@@ -290,16 +305,20 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun SLetDef.DefBind.desugar(locals: List<String>): LetDef {
-        val exp = if (type != null)
-            Expr.Ann(expr.desugar(locals), type.desugar(), expr.span)
-        else expr.desugar(locals)
-        val vars = collectVars(exp)
+        val e = expr.desugar(locals)
+        val vars = collectVars(e)
         val recursive = name.name in vars
-
         return if (patterns.isEmpty()) {
+            val exp = if (type != null)
+                Expr.Ann(e, type.desugar(), expr.span)
+            else e
             LetDef(name.desugar(), exp, recursive, isInstance)
         } else {
-            LetDef(name.desugar(), nestLambdaPatterns(patterns, exp, locals), recursive, isInstance)
+            val binder = nestLambdaPatterns(patterns, e, locals)
+            val exp = if (type != null) {
+                Expr.Ann(binder, type.desugar(), expr.span)
+            } else binder
+            LetDef(name.desugar(), exp, recursive, isInstance)
         }
     }
 
@@ -439,6 +458,15 @@ class Desugar(private val smod: SModule) {
         else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], exp.span), labels.drop(1))
     }
 
+    private fun nestRecordUpdates(exp: Expr, labels: List<String>, value: Expr): Expr {
+        return if (labels.isEmpty()) exp
+        else {
+            val tail = labels.drop(1)
+            val select = if (tail.isEmpty()) value else Expr.RecordSelect(exp, labels[0], value.span)
+            Expr.RecordUpdate(exp, labels[0], nestRecordUpdates(select, labels.drop(1), value), exp.span)
+        }
+    }
+
     /**
      * Expand type aliases and make sure they are not recursive
      */
@@ -447,7 +475,7 @@ class Desugar(private val smod: SModule) {
         smod.resolvedTypealiases.forEach { ta ->
             if (ta.expanded == null) internalError("Got unexpanded imported typealias: $ta")
         }
-        val map = (typealiases + smod.resolvedTypealiases).map { it.name to it }.toMap()
+        val map = (typealiases + smod.resolvedTypealiases).associateBy { it.name }
 
         fun expandAndcheck(ta: TypealiasDecl, ty: SType, vars: List<SType> = listOf()): SType = when (ty) {
             is SType.TConst -> {
@@ -458,6 +486,7 @@ class Desugar(private val smod: SModule) {
                 }
                 val pointer = map[ty.fullname()]
                 if (pointer != null) {
+                    // recursively resolved inner typealiases
                     if (vars.size != pointer.tyVars.size)
                         parserError(E.partiallyAppliedAlias(pointer.name, pointer.tyVars.size, vars.size), ta.span)
 
@@ -560,10 +589,10 @@ class Desugar(private val smod: SModule) {
         }
 
         val (decls, types) = desugared.partitionIsInstance<Decl.ValDecl, Decl>()
-        val deps = decls.map { it.name to collectDependencies(it.exp) }.toMap()
+        val deps = decls.associate { it.name to collectDependencies(it.exp) }
 
         val dag = DAG<String, Decl.ValDecl>()
-        val nodes = decls.map { it.name to DagNode(it.name, it) }.toMap()
+        val nodes = decls.associate { it.name to DagNode(it.name, it) }
         dag.addNodes(nodes.values)
 
         nodes.values.forEach { node ->
@@ -652,6 +681,7 @@ class Desugar(private val smod: SModule) {
             is Expr.NativeMethod -> {
                 var count = exp.method.parameterCount
                 if (!exp.isStatic) count++
+                if (count == 0) count++
                 if (depth != count) throwArgs(exp.name, exp.span, "method", count, depth)
             }
             is Expr.NativeConstructor -> {
@@ -705,12 +735,9 @@ class Desugar(private val smod: SModule) {
 
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
 
-    private fun makeWarn(msg: String, span: Span): CompilerProblem =
-        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name, null, Severity.WARN)
-
     private fun makeError(msg: String, span: Span): CompilerProblem =
         CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
-    
+
     companion object {
         fun collectVars(exp: Expr): List<String> =
             exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }

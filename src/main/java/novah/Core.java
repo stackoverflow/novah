@@ -18,14 +18,16 @@ package novah;
 import io.lacuna.bifurcan.List;
 import io.lacuna.bifurcan.Set;
 
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.*;
 
 /**
  * Core language functions
  */
 public class Core {
-    
+
     public static int sum(int x, int y) {
         return x + y;
     }
@@ -89,11 +91,11 @@ public class Core {
     public static double div(double x, double y) {
         return x / y;
     }
-    
+
     public static <T> void println(T arg) {
         System.out.println(arg);
     }
-    
+
     public static boolean equivalent(byte e1, byte e2) {
         return e1 == e2;
     }
@@ -125,7 +127,7 @@ public class Core {
     public static boolean equivalent(boolean e1, boolean e2) {
         return e1 == e2;
     }
-    
+
     public static <T> boolean equivalentObject(T o1, T o2) {
         if (o1 instanceof Integer && o2 instanceof Integer) {
             return ((Integer) o1).intValue() == ((Integer) o2).intValue();
@@ -153,7 +155,7 @@ public class Core {
         }
         return o1 == o2;
     }
-    
+
     public static Function<Integer, Function<Integer, Object>> compareInt(Object lt, Object eq, Object gt) {
         return xx -> yy -> {
             int x = xx;
@@ -177,7 +179,7 @@ public class Core {
             return x == y ? eq : (x < y ? lt : gt);
         };
     }
-    
+
     public static Function<Character, Function<Character, Object>> compareChar(Object lt, Object eq, Object gt) {
         return x -> y -> {
             int comp = x.compareTo(y);
@@ -207,7 +209,7 @@ public class Core {
     public static boolean smallerOrEqualsInt(int i1, int i2) {
         return i1 <= i2;
     }
-    
+
     public static boolean greaterLong(long i1, long i2) {
         return i1 > i2;
     }
@@ -271,57 +273,34 @@ public class Core {
     public static boolean[] mkBooleanArray(int size) {
         return new boolean[size];
     }
-    
+
     public static Object[] mkObjectArray(int size) {
         return new Object[size];
     }
-    
+
     public static <T> T getArray(int index, T[] arr) {
         return arr[index];
     }
-    
+
     public static <T> void setArray(int index, T val, T[] arr) {
         arr[index] = val;
     }
-    
+
     public static <T> int getArrayLength(T[] arr) {
         return arr.length;
     }
-    
+
     public static boolean not(boolean b) {
         return !b;
     }
-    
+
     public static boolean vectorNotEmpty(List<?> vec) {
         return vec.size() != 0;
     }
-    
-    public static <T, R> List<R> mapVector(Function<T, R> f, List<T> vec) {
-        var res = new List<R>().linear();
-        vec.stream().forEach((elem) -> res.addLast(f.apply(elem)));
-        return res.forked();
-    }
 
-    @SuppressWarnings("unchecked")
-    public static <T, R> R[] mapArray(Function<T, R> f, T[] arr) {
-        var res = new Object[arr.length];
-        for (int i = 0; i < arr.length; i++) {
-            res[i] = f.apply(arr[i]);
-        }
-        return (R[]) res;
-    }
-
-    public static <T, R> void forEachVector(Function<T, R> f, List<T> vec) {
-        vec.stream().forEach(f::apply);
-    }
-
-    public static <T, R> void forEachArray(Function<T, R> f, T[] arr) {
-        for (T o : arr) f.apply(o);
-    }
-    
     public static <T> boolean equalsVector(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
-        
+
         long total = v1.size();
         for (long i = 0; i < total; i++) {
             if (!comp.apply(v1.nth(i)).apply(v2.nth(i))) return false;
@@ -348,13 +327,13 @@ public class Core {
         }
         return true;
     }
-    
+
     public static <T> String toStringVector(List<T> vec, Function<T, String> show) {
         long size = vec.size();
         if (size == 0) return "[]";
         StringBuilder builder = new StringBuilder("[");
         builder.append(show.apply(vec.nth(0)));
-        
+
         for (long i = 1; i < size; i++) {
             builder.append(", ");
             builder.append(show.apply(vec.nth(i)));
@@ -376,7 +355,7 @@ public class Core {
         builder.append("}");
         return builder.toString();
     }
-    
+
     public static <T> String toStringArray(T[] array, Function<T, String> show) {
         int size = array.length;
         if (size == 0) return "[]";
@@ -390,9 +369,9 @@ public class Core {
         builder.append("]");
         return builder.toString();
     }
-    
+
     public static <T> T swapAtom(AtomicReference<T> atom, Function<T, T> f) {
-        for (;;) {
+        for (; ; ) {
             T v = atom.get();
             T newv = f.apply(v);
             if (atom.compareAndSet(v, newv)) {
@@ -400,7 +379,7 @@ public class Core {
             }
         }
     }
-    
+
     public static boolean and(boolean cond1, boolean cond2) {
         return cond1 && cond2;
     }
@@ -408,7 +387,7 @@ public class Core {
     public static boolean or(boolean cond1, boolean cond2) {
         return cond1 || cond2;
     }
-    
+
     public static int bitAndInt(int b1, int b2) {
         return b1 & b2;
     }
@@ -464,7 +443,7 @@ public class Core {
     public static long bitNotLong(long b) {
         return ~b;
     }
-    
+
     public static int charToInt(char c) {
         return c;
     }
@@ -472,7 +451,23 @@ public class Core {
     public static char intToChar(int c) {
         return (char) c;
     }
-    
+
+    public static int intRemainder(int i, int i2) {
+        return i % i2;
+    }
+
+    public static long longRemainder(long i, long i2) {
+        return i % i2;
+    }
+
+    public static float floatRemainder(float i, float i2) {
+        return i % i2;
+    }
+
+    public static double doubleRemainder(double i, double i2) {
+        return i % i2;
+    }
+
     public static <T> void eachRange(long begin, long end, int step, Function<Long, T> f) {
         if (begin <= end) {
             for (long i = begin; i < end; i += step) {
@@ -484,7 +479,21 @@ public class Core {
             }
         }
     }
-    
+
+    public static void eachRangeBreak(long begin, long end, Function<Long, Integer> f) {
+        if (begin <= end) {
+            for (long i = begin; i < end; i++) {
+                var res = f.apply(i);
+                if (res < 0) break;
+            }
+        } else {
+            for (long i = begin; i > end; i--) {
+                var res = f.apply(i);
+                if (res < 0) break;
+            }
+        }
+    }
+
     public static List<Integer> vecIntRange(int begin, int end) {
         var vec = new List<Integer>().linear();
         if (begin <= end) {
@@ -554,7 +563,71 @@ public class Core {
         }
         return vec.forked();
     }
+
+    public static <T> Comparator<T> makeComparator(Function<T, Function<T, Integer>> compare) {
+        return (o1, o2) -> compare.apply(o1).apply(o2);
+    }
+
+    public static <T, R> Consumer<T> makeConsumer(Function<T, R> f) {
+        return f::apply;
+    }
+
+    public static <T> Predicate<T> makePredicate(Function<T, Boolean> f) {
+        return f::apply;
+    }
+
+    public static <T, R> BiPredicate<T, R> makeBiPredicate(Function<T, Function<R, Boolean>> f) {
+        return (x, y) -> f.apply(x).apply(y);
+    }
     
+    public static <T> ToLongFunction<T> makeToLongFunction(Function<T, Long> f) {
+        return f::apply;
+    }
+
+    public static <T> ToIntFunction<T> makeToIntFunction(Function<T, Integer> f) {
+        return f::apply;
+    }
+    
+    public static <T> BinaryOperator<T> makeBinaryOperator(Function<T, Function<T, T>> f) {
+        return (x, y) -> f.apply(x).apply(y);
+    }
+    
+    public static <T> UnaryOperator<T> makeUnaryOperator(Function<T, T> f) {
+        return f::apply;
+    }
+    
+    public static <T, U, R> BiFunction<T, U, R> makeBiFunction(Function<T, Function<U, R>> fun) {
+        return (x, y) -> fun.apply(x).apply(y);
+    }
+    
+    public static <T> Optional<T> findVector(Function<T, Boolean> pred, List<T> vec) {
+        T found = null;
+        for (long i = 0; i < vec.size(); i++) {
+            T elem = vec.nth(i);
+            if (pred.apply(elem)) {
+                found = elem;
+                break;
+            }
+        }
+        return Optional.ofNullable(found);
+    }
+    
+    public static <T, R> R foldVector(Function<R, Function<T, R>> f, R init, List<T> vec) {
+        R acc = init;
+        for (long i = 0; i < vec.size(); i++) {
+            acc = f.apply(acc).apply(vec.nth(i));
+        }
+        return acc;
+    }
+
+    public static <T, R> R foldSet(Function<R, Function<T, R>> f, R init, Set<T> set) {
+        R acc = init;
+        for (long i = 0; i < set.size(); i++) {
+            acc = f.apply(acc).apply(set.nth(i));
+        }
+        return acc;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T, T2> T unsafeCoerce(T2 o) {
         return (T) o;

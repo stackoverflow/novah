@@ -21,6 +21,7 @@ import novah.Core
 import novah.ast.optimized.*
 import novah.collections.Record
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
+import novah.optimize.Optimizer.Companion.OBJECT_TYPE
 import novah.optimize.Optimizer.Companion.eqDouble
 import novah.optimize.Optimizer.Companion.eqFloat
 import novah.optimize.Optimizer.Companion.eqInt
@@ -124,7 +125,8 @@ object Optimization {
                     // optimize unsafeCast
                     fn is Var && fn.fullname() == "$coreMod.unsafeCast" -> {
                         val (from, to) = fn.type.pars
-                        if (from.type == to.type) arg
+                        // cast if types are different and result type is not Object
+                        if (from.type == to.type || to.type == OBJECT_TYPE) arg
                         else Expr.Cast(arg, to, e.span)
                     }
                     // optimize `arrayOf [...]` to a literal array

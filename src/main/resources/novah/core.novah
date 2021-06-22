@@ -6,20 +6,21 @@ module novah.core
 
 foreign import type io.lacuna.bifurcan.IList
 foreign import type io.lacuna.bifurcan.ISet
-foreign import type java.util.function.Function
 foreign import type novah.Core
 foreign import type novah.collections.Record
 foreign import type java.util.concurrent.atomic.AtomicReference
+foreign import type java.lang.Math
 
 foreign import get java.lang.System:out
 foreign import java.io.PrintStream.println(Object) as jprintln
 foreign import java.io.PrintStream.print(Object) as jprint
 foreign import new java.lang.AssertionError(String) as newAssertionError
+foreign import java.lang.Math:pow(Float64, Float64)
 foreign import Int32.longValue()
 foreign import Int32.byteValue() as iToB
 foreign import Int32.shortValue() as iToS
+foreign import Int64.intValue() as lToI
 foreign import Object.toString() as jToString
-foreign import Object.hashCode() as jHashCode
 foreign import String:format(String, Array) as sformat
 foreign import String.equals(String) as equalsString
 foreign import IList.toArray() as vecToArr
@@ -44,17 +45,16 @@ foreign import new AtomicReference(Object) as newAtom
 foreign import AtomicReference.get() as atomGet
 foreign import AtomicReference.set(Object) as atomSet
 foreign import AtomicReference.compareAndSet(Object, Object) as atomCmpAndSet
+foreign import Math:min(Int32, Int32) as minInt
+foreign import Math:min(Int64, Int64) as minLong
+foreign import Math:min(Float32, Float32) as minFloat
+foreign import Math:min(Float64, Float64) as minDouble
+foreign import Math:max(Int32, Int32) as maxInt
+foreign import Math:max(Int64, Int64) as maxLong
+foreign import Math:max(Float32, Float32) as maxFloat
+foreign import Math:max(Float64, Float64) as maxDouble
 
 foreign import Core:not(Boolean) as negate
-foreign import Core:mkByteArray(Int32)
-foreign import Core:mkInt16Array(Int32)
-foreign import Core:mkInt32Array(Int32)
-foreign import Core:mkInt64Array(Int32)
-foreign import Core:mkFloat32Array(Int32)
-foreign import Core:mkFloat64Array(Int32)
-foreign import Core:mkCharArray(Int32)
-foreign import Core:mkBooleanArray(Int32)
-foreign import Core:mkObjectArray(Int32)
 foreign import Core:getArray(Int32, Array)
 foreign import Core:setArray(Int32, Object, Array)
 foreign import Core:getArrayLength(Array)
@@ -97,6 +97,7 @@ foreign import Core:swapAtom(AtomicReference, Function)
 foreign import Core:and(Boolean, Boolean)
 foreign import Core:or(Boolean, Boolean)
 foreign import Core:eachRange(Int64, Int64, Int32, Function)
+foreign import Core:eachRangeBreak(Int64, Int64, Function)
 foreign import Core:vecIntRange(Int32, Int32)
 foreign import Core:vecLongRange(Int64, Int64)
 foreign import Core:vecFloatRange(Float32, Float32)
@@ -118,6 +119,10 @@ foreign import Core:bitShiftLeftLong(Int64, Int64)
 foreign import Core:bitShiftRightLong(Int64, Int64)
 foreign import Core:unsignedBitShiftRightLong(Int64, Int64)
 foreign import Core:bitNotLong(Int64)
+foreign import Core:intRemainder(Int32, Int32)
+foreign import Core:longRemainder(Int64, Int64)
+foreign import Core:floatRemainder(Float32, Float32)
+foreign import Core:doubleRemainder(Float64, Float64)
 
 /**
  * A 32-bits Integer
@@ -253,20 +258,19 @@ toString : a -> String
 toString x = jToString (unsafeCast x)
 
 /**
- * Returns the hash code for this value using
- * the native Java hashCode method.
- */
-pub
-hashCode : a -> Int32
-hashCode x = jHashCode (unsafeCast x)
-
-/**
  * Throws an exception stating that this code is still undergoing implementation.
  * Should be used a placeholder for future code.
  */
 pub
 todo : String -> a
 todo msg = throw newAssertionError (format "Not implemented: %s" [msg])
+
+/**
+ * Converts this 64-bit integer to a 32-bit integer.
+ */
+pub
+int : Int64 -> Int32
+int l = lToI l
 
 /**
  * Converts this 32-bit integer to a 64-bit integer.
@@ -335,86 +339,36 @@ removeLast : Vector a -> Vector a
 removeLast vec = remLast vec
 
 /**
- * Creates a byte array of the specified size.
+ * Gets the element of the array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
  */
 pub
-byteArray : Int -> Array Byte
-byteArray size = mkByteArray size
+aget : Int -> Array a -> a
+aget index arr = getArray index arr
 
 /**
- * Creates a int16 array of the specified size.
+ * Sets the element of the array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
  */
 pub
-int16Array : Int -> Array Int16
-int16Array size = mkInt16Array size
+aset : Int -> a -> Array a -> Unit
+aset index x arr = setArray index x arr
 
 /**
- * Creates a int32 array of the specified size.
+ * Updates the element of the array at the specified index by applying this function
+ * to the old value.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
  */
 pub
-intArray : Int -> Array Int32
-intArray size = mkInt32Array size
-
-/**
- * Creates a int64 array of the specified size.
- */
-pub
-int64Array : Int -> Array Int64
-int64Array size = mkInt64Array size
-
-/**
- * Creates a float32 array of the specified size.
- */
-pub
-float32Array : Int -> Array Float32
-float32Array size = mkFloat32Array size
-
-/**
- * Creates a float64 array of the specified size.
- */
-pub
-floatArray : Int -> Array Float64
-floatArray size = mkFloat64Array size
-
-/**
- * Creates a char array of the specified size.
- */
-pub
-charArray : Int -> Array Char
-charArray size = mkCharArray size
-
-/**
- * Creates a boolean array of the specified size.
- */
-pub
-booleanArray : Int -> Array Boolean
-booleanArray size = mkBooleanArray size
-
-/**
- * Creates an Object array of the specified size.
- */
-pub
-objectArray : Int -> Array Object
-objectArray size = mkObjectArray size
-
-/**
- * Gets the element of the array at the
- * specified index.
- */
-pub
-arrayGet : Int -> Array a -> a
-arrayGet index arr = getArray index arr
-
-/**
- * Sets the element of the array at the
- * specified index.
- */
-pub
-arraySet : Int -> a -> Array a -> Unit
-arraySet index x arr = setArray index x arr
+aupdate : Int -> (a -> a) -> Array a -> Unit
+aupdate index updateFn arr = setArray index (updateFn (getArray index arr)) arr
 
 /**
  * Converts a Vector of some type `a` to an Array of `a`.
+ * Runtime: O(n)
  */
 pub
 arrayOf : Vector a -> Array a
@@ -422,11 +376,31 @@ arrayOf vec = unsafeCast (vecToArr (unsafeCast vec))
 
 /**
  * Returns a formatted string using the specified format string and arguments.
- * See java.util.Formatter for format explanation.
+ * See `java.util.Formatter` for format explanation.
  */
 pub
 format : String -> Vector a -> String
 format str vec = sformat str (unsafeCast (arrayOf vec))
+
+/**
+ * Prints the formated string to stdout.
+ */
+pub
+printfln : String -> Vector a -> Unit
+printfln form args = println (format form args)
+
+/**
+ * Executes the action when the condition is `true`.
+ * Used for side effects.
+ */
+pub
+when : Boolean -> (Unit -> a) -> Unit
+when cond action =
+  if cond
+  then
+    action ()
+    ()
+  else ()
 
 /**
  * Represents the possibility of a missing value.
@@ -599,6 +573,14 @@ divideFloat32 = Divide { divide: \x y -> divFloat32 x y }
 pub instance
 divideFloat64 : Divide Float64
 divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
+
+/**
+ * Returns x raised to the power of y.
+ * Follows the same special cases as `java.lang.Math.pow`.
+ */
+pub
+(^) : Float64 -> Float64 -> Float64
+(^) x y = pow x y
 
 /**
  * The type of things that can be counted / have size.
@@ -930,6 +912,83 @@ ordOption : {{ Ord a }} -> Ord (Option a)
 ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption ord }
 
 /**
+ * A type for some miscelaneous number operations.
+ */
+pub+
+opaque type NumberOps a =
+  { remainder : a -> a -> a
+  , zero : a
+  , even: a -> Boolean
+  , min: a -> a -> a
+  , max: a -> a -> a
+  }
+
+/**
+ * Returns the remainder of dividing x by y.
+ */
+pub
+(%) : {{ NumberOps a }} -> a -> a -> a
+(%) {{NumberOps r}} x y = r.remainder x y
+
+/**
+ * Returns true if this number is odd.
+ */
+pub
+odd : {{ NumberOps a }} -> a -> Boolean
+odd {{NumberOps r}} x = not (r.even x)
+
+/**
+ * Returns true if this number is even.
+ */
+pub
+even : {{ NumberOps a }} -> a -> Boolean
+even {{NumberOps r}} x = r.even x
+
+pub instance
+numberOpsInt32 : NumberOps Int32
+numberOpsInt32 =
+  NumberOps
+    { remainder: \x y -> intRemainder x y
+    , zero: 0
+    , even: \x -> intRemainder x 2 == 0
+    , min: \x y -> minInt x y
+    , max: \x y -> maxInt x y
+    }
+
+pub instance
+numberOpsInt64 : NumberOps Int64
+numberOpsInt64 =
+  NumberOps
+    { remainder: \x y -> longRemainder x y
+    , zero: 0L
+    , even: \x -> longRemainder x 2L == 0L
+    , min: \x y -> minLong x y
+    , max: \x y -> maxLong x y
+    }
+
+pub instance
+numberOpsFloat32 : NumberOps Float32
+numberOpsFloat32 =
+  NumberOps
+    { remainder: \x y -> floatRemainder x y
+    , zero: 0F
+    , even: \x -> floatRemainder x 2F == 0F
+    , min: \x y -> minFloat x y
+    , max: \x y -> maxFloat x y
+    }
+
+pub instance
+numberOpsFloat64 : NumberOps Float64
+numberOpsFloat64 =
+  NumberOps
+    { remainder: \x y -> doubleRemainder x y
+    , zero: 0.0
+    , even: \x -> doubleRemainder x 2.0 == 0.0
+    , min: \x y -> minDouble x y
+    , max: \x y -> maxDouble x y
+    }
+
+/**
  * Represents a type that supports bitwise operations.
  */
 pub+
@@ -1001,51 +1060,55 @@ bitUnsignedShiftRight {{BitOperator b}} x amount = b.unsignedShiftRight x amount
 
 pub instance
 bitOperatorByte : BitOperator Byte
-bitOperatorByte = BitOperator
-  { and: \x y -> iToB (bitAndInt (bToI x) (bToI y))
-  , or: \x y -> iToB (bitOrInt (bToI x) (bToI y))
-  , xor: \x y -> iToB (bitXorInt (bToI x) (bToI y))
-  , shiftLeft: \x y -> iToB (bitShiftLeftInt (bToI x) (bToI y))
-  , shiftRight: \x y -> iToB (bitShiftRightInt (bToI x) (bToI y))
-  , unsignedShiftRight: \x y -> iToB (unsignedBitShiftRightInt (bToI x) (bToI y))
-  , not: \x -> iToB (bitNotInt (bToI x))
-  }
+bitOperatorByte =
+  BitOperator
+    { and: \x y -> iToB (bitAndInt (bToI x) (bToI y))
+    , or: \x y -> iToB (bitOrInt (bToI x) (bToI y))
+    , xor: \x y -> iToB (bitXorInt (bToI x) (bToI y))
+    , shiftLeft: \x y -> iToB (bitShiftLeftInt (bToI x) (bToI y))
+    , shiftRight: \x y -> iToB (bitShiftRightInt (bToI x) (bToI y))
+    , unsignedShiftRight: \x y -> iToB (unsignedBitShiftRightInt (bToI x) (bToI y))
+    , not: \x -> iToB (bitNotInt (bToI x))
+    }
 
 pub instance
 bitOperatorInt16 : BitOperator Int16
-bitOperatorInt16 = BitOperator
-  { and: \x y -> iToS (bitAndInt (sToI x) (sToI y))
-  , or: \x y -> iToS (bitOrInt (sToI x) (sToI y))
-  , xor: \x y -> iToS (bitXorInt (sToI x) (sToI y))
-  , shiftLeft: \x y -> iToS (bitShiftLeftInt (sToI x) (sToI y))
-  , shiftRight: \x y -> iToS (bitShiftRightInt (sToI x) (sToI y))
-  , unsignedShiftRight: \x y -> iToS (unsignedBitShiftRightInt (sToI x) (sToI y))
-  , not: \x -> iToS (bitNotInt (sToI x))
-  }
+bitOperatorInt16 =
+  BitOperator
+    { and: \x y -> iToS (bitAndInt (sToI x) (sToI y))
+    , or: \x y -> iToS (bitOrInt (sToI x) (sToI y))
+    , xor: \x y -> iToS (bitXorInt (sToI x) (sToI y))
+    , shiftLeft: \x y -> iToS (bitShiftLeftInt (sToI x) (sToI y))
+    , shiftRight: \x y -> iToS (bitShiftRightInt (sToI x) (sToI y))
+    , unsignedShiftRight: \x y -> iToS (unsignedBitShiftRightInt (sToI x) (sToI y))
+    , not: \x -> iToS (bitNotInt (sToI x))
+    }
 
 pub instance
 bitOperatorInt32 : BitOperator Int32
-bitOperatorInt32 = BitOperator
-  { and: \x y -> bitAndInt x y
-  , or: \x y -> bitOrInt x y
-  , xor: \x y -> bitXorInt x y
-  , shiftLeft: \x y -> bitShiftLeftInt x y
-  , shiftRight: \x y -> bitShiftRightInt x y
-  , unsignedShiftRight: \x y -> unsignedBitShiftRightInt x y
-  , not: \x -> bitNotInt x
-  }
+bitOperatorInt32 =
+  BitOperator
+    { and: \x y -> bitAndInt x y
+    , or: \x y -> bitOrInt x y
+    , xor: \x y -> bitXorInt x y
+    , shiftLeft: \x y -> bitShiftLeftInt x y
+    , shiftRight: \x y -> bitShiftRightInt x y
+    , unsignedShiftRight: \x y -> unsignedBitShiftRightInt x y
+    , not: \x -> bitNotInt x
+    }
 
 pub instance
 bitOperatorInt64 : BitOperator Int64
-bitOperatorInt64 = BitOperator
-  { and: \x y -> bitAndLong x y
-  , or: \x y -> bitOrLong x y
-  , xor: \x y -> bitXorLong x y
-  , shiftLeft: \x y -> bitShiftLeftLong x y
-  , shiftRight: \x y -> bitShiftRightLong x y
-  , unsignedShiftRight: \x y -> unsignedBitShiftRightLong x y
-  , not: \x -> bitNotLong x
-  }
+bitOperatorInt64 =
+  BitOperator
+    { and: \x y -> bitAndLong x y
+    , or: \x y -> bitOrLong x y
+    , xor: \x y -> bitXorLong x y
+    , shiftLeft: \x y -> bitShiftLeftLong x y
+    , shiftRight: \x y -> bitShiftRightLong x y
+    , unsignedShiftRight: \x y -> unsignedBitShiftRightLong x y
+    , not: \x -> bitNotLong x
+    }
 
 /**
  * Represents a computation that can fail.
@@ -1076,6 +1139,40 @@ showResult : {{ Show ok }} -> {{ Show err }} -> Show (Result ok err)
 showResult {{s1}} {{s2}} = Show { show: showRes s1 s2 }
 
 /**
+ * A Tuple containing two values.
+ */
+pub+
+type Tuple a b = Tuple a b
+
+/**
+ * Creates a tuple out of two values.
+ */
+pub
+(<>) : a -> b -> Tuple a b
+(<>) = Tuple
+
+equalsTuple : Equals a -> Equals b -> Tuple a b -> Tuple a b -> Boolean
+equalsTuple (Equals eq1) (Equals eq2) (Tuple x y) (Tuple x2 y2) = eq1.equals x x2 && eq2.equals y y2
+
+pub instance
+eqTuple : {{ Equals a }} -> {{ Equals b }} -> Equals (Tuple a b)
+eqTuple {{eq1}} {{eq2}} = Equals { equals: equalsTuple eq1 eq2 }
+
+showTup : Show a -> Show b -> Tuple a b -> String
+showTup (Show s1) (Show s2) (Tuple x y) = format "(Tuple %s %s)" [s1.show x, s2.show y]
+
+pub instance
+showTuple : {{ Show a }} -> {{ Show b }} -> Show (Tuple a b)
+showTuple {{s1}} {{s2}} = Show { show: showTup s1 s2 }
+
+concatTup : Concat a -> Concat b -> Tuple a b -> Tuple a b -> Tuple a b
+concatTup (Concat c1) (Concat c2) (Tuple x y) (Tuple x2 y2) = Tuple (c1.concat x x2) (c2.concat y y2)
+
+pub instance
+concatTuple : {{ Concat a }} -> {{ Concat b }} -> Concat (Tuple a b)
+concatTuple {{c1}} {{c2}} = Concat { concat: concatTup c1 c2 }
+
+/**
  * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
  */
 pub
@@ -1102,7 +1199,7 @@ deref (Atom a) = atomGet a
  */
 pub
 reset : a -> Atom a -> a
-reset x (Atom a) = do
+reset x (Atom a) =
   atomSet a x
   x
 
@@ -1152,6 +1249,14 @@ forEachStep : Int64 -> Int64 -> Int -> (Int64 -> a) -> Unit
 forEachStep begin end step f = eachRange begin end step f
 
 /**
+ * Executes the function for every number from begin (inclusive) to end (exclusive).
+ * The for breaks if the function returns a number < 0.
+ */
+pub
+forEachBreak : Int64 -> Int64 -> (Int64 -> Int32) -> Unit
+forEachBreak begin end f = eachRangeBreak begin end f
+
+/**
  * Types that can generate a vector over a range.
  */
 pub+
@@ -1176,35 +1281,40 @@ pub
 
 pub instance
 rangeInt32 : Range Int32
-rangeInt32 = Range
-  { range: \begin end -> vecIntRange begin end
-  , rangeInclusive: \begin end -> vecIntRange begin (end + 1)
-  }
+rangeInt32 =
+  Range
+    { range: \begin end -> vecIntRange begin end
+    , rangeInclusive: \begin end -> vecIntRange begin (end + 1)
+    }
 
 pub instance
 rangeInt64 : Range Int64
-rangeInt64 = Range
-  { range: \begin end -> vecLongRange begin end
-  , rangeInclusive: \begin end -> vecLongRange begin (end + 1L)
-  }
+rangeInt64 =
+  Range
+    { range: \begin end -> vecLongRange begin end
+    , rangeInclusive: \begin end -> vecLongRange begin (end + 1L)
+    }
 
 pub instance
 rangeFloat32 : Range Float32
-rangeFloat32 = Range
-  { range: \begin end -> vecFloatRange begin end
-  , rangeInclusive: \begin end -> vecFloatRange begin (end + 1.0F)
-  }
+rangeFloat32 =
+  Range
+    { range: \begin end -> vecFloatRange begin end
+    , rangeInclusive: \begin end -> vecFloatRange begin (end + 1.0F)
+    }
 
 pub instance
 rangeFloat64 : Range Float64
-rangeFloat64 = Range
-  { range: \begin end -> vecDoubleRange begin end
-  , rangeInclusive: \begin end -> vecDoubleRange begin (end + 1.0)
-  }
+rangeFloat64 =
+  Range
+    { range: \begin end -> vecDoubleRange begin end
+    , rangeInclusive: \begin end -> vecDoubleRange begin (end + 1.0)
+    }
 
 pub instance
 rangeChar : Range Char
-rangeChar = Range
-  { range: \begin end -> vecCharRange begin end
-  , rangeInclusive: \begin end -> vecCharRange begin (intToChar (charToInt end + 1))
-  }
+rangeChar =
+  Range
+    { range: \begin end -> vecCharRange begin end
+    , rangeInclusive: \begin end -> vecCharRange begin (intToChar (charToInt end + 1))
+    }

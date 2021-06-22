@@ -1,0 +1,149 @@
+module novah.map
+
+foreign import type io.lacuna.bifurcan.Map
+foreign import type io.lacuna.bifurcan.IMap
+foreign import type io.lacuna.bifurcan.IEntry
+foreign import type java.util.function.BiPredicate
+foreign import type java.util.function.BiFunction
+foreign import type java.util.function.ToLongFunction
+foreign import type java.util.function.UnaryOperator
+foreign import new Map(ToLongFunction, BiPredicate) as newMap
+foreign import Map.linear() as mapLinear
+foreign import Map.forked() as mapForked
+foreign import Map.contains(Object) as mapContains
+foreign import Map.union(IMap) as mapUnion
+foreign import Map.size() as mapSize
+foreign import Map.keys() as mapKeys
+foreign import Map.remove(Object) as mapRemove
+foreign import Map.update(Object, UnaryOperator) as mapUpdate
+foreign import Map:empty() as mapEmpty
+foreign import Map.iterator() as mapIterator
+foreign import Map.mapValues(BiFunction) as mapMapValues
+foreign import IMap.put(Object, Object) as mapPut
+foreign import IMap.get(Object) as mapGet
+foreign import IEntry.key() as entryKey
+foreign import IEntry.value() as entryValue
+foreign import get io.lacuna.bifurcan.Maps:DEFAULT_HASH_CODE as defaultHashCode
+
+import novah.java as J
+import novah.option as O
+import novah.vector as V
+import novah.set as S
+
+/**
+ * Creates a new map with the supplied entries.
+ */
+pub
+new : Vector (Tuple k v) -> Map k v
+new vec =
+  let lmap = mapLinear (mapEmpty ())
+  V.forEach vec \(Tuple key val) -> put key val lmap
+  mapForked lmap
+
+/**
+ * Creates a new map which uses the key equality function and the provided hash function, or the default object hash function.
+ * This function should always be used to create new maps for types that have equality implementations that differ from its own
+ * `equals` function.
+ * Note that Novah creates default, sensible `equals` and `hashCode` implementations for every type.
+ */
+pub
+newEq : {{ Equals k }} -> Option (k -> Int64) -> Map k v
+newEq {{Equals eq}} hashFn =
+  let hash = O.map J.toLong hashFn ?: defaultHashCode
+  newMap hash (J.bipredicate eq.equals)
+
+/**
+ * Inserts or replaces a new key/value pair in the map.
+ * Runtime: ~O(1)
+ */
+pub
+put : k -> v -> Map k v -> Map k v
+put key val map = unsafeCast (mapPut (unsafeCast map) key val)
+
+/**
+ * Returns the value under key if it exists.
+ * Runtime: ~O(1)
+ */
+pub
+get : k -> Map k v -> Option v
+get k map = mapGet (unsafeCast map) k |> O.fromOptional
+
+/**
+ * Applies the function to the value represented by the key, updating it.
+ */
+pub
+update : k -> (v -> v) -> Map k v -> Map k v
+update key fun map = mapUpdate map key (J.unaryOperator fun)
+
+/**
+ * Removes the key from this map.
+ */
+pub
+remove : k -> Map k v -> Map k v
+remove key map = mapRemove map key
+
+/**
+ * Returns true if this map contains the key.
+ * Runtime: ~O(1)
+ */
+pub
+hasKey : k -> Map k v -> Boolean
+hasKey key map = mapContains map key
+
+/**
+ * Returns the result of merging the two maps.
+ * Repeated keys in the second map will overwrite keys from the first.
+ * An alias for `++`.
+ */
+pub
+merge : Map k v -> Map k v -> Map k v
+merge m1 m2 = mapUnion m1 (unsafeCast m2)
+
+/**
+ * Returns a set of all keys in this map.
+ * Runtime: O(1)
+ */
+pub
+keys : Map k v -> Set k
+keys map = mapKeys map
+
+/**
+ * Executes the function for every key/value pair in this map
+ * Runtime: O(n)
+ */
+pub
+forEach : Map k v -> (k -> v -> Unit) -> Unit
+forEach map f =
+  J.forEach (mapIterator map) \entry -> f (entryKey entry) (entryValue entry)
+
+/**
+ * Maps function f over all entries of this map.
+ * Runtime: O(n)
+ */
+pub
+mapValues : (k -> v -> v2) -> Map k v -> Map k v2
+mapValues f map = mapMapValues map (J.biFunction f)
+
+/**
+ * Returns a map of the elements that match the given predicate.
+ * Runtime: O(n)
+ */
+pub
+filter : (k -> v -> Boolean) -> Map k v -> Map k v
+filter pred map =
+  let lmap = mapLinear map
+  forEach lmap \k v ->
+    when (not (pred k v)) \_ -> mapRemove lmap k
+  mapForked lmap
+
+pub instance
+concatMap : Concat (Map k v)
+concatMap = Concat { concat: merge }
+
+/**
+ * Returns the size of the map.
+ * Runtime: ~O(1)
+ */
+pub instance
+countMap : Count (Map k v)
+countMap = Count { count: \m -> mapSize m }

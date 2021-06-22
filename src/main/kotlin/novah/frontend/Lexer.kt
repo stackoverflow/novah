@@ -63,8 +63,8 @@ sealed class Token {
     object WhileT : Token()
 
     data class BoolT(val b: Boolean) : Token()
-    data class CharT(val c: Char) : Token()
-    data class StringT(val s: String) : Token()
+    data class CharT(val c: Char, val raw: String) : Token()
+    data class StringT(val s: String, val raw: String) : Token()
     data class MultilineStringT(val s: String) : Token()
     data class IntT(val v: Int, val text: String) : Token()
     data class LongT(val v: Long, val text: String) : Token()
@@ -75,7 +75,7 @@ sealed class Token {
     data class Op(val op: String) : Token()
 
     fun isDoubleColon() = this is Op && op == "::"
-    
+
     fun isDotStart() = this is Op && op.startsWith(".")
 
     override fun toString(): String = this.javaClass.simpleName
@@ -240,14 +240,15 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         return Spanned(Span(startLine, startColumn, iter.line, iter.column), token, comment)
     }
 
-    private val validEscapes = setOf('t', 'b', 'n', 'r', '\'', '\"', '\\')
+    private val validEscapes = setOf('t', 'b', 'n', 'r', 'u', '\'', '\"', '\\')
 
     private fun char(): Token {
         val c = iter.next()
         val ch = if (c == '\\') {
-            CharT(readEscape())
+            val (esc, str) = readEscape()
+            CharT(esc, str)
         } else {
-            CharT(c)
+            CharT(c, "$c")
         }
         val n = iter.next()
         if (n != '\'') lexError("Expected ' after char literal")
@@ -303,9 +304,10 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
     private fun string(): Token {
         val bld = StringBuilder()
+        val raw = StringBuilder()
         var c = iter.next()
         if (c == '"') {
-            if (!iter.hasNext() || iter.peek() != '"') return StringT("")
+            if (!iter.hasNext() || iter.peek() != '"') return StringT("", "")
             iter.next()
             return multilineString()
         }
@@ -315,15 +317,17 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 lexError("Newline is not allowed inside strings.")
             }
             if (c == '\\') {
-                c = readEscape()
-            }
+                val (esc, str) = readEscape()
+                c = esc
+                raw.append(str)
+            } else raw.append(c)
             bld.append(c)
             c = iter.next()
         }
         val str = bld.toString()
-        return StringT(str)
+        return StringT(str, raw.toString())
     }
-    
+
     private fun multilineString(): Token {
         val bld = StringBuilder()
         var last1 = ' '
@@ -361,7 +365,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         if (!iter.hasNext()) {
             return genNumIntToken("$init".toSafeLong(10) * n, "$init")
         }
-        return if (init == '0') {
+        return if (init == '0' && iter.peek() != '.') {
             when (val c = iter.peek()) {
                 // binary numbers
                 'b', 'B' -> {
@@ -385,7 +389,11 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     if (c.isDigit()) lexError("Number 0 can only be followed by b|B or x|X: `$c`")
                     val l = accept("L")
                     if (l != null) LongT(0, "0L")
-                    else IntT(0, "0")
+                    else {
+                        val f = accept("F")
+                        if (f != null) FloatT(0F, "0F")
+                        else IntT(0, "0")
+                    }
                 }
             }
         } else {
@@ -491,13 +499,27 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         }
     }
 
-    private fun readEscape(): Char {
-        fun getEscape(c: Char): Char = when (c) {
-            'n' -> '\n'
-            't' -> '\t'
-            'b' -> '\b'
-            'r' -> '\r'
-            else -> c
+    private fun readEscape(): Pair<Char, String> {
+        fun getEscape(c: Char): Pair<Char, String> = when (c) {
+            'n' -> '\n' to "\\n"
+            't' -> '\t' to "\\t"
+            'b' -> '\b' to "\\b"
+            'r' -> '\r' to "\\r"
+            '\'' -> '\'' to "\\'"
+            '"' -> '"' to "\\\""
+            '\\' -> '\\' to """\\"""
+            'u' -> {
+                val hex = "0123456789abcdefABCDEF"
+                val b1 = accept(hex)
+                val b2 = accept(hex)
+                val b3 = accept(hex)
+                val b4 = accept(hex)
+                if (b1 == null || b2 == null || b3 == null || b4 == null) {
+                    lexError("Unexpected UTF-16 escape character.")
+                }
+                readUTF16BMP(b1, b2, b3, b4)
+            }
+            else -> c to "$c"
         }
         return when (val c = iter.next()) {
             in validEscapes -> getEscape(c)
@@ -544,6 +566,16 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             return this.toDouble()
         } catch (e: NumberFormatException) {
             lexError("Invalid number format for double: `$this`")
+        }
+    }
+
+    companion object {
+        /**
+         * Reads a Java UTF-16 basic multilingual plane escape (\uxxxx)
+         */
+        private fun readUTF16BMP(b1: Char, b2: Char, b3: Char, b4: Char): Pair<Char, String> {
+            val str = "$b1$b2$b3$b4"
+            return Integer.parseInt(str, 16).toChar() to "\\u$str"
         }
     }
 }

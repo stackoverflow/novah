@@ -20,7 +20,6 @@ import io.kotest.matchers.shouldBe
 import novah.ast.canonical.Decl
 import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
-import novah.frontend.TestUtil.findUnbound
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
 

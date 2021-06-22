@@ -71,13 +71,13 @@ class Environment(classPath: String, private val verbose: Boolean) {
         // stdlib
         if (stdlibCompiled.isNotEmpty()) modules.putAll(stdlibCompiled)
         else {
-            innerParseSources(stdlib)
+            innerParseSources(stdlib, isStdlib = true)
             stdlibCompiled.putAll(modules)
         }
-        return innerParseSources(sources)
+        return innerParseSources(sources, isStdlib = false)
     }
 
-    private fun innerParseSources(sources: Sequence<Source>): Map<String, FullModuleEnv> {
+    private fun innerParseSources(sources: Sequence<Source>, isStdlib: Boolean): Map<String, FullModuleEnv> {
         val modMap = mutableMapOf<String, DagNode<String, Module>>()
         val modGraph = DAG<String, Module>()
 
@@ -87,7 +87,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
 
             source.withIterator { iter ->
                 val lexer = Lexer(iter)
-                val parser = Parser(lexer, path.toFile().invariantSeparatorsPath)
+                val parser = Parser(lexer, isStdlib, path.toFile().invariantSeparatorsPath)
                 parser.parseFullModule().mapBoth(
                     { mod ->
                         val node = DagNode(mod.name, mod)

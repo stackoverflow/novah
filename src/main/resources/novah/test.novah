@@ -1,0 +1,140 @@
+module novah.test
+
+foreign import type java.lang.AssertionError
+foreign import type java.lang.Exception
+foreign import type java.lang.Throwable
+
+foreign import java.lang.Throwable.getMessage() as getMessage
+foreign import new AssertionError(String) as newAssert
+
+import novah.vector (forEach)
+import novah.set as Set
+import novah.option as Option
+
+pub
+typealias TestFun = Unit -> Unit
+
+/**
+ * Represents one or more tests to be run.
+ */
+pub+
+type Suite
+  = Test String TestFun
+  | Tests String (Vector TestFun)
+  | Setup { before : TestFun, after : TestFun, suite : Suite }
+
+/**
+ * Runs all given tests and reports the result.
+ * Should be called once at the entry function for tests.
+ */
+pub
+runTests : Vector Suite -> Unit
+runTests suites =
+  let total = atom 0
+      stats = arrayOf [0, 0, 0]
+      addStats v =
+        aupdate 0 (_ + (v ! 0L)) stats
+        aupdate 1 (_ + (v ! 1L)) stats
+        aupdate 2 (_ + (v ! 2L)) stats
+      
+      runSuite = case _ of
+        Test desc fun -> check desc fun |> addStats
+        Tests desc funs -> forEach funs (check desc >> addStats)
+        Setup {before, after, suite} ->
+          try
+            before ()
+            runSuite suite
+          finally after ()
+
+  forEach suites \suite ->
+    swap (_ + 1) total
+    runSuite suite
+
+  println "\nSummary"
+  printfln "%s/%s tests passed" [aget 0 stats, deref total]
+  printfln "%d failures" [aget 1 stats]
+  printfln "%d errors" [aget 2 stats]
+
+/**
+ * Fails the test if the condition is false.
+ */
+pub
+assert : String -> Boolean -> Unit
+assert desc cond =
+  if cond
+    then ()
+    else throw newAssert desc
+
+/**
+ * Fails the test if the condition is true.
+ */
+pub
+assertFalse : String -> Boolean -> Unit
+assertFalse desc cond = assert desc (not cond)
+
+/**
+ * Fails the test if the element is not inside the set.
+ */
+pub
+assertIn : String -> Set a -> a -> Unit
+assertIn desc set elem = assert desc (Set.contains elem set)
+
+/**
+ * Fails the test if the element is inside the set.
+ */
+pub
+assertNotIn : String -> Set a -> a -> Unit
+assertNotIn desc set elem = assert desc (not (Set.contains elem set))
+
+/**
+ * Fails the test if this option is empty.
+ */
+pub
+assertSome : String -> Option a -> Unit
+assertSome desc opt = assert desc (Option.isSome opt)
+
+/**
+ * Fails the test if this option is not empty.
+ */
+pub
+assertNone : String -> Option a -> Unit
+assertNone desc opt = assert desc (Option.isNone opt)
+
+/**
+ * Fails the test if this vector is not empty.
+ */
+pub
+assertEmpty : String -> Vector a -> Unit
+assertEmpty desc vec = assert desc (count vec == 0L)
+
+/**
+ * Fails the test if this vector is empty.
+ */
+pub
+assertNotEmpty : String -> Vector a -> Unit
+assertNotEmpty desc vec = assert desc (count vec != 0L)
+
+check : String -> TestFun -> Vector Int
+check desc fun =
+  try
+    println ""
+    fun ()
+    printfln "✓ %s" [desc]
+    [1, 0, 0]
+  catch
+    :? AssertionError as err ->
+      printfln "✗ %s" [desc]
+      println (exceptMessage (unsafeCast err))
+      [0, 1, 0]
+    :? Exception as err ->
+      printfln "error:\t%s" [exceptMessage (unsafeCast err)]
+      [0, 0, 1]
+
+yellow : String -> String
+yellow str = format "%s%s%s" ["\u001b[31m", str, "\u001b[0m"]
+
+printf : String -> Vector a -> Unit
+printf form args = print (format form args)
+
+exceptMessage : Throwable -> String
+exceptMessage err = getMessage err

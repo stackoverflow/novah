@@ -17,17 +17,19 @@ package novah.frontend
 
 import novah.Util.splitAt
 import novah.ast.source.*
+import novah.ast.source.Type
 import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
-import novah.frontend.typechecker.CORE_MODULE
-import novah.frontend.typechecker.coreImport
-import novah.frontend.typechecker.primImport
-import kotlin.math.max
+import novah.frontend.typechecker.*
 import novah.frontend.error.Errors as E
 
-class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = "Unknown") {
+class Parser(
+    tokens: Iterator<Spanned<Token>>,
+    private val isStdlib: Boolean,
+    private val sourceName: String = "Unknown"
+) {
     private val iter = PeekableIterator(tokens, ::throwMismatchedIndentation)
 
     private var moduleName: String? = null
@@ -120,12 +122,26 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     /**
-     * Adds the primitive and core imports if needed.
+     * Adds the primitive and base imports if needed.
      */
     private fun addDefaultImports(imports: MutableList<Import>) {
         imports += primImport
-        if (!imports.any { it.module == CORE_MODULE } && moduleName != CORE_MODULE) {
+        if (imports.none { it.module == CORE_MODULE } && moduleName != CORE_MODULE) {
             imports += coreImport
+        }
+        if (!isStdlib) {
+            // all aliased modules
+            val aliased = imports.filter { it.alias() != null }.map { it.module }.toSet()
+
+            if (!aliased.contains(ARRAY_MODULE)) imports += arrayImport
+            if (!aliased.contains(JAVA_MODULE)) imports += javaImport
+            if (!aliased.contains(LIST_MODULE)) imports += listImport
+            if (!aliased.contains(MATH_MODULE)) imports += mathImport
+            if (!aliased.contains(OPTION_MODULE)) imports += optionImport
+            if (!aliased.contains(SET_MODULE)) imports += setImport
+            if (!aliased.contains(STREAM_MODULE)) imports += streamImport
+            if (!aliased.contains(STRING_MODULE)) imports += stringImport
+            if (!aliased.contains(VECTOR_MODULE)) imports += vectorImport
         }
     }
 
@@ -176,7 +192,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         fun forceAlias(ctx: String, lower: Boolean = true) =
             parseAlias(lower) ?: throwError(E.invalidForeign(ctx) to mkspan())
 
-        fun parseFullName() = between<Dot, String>(::parseUpperOrLowerIdent).joinToString(".")
+        fun parseFullName() = between<Dot, String>(::parseIdentOrString).joinToString(".")
         fun parsePars(ctx: String): List<String> {
             expect<LParen>(withError(E.invalidForeign(ctx)))
             if (iter.peek().value is RParen) {
@@ -209,7 +225,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val maybename = parseFullName()
                 val static = parseStatic()
                 val idx = maybename.lastIndexOf('.')
-                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseUpperOrLowerIdent()
+                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseIdentOrString()
                 if (tk.v == "get") {
                     val alias = parseAlias()
                     if (alias == null && name[0].isUpperCase()) {
@@ -222,7 +238,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
                 val maybename = parseFullName()
                 val static = parseStatic()
                 val idx = maybename.lastIndexOf('.')
-                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseUpperOrLowerIdent()
+                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseIdentOrString()
                 val pars = parsePars("method")
                 val alias = parseAlias()
                 if (alias == null && name[0].isUpperCase()) {
@@ -342,7 +358,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
-            val exp = parseExpression()
+            val exp = parseDo()
             Decl.ValDecl(name, vars, exp, type, vis, isInstance, isOperator).withSpan(nameTk.span, exp.span)
         }
     }
@@ -369,29 +385,33 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return parseType()
     }
 
-    private fun parseExpression(inDo: Boolean = false, allowDo: Boolean = true): Expr {
+    private fun parseExpression(inDo: Boolean = false): Expr {
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val tk = iter.peek()
-        val exps = tryParseListOf(true) { tryParseAtom(inDo, allowDo) }
-        // sanity check
-        if (exps.size > 1) {
-            val doLets = exps.filterIsInstance<Expr.DoLet>()
-            if (doLets.isNotEmpty()) throwError(E.APPLIED_DO_LET to doLets[0].span)
+        val exps = mutableListOf<Expr>()
+        exps += tryParseAtom(inDo) ?: throwError(E.MALFORMED_EXPR to tk.span)
+        return withOffside {
+            exps += tryParseListOf { tryParseAtom(inDo) }
+            // sanity check
+            if (exps.size > 1) {
+                val doLets = exps.filterIsInstance<Expr.DoLet>()
+                if (doLets.isNotEmpty()) throwError(E.APPLIED_DO_LET to doLets[0].span)
+            }
+
+            val unrolled = Application.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
+
+            // type signatures have the lowest precedence
+            if (iter.peek().value is Colon) {
+                val dc = iter.next()
+                val pt = parseType()
+                Expr.Ann(unrolled, pt)
+                    .withSpan(dc.span, iter.current().span)
+                    .withComment(dc.comment)
+            } else unrolled
         }
-
-        val unrolled = Application.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
-
-        // type signatures have the lowest precedence
-        return if (iter.peek().value is Colon) {
-            val dc = iter.next()
-            val pt = parseType()
-            Expr.Ann(unrolled, pt)
-                .withSpan(dc.span, iter.current().span)
-                .withComment(dc.comment)
-        } else unrolled
     }
 
-    private fun tryParseAtom(inDo: Boolean = false, allowDo: Boolean = true): Expr? {
+    private fun tryParseAtom(inDo: Boolean = false): Expr? {
         val exp = when (iter.peek().value) {
             is IntT -> parseInt32()
             is LongT -> parseInt64()
@@ -442,7 +462,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             is IfT -> parseIf()
             is LetT -> parseLet(inDo)
             is CaseT -> parseMatch()
-            is Do -> if (allowDo) parseDo() else null
             is LBracket -> parseRecordOrImplicit()
             is LSBracket -> {
                 val tk = iter.next()
@@ -506,17 +525,17 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
     private fun parseString(): Expr {
         val str = expect<StringT>(withError(E.literalExpected("string")))
-        return Expr.StringE(str.value.s).withSpanAndComment(str)
+        return Expr.StringE(str.value.s, str.value.raw).withSpanAndComment(str)
     }
 
     private fun parseMultilineString(): Expr {
         val str = expect<MultilineStringT>(withError(E.literalExpected("multiline string")))
-        return Expr.StringE(str.value.s, multi = true).withSpanAndComment(str)
+        return Expr.StringE(str.value.s, str.value.s, multi = true).withSpanAndComment(str)
     }
 
     private fun parseChar(): Expr {
         val str = expect<CharT>(withError(E.literalExpected("char")))
-        return Expr.CharE(str.value.c).withSpanAndComment(str)
+        return Expr.CharE(str.value.c, str.value.raw).withSpanAndComment(str)
     }
 
     private fun parseBool(): Expr {
@@ -558,7 +577,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         expect<Arrow>(withError(E.LAMBDA_ARROW))
 
-        val exp = parseExpression()
+        val exp = parseDo()
         return Expr.Lambda(vars, exp)
             .withSpan(begin.span, exp.span)
             .withComment(begin.comment)
@@ -572,13 +591,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
             expect<Then>(withError(E.THEN))
 
-            val thens = parseExpression()
+            val thens = parseDo()
 
             expect<Else>(withError(E.ELSE))
             cond to thens
         }
 
-        val elses = parseExpression()
+        val elses = parseDo()
 
         return Expr.If(cond, thens, elses)
             .withSpan(ifTk.span, elses.span)
@@ -614,8 +633,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
         }
 
-        if (inDo) {
-            if (iter.peek().value is In) throwError(E.LET_DO_IN to iter.peek().span)
+        if (iter.peek().value !is In) {
             return Expr.DoLet(defs).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
         }
         withIgnoreOffside { expect<In>(withError(E.LET_IN)) }
@@ -642,7 +660,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return withOffside {
             val vars = tryParseListOf { tryParsePattern(true) }
             expect<Equals>(withError(E.LET_EQUALS))
-            val exp = parseExpression()
+            val exp = parseDo()
             val span = span(ident.span, exp.span)
             LetDef.DefBind(Binder(ident.value.v, span), vars, exp, isInstance, type)
         }
@@ -667,32 +685,33 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
 
         val tryTk = expect<TryT>(noErr())
-        val tryExp = withOffside { parseExpression() }
-        expect<CatchT>(withError(E.NO_CATCH))
+        val tryExp = withOffside { parseDo() }
+        val cases = mutableListOf<Case>()
+        if (iter.peek().value is CatchT) {
+            expect<CatchT>(noErr())
 
-        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
-        val align = iter.peek().offside()
-        val cases = withIgnoreOffside(false) {
-            withOffside(align) {
-                val cases = mutableListOf<Case>()
-                val first = parseCase()
-                validCase(first)
-                cases += first
+            if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
+            val align = iter.peek().offside()
+            withIgnoreOffside(false) {
+                withOffside(align) {
+                    val first = parseCase()
+                    validCase(first)
+                    cases += first
 
-                var tk = iter.peek()
-                while (!iter.peekIsOffside() && tk.value !in statementEnding) {
-                    val case = parseCase()
-                    validCase(case)
-                    cases += case
-                    tk = iter.peek()
+                    var tk = iter.peek()
+                    while (!iter.peekIsOffside() && tk.value !in statementEnding) {
+                        val case = parseCase()
+                        validCase(case)
+                        cases += case
+                        tk = iter.peek()
+                    }
                 }
-                cases
             }
         }
 
-        val fin = if (iter.peek().value is FinallyT) {
-            iter.next()
-            withOffside { parseExpression() }
+        val fin = if (iter.peek().value is FinallyT || cases.isEmpty()) {
+            expect<FinallyT>(withError(E.NO_FINALLY))
+            withOffside { parseDo() }
         } else null
         return Expr.TryCatch(tryExp, cases, fin)
             .withSpan(tryTk.span, iter.current().span)
@@ -709,7 +728,6 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         }
         val arity = exps.size
 
-        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val align = iter.peek().offside()
         return withIgnoreOffside(false) {
             withOffside(align) {
@@ -745,7 +763,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             expect<Arrow>(withError(E.CASE_ARROW))
             pats
         }
-        return withOffside { Case(pats, parseExpression(), guard) }
+        return withOffside { Case(pats, parseDo(), guard) }
     }
 
     private fun parsePattern(isDestructuring: Boolean = false): Pattern {
@@ -785,11 +803,11 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             }
             is CharT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.CharLiteral(Expr.CharE(tk.value.c)), tk.span)
+                Pattern.LiteralP(LiteralPattern.CharLiteral(Expr.CharE(tk.value.c, tk.value.raw)), tk.span)
             }
             is StringT -> {
                 iter.next()
-                Pattern.LiteralP(LiteralPattern.StringLiteral(Expr.StringE(tk.value.s)), tk.span)
+                Pattern.LiteralP(LiteralPattern.StringLiteral(Expr.StringE(tk.value.s, tk.value.raw)), tk.span)
             }
             is LParen -> {
                 iter.next()
@@ -915,6 +933,9 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
             } else if (nex is RBracket) {
                 val end = iter.next()
                 Expr.RecordEmpty().withSpan(begin.span, end.span).withComment(begin.comment)
+            } else if (nex is Dot) {
+                iter.next()
+                parseRecordUpdate(begin)
             } else if (nex is Op && nex.op == "-") {
                 iter.next()
                 parseRecordRestriction(begin)
@@ -936,6 +957,17 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         expect<Colon>(withError(E.RECORD_COLON))
         val exp = parseExpression()
         return label.first to exp
+    }
+
+    private fun parseRecordUpdate(begin: Spanned<Token>): Expr {
+        val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
+        expect<Equals>(withError(E.RECORD_EQUALS))
+        val value = parseExpression()
+        expect<Pipe>(withError(E.pipeExpected("record update")))
+        val record = parseExpression()
+        val end = expect<RBracket>(withError(E.rbracketExpected("record update")))
+        return Expr.RecordUpdate(record, labels.map { it.first }, value)
+            .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 
     private fun parseRecordRestriction(begin: Spanned<Token>): Expr {
@@ -976,7 +1008,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     }
 
     private fun parseDo(): Expr {
-        val doo = expect<Do>(noErr())
+        val doo = iter.peek()
 
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val align = iter.peek().offside()
@@ -1003,7 +1035,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
     private fun parseWhile(): Expr {
         val whil = expect<WhileT>(noErr())
         val cond = withIgnoreOffside {
-            val exp = parseExpression(allowDo = false)
+            val exp = parseExpression()
             expect<Do>(withError(E.DO_WHILE))
             exp
         }
@@ -1137,12 +1169,13 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
         return label to ty
     }
 
-    private fun parseUpperOrLowerIdent(): String {
+    private fun parseIdentOrString(): String {
         val tk = iter.next()
         return when (tk.value) {
             is UpperIdent -> tk.value.v
             is Ident -> tk.value.v
-            else -> throwError(withError(E.UPPER_LOWER)(tk))
+            is StringT -> tk.value.s
+            else -> throwError(withError(E.UPPER_LOWER_STR)(tk))
         }
     }
 
@@ -1249,7 +1282,7 @@ class Parser(tokens: Iterator<Spanned<Token>>, private val sourceName: String = 
 
         private fun span(s: Span, e: Span) = Span.new(s, e)
 
-        private val statementEnding = listOf(RParen, RSBracket, RBracket, EOF)
+        private val statementEnding = setOf(RParen, RSBracket, RBracket, Else, In, EOF)
     }
 }
 

@@ -1,43 +1,47 @@
 module novah.vector
 
-foreign import type java.util.function.Function
+foreign import type java.util.Comparator
+foreign import type java.util.stream.Stream
+foreign import type io.lacuna.bifurcan.IList
 foreign import type novah.Core
 
 foreign import Vector.linear() as vecLinear
 foreign import Vector.forked() as vecForked
+foreign import Vector:"of"(Array) as fromArray
+foreign import java.util.Arrays:sort(Array, Comparator) as arraySort
+foreign import IList.stream() as vecStream
+foreign import Core:foldVector(Function, Object, Vector)
+foreign import Core:findVector(Function, Vector)
 
-foreign import Core:mapVector(Function, Vector) as vecMap
-foreign import Core:forEachVector(Function, Vector)
+import novah.java (toComparator)
+import novah.stream as S
+import novah.option as O
 
 /**
- * A linear (mutable) version of a Vector.
- * Should be used in an encapsulated function to build a Vector
- * avoiding the allocations of a normal Vector before forking it again.
+ * A linear (mutable) version of a vector.
+ * Should be used in an encapsulated function to build a vector
+ * avoiding the allocations of a normal vector before forking it again.
  */
 pub
 opaque type LinearVector a = Vector a
 
 /**
- * Maps function f over all elements of this Vector
- * returning a Vector of the same size.
+ * Returns a stream for this vector.
+ */
+pub
+stream : Vector a -> Stream a
+stream vec = vecStream (unsafeCast vec)
+
+/**
+ * Collects this stream into a vector.
  * Runtime: O(n)
  */
 pub
-map : (a -> b) -> Vector a -> Vector b
-map f vec = vecMap f vec
-
-/**
- * Returns Some value at index for this Vector if it exists or None.
- * This is a safe version of !
- * Runtime: ~O(1)
- */
-pub
-nth : Int64 -> Vector a -> Option a
-nth index vec =
-  let size = count vec
-  in if index < 0L || index >= size
-     then None
-     else Some (vec ! index)
+into : Stream a -> Vector a
+into st =
+  let lvec = vecLinear []
+  S.forEach st \x -> addLast x lvec
+  vecForked lvec
 
 /**
  * Runs function f for every element of this vector, ignoring the result.
@@ -45,17 +49,160 @@ nth index vec =
  */
 pub
 forEach : Vector a -> (a -> b) -> Unit
-forEach vec f = forEachVector f vec
+forEach vec f = forEachRange 0L (count vec) \idx -> f (vec ! idx)
 
 /**
- * Creates a LinearVector out of this Vector.
+ * Maps function f over all elements of this vector
+ * returning a vector of the same size.
+ * Runtime: O(n)
+ */
+pub
+map : (a -> b) -> Vector a -> Vector b
+map f vec =
+  let lvec = vecLinear []
+  forEachRange 0L (count vec) \idx ->
+    addLast (f (vec ! idx)) lvec
+  vecForked lvec
+
+/**
+ * Returns some value at index for this vector if it exists or none.
+ * This is a safe version of !
+ * Runtime: ~O(1)
+ */
+pub
+nth : Int64 -> Vector a -> Option a
+nth index vec =
+  let size = count vec
+  if index < 0L || index >= size
+  then None
+  else Some (vec ! index)
+
+/**
+ * Returns the first element of this vector if it's not empty.
+ * Runtime: ~O(1)
+ */
+pub
+first : Vector a -> Option a
+first vec = nth 0L vec
+
+/**
+ * Returns the last element of this vector if it's not empty.
+ * Runtime: ~O(1)
+ */
+pub
+last : Vector a -> Option a
+last vec = nth (count vec - 1L) vec
+
+/**
+ * Returns true if this vector is empty.
+ * Runtime: O(1)
+ */
+pub
+isEmpty : Vector a -> Boolean
+isEmpty vec = count vec == 0L
+
+/**
+ * Returns a vector of the elements that match the given predicate.
+ * Runtime: O(n)
+ */
+pub
+filter : (a -> Boolean) -> Vector a -> Vector a
+filter f vec =
+  let lvec = vecLinear []
+  forEachRange 0L (count vec) \idx ->
+    let elem = vec ! idx
+    when (f elem) \_ ->
+      addLast elem lvec
+  vecForked lvec
+
+/**
+ * Returns the first occurrence of elem in the vector for which the predicate returns true.
+ * Runtime: O(n)
+ */
+pub
+find : (a -> Boolean) -> Vector a -> Option a
+find pred vec = findVector pred vec |> O.fromOptional
+
+/**
+ * Sorts this vector according to the elements Ord instance.
+ */
+pub
+sort : {{ Ord a }} -> Vector a -> Vector a
+sort {{ord}} = case _ of
+  [] -> []
+  [_] as vec -> vec
+  vec ->
+    let arr = arrayOf vec
+        comp = toComparator ord
+    arraySort arr (unsafeCast comp)
+    fromArray arr
+
+/**
+ * An alias to `addFirst`.
+ * Should be used when using this vector as a stack/linked list.
+ * Runtime: ~O(1)
+ */
+pub
+push : a -> Vector a -> Vector a
+push = addFirst
+
+/**
+ * An alias to `removeFirst`.
+ * Should be used when using this vector as a stack/linked list.
+ * Runtime: ~O(1)
+ */
+pub
+pop : Vector a -> Vector a
+pop = removeFirst
+
+/**
+ * Returns true if the element is inside the vector.
+ * Runtime: O(n)
+ */
+pub
+contains : {{ Equals a }} -> a -> Vector a -> Boolean
+contains {{Equals eq}} elem vec = case find (\e -> eq.equals e elem) vec of
+  Some _ -> true
+  None -> false
+
+/**
+ * Reduces this vector to a single value according to the reducing function.
+ * Goes from the left to the right.
+ * Runtime: O(n)
+ */
+pub
+foldl : (b -> a -> b) -> b -> Vector a -> b
+foldl f init vec = foldVector f init vec
+
+/**
+ * A specialized version of `foldl` where the first element of the vector is used as initial value.
+ * Returns none if the vector is empty
+ * Runtime: O(n)
+ */
+pub
+reduce : (a -> a -> a) -> Vector a -> Option a
+reduce f = case _ of
+  [] -> None
+  [x :: xs] -> Some (foldl f x xs)
+
+/**
+ * Reduces this vector to a single value according to the reducing function.
+ * Goes from the right to the left.
+ * Runtime: O(n)
+ */
+pub
+foldr : (a -> b -> b) -> b -> Vector a -> b
+foldr f init = foldl (flip f) init << reverse
+
+/**
+ * Creates a linear vector out of this vector.
  */
 pub
 linear : Vector a -> LinearVector a
 linear vec = LinearVector (vecLinear vec)
 
 /**
- * Forks this LinearVector into a Vector.
+ * Forks this linear vector into a vector.
  */
 pub
 forked : LinearVector a -> Vector a
@@ -77,7 +224,7 @@ withLinear vec f = linear vec |> f |> forked
  */
 pub
 addFirstLinear : a -> LinearVector a -> LinearVector a
-addFirstLinear x ((LinearVector vec) as lvec) = do
+addFirstLinear x ((LinearVector vec) as lvec) =
   addFirst x vec
   lvec
 
@@ -87,7 +234,7 @@ addFirstLinear x ((LinearVector vec) as lvec) = do
  */
 pub
 addLastLinear : a -> LinearVector a -> LinearVector a
-addLastLinear x ((LinearVector vec) as lvec) = do
+addLastLinear x ((LinearVector vec) as lvec) =
   addLast x vec
   lvec
 
@@ -97,7 +244,7 @@ addLastLinear x ((LinearVector vec) as lvec) = do
  */
 pub
 removeFirstLinear : LinearVector a -> LinearVector a
-removeFirstLinear ((LinearVector vec) as lvec) = do
+removeFirstLinear ((LinearVector vec) as lvec) =
   removeFirst vec
   lvec
 
@@ -107,7 +254,7 @@ removeFirstLinear ((LinearVector vec) as lvec) = do
  */
 pub
 removeLastLinear : LinearVector a -> LinearVector a
-removeLastLinear ((LinearVector vec) as lvec) = do
+removeLastLinear ((LinearVector vec) as lvec) =
   removeLast vec
   lvec
 
@@ -118,7 +265,7 @@ removeLastLinear ((LinearVector vec) as lvec) = do
  */
 pub
 setAtLinear : Int64 -> a -> LinearVector a -> LinearVector a
-setAtLinear index x ((LinearVector vec) as lvec) = do
+setAtLinear index x ((LinearVector vec) as lvec) =
   setAt index x vec
   lvec
 
@@ -133,20 +280,7 @@ countLinearVector = Count { count: \(LinearVector v) -> count v }
 pub
 reverse : Vector a -> Vector a
 reverse vec =
-  if count vec < 10L
-  then reverse_ [] vec
-  else reverseLinear vec
-
-reverseLinear : Vector a -> Vector a
-reverseLinear vec = do
-  let lvec = linear vec
-  let size = count vec
-  forEachRange 0L size \i ->
-    let j = size - i - 1L
-    in setAtLinear j (vec ! i) lvec
-  forked lvec
-
-reverse_ : Vector a -> Vector a -> Vector a
-reverse_ acc = case _ of
-  [] -> acc
-  [x :: xs] -> reverse_ (addFirst x acc) xs
+  let lvec = vecLinear []
+  forEachRange 0L (count vec) \i ->
+    addFirst (vec ! i) lvec
+  vecForked lvec

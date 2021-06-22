@@ -233,6 +233,7 @@ class Optimizer(private val ast: CModule) {
             )
             is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ, span)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ, span)
+            is CExpr.RecordUpdate -> Expr.RecordUpdate(exp.convert(locals), label, value.convert(locals), typ, span)
             is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Throw -> Expr.Throw(exp.convert(locals), span)
@@ -604,11 +605,11 @@ class Optimizer(private val ast: CModule) {
 
         private fun internalize(name: String) = name.replace('.', '/')
 
-        private val OBJECT_TYPE = Type.getType(Object::class.java)
         private val RECORD_TYPE = Type.getType(novah.collections.Record::class.java)
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
-        val ARRAY_TYPE = Type.getType(Array::class.java)
-        val LONG_TYPE = Type.getType(Long::class.javaObjectType)
+        private val LONG_TYPE = Type.getType(Long::class.javaObjectType)
+        val OBJECT_TYPE = Type.getType(Object::class.java)!!
+        val ARRAY_TYPE = Type.getType(Array::class.java)!!
 
         private val rteCtor = RuntimeException::class.java.constructors.find {
             it.parameterCount == 1 && it.parameterTypes[0].canonicalName == "java.lang.String"

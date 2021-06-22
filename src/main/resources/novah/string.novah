@@ -1,0 +1,148 @@
+module novah.string
+
+foreign import type java.lang.CharSequence
+
+foreign import String.isBlank() as sisBlank
+foreign import String.isEmpty() as sisEmpty
+foreign import String.startsWith(String) as sstartsWith
+foreign import String.endsWith(String) as sendsWith
+foreign import String.contains(CharSequence) as scontains
+foreign import String.getBytes() as sgetBytes
+foreign import String.toLowerCase()
+foreign import String.toUpperCase()
+foreign import String.strip() as sstrip
+foreign import String.repeat(Int32) as srepeat
+foreign import String.stripLeading() as sstripLeading
+foreign import String.stripTrailing() as sstripTrailing
+foreign import String.charAt(Int32) as scharAt
+foreign import String.substring(Int32) as ssubstring
+foreign import String.split(String) as ssplit
+foreign import String:join(CharSequence, Array) as sjoin
+foreign import Vector:"of"(Array) as fromArray
+
+/**
+ * Returns true if this string is empty or only contains whitespace codepoints.
+ */
+pub
+isBlank : String -> Boolean
+isBlank s = sisBlank s
+
+/**
+ * Returns true if this string is empty.
+ */
+pub
+isEmpty : String -> Boolean
+isEmpty s = sisEmpty s
+
+/**
+ * Returns a lower case version of this string.
+ */
+pub
+lowerCase : String -> String
+lowerCase str = toLowerCase str
+
+/**
+ * Returns a upper case version of this string.
+ */
+pub
+upperCase : String -> String
+upperCase str = toUpperCase str
+
+/**
+ * Returns true if this string starts with prefix.
+ */
+pub
+startsWith : String -> String -> Boolean
+startsWith prefix str = sstartsWith str prefix
+
+/**
+ * Returns true if this string ends with suffix.
+ */
+pub
+endsWith : String -> String -> Boolean
+endsWith suffix str = sendsWith str suffix
+
+/**
+ * Returns true if this string contains the string represented by another.
+ */
+pub
+contains : String -> String -> Boolean
+contains another str = scontains str (unsafeCast another)
+
+/**
+ * Returns true if this string contains the character.
+ */
+pub
+containsChar : Char -> String -> Boolean
+containsChar char str = scontains str (unsafeCast (toString char))
+
+/**
+ * Encodes this string into an array of bytes using the platform's default charset.
+ */
+pub
+getBytes : String -> Array Byte
+getBytes str = sgetBytes str
+
+/**
+ * Joins all strings in this vector separated by delimiter.
+ */
+pub
+join : String -> Vector String -> String
+join delimiter vec = sjoin (unsafeCast delimiter) (unsafeCast (arrayOf vec))
+
+/**
+ * Returns this string with all leading and trailing white spaces removed.
+ */
+pub
+strip : String -> String
+strip str = sstrip str
+
+/**
+ * Returns this string with all leading white spaces removed.
+ */
+pub
+stripl : String -> String
+stripl str = sstripLeading str
+
+/**
+ * Returns this string with all trailing white spaces removed.
+ */
+pub
+stript : String -> String
+stript str = sstripTrailing str
+
+/**
+ * Returns a string that represents the input string repeated n times.
+ */
+pub
+repeat : Int32 -> String -> String
+repeat n str = srepeat str n
+
+/**
+ * Returns this string with the first character converted to upper-case and the rest converted to lower-case.
+ */
+pub
+capitalize : String -> String
+capitalize str = case count str of
+  0L -> str
+  1L -> toUpperCase str
+  _ -> let head = toUpperCase (toString (scharAt str 0))
+           tail = toLowerCase (ssubstring str 1)
+       in format "%s%s" [head, tail]
+
+/**
+ * Split this string at new lines.
+ */
+pub
+splitLines : String -> Vector String
+splitLines str = fromArray (ssplit str "[\\r|\\n]+")
+
+/**
+ * Returns the character at the specified index if it exists.
+ */
+pub
+charAt : Int32 -> String -> Option Char
+charAt idx str =
+  if idx < int (count str) 
+  then Some (scharAt str idx)
+  else None
