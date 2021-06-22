@@ -592,6 +592,14 @@ public class Core {
         return (x, y) -> f.apply(x).apply(y);
     }
     
+    public static <T> UnaryOperator<T> makeUnaryOperator(Function<T, T> f) {
+        return f::apply;
+    }
+    
+    public static <T, U, R> BiFunction<T, U, R> makeBiFunction(Function<T, Function<U, R>> fun) {
+        return (x, y) -> fun.apply(x).apply(y);
+    }
+    
     public static <T> Optional<T> findVector(Function<T, Boolean> pred, List<T> vec) {
         T found = null;
         for (long i = 0; i < vec.size(); i++) {

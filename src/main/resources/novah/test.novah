@@ -136,8 +136,5 @@ yellow str = format "%s%s%s" ["\u001b[31m", str, "\u001b[0m"]
 printf : String -> Vector a -> Unit
 printf form args = print (format form args)
 
-printfln : String -> Vector a -> Unit
-printfln form args = println (format form args)
-
 exceptMessage : Throwable -> String
 exceptMessage err = getMessage err

@@ -177,6 +177,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     val foreigVars = mutableMapOf<String, ForeignRef>()
     val env = Typechecker.env
     addUnsafeCoerce(foreigVars, env)
+    typeCache.clear()
 
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
     for (type in (types as List<ForeignImport.Type>)) {

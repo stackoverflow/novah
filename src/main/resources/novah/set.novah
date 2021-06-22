@@ -118,7 +118,7 @@ into st =
  * Runtime: O(n)
  */
 pub
-forEach : Set a -> (a -> b) -> Unit
+forEach : Set a -> (a -> Unit) -> Unit
 forEach set f =
   forEachRange 0L (count set) \idx ->
     f (setNth set idx)

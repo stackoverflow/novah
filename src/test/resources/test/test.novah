@@ -1,6 +1,7 @@
 module test
 
 import novah.list (::, List(..))
+import novah.map as M
 import novah.test
 
 foreign import java.util.Arrays:toString(Array) as toStringArr
@@ -14,7 +15,10 @@ myTest () =
   2 == 3 |> assert "2 != 3"
 
 goodTest : TestFun
-goodTest () = 1 == 1 |> assert "1 == 1"
+goodTest () =
+  let m = M.new [1 <> "a", 2 <> "b", 3 <> "c"]
+  println m
+  1 == 1 |> assert "1 == 1"
 
 pub
 main : Array String -> Unit

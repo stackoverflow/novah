@@ -448,11 +448,18 @@ arrayOf vec = unsafeCast (vecToArr (unsafeCast vec))
 
 /**
  * Returns a formatted string using the specified format string and arguments.
- * See java.util.Formatter for format explanation.
+ * See `java.util.Formatter` for format explanation.
  */
 pub
 format : String -> Vector a -> String
 format str vec = sformat str (unsafeCast (arrayOf vec))
+
+/**
+ * Prints the formated string to stdout.
+ */
+pub
+printfln : String -> Vector a -> Unit
+printfln form args = println (format form args)
 
 /**
  * Executes the action when the condition is `true`.
@@ -1202,6 +1209,40 @@ showRes (Show s1) (Show s2) =
 pub instance
 showResult : {{ Show ok }} -> {{ Show err }} -> Show (Result ok err)
 showResult {{s1}} {{s2}} = Show { show: showRes s1 s2 }
+
+/**
+ * A Tuple containing two values.
+ */
+pub+
+type Tuple a b = Tuple a b
+
+/**
+ * Creates a tuple out of two values.
+ */
+pub
+(<>) : a -> b -> Tuple a b
+(<>) = Tuple
+
+equalsTuple : Equals a -> Equals b -> Tuple a b -> Tuple a b -> Boolean
+equalsTuple (Equals eq1) (Equals eq2) (Tuple x y) (Tuple x2 y2) = eq1.equals x x2 && eq2.equals y y2
+
+pub instance
+eqTuple : {{ Equals a }} -> {{ Equals b }} -> Equals (Tuple a b)
+eqTuple {{eq1}} {{eq2}} = Equals { equals: equalsTuple eq1 eq2 }
+
+showTup : Show a -> Show b -> Tuple a b -> String
+showTup (Show s1) (Show s2) (Tuple x y) = format "(Tuple %s %s)" [s1.show x, s2.show y]
+
+pub instance
+showTuple : {{ Show a }} -> {{ Show b }} -> Show (Tuple a b)
+showTuple {{s1}} {{s2}} = Show { show: showTup s1 s2 }
+
+concatTup : Concat a -> Concat b -> Tuple a b -> Tuple a b -> Tuple a b
+concatTup (Concat c1) (Concat c2) (Tuple x y) (Tuple x2 y2) = Tuple (c1.concat x x2) (c2.concat y y2)
+
+pub instance
+concatTuple : {{ Concat a }} -> {{ Concat b }} -> Concat (Tuple a b)
+concatTuple {{c1}} {{c2}} = Concat { concat: concatTup c1 c2 }
 
 /**
  * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
