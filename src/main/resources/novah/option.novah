@@ -60,7 +60,7 @@ unwrap = case _ of
   None -> throw (assertErr "Empty Option")
 
 /**
- * Transforms a `java.util.Optional` into a option.
+ * Transforms a `java.util.Optional` into an option.
  */
 pub
 fromOptional : Optional a -> Option a
