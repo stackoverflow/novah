@@ -74,8 +74,8 @@ nth : Int64 -> Vector a -> Option a
 nth index vec =
   let size = count vec
   if index < 0L || index >= size
-    then None
-    else Some (vec ! index)
+  then None
+  else Some (vec ! index)
 
 /**
  * Returns the first element of this vector if it's not empty.
@@ -129,7 +129,7 @@ sort {{ord}} = case _ of
   [_] as vec -> vec
   vec ->
     let arr = arrayOf vec
-    let comp = toComparator ord
+        comp = toComparator ord
     arraySort arr (unsafeCast comp)
     fromArray arr
 
