@@ -3,9 +3,19 @@ module novah.array
 foreign import type java.util.Arrays
 foreign import type java.util.Comparator
 foreign import type java.util.stream.Stream
+foreign import type novah.Core
 
 foreign import Arrays:sort(Array, Comparator) as arraySort
 foreign import Arrays:stream(Array) as arrStream
+foreign import Core:mkByteArray(Int32)
+foreign import Core:mkInt16Array(Int32)
+foreign import Core:mkInt32Array(Int32)
+foreign import Core:mkInt64Array(Int32)
+foreign import Core:mkFloat32Array(Int32)
+foreign import Core:mkFloat64Array(Int32)
+foreign import Core:mkCharArray(Int32)
+foreign import Core:mkBooleanArray(Int32)
+foreign import Core:mkObjectArray(Int32)
 
 import novah.java (toComparator)
 import novah.stream as S
@@ -93,3 +103,66 @@ reverse arr =
         elem = aget (int idx) arr
     aset i elem res
   res
+
+/**
+ * Creates a byte array of the specified size.
+ */
+pub
+byteArray : Int -> Array Byte
+byteArray size = mkByteArray size
+
+/**
+ * Creates a int16 array of the specified size.
+ */
+pub
+int16Array : Int -> Array Int16
+int16Array size = mkInt16Array size
+
+/**
+ * Creates a int32 array of the specified size.
+ */
+pub
+intArray : Int -> Array Int32
+intArray size = mkInt32Array size
+
+/**
+ * Creates a int64 array of the specified size.
+ */
+pub
+int64Array : Int -> Array Int64
+int64Array size = mkInt64Array size
+
+/**
+ * Creates a float32 array of the specified size.
+ */
+pub
+float32Array : Int -> Array Float32
+float32Array size = mkFloat32Array size
+
+/**
+ * Creates a float64 array of the specified size.
+ */
+pub
+floatArray : Int -> Array Float64
+floatArray size = mkFloat64Array size
+
+/**
+ * Creates a char array of the specified size.
+ */
+pub
+charArray : Int -> Array Char
+charArray size = mkCharArray size
+
+/**
+ * Creates a boolean array of the specified size.
+ */
+pub
+booleanArray : Int -> Array Boolean
+booleanArray size = mkBooleanArray size
+
+/**
+ * Creates an Object array of the specified size.
+ */
+pub
+objectArray : Int -> Array Object
+objectArray size = mkObjectArray size
