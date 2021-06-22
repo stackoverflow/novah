@@ -79,6 +79,7 @@ nth index vec =
 
 /**
  * Returns the first element of this vector if it's not empty.
+ * Runtime: ~O(1)
  */
 pub
 first : Vector a -> Option a
@@ -86,6 +87,7 @@ first vec = nth 0L vec
 
 /**
  * Returns the last element of this vector if it's not empty.
+ * Runtime: ~O(1)
  */
 pub
 last : Vector a -> Option a
@@ -93,6 +95,7 @@ last vec = nth (count vec - 1L) vec
 
 /**
  * Returns true if this vector is empty.
+ * Runtime: O(1)
  */
 pub
 isEmpty : Vector a -> Boolean
@@ -100,6 +103,7 @@ isEmpty vec = count vec == 0L
 
 /**
  * Returns a vector of the elements that match the given predicate.
+ * Runtime: O(n)
  */
 pub
 filter : (a -> Boolean) -> Vector a -> Vector a
@@ -136,6 +140,7 @@ sort {{ord}} = case _ of
 /**
  * An alias to `addFirst`.
  * Should be used when using this vector as a stack/linked list.
+ * Runtime: ~O(1)
  */
 pub
 push : a -> Vector a -> Vector a
@@ -144,6 +149,7 @@ push = addFirst
 /**
  * An alias to `removeFirst`.
  * Should be used when using this vector as a stack/linked list.
+ * Runtime: ~O(1)
  */
 pub
 pop : Vector a -> Vector a
