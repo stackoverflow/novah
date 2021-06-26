@@ -1,0 +1,18 @@
+module monads
+
+bind : Option a -> (a -> Option b) -> Option b
+bind opt f =
+  case opt of
+    Some x -> f x
+    None -> None
+
+optionBuilder =
+  { bind: bind
+  , return: Some
+  }
+
+foo =
+  option do
+    x <- Some 3
+    y <- Some 9
+    return (x + y)

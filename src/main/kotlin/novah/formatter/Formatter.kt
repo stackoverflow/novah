@@ -140,7 +140,7 @@ class Formatter {
         val cmt = if (e.comment != null) show(e.comment!!) + tab else ""
         return cmt + when (e) {
             is Expr.Do -> {
-                "do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
+                withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
             is Expr.Match -> {
                 val expsStr = e.exps.joinToString { show(it) }
@@ -212,6 +212,14 @@ class Formatter {
             is Expr.While -> {
                 val cond = show(e.cond)
                 "while $cond do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
+            }
+            is Expr.Bind -> {
+                show(e.letDef) + " <- " + withIndent(false) {
+                    show(e.body)
+                }
+            }
+            is Expr.Computation -> {
+                e.builder + " do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
         }
     }

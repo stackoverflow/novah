@@ -267,6 +267,8 @@ class Desugar(private val smod: SModule) {
         is SExpr.While -> {
             Expr.While(cond.desugar(locals), exps.map { it.desugar(locals) }, span)
         }
+        is SExpr.Bind -> TODO()
+        is SExpr.Computation -> TODO()
     }
 
     private fun SCase.desugar(locals: List<String>): Case {

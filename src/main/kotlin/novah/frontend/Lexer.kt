@@ -36,6 +36,7 @@ sealed class Token {
     object Equals : Token()
     object Backslash : Token()
     object Arrow : Token()
+    object BackArrow : Token()
     object Underline : Token()
     object Pipe : Token()
     object ModuleT : Token()
@@ -448,6 +449,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         return when (op) {
             "=" -> Equals
             "->" -> Arrow
+            "<-" -> BackArrow
             "|" -> Pipe
             "." -> Dot
             ":" -> Colon
