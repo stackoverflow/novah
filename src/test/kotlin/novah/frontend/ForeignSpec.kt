@@ -20,7 +20,7 @@ import io.kotest.core.spec.style.StringSpec
 
 class ForeignSpec : StringSpec({
 
-    "test" {
+    "test foreign imports" {
         val code = """
             module test
 
@@ -35,7 +35,7 @@ class ForeignSpec : StringSpec({
             f : String -> File
             f x = newFile x
             
-            main _ = do
+            main _ =
               println "running novah"
               let arr = newArrayList ()
               add arr "asd"

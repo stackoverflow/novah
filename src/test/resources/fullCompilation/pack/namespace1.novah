@@ -6,23 +6,22 @@ pub
 typealias Foo = Pri
 
 fun1 : String -> Int
-fun1 x = do
+fun1 x =
   println x
   42
 
 pub
 sayHello : String -> Unit
-sayHello name = do
+sayHello name =
   println "Hello"
   println name
 
 printx : {{ Show a }} -> Option a -> Unit
-printx {{s}} o = do
+printx {{s}} o =
   println (show 5)
   println (show false)
   println (show o)
 
 pub
 main : Array String -> Unit
-main _ =
-  printx (Some (Some 3))
+main _ = printx (Some (Some 3))

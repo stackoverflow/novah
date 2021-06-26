@@ -1009,6 +1009,10 @@ class Parser(
 
     private fun parseDo(): Expr {
         val doo = iter.peek()
+        
+        if (doo.value is Backslash) {
+            return parseExpression()
+        }
 
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val align = iter.peek().offside()
@@ -1282,7 +1286,7 @@ class Parser(
 
         private fun span(s: Span, e: Span) = Span.new(s, e)
 
-        private val statementEnding = setOf(RParen, RSBracket, RBracket, Else, In, EOF)
+        private val statementEnding = setOf(RParen, RSBracket, RBracket, Else, In, EOF, Comma)
     }
 }
 

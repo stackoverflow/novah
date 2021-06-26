@@ -97,18 +97,17 @@ class TypedASTSpec : StringSpec({
             
             fif = \x -> if true then 5 else id x
             
-            doo = \x -> do
-                id x
-                x
-                true
+            doo = \x ->
+              id x
+              x
+              true
             
             lamb : Int -> String -> Unit
-            lamb _ _ = do
+            lamb _ _ =
               Some "a"
               ()
             
-            main _ = do
-              lamb 4 "hello"
+            main _ = lamb 4 "hello"
             
         """.module()
 

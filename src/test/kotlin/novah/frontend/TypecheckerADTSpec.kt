@@ -136,19 +136,19 @@ class TypecheckerADTSpec : StringSpec({
 
     "test type aliases" {
         val code = """
-            type Tuple a b = Tuple a b
+            type Toople a b = Toople a b
             
             typealias Ta = Int
             
-            typealias Ty a = Tuple Ta a
+            typealias Ty a = Toople Ta a
             
             f : Unit -> Ty Ta
-            f () = Tuple 1 2
+            f () = Toople 1 2
         """.module()
 
         val f = TestUtil.compileCode(code).env.decls["f"]?.type
 
-        f?.simpleName() shouldBe "Unit -> Tuple Int32 Int32"
+        f?.simpleName() shouldBe "Unit -> Toople Int32 Int32"
     }
 
     "test type aliases with type applications" {

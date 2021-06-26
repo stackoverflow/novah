@@ -38,7 +38,7 @@ fun5 () =
 fun6 v =
   case v of
     [] -> println "empty"
-    [x :: xs] -> do
+    [x :: xs] ->
       println x
       println xs
 
@@ -54,7 +54,7 @@ fun8 x = case x of
 
 pub
 main : Array String -> Unit
-main _ = do
+main _ =
   fun rec
   fun2 vec
   fun3 ()
