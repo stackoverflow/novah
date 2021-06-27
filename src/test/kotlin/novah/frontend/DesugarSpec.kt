@@ -133,11 +133,10 @@ class DesugarSpec : StringSpec({
               , zero: []
               }
             
-            foo =
-              vector.do
-                let! x = 1 .. 6
-                let! y = 7 .. 14
-                if even (x + y) then return (x + y)
+            foo = do.vector
+              let! x = 1 .. 6
+              let! y = 7 .. 14
+              if even (x + y) then return (x + y)
         """.module()
 
         TestUtil.compileCode(code)

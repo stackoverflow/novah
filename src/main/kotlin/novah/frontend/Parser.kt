@@ -465,6 +465,7 @@ class Parser(
                 if (isComputation) parseLet(true)
                 else throwError(E.LET_BANG to iter.peek().span)
             }
+            is DoDot -> parseComputation()
             is CaseT -> parseMatch()
             is LBracket -> parseRecordOrImplicit()
             is LSBracket -> {
@@ -499,16 +500,11 @@ class Parser(
             else -> null
         }
 
-        // record selection and computation expressions have the highest precedence
+        // record selection has the highest precedence
         return if (exp != null && iter.peek().value is Dot) {
             iter.next()
-            if (iter.peek().value is Do && exp is Expr.Var) {
-                iter.next()
-                parseComputation(exp)
-            } else {
-                val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
-                Expr.RecordSelect(exp, labels.map { it.first }).withSpan(exp.span, labels.last().second.span)
-            }
+            val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
+            Expr.RecordSelect(exp, labels.map { it.first }).withSpan(exp.span, labels.last().second.span)
         } else exp
     }
 
@@ -1017,7 +1013,8 @@ class Parser(
     private fun parseDo(): Expr {
         val doo = iter.peek()
 
-        if (doo.value is Backslash) {
+        val start = doo.value
+        if (start is Backslash || start is WhileT || start is DoDot) {
             return parseExpression()
         }
 
@@ -1070,7 +1067,10 @@ class Parser(
         }
     }
 
-    private fun parseComputation(builder: Expr.Var): Expr {
+    private fun parseComputation(): Expr {
+        val doo = expect<DoDot>(noErr())
+        val builder = parseVar() as Expr.Var
+        
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val align = iter.peek().offside()
         return withIgnoreOffside(false) {
@@ -1085,7 +1085,7 @@ class Parser(
                     tk = iter.peek()
                 }
                 Expr.Computation(builder, exps)
-                    .withSpan(builder.span, iter.current().span).withComment(builder.comment)
+                    .withSpan(doo.span, iter.current().span).withComment(doo.comment)
             }
         }
     }

@@ -52,6 +52,7 @@ sealed class Token {
     object Of : Token()
     object In : Token()
     object Do : Token()
+    object DoDot : Token()
     object ForeignT : Token()
     object PublicT : Token()
     object PublicPlus : Token()
@@ -272,26 +273,13 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "_" -> Underline
             "module" -> ModuleT
             "import" -> ImportT
-            "let" -> {
-                if (iter.peek() == '!') {
-                    iter.next()
-                    LetBang
-                } else LetT
-            }
             "case" -> CaseT
             "of" -> Of
             "type" -> TypeT
             "typealias" -> TypealiasT
             "as" -> As
             "in" -> In
-            "do" -> Do
             "foreign" -> ForeignT
-            "pub" -> {
-                if (iter.peek() == '+') {
-                    iter.next()
-                    PublicPlus
-                } else PublicT
-            }
             "instance" -> Instance
             "opaque" -> Opaque
             "throw" -> ThrowT
@@ -299,6 +287,24 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "catch" -> CatchT
             "finally" -> FinallyT
             "while" -> WhileT
+            "do" -> {
+                if (iter.peek() == '.') {
+                    iter.next()
+                    DoDot
+                } else Do
+            }
+            "let" -> {
+                if (iter.peek() == '!') {
+                    iter.next()
+                    LetBang
+                } else LetT
+            }
+            "pub" -> {
+                if (iter.peek() == '+') {
+                    iter.next()
+                    PublicPlus
+                } else PublicT
+            }
             else ->
                 if (id[0].isUpperCase()) {
                     UpperIdent(id)

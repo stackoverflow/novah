@@ -220,7 +220,7 @@ class Formatter {
                 "while $cond do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
             is Expr.Computation -> {
-                e.builder.name + ".do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
+                "do." + e.builder.name + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
         }
     }

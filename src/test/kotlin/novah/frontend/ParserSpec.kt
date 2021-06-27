@@ -175,6 +175,10 @@ class ParserSpec : StringSpec({
                    2
               x
             
+            fun x = while true do
+              println "hello"
+              x
+            
             fun x = case x of
               Some _ -> 1
               None -> 0

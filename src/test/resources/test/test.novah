@@ -12,11 +12,10 @@ vector =
   , zero: []
   }
 
-foo =
-  vector.do
-    let! x = 1 .. 5
-    let! y = 7 .. 14
-    if odd (x + y) then return (x <> y)
+foo = do.vector
+  let! x = 1 .. 5
+  let! y = 7 .. 14
+  if odd (x + y) then return (x <> y)
 
 toStr : Array a -> String
 toStr arr = toStringArr (unsafeCast arr)

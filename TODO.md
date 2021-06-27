@@ -15,4 +15,3 @@
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
 - [ ] Delay unused variables reporting to after type checking
 - [ ] Fix error report span for unused foreign import
-- [ ] Change `Count` type class to return Int32 instead of Int64
