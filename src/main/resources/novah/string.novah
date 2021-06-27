@@ -127,8 +127,8 @@ capitalize str = case count str of
   0L -> str
   1L -> toUpperCase str
   _ -> let head = toUpperCase (toString (scharAt str 0))
-           tail = toLowerCase (ssubstring str 1)
-       in format "%s%s" [head, tail]
+       let tail = toLowerCase (ssubstring str 1)
+       format "%s%s" [head, tail]
 
 /**
  * Split this string at new lines.

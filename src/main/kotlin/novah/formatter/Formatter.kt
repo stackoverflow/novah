@@ -150,14 +150,14 @@ class Formatter {
                 val str = if (shouldNewline(e.body)) withIndent { "$tab${show(e.body)}" } else show(e.body)
                 "let " + withIndent(false) {
                     withIndent(false) {
-                        e.letDefs.joinToStr("\n$tab") { show(it) }
+                        show(e.letDef)
                     }
                 } + "\n${tab}in $str"
             }
             is Expr.DoLet -> {
                 "let " + withIndent(false) {
                     withIndent(false) {
-                        e.letDefs.joinToStr("\n$tab") { show(it) }
+                        show(e.letDef)
                     }
                 }
             }

@@ -147,8 +147,8 @@ class TypecheckerSpec : StringSpec({
     "typecheck let" {
         val code = """
             f () = let a = "bla"
-                       y = a
-                   in y
+                   in let y = a
+                      in y
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]

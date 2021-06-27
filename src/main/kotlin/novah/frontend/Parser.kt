@@ -620,33 +620,28 @@ class Parser(
         val align = tk.offside()
         if (align <= iter.offside()) throwMismatchedIndentation(tk)
 
-        val defs = mutableListOf<LetDef>()
-
+        var def: LetDef? = null
         withOffside(align) {
-            if (inDo) {
-                while (!iter.peekIsOffside() && iter.peek().value !in statementEnding) {
-                    defs += if (isInstance || iter.peek().value is Ident) {
-                        parseLetDefBind(isInstance)
-                    } else parseLetDefPattern()
-                }
+            def = if (inDo) {
+                if (isInstance || iter.peek().value is Ident) {
+                    parseLetDefBind(isInstance)
+                } else parseLetDefPattern()
             } else {
-                while (iter.peek().value != In) {
-                    defs += if (isInstance || iter.peek().value is Ident) {
-                        parseLetDefBind(isInstance)
-                    } else parseLetDefPattern()
-                }
+                if (isInstance || iter.peek().value is Ident) {
+                    parseLetDefBind(isInstance)
+                } else parseLetDefPattern()
             }
         }
 
         if (iter.peek().value !is In) {
-            return Expr.DoLet(defs).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
+            return Expr.DoLet(def!!).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
         }
         withIgnoreOffside { expect<In>(withError(E.LET_IN)) }
 
         val exp = parseExpression()
 
         val span = span(let.span, exp.span)
-        return Expr.Let(defs, exp).withSpan(span).withComment(let.comment)
+        return Expr.Let(def!!, exp).withSpan(span).withComment(let.comment)
     }
 
     private fun parseLetDefBind(isInstance: Boolean): LetDef {
@@ -1014,7 +1009,7 @@ class Parser(
 
     private fun parseDo(): Expr {
         val doo = iter.peek()
-        
+
         if (doo.value is Backslash) {
             return parseExpression()
         }
@@ -1067,7 +1062,7 @@ class Parser(
             }
         }
     }
-    
+
     private fun parseComputation(builder: Expr.Var): Expr {
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val align = iter.peek().offside()

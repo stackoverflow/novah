@@ -133,7 +133,7 @@ sort {{ord}} = case _ of
   [_] as vec -> vec
   vec ->
     let arr = arrayOf vec
-        comp = toComparator ord
+    let comp = toComparator ord
     arraySort arr (unsafeCast comp)
     fromArray arr
 

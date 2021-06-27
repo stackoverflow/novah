@@ -36,8 +36,8 @@ z = "something"
 i = 99
 
 l _ = let l1 = toString 4
-          l2 = toString l1
-      in l2
+      let l2 = toString l1
+      l2
 
 w = \x -> x
 

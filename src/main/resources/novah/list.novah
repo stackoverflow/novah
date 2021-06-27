@@ -187,7 +187,7 @@ pub
 range : Int32 -> Int32 -> List Int32
 range begin end =
   let op = if begin <= end then (_ + 1) else (_ - 1)
-      go b e acc =
+  let go b e acc =
         if b == e
         then acc
         else go (op b) e (b :: acc)

@@ -66,7 +66,7 @@ pub
 map : (a -> b) -> Array a -> Array b
 map f arr =
   let size = count arr
-      res = unsafeCast (objectArray (int size))
+  let res = unsafeCast (objectArray (int size))
   forEachRange 0L size \idx ->
     let i = int idx
     aset i (f (aget i arr)) res
@@ -97,10 +97,10 @@ pub
 reverse : Array a -> Array a
 reverse arr =
   let size = count arr
-      res = unsafeCast (objectArray (int size))
+  let res = unsafeCast (objectArray (int size))
   forEachRange 0L size \idx ->
     let i = int (size - idx - 1L)
-        elem = aget (int idx) arr
+    let elem = aget (int idx) arr
     aset i elem res
   res
 

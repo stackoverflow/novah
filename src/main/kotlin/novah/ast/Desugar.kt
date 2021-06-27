@@ -176,9 +176,9 @@ class Desugar(private val smod: SModule) {
             nestLambdas(args.mapNotNull { it.first }, ifExp)
         }
         is SExpr.Let -> {
-            val vars = letDefs.map { collectVars(it) }.flatten()
+            val vars = collectVars(letDef)
             vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
-            nestLets(letDefs, body.desugar(locals + vars.map { it.name }), locals)
+            nestLets(letDef, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.Match -> {
             val args = exps.map {
@@ -435,18 +435,13 @@ class Desugar(private val smod: SModule) {
         }
     }
 
-    private fun nestLets(defs: List<SLetDef>, exp: Expr, locals: List<String>): Expr {
-        return if (defs.isEmpty()) exp
-        else {
-            when (val ld = defs[0]) {
-                is SLetDef.DefBind -> {
-                    Expr.Let(ld.desugar(locals), nestLets(defs.drop(1), exp, locals), exp.span)
-                }
-                is SLetDef.DefPattern -> {
-                    val case = Case(listOf(ld.pat.desugar(locals)), nestLets(defs.drop(1), exp, locals))
-                    Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), Span.new(ld.pat.span, exp.span))
-                }
-            }
+    private fun nestLets(ld: SLetDef, exp: Expr, locals: List<String>): Expr = when (ld) {
+        is SLetDef.DefBind -> {
+            Expr.Let(ld.desugar(locals), exp, exp.span)
+        }
+        is SLetDef.DefPattern -> {
+            val case = Case(listOf(ld.pat.desugar(locals)), exp)
+            Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), Span.new(ld.pat.span, exp.span))
         }
     }
 
@@ -642,21 +637,13 @@ class Desugar(private val smod: SModule) {
     private fun convertDoLets(exprs: List<SExpr>): List<SExpr> {
         return if (exprs.filterIsInstance<SExpr.DoLet>().isEmpty()) exprs
         else {
-            val lets = mutableListOf<SLetDef>()
-            var exp = exprs[0]
-            var i = 0
-            while (exp is SExpr.DoLet) {
-                lets.addAll(exp.letDefs)
-                exp = exprs[++i]
-            }
-            if (lets.isEmpty()) listOf(exprs[0]) + convertDoLets(exprs.drop(1))
-            else {
-                val rest = convertDoLets(exprs.subList(i, exprs.size))
-                if (rest.size == 1) {
-                    listOf(SExpr.Let(lets, rest[0]))
-                } else {
-                    listOf(SExpr.Let(lets, SExpr.Do(rest)))
-                }
+            val exp = exprs[0]
+            if (exp is SExpr.DoLet) {
+                val body = convertDoLets(exprs.drop(1))
+                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body)
+                listOf(SExpr.Let(exp.letDef, bodyExp))
+            } else {
+                listOf(exp) + convertDoLets(exprs.drop(1))
             }
         }
     }
