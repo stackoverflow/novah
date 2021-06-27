@@ -11,8 +11,7 @@ optionBuilder =
   , return: Some
   }
 
-foo =
-  option do
-    x <- Some 3
-    y <- Some 9
-    return (x + y)
+foo = option.do
+  let! x = Some 3
+  let! y = Some 9
+  return (x + y)

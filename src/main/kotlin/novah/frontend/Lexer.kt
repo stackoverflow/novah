@@ -36,7 +36,6 @@ sealed class Token {
     object Equals : Token()
     object Backslash : Token()
     object Arrow : Token()
-    object BackArrow : Token()
     object Underline : Token()
     object Pipe : Token()
     object ModuleT : Token()
@@ -48,6 +47,7 @@ sealed class Token {
     object Then : Token()
     object Else : Token()
     object LetT : Token()
+    object LetBang : Token()
     object CaseT : Token()
     object Of : Token()
     object In : Token()
@@ -263,12 +263,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             builder.append(iter.next())
         }
 
-        val id = builder.toString()
-        if (id == "pub" && iter.peek() == '+') {
-            iter.next()
-            return PublicPlus
-        }
-        return when (id) {
+        return when (val id = builder.toString()) {
             "true" -> BoolT(true)
             "false" -> BoolT(false)
             "if" -> IfT
@@ -277,7 +272,12 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "_" -> Underline
             "module" -> ModuleT
             "import" -> ImportT
-            "let" -> LetT
+            "let" -> {
+                if (iter.peek() == '!') {
+                    iter.next()
+                    LetBang
+                } else LetT
+            }
             "case" -> CaseT
             "of" -> Of
             "type" -> TypeT
@@ -286,7 +286,12 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "in" -> In
             "do" -> Do
             "foreign" -> ForeignT
-            "pub" -> PublicT
+            "pub" -> {
+                if (iter.peek() == '+') {
+                    iter.next()
+                    PublicPlus
+                } else PublicT
+            }
             "instance" -> Instance
             "opaque" -> Opaque
             "throw" -> ThrowT
@@ -449,7 +454,6 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         return when (op) {
             "=" -> Equals
             "->" -> Arrow
-            "<-" -> BackArrow
             "|" -> Pipe
             "." -> Dot
             ":" -> Colon

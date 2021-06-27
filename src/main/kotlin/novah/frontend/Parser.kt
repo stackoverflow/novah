@@ -385,13 +385,13 @@ class Parser(
         return parseType()
     }
 
-    private fun parseExpression(inDo: Boolean = false): Expr {
+    private fun parseExpression(inDo: Boolean = false, isComputation: Boolean = false): Expr {
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val tk = iter.peek()
         val exps = mutableListOf<Expr>()
-        exps += tryParseAtom(inDo) ?: throwError(E.MALFORMED_EXPR to tk.span)
+        exps += tryParseAtom(inDo, isComputation) ?: throwError(E.MALFORMED_EXPR to tk.span)
         return withOffside {
-            exps += tryParseListOf { tryParseAtom(inDo) }
+            exps += tryParseListOf { tryParseAtom(inDo, isComputation) }
             // sanity check
             if (exps.size > 1) {
                 val doLets = exps.filterIsInstance<Expr.DoLet>()
@@ -411,7 +411,7 @@ class Parser(
         }
     }
 
-    private fun tryParseAtom(inDo: Boolean = false): Expr? {
+    private fun tryParseAtom(inDo: Boolean = false, isComputation: Boolean = false): Expr? {
         val exp = when (iter.peek().value) {
             is IntT -> parseInt32()
             is LongT -> parseInt64()
@@ -495,11 +495,16 @@ class Parser(
             else -> null
         }
 
-        // record selection has the highest precedence
+        // record selection and computation expressions have the highest precedence
         return if (exp != null && iter.peek().value is Dot) {
             iter.next()
-            val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
-            Expr.RecordSelect(exp, labels.map { it.first }).withSpan(exp.span, labels.last().second.span)
+            if (iter.peek().value is Do && exp is Expr.Var) {
+                iter.next()
+                parseComputation(exp)
+            } else {
+                val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
+                Expr.RecordSelect(exp, labels.map { it.first }).withSpan(exp.span, labels.last().second.span)
+            }
         } else exp
     }
 
@@ -1059,6 +1064,26 @@ class Parser(
                     tk = iter.peek()
                 }
                 Expr.While(cond, exps).withSpan(whil.span, iter.current().span).withComment(whil.comment)
+            }
+        }
+    }
+    
+    private fun parseComputation(builder: Expr.Var): Expr {
+        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
+        val align = iter.peek().offside()
+        return withIgnoreOffside(false) {
+            withOffside(align) {
+                val exps = mutableListOf<Expr>()
+                val first = parseExpression(true)
+                exps += first
+
+                var tk = iter.peek()
+                while (!iter.peekIsOffside() && tk.value !in statementEnding) {
+                    exps += parseExpression(true)
+                    tk = iter.peek()
+                }
+                Expr.Computation(builder.name, exps)
+                    .withSpan(builder.span, iter.current().span).withComment(builder.comment)
             }
         }
     }

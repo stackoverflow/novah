@@ -15,3 +15,4 @@
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
 - [ ] Delay unused variables reporting to after type checking
 - [ ] Fix error report span for unused foreign import
+- [ ] Remove support for multiple bindings in `let`s
