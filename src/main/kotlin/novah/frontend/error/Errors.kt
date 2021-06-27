@@ -162,6 +162,10 @@ object Errors {
     const val DO_WHILE = "Expected keyword `do` after while condition."
 
     const val EXP_SIMPLE = "Invalid expression for while condition."
+    
+    const val LET_BANG = "`let!` syntax can only be used inside a computation expression."
+
+    const val IF_BANG = "`if!` syntax can only be used inside a computation expression."
 
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.

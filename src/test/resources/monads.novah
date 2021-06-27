@@ -1,17 +1,13 @@
 module monads
 
-bind : Option a -> (a -> Option b) -> Option b
-bind opt f =
-  case opt of
-    Some x -> f x
-    None -> None
-
-optionBuilder =
-  { bind: bind
-  , return: Some
+vector =
+  { bind: flip Vector.flatMap
+  , return: \x -> [x]
+  , zero: []
   }
 
-foo = option.do
-  let! x = Some 3
-  let! y = Some 9
-  return (x + y)
+foo =
+  vector.do
+    let! x = 1 .. 5
+    let! y = 7 .. 21
+    if odd (x + y) then return (x + y)

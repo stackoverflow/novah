@@ -1,0 +1,3 @@
+module test
+
+foo = let x = 10
