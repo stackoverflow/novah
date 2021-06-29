@@ -46,7 +46,7 @@ class InstanceArgumentsSpec : StringSpec({
             viewOption {{s}} = View { view: viewOptionImpl {{s}} }
             
             printx : Option Int -> String
-            printx o = do
+            printx o =
               let instance viewOptInt = viewOption {{viewInt}}
               println (view o)
               view 3

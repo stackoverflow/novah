@@ -253,7 +253,7 @@ class PatternMatchingSpec : StringSpec({
         val code = """
             foreign import novah.Core:sum(Int, Int)
             
-            f1 () = do
+            f1 () =
               let [x, y] = [5, 10]
               let {z} = {x: 2, y: 0, z: 33}
               let [h :: _] = [3, 4, 5, 6]

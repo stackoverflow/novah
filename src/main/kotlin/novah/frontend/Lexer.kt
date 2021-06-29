@@ -47,10 +47,12 @@ sealed class Token {
     object Then : Token()
     object Else : Token()
     object LetT : Token()
+    object LetBang : Token()
     object CaseT : Token()
     object Of : Token()
     object In : Token()
     object Do : Token()
+    object DoDot : Token()
     object ForeignT : Token()
     object PublicT : Token()
     object PublicPlus : Token()
@@ -262,12 +264,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             builder.append(iter.next())
         }
 
-        val id = builder.toString()
-        if (id == "pub" && iter.peek() == '+') {
-            iter.next()
-            return PublicPlus
-        }
-        return when (id) {
+        return when (val id = builder.toString()) {
             "true" -> BoolT(true)
             "false" -> BoolT(false)
             "if" -> IfT
@@ -276,16 +273,13 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "_" -> Underline
             "module" -> ModuleT
             "import" -> ImportT
-            "let" -> LetT
             "case" -> CaseT
             "of" -> Of
             "type" -> TypeT
             "typealias" -> TypealiasT
             "as" -> As
             "in" -> In
-            "do" -> Do
             "foreign" -> ForeignT
-            "pub" -> PublicT
             "instance" -> Instance
             "opaque" -> Opaque
             "throw" -> ThrowT
@@ -293,6 +287,24 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "catch" -> CatchT
             "finally" -> FinallyT
             "while" -> WhileT
+            "do" -> {
+                if (iter.peek() == '.') {
+                    iter.next()
+                    DoDot
+                } else Do
+            }
+            "let" -> {
+                if (iter.peek() == '!') {
+                    iter.next()
+                    LetBang
+                } else LetT
+            }
+            "pub" -> {
+                if (iter.peek() == '+') {
+                    iter.next()
+                    PublicPlus
+                } else PublicT
+            }
             else ->
                 if (id[0].isUpperCase()) {
                     UpperIdent(id)

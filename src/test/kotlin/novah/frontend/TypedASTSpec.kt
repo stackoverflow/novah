@@ -82,41 +82,4 @@ class TypedASTSpec : StringSpec({
 
         ((map["f3"] as Expr.Lambda).body as Expr.Ann).exp.type?.simpleName() shouldBe "Int32"
     }
-
-    "metas are resolved after typecheck" {
-        val code = """
-            id x = x
-            
-            ife a = if true then 3 else id a
-            
-            lam = \x -> x && true
-            
-            lett a = let f x = x in f a
-            
-            fall = \x -> id x
-            
-            fif = \x -> if true then 5 else id x
-            
-            doo = \x -> do
-                id x
-                x
-                true
-            
-            lamb : Int -> String -> Unit
-            lamb _ _ = do
-              Some "a"
-              ()
-            
-            main _ = do
-              lamb 4 "hello"
-            
-        """.module()
-
-        val ast = TestUtil.compileCode(code).ast
-
-//        val tt = TypeTraverser(ast) { _, t ->
-//            t?.findUnbound() shouldBe emptyList()
-//        }
-//        tt.run()
-    }
 })

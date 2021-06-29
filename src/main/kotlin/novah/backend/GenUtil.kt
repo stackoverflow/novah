@@ -34,7 +34,7 @@ object GenUtil {
     const val INSTANCE = "INSTANCE"
     const val LAMBDA_CTOR = "CREATE"
 
-    const val NOVAH_GENCLASS_VERSION = Opcodes.V1_8
+    const val NOVAH_GENCLASS_VERSION = Opcodes.V15
 
     fun visibility(decl: Decl.TypeDecl): Int =
         if (decl.visibility == Visibility.PUBLIC) Opcodes.ACC_PUBLIC else 0

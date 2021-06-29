@@ -6,8 +6,7 @@
 - [X] IDE support (WIP)
 - [ ] LSP implemented in the compiler
 - [ ] Some compiler help for lenses?
-- [ ] Computational expressions
-- [ ] List/Vector/etc comprehension
+- [X] Computation expressions
 - [X] Standard library (WIP)
 - [X] Multi line strings
 - [X] Anonymous function arguments

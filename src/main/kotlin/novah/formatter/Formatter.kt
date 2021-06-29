@@ -140,7 +140,7 @@ class Formatter {
         val cmt = if (e.comment != null) show(e.comment!!) + tab else ""
         return cmt + when (e) {
             is Expr.Do -> {
-                "do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
+                withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
             is Expr.Match -> {
                 val expsStr = e.exps.joinToString { show(it) }
@@ -150,14 +150,15 @@ class Formatter {
                 val str = if (shouldNewline(e.body)) withIndent { "$tab${show(e.body)}" } else show(e.body)
                 "let " + withIndent(false) {
                     withIndent(false) {
-                        e.letDefs.joinToStr("\n$tab") { show(it) }
+                        show(e.letDef)
                     }
                 } + "\n${tab}in $str"
             }
             is Expr.DoLet -> {
-                "let " + withIndent(false) {
+                val let = if (e.isBind) "let! " else "let "
+                let + withIndent(false) {
                     withIndent(false) {
-                        e.letDefs.joinToStr("\n$tab") { show(it) }
+                        show(e.letDef)
                     }
                 }
             }
@@ -165,6 +166,11 @@ class Formatter {
                 val simple = e.thenCase.isSimpleExpr() && e.elseCase.isSimpleExpr()
                 if (simple) "if ${show(e.cond)} then ${show(e.thenCase)} else ${show(e.elseCase)}"
                 else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}\n${tab}else ${show(e.elseCase)}"
+            }
+            is Expr.IfBang -> {
+                val simple = e.thenCase.isSimpleExpr()
+                if (simple) "if ${show(e.cond)} then ${show(e.thenCase)}"
+                else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}"
             }
             is Expr.App -> {
                 "${show(e.fn)} ${show(e.arg)}"
@@ -212,6 +218,9 @@ class Formatter {
             is Expr.While -> {
                 val cond = show(e.cond)
                 "while $cond do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
+            }
+            is Expr.Computation -> {
+                "do." + e.builder.name + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
         }
     }

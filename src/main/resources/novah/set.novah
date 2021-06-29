@@ -69,9 +69,10 @@ pub
 nth : Int64 -> Set a -> Option a
 nth index set =
   let size = count set
-  in if index < 0L || index >= size
-     then None
-     else Some (setNth set index)
+  if index < 0L || index >= size then
+    None
+  else
+    Some (setNth set index)
 
 /**
  * Returns the union of these 2 sets.
@@ -107,8 +108,8 @@ stream set = setStream (unsafeCast set)
  * Runtime: O(n)
  */
 pub
-into : Stream a -> Set a
-into st =
+fromStream : Stream a -> Set a
+fromStream st =
   let lset = setLinear #{}
   S.forEach st \x -> add x lset
   setForked lset
@@ -161,8 +162,7 @@ find pred set =
   let lset = setLinear #{}
   forEachBreak 0L (count set) \idx ->
     let elem = setNth set idx
-    if pred elem
-    then
+    if pred elem then
       add elem lset
       -1
     else 0 
@@ -185,3 +185,26 @@ contains elem set = setContains set elem
 pub
 foldl : (b -> a -> b) -> b -> Set a -> b
 foldl f init set = foldSet f init set
+
+/**
+ * Flattens a set of sets into a single set by concatenating them together.
+ * Runtime: O(n)
+ */
+pub
+flatten : Set (Set a) -> Set a
+flatten sets =
+  if isEmpty sets then
+    #{}
+  else
+    let first = setNth sets 0L
+    let ssets = remove first sets
+    foldl (\s1 s2 -> s1 ++ s2) first ssets
+
+/**
+ * Like map, but the mapping function should return a set.
+ * Flattens the result.
+ * Runtime: O(n)
+ */
+pub
+flatMap : (a -> Set b) -> Set a -> Set b
+flatMap f set = flatten (map f set)

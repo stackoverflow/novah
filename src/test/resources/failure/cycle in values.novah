@@ -2,7 +2,7 @@ module test
 
 x = if true then 0 else y
 
-y = do
+y =
   0
   z
   true

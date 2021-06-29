@@ -124,4 +124,17 @@ class DesugarSpec : StringSpec({
         ds["f11"]?.type?.simpleName() shouldBe "{ name : t4, age : t3, id : t2 | t1 } -> { | t1 }"
         ds["f12"]?.type?.simpleName() shouldBe "t1 -> { user : { name : t1 | t3 } | t2 } -> { user : { name : t1 | t3 } | t2 }"
     }
+    
+    "computation expressions" {
+        val code = """
+            import novah.computation
+            
+            foo = do.vector
+              let! x = 1 .. 6
+              let! y = 7 .. 14
+              if isEven (x + y) then return (x + y)
+        """.module()
+
+        TestUtil.compileCode(code)
+    }
 })

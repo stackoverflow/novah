@@ -223,11 +223,11 @@ sealed class Expr {
     }
 
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr) : Expr()
-    data class Let(val letDefs: List<LetDef>, val body: Expr) : Expr()
+    data class Let(val letDef: LetDef, val body: Expr) : Expr()
     data class Match(val exps: List<Expr>, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
-    data class DoLet(val letDefs: List<LetDef>) : Expr()
+    data class DoLet(val letDef: LetDef, val isBind: Boolean) : Expr()
     data class Parens(val exp: Expr) : Expr() {
         override fun toString(): String = "($exp)"
     }
@@ -244,6 +244,8 @@ sealed class Expr {
     data class Throw(val exp: Expr) : Expr()
     data class TryCatch(val tryExpr: Expr, val cases: List<Case>, val finallyExp: Expr?) : Expr()
     data class While(val cond: Expr, val exps: List<Expr>) : Expr()
+    data class Computation(val builder: Var, val exps: List<Expr>) : Expr()
+    data class IfBang(val cond: Expr, val thenCase: Expr) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null
@@ -259,7 +261,7 @@ sealed class Expr {
     }
 
     fun isSimple(): Boolean = when (this) {
-        is If, is Let, is Match, is Do, is DoLet, is TryCatch, is While -> false
+        is If, is IfBang, is Let, is Match, is Do, is DoLet, is TryCatch, is While, is Computation -> false
         is Ann -> exp.isSimple()
         else -> true
     }
@@ -285,7 +287,6 @@ sealed class LetDef(open val expr: Expr) {
 
     data class DefPattern(val pat: Pattern, override val expr: Expr) : LetDef(expr)
 }
-
 
 data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = null) {
     fun patternSpan() = Span.new(patterns[0].span, patterns.last().span)

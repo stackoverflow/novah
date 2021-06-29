@@ -31,13 +31,13 @@ pub
 runTests : Vector Suite -> Unit
 runTests suites =
   let total = atom 0
-      stats = arrayOf [0, 0, 0]
-      addStats v =
+  let stats = arrayOf [0, 0, 0]
+  let addStats v =
         aupdate 0 (_ + (v ! 0L)) stats
         aupdate 1 (_ + (v ! 1L)) stats
         aupdate 2 (_ + (v ! 2L)) stats
       
-      runSuite = case _ of
+  let runSuite = case _ of
         Test desc fun -> check desc fun |> addStats
         Tests desc funs -> forEach funs (check desc >> addStats)
         Setup {before, after, suite} ->

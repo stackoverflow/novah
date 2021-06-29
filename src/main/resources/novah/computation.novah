@@ -1,0 +1,95 @@
+module novah.computation
+
+foreign import type java.util.stream.Stream
+
+import novah.list (List(..))
+import novah.list as List
+import novah.set as Set
+import novah.vector as Vector
+
+/**
+ * The builder for vector computation expressions.
+ * Allows to use `do.vector` syntax for vector comprehensions.
+ */
+pub
+vector :
+  { bind : Vector a -> (a -> Vector b) -> Vector b
+  , return : c -> Vector c
+  , zero : Vector d
+  }
+vector =
+  { bind: flip Vector.flatMap
+  , return: \x -> [x]
+  , zero: []
+  }
+
+/**
+ * The builder for set computation expressions.
+ * Allows to use `do.set` syntax for set comprehensions.
+ */
+pub
+set :
+  { bind : Set a -> (a -> Set b) -> Set b
+  , return : c -> Set c
+  , zero : Set d
+  }
+set =
+  { bind: flip Set.flatMap
+  , return: \x -> #{x}
+  , zero: #{}
+  }
+
+/**
+ * The builder for list computation expressions.
+ * Allows to use `do.list` syntax for list comprehensions.
+ */
+pub
+list :
+  { bind : List a -> (a -> List b) -> List b
+  , return : c -> List c
+  , zero : List d
+  }
+list =
+  { bind: flip List.flatMap
+  , return: \x -> Cons x Nil
+  , zero: Nil
+  }
+
+/**
+ * The builder for optional computation expressions.
+ * Allows to use `do.option` syntax for option workflows.
+ */
+pub
+option :
+  { bind : Option a -> (a -> Option b) -> Option b
+  , return : c -> Option c
+  , zero : Option d
+  }
+option =
+  { bind: optBind
+  , return: Some
+  , zero: None
+  }
+
+/**
+ * The builder for success/error computation expressions.
+ * Allows to use `do.result` syntax for failable workflows.
+ */
+pub
+result :
+  { bind : Result a e -> (a -> Result b e) -> Result b e
+  , return : c -> Result c f }
+result =
+  { bind: resultBind
+  , return: Ok
+  }
+
+optBind : Option a -> (a -> Option b) -> Option b
+optBind opt f = case opt of
+  Some x -> f x
+  None -> None
+
+resultBind : Result a err -> (a -> Result b err) -> Result b err
+resultBind res f = case res of
+  Ok x -> f x
+  Err e -> Err e

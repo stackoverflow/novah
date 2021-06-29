@@ -1,0 +1,12 @@
+module monads
+
+vector =
+  { bind: flip Vector.flatMap
+  , return: \x -> [x]
+  , zero: []
+  }
+
+foo = do.vector
+  let! x = 1 .. 5
+  let! y = 7 .. 21
+  if odd (x + y) then return (x + y)

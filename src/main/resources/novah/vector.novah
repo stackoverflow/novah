@@ -37,8 +37,8 @@ stream vec = vecStream (unsafeCast vec)
  * Runtime: O(n)
  */
 pub
-into : Stream a -> Vector a
-into st =
+fromStream : Stream a -> Vector a
+fromStream st =
   let lvec = vecLinear []
   S.forEach st \x -> addLast x lvec
   vecForked lvec
@@ -133,7 +133,7 @@ sort {{ord}} = case _ of
   [_] as vec -> vec
   vec ->
     let arr = arrayOf vec
-        comp = toComparator ord
+    let comp = toComparator ord
     arraySort arr (unsafeCast comp)
     fromArray arr
 
@@ -193,6 +193,25 @@ reduce f = case _ of
 pub
 foldr : (a -> b -> b) -> b -> Vector a -> b
 foldr f init = foldl (flip f) init << reverse
+
+/**
+ * Flattens a vector of vectors into a single vector by concatenating them together.
+ * Runtime: O(n)
+ */
+pub
+flatten : Vector (Vector a) -> Vector a
+flatten = case _ of
+  [] -> []
+  [x :: xs] -> foldl (\v1 v2 -> v1 ++ v2) x xs
+
+/**
+ * Like map, but the mapping function should return a vector.
+ * Flattens the result.
+ * Runtime: O(n)
+ */
+pub
+flatMap : (a -> Vector b) -> Vector a -> Vector b
+flatMap f vec = flatten (map f vec)
 
 /**
  * Creates a linear vector out of this vector.

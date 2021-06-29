@@ -112,8 +112,6 @@ object Errors {
 
     const val FOREIGN_ALIAS = "Identifier has to start with a lower case letter."
 
-    const val LET_DO_IN = "Let expressions in a do statement cannot have an `in` clause."
-
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
 
     const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
@@ -124,7 +122,7 @@ object Errors {
         make sure to use the {{}} syntax.
         Ex.: myFunction {{parameter}}
     """.trimIndent()
-    
+
     const val TYPEALIAS_NAME = "Expected name for typealias."
 
     const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
@@ -160,10 +158,14 @@ object Errors {
     const val NO_FINALLY = "Expected `finally` definition after try expression without cases."
 
     const val WRONG_CATCH = "Catch patterns can only be a type test and cannot have guards."
-    
+
     const val DO_WHILE = "Expected keyword `do` after while condition."
-    
+
     const val EXP_SIMPLE = "Invalid expression for while condition."
+    
+    const val LET_BANG = "`let!` syntax can only be used inside a computation expression."
+
+    const val IF_BANG = "`if!` syntax can only be used inside a computation expression."
 
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
@@ -211,7 +213,7 @@ object Errors {
     """.trimIndent()
 
     fun wrongArityToCase(got: Int, expected: Int) = "Case expression expected $expected patterns but got $got."
-    
+
     fun wrongArityCtorPattern(name: String, got: Int, expected: Int) =
         "Constructor pattern $name expected $expected parameter(s) but got $got."
 

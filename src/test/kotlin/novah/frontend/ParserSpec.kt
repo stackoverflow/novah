@@ -164,15 +164,22 @@ class ParserSpec : StringSpec({
     
     "Indentation is correctly parsed" {
         val code = """
+            rec = { fun: \x -> x, notfun: 0 }
             
-            fun () = do
-              let x = do
+            foo = \x ->
+              x + 1
+            
+            fun () =
+              let x =
                    1
                    2
               x
             
-            fun x =
-              case x of
+            fun x = while true do
+              println "hello"
+              x
+            
+            fun x = case x of
               Some _ -> 1
               None -> 0
         """.module()

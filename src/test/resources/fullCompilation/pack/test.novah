@@ -26,7 +26,7 @@ b = true
 
 c = if true then "" else d
 
-d = do
+d =
   4
   z
   "asd"
@@ -36,8 +36,8 @@ z = "something"
 i = 99
 
 l _ = let l1 = toString 4
-          l2 = toString l1
-      in l2
+      let l2 = toString l1
+      l2
 
 w = \x -> x
 
@@ -48,7 +48,7 @@ myFun x = case x of
   None -> "nope"
 
 lamb : Boolean -> String -> Unit
-lamb x x2 = do
+lamb x x2 =
   if x then
     println x2
   else
@@ -58,7 +58,7 @@ lamb x x2 = do
 
 rec = { name: "Mario", lastName: "Brother", age: 33 }
 
-runRecords () = do
+runRecords () =
   println (toString rec)
   let plus = { "which game": "Super Mario Brothers" | rec }
   println (toString plus)
@@ -72,25 +72,25 @@ runRecords () = do
 
 vec = [1, 2, 3, 4]
 
-runVectors () = do
+runVectors () =
   println (toString vec)
   let vs = ["many", "different", "strings"]
   println (toString vs)
 
 set = #{1, 2, 3, 4}
 
-runSets () = do
+runSets () =
   println (toString set)
   let ss = #{"many", "different", "strings"}
   println (toString ss)
 
-run () = do
+run () =
   let arr = newArrayList ()
   add arr "asd"
   add arr "oops"
   println (toString arr)
 
-main _ = do
+main _ =
   println "running novah"
   runSets ()
   //println (myFun (Some (Some "fun")))

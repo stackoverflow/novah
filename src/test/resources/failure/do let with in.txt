@@ -1,5 +1,0 @@
-module [33mtest[0m
-at src/test/resources/failure/do let with in.novah:5:3 - 5:5
-
-  Let expressions in a do statement cannot have an `in` clause.
-

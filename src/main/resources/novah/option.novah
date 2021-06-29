@@ -20,9 +20,9 @@ map f =
     None -> None
 
 /**
- * Takes a default value, a function and an Option
- * and returns the result of the function applied to this Option's value
- * or the default value if the Option is empty.
+ * Takes a default value, a function and an option
+ * and returns the result of the function applied to this option's value
+ * or the default value if the option is empty.
  */
 pub
 maybe : b -> (a -> b) -> Option a -> b
@@ -32,7 +32,7 @@ maybe def f =
     None -> def
 
 /**
- * Returns true if this Option contains a value.
+ * Returns true if this option contains a value.
  */
 pub
 isSome : Option a -> Boolean
@@ -41,7 +41,7 @@ isSome = case _ of
   None -> false
 
 /**
- * Returns true if this Option *doesn't* contain a value.
+ * Returns true if this option *doesn't* contain a value.
  */
 pub
 isNone : Option a -> Boolean
@@ -50,7 +50,7 @@ isNone = case _ of
   None -> true
 
 /**
- * Extracts the value out of this Option.
+ * Extracts the value out of this option.
  * *Unsafe*: Will thrown an exception if the Option is empty.
  */
 pub

@@ -88,14 +88,14 @@ mklist = todo
   // some comment here
 pub
 myFun x = case x of
-  None -> do
+  None ->
     println "Something" : Unit
     case 4 of x -> x
     4
   Some (Maybe (Perhaps x y 8)) -> x
 
-ex = \x -> do
-  let x = 4
+ex = \x ->
+  let z = 4
   let y = \p -> 9
   sideEffect (if false then "false" else "true") -1
   x * y
@@ -110,21 +110,21 @@ multiString = """
 """
 
 doIt : Unit -> String
-doIt () = do
+doIt () =
   println
     "not pure"
       // bla
-  fun (\x y -> \z -> do
+  fun (\x y -> \z ->
     println x
     x + 1) "a" (Some (3 + 1) 4)
   let f : a -> a
       f x = x
   let y : Int
       y = f 9
-  if y >= 2 then do
+  if y >= 2 then
     println "big y"
     if x then 1 else 0
-  else do
+  else
     println "small y"
     0
 

@@ -1,5 +1,5 @@
 module test
 
-main _ = do
+main _ =
   let x = 1
   let y = 2

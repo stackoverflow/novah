@@ -176,9 +176,9 @@ class Desugar(private val smod: SModule) {
             nestLambdas(args.mapNotNull { it.first }, ifExp)
         }
         is SExpr.Let -> {
-            val vars = letDefs.map { collectVars(it) }.flatten()
+            val vars = collectVars(letDef)
             vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
-            nestLets(letDefs, body.desugar(locals + vars.map { it.name }), locals)
+            nestLets(letDef, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.Match -> {
             val args = exps.map {
@@ -193,11 +193,11 @@ class Desugar(private val smod: SModule) {
         is SExpr.Ann -> Expr.Ann(exp.desugar(locals), type.desugar(), span)
         is SExpr.Do -> {
             if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
-            val converted = convertDoLets(exps)
+            val converted = convertDoLets(exps, null)
             Expr.Do(converted.map { it.desugar(locals) }, span)
         }
+        is SExpr.DoLet -> parserError(E.LET_IN, span)
         is SExpr.Unit -> Expr.Unit(span)
-        is SExpr.DoLet -> internalError("got `do-let` outside of do statement: $this")
         is SExpr.RecordEmpty -> Expr.RecordEmpty(span)
         is SExpr.RecordSelect -> {
             if (exp is SExpr.Underscore) {
@@ -267,6 +267,13 @@ class Desugar(private val smod: SModule) {
         is SExpr.While -> {
             Expr.While(cond.desugar(locals), exps.map { it.desugar(locals) }, span)
         }
+        is SExpr.Computation -> {
+            if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
+            val desugared = desugarSpecialComputationFunctions(exps, builder)
+            val converted = convertDoLets(desugared, builder)
+            Expr.Do(converted.map { it.desugar(locals) }, span)
+        }
+        is SExpr.IfBang -> internalError("unexpected if-bang in desugaring: $this")
     }
 
     private fun SCase.desugar(locals: List<String>): Case {
@@ -433,18 +440,13 @@ class Desugar(private val smod: SModule) {
         }
     }
 
-    private fun nestLets(defs: List<SLetDef>, exp: Expr, locals: List<String>): Expr {
-        return if (defs.isEmpty()) exp
-        else {
-            when (val ld = defs[0]) {
-                is SLetDef.DefBind -> {
-                    Expr.Let(ld.desugar(locals), nestLets(defs.drop(1), exp, locals), exp.span)
-                }
-                is SLetDef.DefPattern -> {
-                    val case = Case(listOf(ld.pat.desugar(locals)), nestLets(defs.drop(1), exp, locals))
-                    Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), Span.new(ld.pat.span, exp.span))
-                }
-            }
+    private fun nestLets(ld: SLetDef, exp: Expr, locals: List<String>): Expr = when (ld) {
+        is SLetDef.DefBind -> {
+            Expr.Let(ld.desugar(locals), exp, exp.span)
+        }
+        is SLetDef.DefPattern -> {
+            val case = Case(listOf(ld.pat.desugar(locals)), exp)
+            Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), Span.new(ld.pat.span, exp.span))
         }
     }
 
@@ -637,26 +639,52 @@ class Desugar(private val smod: SModule) {
      * let expressions where the body is every expression
      * that comes after.
      */
-    private fun convertDoLets(exprs: List<SExpr>): List<SExpr> {
+    private fun convertDoLets(exprs: List<SExpr>, builder: SExpr.Var?): List<SExpr> {
         return if (exprs.filterIsInstance<SExpr.DoLet>().isEmpty()) exprs
         else {
-            val lets = mutableListOf<SLetDef>()
-            var exp = exprs[0]
-            var i = 0
-            while (exp is SExpr.DoLet) {
-                lets.addAll(exp.letDefs)
-                exp = exprs[++i]
-            }
-            if (lets.isEmpty()) listOf(exprs[0]) + convertDoLets(exprs.drop(1))
-            else {
-                val rest = convertDoLets(exprs.subList(i, exprs.size))
-                if (rest.size == 1) {
-                    listOf(SExpr.Let(lets, rest[0]))
+            val exp = exprs[0]
+            if (exp is SExpr.DoLet) {
+                val body = convertDoLets(exprs.drop(1), builder)
+                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body)
+                if (exp.isBind && builder != null) {
+                    val span = exp.span
+                    val select = SExpr.RecordSelect(builder, listOf("bind")).withSpan(span)
+                    val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), bodyExp).withSpan(span)
+                    listOf(SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span))
                 } else {
-                    listOf(SExpr.Let(lets, SExpr.Do(rest)))
+                    listOf(SExpr.Let(exp.letDef, bodyExp))
                 }
+            } else {
+                listOf(exp) + convertDoLets(exprs.drop(1), builder)
             }
         }
+    }
+
+    private val specialComputationFunctions = setOf("return")
+
+    private fun replaceSpecialFun(exp: SExpr, builder: SExpr.Var): SExpr {
+        fun replace(e: SExpr): SExpr = when {
+            e is SExpr.App && e.fn is SExpr.App -> SExpr.App(replace(e.fn), e.arg)
+            e is SExpr.App && e.fn is SExpr.Var && e.fn.alias == null && e.fn.name in specialComputationFunctions -> {
+                val span = exp.span
+                val select = SExpr.RecordSelect(builder, listOf(e.fn.name)).withSpan(span)
+                SExpr.App(select, e.arg).withSpan(span)
+            }
+            else -> e
+        }
+        return when (exp) {
+            is SExpr.App -> replace(exp)
+            is SExpr.IfBang -> {
+                val span = exp.span
+                val elseCase = SExpr.RecordSelect(builder, listOf("zero"))
+                SExpr.If(exp.cond, replaceSpecialFun(exp.thenCase, builder), elseCase).withSpan(span)
+            }
+            else -> exp
+        }
+    }
+
+    private fun desugarSpecialComputationFunctions(exprs: List<SExpr>, builder: SExpr.Var): List<SExpr> {
+        return exprs.map { replaceSpecialFun(it, builder) }
     }
 
     /**

@@ -455,5 +455,7 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
     return errors
 }
 
+private val allowedRawModules = setOf(PRIM, CORE_MODULE, TEST_MODULE, COMPUTATION_MODULE)
+
 private fun warnOnRawImport(imp: Import.Raw): Boolean =
-    imp.alias == null && imp.module != PRIM && imp.module != CORE_MODULE && imp.module != TEST_MODULE
+    imp.alias == null && imp.module !in allowedRawModules
