@@ -79,6 +79,7 @@ filter f = case _ of
 
 /**
  * Like `map` but it will flatten the resulting list.
+ * Runtime: O(n)
  */
 pub
 flatMap : (a -> List b) -> List a -> List b
@@ -167,6 +168,16 @@ foldl f =
 pub
 foldr : (a -> b -> b) -> b -> List a -> b
 foldr f init = foldl (flip f) init << reverse
+
+/**
+ * Flattens a list of lists into a single list by concatenating them together.
+ * Runtime: O(n)
+ */
+pub
+flatten : List (List a) -> List a
+flatten = case _ of
+  Nil -> Nil
+  Cons x xs -> x ++ flatten xs
 
 /**
  * A specialized version of `foldl` where the first element of the list is used as initial value.
