@@ -142,6 +142,7 @@ class Parser(
             if (!aliased.contains(STREAM_MODULE)) imports += streamImport
             if (!aliased.contains(STRING_MODULE)) imports += stringImport
             if (!aliased.contains(VECTOR_MODULE)) imports += vectorImport
+            if (!aliased.contains(RESULT_MODULE)) imports += resultImport
         }
     }
 

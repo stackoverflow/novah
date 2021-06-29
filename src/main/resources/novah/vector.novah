@@ -37,8 +37,8 @@ stream vec = vecStream (unsafeCast vec)
  * Runtime: O(n)
  */
 pub
-into : Stream a -> Vector a
-into st =
+fromStream : Stream a -> Vector a
+fromStream st =
   let lvec = vecLinear []
   S.forEach st \x -> addLast x lvec
   vecForked lvec

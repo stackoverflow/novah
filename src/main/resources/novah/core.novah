@@ -934,15 +934,15 @@ pub
  * Returns true if this number is odd.
  */
 pub
-odd : {{ NumberOps a }} -> a -> Boolean
-odd {{NumberOps r}} x = not (r.even x)
+isOdd : {{ NumberOps a }} -> a -> Boolean
+isOdd {{NumberOps r}} x = not (r.even x)
 
 /**
  * Returns true if this number is even.
  */
 pub
-even : {{ NumberOps a }} -> a -> Boolean
-even {{NumberOps r}} x = r.even x
+isEven : {{ NumberOps a }} -> a -> Boolean
+isEven {{NumberOps r}} x = r.even x
 
 pub instance
 numberOpsInt32 : NumberOps Int32

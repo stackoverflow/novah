@@ -61,8 +61,10 @@ const val SET_MODULE = "novah.set"
 const val STREAM_MODULE = "novah.stream"
 const val STRING_MODULE = "novah.string"
 const val VECTOR_MODULE = "novah.vector"
+const val RESULT_MODULE = "novah.result"
 
 const val TEST_MODULE = "novah.test"
+const val COMPUTATION_MODULE = "novah.computation"
 
 val primImport = Import.Raw(PRIM, Span.empty())
 val coreImport = Import.Raw(CORE_MODULE, Span.empty())
@@ -75,6 +77,7 @@ val setImport = Import.Raw(SET_MODULE, Span.empty(), "Set")
 val streamImport = Import.Raw(STREAM_MODULE, Span.empty(), "Stream")
 val stringImport = Import.Raw(STRING_MODULE, Span.empty(), "String")
 val vectorImport = Import.Raw(VECTOR_MODULE, Span.empty(), "Vector")
+val resultImport = Import.Raw(RESULT_MODULE, Span.empty(), "Result")
 
 const val primByte = "$PRIM.Byte"
 const val primInt16 = "$PRIM.Int16"

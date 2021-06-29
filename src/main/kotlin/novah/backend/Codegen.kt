@@ -364,7 +364,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     genExprForNativeCall(e.pars[i], type, mv, ctx)
                 }
                 val desc = getMethodDescriptor(m)
-                mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, false)
+                val isInterface = m.declaringClass.isInterface
+                mv.visitMethodInsn(INVOKESTATIC, getInternalName(m.declaringClass), m.name, desc, isInterface)
 
                 if (m.returnType == Void.TYPE) genUnit(mv)
                 else {

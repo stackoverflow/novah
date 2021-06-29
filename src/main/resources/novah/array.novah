@@ -21,7 +21,7 @@ import novah.java (toComparator)
 import novah.stream as S
 
 /**
- * Returns a Stream for this array.
+ * Returns a stream for this array.
  */
 pub
 stream : Array a -> Stream a
@@ -31,8 +31,8 @@ stream arr = arrStream arr
  * Collects this stream into an array.
  */
 pub
-into : Stream a -> Array a
-into = S.toArray
+fromStream : Stream a -> Array a
+fromStream = S.toArray
 
 /**
  * Returns some value at index for this array if it exists or none.
@@ -74,10 +74,11 @@ map f arr =
 
 /**
  * Returns an array of the elements that match the given predicate.
+ * Runtime: O(n)
  */
 pub
 filter : (a -> Boolean) -> Array a -> Array a
-filter f arr = stream arr |> S.filter f |> into
+filter f arr = stream arr |> S.filter f |> fromStream
 
 /**
  * Sorts this array according to the elements Ord instance.
@@ -92,6 +93,7 @@ sort {{ord}} arr =
 
 /**
  * Returns a new array with the same elements in the reverse order of the input array.
+ * Runtime: O(n)
  */
 pub
 reverse : Array a -> Array a

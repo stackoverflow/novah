@@ -18,11 +18,27 @@ foreign import Stream.takeWhile(Predicate) as stakeWhile
 foreign import Stream.dropWhile(Predicate) as sdropWhile
 foreign import Stream.reduce(BinaryOperator) as sreduce
 foreign import Stream.reduce(Object, BinaryOperator) as sreduce2
+foreign import Stream:"of"(Object) as streamOf
+foreign import Stream:empty() as streamEmpty
 foreign import Core:makeConsumer(Function)
 foreign import Core:makePredicate(Function)
 foreign import Core:makeBinaryOperator(Function)
 
 import novah.option as O
+
+/**
+ * Creates a new empty stream.
+ */
+pub
+empty : Unit -> Stream a
+empty _ = streamEmpty ()
+
+/**
+ * Creates a stream with a single element.
+ */
+pub
+from : a -> Stream a
+from x = streamOf x
 
 /**
  * Runs function f for every element of this Stream, ignoring the result.

@@ -1,21 +1,15 @@
 module test
 
 import novah.list (::, List(..))
-import novah.map as M
 import novah.test
+import novah.computation
 
 foreign import java.util.Arrays:toString(Array) as toStringArr
-
-vector =
-  { bind: flip Vector.flatMap
-  , return: \x -> [x]
-  , zero: []
-  }
 
 foo = do.vector
   let! x = 1 .. 5
   let! y = 7 .. 14
-  if odd (x + y) then return (x <> y)
+  if isOdd (x + y) then return (x <> y)
 
 toStr : Array a -> String
 toStr arr = toStringArr (unsafeCast arr)

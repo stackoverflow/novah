@@ -127,16 +127,12 @@ class DesugarSpec : StringSpec({
     
     "computation expressions" {
         val code = """
-            vector =
-              { bind: flip Vector.flatMap
-              , return: \x -> [x]
-              , zero: []
-              }
+            import novah.computation
             
             foo = do.vector
               let! x = 1 .. 6
               let! y = 7 .. 14
-              if even (x + y) then return (x + y)
+              if isEven (x + y) then return (x + y)
         """.module()
 
         TestUtil.compileCode(code)
