@@ -4,6 +4,7 @@
 module novah.java
 
 foreign import type java.lang.Class
+foreign import type java.lang.System
 foreign import type java.util.Iterator
 foreign import type java.util.Comparator
 foreign import type java.util.function.Consumer
@@ -19,6 +20,7 @@ foreign import type novah.Core
 foreign import Object.getClass()
 foreign import Object.hashCode() as jHashCode
 foreign import Object.equals(Object) as jEquals
+foreign import System:exit(Int32) as jExit
 foreign import Iterator.hasNext()
 foreign import Iterator.next()
 foreign import new java.lang.AssertionError(String) as newAssertionError
@@ -74,6 +76,14 @@ forEach : Iterator a -> (a -> Unit) -> Unit
 forEach it fun =
   while hasNext it do
     fun (next it)
+
+/**
+ * Terminates the currently running JVM with the given status.
+ * A status different from 0 indicates abnormal termination.
+ */
+pub
+exit : Int32 -> Unit
+exit status = jExit status
 
 /**
  * Returns a `java.util.Comparator` based on this Ord instance.

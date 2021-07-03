@@ -17,3 +17,6 @@
 - [ ] Fix error report span for unused foreign import
 - [ ] Use novah itself for tests
 - [ ] Add nullable types
+- [ ] Report error on unexisting import alias
+- [ ] Revamp shadowed variables and types (not working right now)
+- [ ] Fix indentation at start of declaration

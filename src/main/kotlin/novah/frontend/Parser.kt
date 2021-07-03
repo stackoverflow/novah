@@ -626,12 +626,8 @@ class Parser(
             true
         } else false
 
-        val tk = iter.peek()
-        val align = tk.offside()
-        if (align <= iter.offside()) throwMismatchedIndentation(tk)
-
         var def: LetDef? = null
-        withOffside(align) {
+        withOffside {
             def = if (!isBind && (isInstance || iter.peek().value is Ident)) {
                 parseLetDefBind(isInstance)
             } else parseLetDefPattern()

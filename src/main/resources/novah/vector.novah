@@ -214,6 +214,18 @@ flatMap : (a -> Vector b) -> Vector a -> Vector b
 flatMap f vec = flatten (map f vec)
 
 /**
+ * Returns a reversed version of this vector.
+ * Runtime: O(n)
+ */
+pub
+reverse : Vector a -> Vector a
+reverse vec =
+  let lvec = vecLinear []
+  forEachRange 0L (count vec) \i ->
+    addFirst (vec ! i) lvec
+  vecForked lvec
+
+/**
  * Creates a linear vector out of this vector.
  */
 pub
@@ -291,15 +303,3 @@ setAtLinear index x ((LinearVector vec) as lvec) =
 pub instance
 countLinearVector : Count (LinearVector a)
 countLinearVector = Count { count: \(LinearVector v) -> count v }
-
-/**
- * Returns a reversed version of this vector.
- * Runtime: O(n)
- */
-pub
-reverse : Vector a -> Vector a
-reverse vec =
-  let lvec = vecLinear []
-  forEachRange 0L (count vec) \i ->
-    addFirst (vec ! i) lvec
-  vecForked lvec

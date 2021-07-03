@@ -18,6 +18,7 @@ pub
 
 /**
  * Returns the head of this list if it's not empty.
+ * Runtime: O(1)
  */
 pub
 head : List a -> Option a
@@ -27,6 +28,7 @@ head = case _ of
 
 /**
  * Returns the tail of this list if it's not empty.
+ * Runtime: O(1)
  */
 pub
 tail : List a -> Option (List a)
@@ -35,13 +37,65 @@ tail = case _ of
   Cons _ xs -> Some xs
 
 /**
+ * Takes the first n elements of this list and returns it.
+ * Runtime: O(n)
+ */
+pub
+take : Int32 -> List a -> List a
+take n = case _ of
+  Nil -> Nil
+  _ if n <= 0 -> Nil
+  Cons x xs -> x :: take (n - 1) xs
+
+/**
+ * Drops the first n elements of this list and returns it.
+ * Runtime: O(n)
+ */
+pub
+drop : Int32 -> List a -> List a
+drop n = case _ of
+  Nil -> Nil
+  l if n <= 0 -> l
+  Cons _ xs -> drop (n - 1) xs
+
+/**
+ * Returns some value at index for this list if it exists or none.
+ * Runtime: O(n)
+ */
+pub
+nth : Int32 -> List a -> Option a
+nth index = drop index >> head
+
+/**
+ * Keeps taking elements of this list while the predicate holds.
+ * Runtime: O(n)
+ */
+// pub
+// takeWhile : (a -> Boolean) -> List a -> List a
+// takeWhile pred = case _ of
+//   Nil -> Nil
+//   (Cons x xs) if pred x -> x :: takeWhile pred xs
+//   _ -> Nil
+
+/**
  * Returns true if this list is empty.
+ * Runtime: O(1)
  */
 pub
 isEmpty : List a -> Boolean
 isEmpty = case _ of
   Nil -> true
   _ -> false
+
+/**
+ * Returns true if the element is inside this list.
+ * Runtime: O(n)
+ */
+pub
+contains : {{ Equals a }} -> a -> List a -> Boolean
+contains {{eq}} elem = case _ of
+  Nil -> false
+  Cons x xs -> if x == elem then true else contains {{eq}} elem xs
 
 /**
  * Maps function f over all elements of this List
@@ -199,7 +253,18 @@ range : Int32 -> Int32 -> List Int32
 range begin end =
   let op = if begin <= end then (_ + 1) else (_ - 1)
   let go b e acc =
-        if b == e
-        then acc
-        else go (op b) e (b :: acc)
+    if b == e then
+      acc
+    else
+      go (op b) e (b :: acc)
   go begin end Nil |> reverse
+
+/**
+ * Creates a list with the same elements as the given vector.
+ * Runtime: O(n)
+ */
+pub
+fromVector : Vector a -> List a
+fromVector = case _ of
+  [] -> Nil
+  [x :: xs] -> x :: fromVector xs

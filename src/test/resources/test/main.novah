@@ -1,0 +1,16 @@
+module main
+
+import novah.test
+import array (arrayTests)
+import computation (computationTests)
+import list (listTests)
+import vector (vectorTests)
+
+pub
+main : Array String -> Unit
+main _ =
+  let tests = vectorTests ++ arrayTests ++ computationTests ++ listTests
+  case runTests tests of
+    Success -> Java.exit 0
+    Failure -> Java.exit 1
+    Error -> Java.exit 2

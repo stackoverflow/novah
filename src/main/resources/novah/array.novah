@@ -18,7 +18,8 @@ foreign import Core:mkBooleanArray(Int32)
 foreign import Core:mkObjectArray(Int32)
 
 import novah.java (toComparator)
-import novah.stream as S
+import novah.option as Option
+import novah.stream as Stream
 
 /**
  * Returns a stream for this array.
@@ -32,7 +33,7 @@ stream arr = arrStream arr
  */
 pub
 fromStream : Stream a -> Array a
-fromStream = S.toArray
+fromStream = Stream.toArray
 
 /**
  * Returns some value at index for this array if it exists or none.
@@ -46,6 +47,38 @@ nth index arr =
   if index < 0 || index >= (int size)
   then None
   else Some (aget index arr)
+
+/**
+ * Returns true if the array is empty.
+ * Runtime: O(1)
+ */
+pub
+isEmpty : Array a -> Boolean
+isEmpty arr = count arr == 0L
+
+/**
+ * Returns the first occurrence of elem in the array for which the predicate returns true.
+ * Runtime: O(n)
+ */
+pub
+find : (a -> Boolean) -> Array a -> Option a
+find pred arr =
+  let atm = atom None
+  forEachBreak 0L (count arr) \i ->
+    let elem = aget (int i) arr
+    if pred elem then
+      reset (Some elem) atm
+      -1
+    else 0
+  deref atm
+
+/**
+ * Returns true if the element is inside the array.
+ * Runtime: O(n)
+ */
+pub
+contains : {{ Equals a }} -> a -> Array a -> Boolean
+contains {{Equals eq}} elem arr = find (\x -> eq.equals x elem) arr |> Option.isSome
 
 /**
  * Runs function f for every element of this array, ignoring the result.
@@ -78,7 +111,7 @@ map f arr =
  */
 pub
 filter : (a -> Boolean) -> Array a -> Array a
-filter f arr = stream arr |> S.filter f |> fromStream
+filter f arr = stream arr |> Stream.filter f |> fromStream
 
 /**
  * Sorts this array according to the elements Ord instance.

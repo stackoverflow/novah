@@ -602,8 +602,7 @@ public class Core {
     
     public static <T> Optional<T> findVector(Function<T, Boolean> pred, List<T> vec) {
         T found = null;
-        for (long i = 0; i < vec.size(); i++) {
-            T elem = vec.nth(i);
+        for (T elem : vec) {
             if (pred.apply(elem)) {
                 found = elem;
                 break;

@@ -1,0 +1,78 @@
+module computation
+
+import novah.computation
+import novah.list (::, List(..))
+import novah.test
+
+vectorTest : Suite
+vectorTest =
+  Test "Vector computations" \_ ->
+    let vec = do.vector
+      let! x = 1 .. 5
+      let! y = 2 .. 6
+      if isEven (x + y) then return (x <> y)
+    vec `shouldBe` [1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4]
+
+setTest : Suite
+setTest =
+  Test "Set computations" \_ ->
+    let s = do.set
+      let! x = #{1, 2, 3, 4}
+      let! y = #{2, 3, 4, 5}
+      if isEven (x + y) then return (x <> y)
+    s `shouldBe` #{1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4}
+
+listTest : Suite
+listTest =
+  Test "List computations" \_ ->
+    let l = do.list
+      let! x = List.range 1 5
+      let! y = List.range 2 6
+      if isEven (x + y) then return (x <> y)
+    l `shouldBe` ((1 <> 3) :: (1 <> 5) :: (2 <> 2) :: (2 <> 4) :: (3 <> 3) :: (3 <> 5) :: (4 <> 2) :: (4 <> 4) :: Nil)
+
+optionTest : Suite
+optionTest =
+  Test "Option computations" \_ ->
+    let opt = do.option
+      let! x = Some 3
+      let! y = Some 5
+      if isEven (x + y) then return (x <> y)
+    opt `shouldBe` Some (3 <> 5)
+
+    let opt2 = do.option
+      let! x = Some 4
+      let! y = Some 5
+      if isEven (x + y) then return (x <> y)
+    opt2 `shouldBe` None
+
+    let opt3 = do.option
+      let! x = None
+      let! y = Some 5
+      if isEven (x + y) then return (x <> y)
+    opt3 `shouldBe` None
+
+resultTest : Suite
+resultTest =
+  Test "Result computation" \_ ->
+    let res = do.result
+      let! x = Ok 3 : Result Int Int
+      let! y = Ok 5
+      return (x + y)
+    res `shouldBe` Ok 8
+
+    let res2 = do.result
+      let! x = Err 3
+      let! y = Ok 5
+      return (x + y)
+    res2 `shouldBe` Err 3
+
+pub
+computationTests : Vector Suite
+computationTests =
+  [ vectorTest
+  , setTest
+  , listTest
+  , optionTest
+  , resultTest
+  ]

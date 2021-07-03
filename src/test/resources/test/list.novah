@@ -1,0 +1,27 @@
+module list
+
+import novah.list (::, List(..))
+import novah.test
+
+readersTest : Suite
+readersTest =
+  Test "List reading functions" \_ ->
+    let l = List.range 1 5
+    List.nth 2 l `shouldBe` Some 3
+    List.head l `shouldBe` Some 1
+    List.tail l `shouldBe` Some (2 :: 3 :: 4 :: Nil)
+    List.isEmpty l `shouldBe` false
+    List.contains 4 l `shouldBe` true
+    List.take 2 l `shouldBe` (1 :: 2 :: Nil)
+    List.drop 2 l `shouldBe` (3 :: 4 :: Nil)
+    count l `shouldBe` 4L
+    (l ++ (5 :: 6 :: Nil)) `shouldBe` List.range 1 7
+
+pub
+listTests : Vector Suite
+listTests =
+  [ readersTest
+  //, writersTest
+  //, traversersTest
+  //, linearTest
+  ]
