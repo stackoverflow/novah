@@ -25,7 +25,6 @@ foreign import String:format(String, Array) as sformat
 foreign import String.equals(String) as equalsString
 foreign import IList.toArray() as vecToArr
 foreign import Vector.concat(IList) as vecConcat
-foreign import Vector.size() as sizeVec
 foreign import Vector.nth(Int64) as nthVec
 foreign import Vector.addFirst(Object) as addFirstVec
 foreign import Vector.addLast(Object) as addLastVec
@@ -33,10 +32,7 @@ foreign import Vector.removeFirst() as remFirst
 foreign import Vector.removeLast() as remLast
 foreign import Vector.set(Int64, Object) as setVec
 foreign import String.concat(String)
-foreign import String.length() as strLength
 foreign import Set.union(ISet)
-foreign import Set.size() as sizeSet
-foreign import Record.size() as recSize
 foreign import Byte.intValue() as bToI
 foreign import Int16.intValue() as sToI
 foreign import Float32.doubleValue() as fToD
@@ -57,7 +53,6 @@ foreign import Math:max(Float64, Float64) as maxDouble
 foreign import Core:not(Boolean) as negate
 foreign import Core:getArray(Int32, Array)
 foreign import Core:setArray(Int32, Object, Array)
-foreign import Core:getArrayLength(Array)
 foreign import Core:equivalentObject(Object, Object)
 foreign import Core:sum(Int32, Int32) as sumInt
 foreign import Core:sum(Int64, Int64) as sumInt64
@@ -581,39 +576,6 @@ divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
 pub
 (^) : Float64 -> Float64 -> Float64
 (^) x y = pow x y
-
-/**
- * The type of things that can be counted / have size.
- */
-pub+
-opaque type Count a = { count : a -> Int64 }
-
-/**
- * Returns the size of this countable value.
- */
-pub
-count : {{ Count a }} -> a -> Int64
-count {{Count s}} x = s.count x
-
-pub instance
-countString : Count String
-countString = Count { count: \s -> strLength s |> int64 }
-
-pub instance
-countVector : Count (Vector a)
-countVector = Count { count: \vec -> sizeVec vec }
-
-pub instance
-countSet : Count (Set a)
-countSet = Count { count: \set -> sizeSet set }
-
-pub instance
-countArray : Count (Array a)
-countArray = Count { count: \arr -> getArrayLength arr |> int64 }
-
-pub instance
-countRecord : Count { | a }
-countRecord = Count { count: \rec -> recSize (unsafeCast rec) }
 
 /**
  * The type of things that have a String representation.

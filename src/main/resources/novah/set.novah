@@ -19,6 +19,7 @@ foreign import Set.contains(Object) as setContains
 foreign import Set.union(ISet) as sunion
 foreign import Set.difference(ISet) as sdifference
 foreign import Set.intersection(ISet) as sintersection
+foreign import Set.size() as sizeSet
 foreign import Core:foldSet(Function, Object, Set)
 
 import novah.stream as S
@@ -55,11 +56,19 @@ remove : a -> Set a -> Set a
 remove x set = setRemove set x
 
 /**
+ * Returns the size of this set.
+ * Runtime: O(1)
+ */
+pub
+size : Set a -> Int64
+size set = sizeSet set
+
+/**
  * Returns true if this set is empty.
  */
 pub
 isEmpty : Set a -> Boolean
-isEmpty set = count set == 0L
+isEmpty set = sizeSet set == 0L
 
 /**
  * Returns some value at index for this set if it exists or none.
@@ -68,8 +77,8 @@ isEmpty set = count set == 0L
 pub
 nth : Int64 -> Set a -> Option a
 nth index set =
-  let size = count set
-  if index < 0L || index >= size then
+  let len = sizeSet set
+  if index < 0L || index >= len then
     None
   else
     Some (setNth set index)
@@ -121,7 +130,7 @@ fromStream st =
 pub
 forEach : Set a -> (a -> Unit) -> Unit
 forEach set f =
-  forEachRange 0L (count set) \idx ->
+  forEachRange 0L (sizeSet set) \idx ->
     f (setNth set idx)
 
 /**
@@ -133,7 +142,7 @@ pub
 map : (a -> b) -> Set a -> Set b
 map f set =
   let lset = setLinear #{}
-  forEachRange 0L (count set) \idx ->
+  forEachRange 0L (sizeSet set) \idx ->
     add (f (setNth set idx)) lset
   setForked lset
 
@@ -145,7 +154,7 @@ pub
 filter : (a -> Boolean) -> Set a -> Set a
 filter pred set =
   let lset = setLinear #{}
-  forEachRange 0L (count set) \idx ->
+  forEachRange 0L (sizeSet set) \idx ->
     let elem = setNth set idx
     when (pred elem) \_ ->
       add elem lset
@@ -160,7 +169,7 @@ pub
 find : (a -> Boolean) -> Set a -> Option a
 find pred set =
   let lset = setLinear #{}
-  forEachBreak 0L (count set) \idx ->
+  forEachBreak 0L (sizeSet set) \idx ->
     let elem = setNth set idx
     if pred elem then
       add elem lset

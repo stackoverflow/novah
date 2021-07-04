@@ -21,8 +21,9 @@ readersTest =
     (aget 2 arr) `shouldBe` 3
     Array.nth 2 arr `shouldBe` Some 3
     Array.isEmpty arr `shouldBe` false
+    Array.isNotEmpty arr `shouldBe` true
     Array.contains 4 arr `shouldBe` true
-    count arr `shouldBe` 4L
+    Array.size arr `shouldBe` 4
 
 writersTest : Suite
 writersTest =

@@ -172,18 +172,15 @@ flatMap f = case _ of
   Nil -> Nil
   Cons x xs -> f x ++ flatMap f xs
 
-countList_ : List a -> Int64
-countList_ = case _ of
-  Nil -> 0L
-  Cons _ xs -> 1L + (countList_ xs)
-
 /**
  * Returns the size of this list.
  * Runtime: O(n)
  */
-pub instance
-countList : Count (List a)
-countList = Count { count: countList_ }
+pub
+size : List a -> Int32
+size = case _ of
+  Nil -> 0
+  Cons _ xs -> 1 + (size xs)
 
 showList_ : Show a -> List a -> String
 showList_ (Show s) l =

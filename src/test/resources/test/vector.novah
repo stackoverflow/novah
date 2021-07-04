@@ -28,7 +28,7 @@ readersTest =
     Vector.takeWhile (_ < 3) vec `shouldBe` [1, 2]
     Vector.dropWhile (_ < 3) vec `shouldBe` [3, 4]
     Vector.tail vec `shouldBe` Some [2, 3, 4]
-    count vec `shouldBe` 4L
+    Vector.size vec `shouldBe` 4L
     (vec ++ [5, 6]) `shouldBe` [1, 2, 3, 4, 5, 6]
 
 writersTest : Suite
@@ -68,7 +68,7 @@ linearTest =
     (Vector.removeFirstLinear lin |> Vector.forked) `shouldBe` [1, 2, 3, 4]
     (Vector.removeLastLinear lin |> Vector.forked) `shouldBe` [1, 2, 3]
     (Vector.setAtLinear 1L 5 lin |> Vector.forked) `shouldBe` [1, 5, 3]
-    count lin `shouldBe` 3L
+    Vector.sizeLinear lin `shouldBe` 3L
 
 pub
 vectorTests : Vector Suite

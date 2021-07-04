@@ -8,6 +8,7 @@ foreign import type novah.Core
 foreign import Vector.linear() as vecLinear
 foreign import Vector.forked() as vecForked
 foreign import Vector.slice(Int64, Int64) as vecSlice
+foreign import Vector.size() as sizeVec
 foreign import Vector:"of"(Array) as fromArray
 foreign import java.util.Arrays:sort(Array, Comparator) as arraySort
 foreign import IList.stream() as vecStream
@@ -50,7 +51,7 @@ fromStream st =
  */
 pub
 forEach : Vector a -> (a -> b) -> Unit
-forEach vec f = forEachRange 0L (count vec) \idx -> f (vec ! idx)
+forEach vec f = forEachRange 0L (sizeVec vec) \idx -> f (vec ! idx)
 
 /**
  * Maps function f over all elements of this vector
@@ -61,7 +62,7 @@ pub
 map : (a -> b) -> Vector a -> Vector b
 map f vec =
   let lvec = vecLinear []
-  forEachRange 0L (count vec) \idx ->
+  forEachRange 0L (sizeVec vec) \idx ->
     addLast (f (vec ! idx)) lvec
   vecForked lvec
 
@@ -73,10 +74,18 @@ map f vec =
 pub
 nth : Int64 -> Vector a -> Option a
 nth index vec =
-  let size = count vec
-  if index < 0L || index >= size
+  let len = sizeVec vec
+  if index < 0L || index >= len
   then None
   else Some (vec ! index)
+
+/**
+ * Returns the size of this vector.
+ * Runtime: O(1)
+ */
+pub
+size : Vector a -> Int64
+size vec = sizeVec vec
 
 /**
  * Returns the first element of this vector if it's not empty.
@@ -92,7 +101,7 @@ first vec = nth 0L vec
  */
 pub
 last : Vector a -> Option a
-last vec = nth (count vec - 1L) vec
+last vec = nth (sizeVec vec - 1L) vec
 
 /**
  * Returns true if this vector is empty.
@@ -100,7 +109,7 @@ last vec = nth (count vec - 1L) vec
  */
 pub
 isEmpty : Vector a -> Boolean
-isEmpty vec = count vec == 0L
+isEmpty vec = sizeVec vec == 0L
 
 /**
  * Returns true if this vector is not empty.
@@ -108,7 +117,7 @@ isEmpty vec = count vec == 0L
  */
 pub
 isNotEmpty : Vector a -> Boolean
-isNotEmpty vec = count vec != 0L
+isNotEmpty vec = sizeVec vec != 0L
 
 /**
  * Returns a vector of the elements that match the given predicate.
@@ -118,7 +127,7 @@ pub
 filter : (a -> Boolean) -> Vector a -> Vector a
 filter f vec =
   let lvec = vecLinear []
-  forEachRange 0L (count vec) \idx ->
+  forEachRange 0L (sizeVec vec) \idx ->
     let elem = vec ! idx
     when (f elem) \_ ->
       addLast elem lvec
@@ -207,7 +216,7 @@ take n = slice 0L n
  */
 pub
 drop : Int64 -> Vector a -> Vector a
-drop n vec = slice n (count vec) vec
+drop n vec = slice n (sizeVec vec) vec
 
 /**
  * Keeps taking elements of this vector while the predicate holds.
@@ -291,7 +300,7 @@ pub
 reverse : Vector a -> Vector a
 reverse vec =
   let lvec = vecLinear []
-  forEachRange 0L (count vec) \i ->
+  forEachRange 0L (sizeVec vec) \i ->
     addFirst (vec ! i) lvec
   vecForked lvec
 
@@ -370,6 +379,10 @@ setAtLinear index x ((LinearVector vec) as lvec) =
   setAt index x vec
   lvec
 
+/**
+ * Returns the size of this linear vector.
+ * Runtime: O(1)
+ */
 pub instance
-countLinearVector : Count (LinearVector a)
-countLinearVector = Count { count: \(LinearVector v) -> count v }
+sizeLinear : LinearVector a -> Int64
+sizeLinear (LinearVector vec) = sizeVec vec
