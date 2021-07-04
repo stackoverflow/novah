@@ -13,6 +13,7 @@ readersTest =
     List.nth 2 l `shouldBe` Some 3
     List.head l `shouldBe` Some 1
     List.tail l `shouldBe` Some (fv [2, 3, 4])
+    List.singleton 5 `shouldBe` (5 :: Nil)
     List.isEmpty l `shouldBe` false
     List.isNotEmpty l `shouldBe` true
     List.contains 4 l `shouldBe` true
@@ -35,11 +36,17 @@ traversersTest : Suite
 traversersTest =
   Test "List traversing functions" \_ ->
     let l = fv [1, 2, 3]
+    let revSort : {{ Ord a }} -> a -> a -> Ordering
+        revSort {{ord}} x y = case compare x y of
+      GT -> LT
+      LT -> GT
+      EQ -> EQ
     List.map (_ + 1) l `shouldBe` fv [2, 3, 4]
     List.filter isOdd l `shouldBe` fv [1, 3]
     List.find isEven l `shouldBe` Some 2
     List.find (_ == 11) l `shouldBe` None
-    //List.sort [4, 1, 3, 5, 2] `shouldBe` [1, 2, 3, 4, 5]
+    List.sortBy revSort (fv [4, 1, 3, 5, 2]) `shouldBe` fv [5, 4, 3, 2, 1]
+    List.sort (fv [4, 1, 3, 5, 2]) `shouldBe` fv [1, 2, 3, 4, 5]
     List.foldl (-) 0 l `shouldBe` -6
     List.foldr (-) 0 l `shouldBe` 2
     List.reduce (+) l `shouldBe` Some 6

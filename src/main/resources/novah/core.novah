@@ -775,6 +775,13 @@ pub+
 type Ord a = Ord (Equals a) { compare : a -> a -> Ordering }
 
 /**
+ * Returns the result of comparing two Ord instances.
+ */
+pub
+compare : {{ Ord a }} -> a -> a -> Ordering
+compare {{Ord _ o}} x y = o.compare x y
+
+/**
  * Returns true if x is greater than y.
  */
 pub

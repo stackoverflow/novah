@@ -134,7 +134,7 @@ find : (a -> Boolean) -> Vector a -> Option a
 find pred vec = findVector pred vec |> O.fromOptional
 
 /**
- * Sorts this vector according to the elements Ord instance.
+ * Sorts this vector according to the element's Ord instance.
  */
 pub
 sort : {{ Ord a }} -> Vector a -> Vector a

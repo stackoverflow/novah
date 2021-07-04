@@ -37,6 +37,14 @@ tail = case _ of
   Cons _ xs -> Some xs
 
 /**
+ * Produces a list with a single element.
+ * Runtime: O(1)
+ */
+pub
+singleton : a -> List a
+singleton x = x :: Nil
+
+/**
  * Takes the first n elements of this list and returns it.
  * Runtime: O(n)
  */
@@ -296,3 +304,55 @@ fromVector : Vector a -> List a
 fromVector = case _ of
   [] -> Nil
   [x :: xs] -> x :: fromVector xs
+
+// sort implementation copied from https://hackage.haskell.org/package/base-4.15.0.0/docs/src/Data-OldList.html#sort
+
+/**
+ * Sorts this list according to the comparing function.
+ * Runtime: O(n log(n))
+ */
+pub
+sortBy : (a -> a -> Ordering) -> List a -> List a
+sortBy cmp =
+  let sequences ascending descending = case _ of
+    Cons a (Cons b xs) ->
+      if a `cmp` b == GT then
+        descending ascending b (singleton a) xs
+      else
+        ascending b (a :: _) xs
+    xs -> singleton xs
+  
+  let descending ascending x xs = case _ of
+    Cons b bs if x `cmp` b == GT -> descending ascending b (x :: xs) bs
+    bs -> (x :: xs) :: sequences ascending descending bs
+  
+  let ascending x xs = case _ of
+    Cons b bs if x `cmp` b != GT -> ascending b (\ys -> xs (x :: ys)) bs
+    bs -> (singleton x |> xs) :: sequences ascending descending bs
+  
+  let merge = case _, _ of
+    (Cons x xss) as xs, (Cons y yss) as ys ->
+      if x `cmp` y == GT then
+        y :: merge xs yss
+      else
+        x :: merge xss ys
+    Nil, ys -> ys
+    xs, Nil -> xs
+
+  let mergePairs = case _ of
+    Cons a (Cons b xs) -> merge a b :: mergePairs xs
+    xs -> xs
+
+  let mergeAll = case _ of
+    Cons x Nil -> x
+    xs -> mergeAll (mergePairs xs)
+  
+  mergeAll << (sequences ascending descending)
+
+/**
+ * Sorts this list according to the element's Ord instance.
+ * Runtime: O(n log(n))
+ */
+pub
+sort : {{ Ord a }} -> List a -> List a
+sort {{Ord _ ord}} = sortBy ord.compare

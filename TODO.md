@@ -20,3 +20,4 @@
 - [ ] Report error on unexisting import alias
 - [ ] Revamp shadowed variables and types (not working right now)
 - [ ] Fix indentation at start of declaration
+- [ ] Mutually recursive let definitions?
