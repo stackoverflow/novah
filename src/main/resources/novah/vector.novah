@@ -9,9 +9,10 @@ foreign import Vector.linear() as vecLinear
 foreign import Vector.forked() as vecForked
 foreign import Vector.slice(Int64, Int64) as vecSlice
 foreign import Vector.size() as sizeVec
-foreign import Vector:"of"(Array) as fromArray
+foreign import Vector:"of"(Array) as vecFromArray
 foreign import java.util.Arrays:sort(Array, Comparator) as arraySort
 foreign import IList.stream() as vecStream
+foreign import IList.toArray() as vecToArray
 foreign import Core:foldVector(Function, Object, Vector)
 foreign import Core:findVector(Function, Vector)
 
@@ -134,18 +135,25 @@ find : (a -> Boolean) -> Vector a -> Option a
 find pred vec = findVector pred vec |> O.fromOptional
 
 /**
+ * Sorts this vector according to the comparing function.
+ */
+pub
+sortBy : (a -> a -> Ordering) -> Vector a -> Vector a
+sortBy cmp = case _ of
+  [] -> []
+  [_] as vec -> vec
+  vec ->
+    let arr = toArray vec
+    let comp = toComparator cmp
+    arraySort arr (unsafeCast comp)
+    vecFromArray arr
+
+/**
  * Sorts this vector according to the element's Ord instance.
  */
 pub
 sort : {{ Ord a }} -> Vector a -> Vector a
-sort {{ord}} = case _ of
-  [] -> []
-  [_] as vec -> vec
-  vec ->
-    let arr = arrayOf vec
-    let comp = toComparator ord
-    arraySort arr (unsafeCast comp)
-    fromArray arr
+sort {{Ord _ ord}} = sortBy ord.compare
 
 /**
  * An alias to `addFirst`.
@@ -295,6 +303,22 @@ reverse vec =
   forEachRange 0L (sizeVec vec) \i ->
     addFirst (vec ! i) lvec
   vecForked lvec
+
+/**
+ * Converts this vector into an array.
+ * Runtime: O(n)
+ */
+pub
+toArray : Vector a -> Array a
+toArray vec = unsafeCast (vecToArray (unsafeCast vec))
+
+/**
+ * Converts this array into a vector.
+ * Runtime: O(n)
+ */
+pub
+fromArray : Array a -> Vector a
+fromArray arr = vecFromArray arr
 
 /**
  * Creates a linear (mutable) version of the given vector and applies the function to it.

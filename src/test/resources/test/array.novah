@@ -3,7 +3,7 @@ module array
 import novah.test
 
 a : Vector a -> Array a
-a = arrayOf
+a = Vector.toArray
 
 streamTest : Suite
 streamTest =
@@ -41,8 +41,13 @@ traversersTest =
     Array.map (_ + 1) arr `shouldBe` a [2, 3, 4]
     Array.filter isOdd arr `shouldBe` a [1, 3]
     Array.find isEven arr `shouldBe` Some 2
-    Array.sort (a [4, 1, 3, 5, 2]) `shouldBe` a [1, 2, 3, 4, 5]
+    let sarr = a [4, 1, 3, 5, 2]
+    Array.sort sarr
+    sarr `shouldBe` a [1, 2, 3, 4, 5]
     Array.reverse arr `shouldBe` a [3, 2, 1]
+    let rarr = a [1, 2, 3, 4]
+    Array.reversed rarr
+    rarr `shouldBe` a [4, 3, 2, 1]
 
 pub
 arrayTests : Vector Suite

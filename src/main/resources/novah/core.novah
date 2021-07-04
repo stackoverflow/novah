@@ -339,7 +339,7 @@ removeLast vec = remLast vec
  * Runtime: O(1)
  */
 pub
-aget : Int -> Array a -> a
+aget : Int32 -> Array a -> a
 aget index arr = getArray index arr
 
 /**
@@ -348,7 +348,7 @@ aget index arr = getArray index arr
  * Runtime: O(1)
  */
 pub
-aset : Int -> a -> Array a -> Unit
+aset : Int32-> a -> Array a -> Unit
 aset index x arr = setArray index x arr
 
 /**
@@ -358,16 +358,8 @@ aset index x arr = setArray index x arr
  * Runtime: O(1)
  */
 pub
-aupdate : Int -> (a -> a) -> Array a -> Unit
+aupdate : Int32 -> (a -> a) -> Array a -> Unit
 aupdate index updateFn arr = setArray index (updateFn (getArray index arr)) arr
-
-/**
- * Converts a Vector of some type `a` to an Array of `a`.
- * Runtime: O(n)
- */
-pub
-arrayOf : Vector a -> Array a
-arrayOf vec = unsafeCast (vecToArr (unsafeCast vec))
 
 /**
  * Returns a formatted string using the specified format string and arguments.
@@ -375,7 +367,7 @@ arrayOf vec = unsafeCast (vecToArr (unsafeCast vec))
  */
 pub
 format : String -> Vector a -> String
-format str vec = sformat str (unsafeCast (arrayOf vec))
+format str vec = sformat str (unsafeCast (vecToArr (unsafeCast vec)))
 
 /**
  * Prints the formated string to stdout.
@@ -1214,7 +1206,7 @@ forEachRange begin end f = eachRange begin end 1 f
  * Executes the function starting at begin (inclusive) ending in end (exclusive) with the specified step.
  */
 pub
-forEachStep : Int64 -> Int64 -> Int -> (Int64 -> a) -> Unit
+forEachStep : Int64 -> Int64 -> Int32 -> (Int64 -> a) -> Unit
 forEachStep begin end step f = eachRange begin end step f
 
 /**

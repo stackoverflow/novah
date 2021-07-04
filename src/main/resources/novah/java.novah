@@ -86,12 +86,12 @@ exit : Int32 -> Unit
 exit status = jExit status
 
 /**
- * Returns a `java.util.Comparator` based on this Ord instance.
+ * Returns a `java.util.Comparator` based on this ordering function.
  */
 pub
-toComparator : Ord a -> Comparator a
-toComparator (Ord _ cmp) =
-  makeComparator \x y -> case cmp.compare x y of
+toComparator : (a -> a -> Ordering) -> Comparator a
+toComparator cmp =
+  makeComparator \x y -> case cmp x y of
     LT -> -1
     EQ -> 0
     GT -> 1

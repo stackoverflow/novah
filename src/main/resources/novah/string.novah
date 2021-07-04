@@ -21,6 +21,8 @@ foreign import String.split(String) as ssplit
 foreign import String:join(CharSequence, Array) as sjoin
 foreign import Vector:"of"(Array) as fromArray
 
+import novah.vector as Vector
+
 /**
  * Returns true if this string is empty or only contains whitespace codepoints.
  */
@@ -96,7 +98,7 @@ getBytes str = sgetBytes str
  */
 pub
 join : String -> Vector String -> String
-join delimiter vec = sjoin (unsafeCast delimiter) (unsafeCast (arrayOf vec))
+join delimiter vec = sjoin (unsafeCast delimiter) (unsafeCast (Vector.toArray vec))
 
 /**
  * Returns this string with all leading and trailing white spaces removed.

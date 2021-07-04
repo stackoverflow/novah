@@ -253,7 +253,7 @@ fun Expr.show(): String = when (this) {
         "case ${exps.joinToString { it.show() }} of\n  $cs"
     }
     is Expr.Ann -> "${exp.show()} : ${annType.show()}"
-    is Expr.Do -> "do\n  " + exps.joinToString("\n  ") { it.show() }
+    is Expr.Do -> "\n  " + exps.joinToString("\n  ") { it.show() }
     is Expr.NativeFieldGet -> name
     is Expr.NativeFieldSet -> name
     is Expr.NativeMethod -> name
