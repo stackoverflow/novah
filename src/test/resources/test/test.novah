@@ -1,13 +1,11 @@
 module test
 
-import novah.list (::, List(..))
-import novah.computation
-
-foo = do.vector
-  let! x = 1 .. 5
-  let! y = 7 .. 14
-  if isOdd (x + y) then return (x <> y)
+foo : (Int -> Boolean) -> Vector Int -> Int
+foo pred vec = case vec of
+  [] -> 0
+  [x] if pred x -> x
+  _ -> -1
 
 pub
 main : Array String -> Unit
-main _ = println foo
+main _ = foo (_ > 1) [1, 2, 3, 4] |> println

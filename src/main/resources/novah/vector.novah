@@ -7,6 +7,7 @@ foreign import type novah.Core
 
 foreign import Vector.linear() as vecLinear
 foreign import Vector.forked() as vecForked
+foreign import Vector.slice(Int64, Int64) as vecSlice
 foreign import Vector:"of"(Array) as fromArray
 foreign import java.util.Arrays:sort(Array, Comparator) as arraySort
 foreign import IList.stream() as vecStream
@@ -102,6 +103,14 @@ isEmpty : Vector a -> Boolean
 isEmpty vec = count vec == 0L
 
 /**
+ * Returns true if this vector is not empty.
+ * Runtime: O(1)
+ */
+pub
+isNotEmpty : Vector a -> Boolean
+isNotEmpty vec = count vec != 0L
+
+/**
  * Returns a vector of the elements that match the given predicate.
  * Runtime: O(n)
  */
@@ -116,7 +125,7 @@ filter f vec =
   vecForked lvec
 
 /**
- * Returns the first occurrence of elem in the vector for which the predicate returns true.
+ * Returns the first occurrence of elem in this vector for which the predicate returns true.
  * Runtime: O(n)
  */
 pub
@@ -164,6 +173,67 @@ contains : {{ Equals a }} -> a -> Vector a -> Boolean
 contains {{Equals eq}} elem vec = case find (\e -> eq.equals e elem) vec of
   Some _ -> true
   None -> false
+
+/**
+ * Returns the tail of this vector if it's not empty.
+ * Runtime: ~O(1)
+ */
+pub
+tail : Vector a -> Option (Vector a)
+tail = case _ of
+  [] -> None
+  [_ :: xs] -> Some xs
+
+/**
+ * Returns a slice of this vector starting at from (inclusive)
+ * and ending at to (exclusive).
+ * Runtime: ~O(1)
+ */
+pub
+slice : Int64 -> Int64 -> Vector a -> Vector a
+slice from to vec = vecSlice vec from to
+
+/**
+ * Takes the first n elements of this vector and returns it.
+ * Runtime: ~O(1)
+ */
+pub
+take : Int64 -> Vector a -> Vector a
+take n = slice 0L n
+
+/**
+ * Drops the first n elements of this vector and returns it.
+ * Runtime: ~O(1)
+ */
+pub
+drop : Int64 -> Vector a -> Vector a
+drop n vec = slice n (count vec) vec
+
+/**
+ * Keeps taking elements of this vector while the predicate holds.
+ * Runtime: O(n)
+ */
+pub
+takeWhile : (a -> Boolean) -> Vector a -> Vector a
+takeWhile pred vec =
+  let v = vecLinear vec
+  let res = vecLinear []
+  while isNotEmpty v && pred (v ! 0L) do
+    addLast (v ! 0L) res
+    removeFirst v
+  vecForked res
+
+/**
+ * Keeps removing elements from this vector while the predicate holds.
+ * Runtime: O(n)
+ */
+pub
+dropWhile : (a -> Boolean) -> Vector a -> Vector a
+dropWhile pred vec =
+  let v = vecLinear vec
+  while isNotEmpty v && pred (v ! 0L) do
+    removeFirst v
+  vecForked v
 
 /**
  * Reduces this vector to a single value according to the reducing function.
