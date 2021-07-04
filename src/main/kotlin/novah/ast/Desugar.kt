@@ -153,6 +153,7 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.ImplicitVar -> Expr.ImplicitVar(name, span, if (name in locals) null else imports[fullname()])
         is SExpr.Operator -> {
+            unusedVars.remove(name)
             usedVars += name
             Expr.Var(name, span, imports[fullname()])
         }
