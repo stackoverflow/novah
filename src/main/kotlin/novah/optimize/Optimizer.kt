@@ -490,8 +490,10 @@ class Optimizer(private val ast: CModule) {
                 val guarded = varToLet(vars, case.guard.convert(locals + introducedVariables))
                 val guardCond = if (cond == tru) guarded
                 else Expr.OperatorApp("&&", listOf(cond, guarded), boolType, case.guard.span)
-                // not sure the variables are visible in `caseExpr` better test
-                guardCond to caseExp
+                // we have to duplicate the variable definitions here because
+                // they are not visible in the expression
+                val expr = varToLet(vars, caseExp)
+                guardCond to expr
             } else {
                 val expr = varToLet(vars, caseExp)
                 cond to expr
