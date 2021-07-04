@@ -5,7 +5,6 @@ import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil
 import java.io.File
 import java.io.IOException
-import java.lang.RuntimeException
 import java.util.concurrent.TimeUnit
 
 class NovahSpec : StringSpec({
@@ -38,6 +37,5 @@ class NovahSpec : StringSpec({
     "run standard library tests" {
         compileStdlibTests()
         runStdlibTests() shouldBe 0
-        RuntimeException().stackTrace[0].lineNumber
     }
 })

@@ -650,7 +650,7 @@ class Parser(
 
         var type: Type? = null
         if (iter.peek().value is Colon) {
-            type = withOffside {
+            type = withOffside(ident.offside() + 1) {
                 iter.next()
                 parseType()
             }
