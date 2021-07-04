@@ -61,14 +61,11 @@ linearTest : Suite
 linearTest =
   Test "Linear vector functions" \_ ->
     let vec = [1, 2, 3]
-    let lin = Vector.linear vec
-    (Vector.linear vec |> Vector.forked) `shouldBe` vec
-    (Vector.addFirstLinear 0 lin |> Vector.forked) `shouldBe` [0, 1, 2, 3]
-    (Vector.addLastLinear 4 lin |> Vector.forked) `shouldBe` [0, 1, 2, 3, 4]
-    (Vector.removeFirstLinear lin |> Vector.forked) `shouldBe` [1, 2, 3, 4]
-    (Vector.removeLastLinear lin |> Vector.forked) `shouldBe` [1, 2, 3]
-    (Vector.setAtLinear 1L 5 lin |> Vector.forked) `shouldBe` [1, 5, 3]
-    Vector.sizeLinear lin `shouldBe` 3L
+    let lin = Vector.withLinear vec \v ->
+                addFirst 0 v
+                addLast 4 v
+                setAt 2L 5 v
+    lin `shouldBe` [0, 1, 5, 3, 4]
 
 pub
 vectorTests : Vector Suite

@@ -20,14 +20,6 @@ import novah.stream as S
 import novah.option as O
 
 /**
- * A linear (mutable) version of a vector.
- * Should be used in an encapsulated function to build a vector
- * avoiding the allocations of a normal vector before forking it again.
- */
-pub
-opaque type LinearVector a = Vector a
-
-/**
  * Returns a stream for this vector.
  */
 pub
@@ -305,84 +297,19 @@ reverse vec =
   vecForked lvec
 
 /**
- * Creates a linear vector out of this vector.
- */
-pub
-linear : Vector a -> LinearVector a
-linear vec = LinearVector (vecLinear vec)
-
-/**
- * Forks this linear vector into a vector.
- */
-pub
-forked : LinearVector a -> Vector a
-forked (LinearVector vec) = vecForked vec
-
-/**
  * Creates a linear (mutable) version of the given vector and applies the function to it.
  * Returns a forked (persistent) version of the returned linear vector.
  * This function should be used when lots of expensive mutating operations have to be run on a vector
  * and can be seen as a builder for the resulting vector.
+ * All functions that alter vectors like `addFirst`, `setAt`, `removeLast`, etc.
+ * will mutate a linear vector.
+ * Ex:
+ *   withLinear [1, 2, 3] \vec ->
+ *     addFirst 0 vec
+ *     addLast 4 vec
+ *
+ *   -> [0, 1, 2, 3, 4]
  */
 pub
-withLinear : Vector a -> (LinearVector a -> LinearVector a) -> Vector a
-withLinear vec f = linear vec |> f |> forked
-
-/**
- * Appends x to the beginning of this vector, mutating it.
- * Runtime: ~O(1)
- */
-pub
-addFirstLinear : a -> LinearVector a -> LinearVector a
-addFirstLinear x ((LinearVector vec) as lvec) =
-  addFirst x vec
-  lvec
-
-/**
- * Appends x to the end of this vector, mutating it.
- * Runtime: ~O(1)
- */
-pub
-addLastLinear : a -> LinearVector a -> LinearVector a
-addLastLinear x ((LinearVector vec) as lvec) =
-  addLast x vec
-  lvec
-
-/**
- * Removes the first element of this vector, mutating it.
- * Runtime: ~O(1)
- */
-pub
-removeFirstLinear : LinearVector a -> LinearVector a
-removeFirstLinear ((LinearVector vec) as lvec) =
-  removeFirst vec
-  lvec
-
-/**
- * Removes the last element of this vector, mutating it.
- * Runtime: ~O(1)
- */
-pub
-removeLastLinear : LinearVector a -> LinearVector a
-removeLastLinear ((LinearVector vec) as lvec) =
-  removeLast vec
-  lvec
-
-/**
- * Sets the value of this vector at the specified index to x, mutating it.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: ~O(1)
- */
-pub
-setAtLinear : Int64 -> a -> LinearVector a -> LinearVector a
-setAtLinear index x ((LinearVector vec) as lvec) =
-  setAt index x vec
-  lvec
-
-/**
- * Returns the size of this linear vector.
- * Runtime: O(1)
- */
-pub instance
-sizeLinear : LinearVector a -> Int64
-sizeLinear (LinearVector vec) = sizeVec vec
+withLinear : Vector a -> (Vector a -> Vector a) -> Vector a
+withLinear vec f = vecForked (f (vecLinear vec))
