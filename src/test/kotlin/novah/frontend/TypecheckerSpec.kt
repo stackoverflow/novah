@@ -258,12 +258,12 @@ class TypecheckerSpec : StringSpec({
 
     "Aliased operators are correctly compiled" {
         val code = """
-            import novah.list as L
+            import novah.linkedList as L
             
             x = 1 L.:: L.Nil
         """.module()
 
         val res = TestUtil.compileCode(code).env.decls
-        res["x"]?.type?.simpleName() shouldBe "List Int32"
+        res["x"]?.type?.simpleName() shouldBe "LinkedList Int32"
     }
 })

@@ -135,7 +135,6 @@ class Parser(
 
             if (!aliased.contains(ARRAY_MODULE)) imports += arrayImport
             if (!aliased.contains(JAVA_MODULE)) imports += javaImport
-            if (!aliased.contains(LIST_MODULE)) imports += listImport
             if (!aliased.contains(MATH_MODULE)) imports += mathImport
             if (!aliased.contains(OPTION_MODULE)) imports += optionImport
             if (!aliased.contains(SET_MODULE)) imports += setImport

@@ -1,7 +1,8 @@
 module computation
 
 import novah.computation
-import novah.list (::, List(..))
+import novah.linkedList (::, LinkedList(..))
+import novah.linkedList as LinkedList
 import novah.test
 
 vectorTest : Suite
@@ -24,10 +25,10 @@ setTest =
 
 listTest : Suite
 listTest =
-  Test "List computations" \_ ->
-    let l = do.list
-      let! x = List.range 1 5
-      let! y = List.range 2 6
+  Test "LinkedList computations" \_ ->
+    let l = do.linkedList
+      let! x = LinkedList.range 1 5
+      let! y = LinkedList.range 2 6
       if isEven (x + y) then return (x <> y)
     l `shouldBe` ((1 <> 3) :: (1 <> 5) :: (2 <> 2) :: (2 <> 4) :: (3 <> 3) :: (3 <> 5) :: (4 <> 2) :: (4 <> 4) :: Nil)
 

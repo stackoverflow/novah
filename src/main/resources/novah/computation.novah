@@ -2,8 +2,8 @@ module novah.computation
 
 foreign import type java.util.stream.Stream
 
-import novah.list (List(..))
-import novah.list as List
+import novah.linkedList (LinkedList(..))
+import novah.linkedList as LinkedList
 import novah.set as Set
 import novah.vector as Vector
 
@@ -40,17 +40,17 @@ set =
   }
 
 /**
- * The builder for list computation expressions.
- * Allows to use `do.list` syntax for list comprehensions.
+ * The builder for linked list computation expressions.
+ * Allows to use `do.linkedList` syntax for linked list comprehensions.
  */
 pub
-list :
-  { bind : List a -> (a -> List b) -> List b
-  , return : c -> List c
-  , zero : List d
+linkedList :
+  { bind : LinkedList a -> (a -> LinkedList b) -> LinkedList b
+  , return : c -> LinkedList c
+  , zero : LinkedList d
   }
-list =
-  { bind: flip List.flatMap
+linkedList =
+  { bind: flip LinkedList.flatMap
   , return: \x -> Cons x Nil
   , zero: Nil
   }

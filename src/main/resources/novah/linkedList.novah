@@ -1,19 +1,19 @@
-module novah.list
+module novah.linkedList
 
 /**
  * An immutable linked list.
- * A vector should almost always be prefered over this type as vectors make for good linked lists.
- * Most list operations are O(n) like `count`.
+ * A List should almost always be prefered over this type as lists make for good linked lists.
+ * Most list operations are O(n) like `size`.
  */
 pub+
-type List a = Nil | Cons a (List a)
+type LinkedList a = Nil | Cons a (LinkedList a)
 
 /**
  * Appends the element as the new head of the list.
  * An alias to the Cons constructor of a list.
  */
 pub
-(::) : a -> List a -> List a
+(::) : a -> LinkedList a -> LinkedList a
 (::) = Cons
 
 /**
@@ -21,7 +21,7 @@ pub
  * Runtime: O(1)
  */
 pub
-head : List a -> Option a
+head : LinkedList a -> Option a
 head = case _ of
   Nil -> None
   Cons x _ -> Some x
@@ -31,7 +31,7 @@ head = case _ of
  * Runtime: O(1)
  */
 pub
-tail : List a -> Option (List a)
+tail : LinkedList a -> Option (LinkedList a)
 tail = case _ of
   Nil -> None
   Cons _ xs -> Some xs
@@ -41,7 +41,7 @@ tail = case _ of
  * Runtime: O(1)
  */
 pub
-singleton : a -> List a
+singleton : a -> LinkedList a
 singleton x = x :: Nil
 
 /**
@@ -49,7 +49,7 @@ singleton x = x :: Nil
  * Runtime: O(n)
  */
 pub
-take : Int32 -> List a -> List a
+take : Int32 -> LinkedList a -> LinkedList a
 take n = case _ of
   Nil -> Nil
   _ if n <= 0 -> Nil
@@ -60,7 +60,7 @@ take n = case _ of
  * Runtime: O(n)
  */
 pub
-drop : Int32 -> List a -> List a
+drop : Int32 -> LinkedList a -> LinkedList a
 drop n = case _ of
   Nil -> Nil
   l if n <= 0 -> l
@@ -71,7 +71,7 @@ drop n = case _ of
  * Runtime: O(n)
  */
 pub
-nth : Int32 -> List a -> Option a
+nth : Int32 -> LinkedList a -> Option a
 nth index = drop index >> head
 
 /**
@@ -79,7 +79,7 @@ nth index = drop index >> head
  * Runtime: O(n)
  */
 pub
-takeWhile : (a -> Boolean) -> List a -> List a
+takeWhile : (a -> Boolean) -> LinkedList a -> LinkedList a
 takeWhile pred = case _ of
   Nil -> Nil
   (Cons x xs) if pred x -> x :: takeWhile pred xs
@@ -90,7 +90,7 @@ takeWhile pred = case _ of
  * Runtime: O(n)
  */
 pub
-dropWhile : (a -> Boolean) -> List a -> List a
+dropWhile : (a -> Boolean) -> LinkedList a -> LinkedList a
 dropWhile pred = case _ of
   Nil -> Nil
   (Cons x xs) if pred x -> dropWhile pred xs
@@ -101,7 +101,7 @@ dropWhile pred = case _ of
  * Runtime: O(1)
  */
 pub
-isEmpty : List a -> Boolean
+isEmpty : LinkedList a -> Boolean
 isEmpty = case _ of
   Nil -> true
   _ -> false
@@ -111,7 +111,7 @@ isEmpty = case _ of
  * Runtime: O(1)
  */
 pub
-isNotEmpty : List a -> Boolean
+isNotEmpty : LinkedList a -> Boolean
 isNotEmpty = case _ of
   Nil -> false
   _ -> true
@@ -121,7 +121,7 @@ isNotEmpty = case _ of
  * Runtime: O(n)
  */
 pub
-contains : {{ Equals a }} -> a -> List a -> Boolean
+contains : {{ Equals a }} -> a -> LinkedList a -> Boolean
 contains {{eq}} elem = case _ of
   Nil -> false
   Cons x xs -> if x == elem then true else contains {{eq}} elem xs
@@ -132,7 +132,7 @@ contains {{eq}} elem = case _ of
  * Runtime: O(n)
  */
 pub
-map : (a -> b) -> List a -> List b
+map : (a -> b) -> LinkedList a -> LinkedList b
 map f = case _ of
   Nil -> Nil
   Cons x xs -> f x :: map f xs
@@ -142,7 +142,7 @@ map f = case _ of
  * Runtime: O(n)
  */
 pub
-forEach : List a -> (a -> b) -> Unit
+forEach : LinkedList a -> (a -> b) -> Unit
 forEach list f =
   case list of
     Nil -> ()
@@ -155,7 +155,7 @@ forEach list f =
  * Runtime: O(n)
  */
 pub
-filter : (a -> Boolean) -> List a -> List a
+filter : (a -> Boolean) -> LinkedList a -> LinkedList a
 filter f = case _ of
   Nil -> Nil
   Cons x xs -> if f x then x :: filter f xs else filter f xs
@@ -165,7 +165,7 @@ filter f = case _ of
  * Runtime: O(n)
  */
 pub
-find : (a -> Boolean) -> List a -> Option a
+find : (a -> Boolean) -> LinkedList a -> Option a
 find pred = case _ of
   Nil -> None
   Cons x xs -> if pred x then Some x else find pred xs
@@ -175,7 +175,7 @@ find pred = case _ of
  * Runtime: O(n)
  */
 pub
-flatMap : (a -> List b) -> List a -> List b
+flatMap : (a -> LinkedList b) -> LinkedList a -> LinkedList b
 flatMap f = case _ of
   Nil -> Nil
   Cons x xs -> f x ++ flatMap f xs
@@ -185,12 +185,12 @@ flatMap f = case _ of
  * Runtime: O(n)
  */
 pub
-size : List a -> Int32
+size : LinkedList a -> Int32
 size = case _ of
   Nil -> 0
   Cons _ xs -> 1 + (size xs)
 
-showList_ : Show a -> List a -> String
+showList_ : Show a -> LinkedList a -> String
 showList_ (Show s) l =
   let innerShow = case _ of
         Nil -> "Nil"
@@ -200,10 +200,10 @@ showList_ (Show s) l =
     (Cons _ _) as list -> "(" ++ innerShow list ++ ")"
 
 pub instance
-showList : {{ Show a }} -> Show (List a)
+showList : {{ Show a }} -> Show (LinkedList a)
 showList {{s}} = Show { show: showList_ s }
 
-eqList_ : Equals a -> List a -> List a -> Boolean
+eqList_ : Equals a -> LinkedList a -> LinkedList a -> Boolean
 eqList_ ((Equals eq) as equals) = case _, _ of
   Nil, Nil -> true
   Nil, _ -> false
@@ -211,10 +211,10 @@ eqList_ ((Equals eq) as equals) = case _, _ of
   Cons x xs, Cons y ys -> eq.equals x y && eqList_ equals xs ys
 
 pub instance
-eqList : {{ Equals a }} -> Equals (List a)
+eqList : {{ Equals a }} -> Equals (LinkedList a)
 eqList {{eq}} = Equals { equals: eqList_ eq }
 
-concatList_ : List a -> List a -> List a
+concatList_ : LinkedList a -> LinkedList a -> LinkedList a
 concatList_ l1 l2 =
   let addTo to = case _ of
         Nil -> to
@@ -222,7 +222,7 @@ concatList_ l1 l2 =
   addTo Nil l1 |> addTo l2
 
 pub instance
-concatList : Concat (List a)
+concatList : Concat (LinkedList a)
 concatList = Concat { concat: concatList_ }
 
 /**
@@ -230,7 +230,7 @@ concatList = Concat { concat: concatList_ }
  * Runtime: O(n)
  */
 pub
-reverse : List a -> List a
+reverse : LinkedList a -> LinkedList a
 reverse list =
   let addTo to = case _ of
         Nil -> to
@@ -243,7 +243,7 @@ reverse list =
  * Runtime: O(n)
  */
 pub
-foldl : (b -> a -> b) -> b -> List a -> b
+foldl : (b -> a -> b) -> b -> LinkedList a -> b
 foldl f =
   let go b = case _ of
         Nil -> b
@@ -256,7 +256,7 @@ foldl f =
  * Runtime: O(n)
  */
 pub
-foldr : (a -> b -> b) -> b -> List a -> b
+foldr : (a -> b -> b) -> b -> LinkedList a -> b
 foldr f init = foldl (flip f) init << reverse
 
 /**
@@ -264,7 +264,7 @@ foldr f init = foldl (flip f) init << reverse
  * Runtime: O(n)
  */
 pub
-flatten : List (List a) -> List a
+flatten : LinkedList (LinkedList a) -> LinkedList a
 flatten = case _ of
   Nil -> Nil
   Cons x xs -> x ++ flatten xs
@@ -275,7 +275,7 @@ flatten = case _ of
  * Runtime: O(n)
  */
 pub
-reduce : (a -> a -> a) -> List a -> Option a
+reduce : (a -> a -> a) -> LinkedList a -> Option a
 reduce f = case _ of
   Nil -> None
   Cons x xs -> Some (foldl f x xs)
@@ -285,7 +285,7 @@ reduce f = case _ of
  * Runtime: O(n)
  */
 pub
-range : Int32 -> Int32 -> List Int32
+range : Int32 -> Int32 -> LinkedList Int32
 range begin end =
   let op = if begin <= end then (_ + 1) else (_ - 1)
   let go b e acc =
@@ -300,7 +300,7 @@ range begin end =
  * Runtime: O(n)
  */
 pub
-fromVector : Vector a -> List a
+fromVector : Vector a -> LinkedList a
 fromVector = case _ of
   [] -> Nil
   [x :: xs] -> x :: fromVector xs
@@ -312,7 +312,7 @@ fromVector = case _ of
  * Runtime: O(n log(n))
  */
 pub
-sortBy : (a -> a -> Ordering) -> List a -> List a
+sortBy : (a -> a -> Ordering) -> LinkedList a -> LinkedList a
 sortBy cmp =
   let sequences ascending descending = case _ of
     Cons a (Cons b xs) ->
@@ -354,5 +354,5 @@ sortBy cmp =
  * Runtime: O(n log(n))
  */
 pub
-sort : {{ Ord a }} -> List a -> List a
+sort : {{ Ord a }} -> LinkedList a -> LinkedList a
 sort {{Ord _ ord}} = sortBy ord.compare
