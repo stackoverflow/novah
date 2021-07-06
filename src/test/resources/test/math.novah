@@ -1,0 +1,18 @@
+module math
+
+import novah.test
+
+readersTest : Suite
+readersTest =
+  Test "Math reading functions" \_ ->
+    Math.min 44 12 `shouldBe` 12
+    Math.max 44 12 `shouldBe` 44
+    Math.clamp 10 20 6 `shouldBe` 10
+    Math.sin 1.5707963267949 `shouldBe` 1.0
+    Math.sqrt 9.0 `shouldBe` 3.0
+    Math.cbrt 27.0 `shouldBe` 3.0
+    (3.0 ^ 3.0) `shouldBe` 27.0
+
+pub
+mathTests : Vector Suite
+mathTests = [readersTest]

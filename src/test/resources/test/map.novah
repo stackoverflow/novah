@@ -1,0 +1,49 @@
+module map
+
+import novah.test
+
+readersTest : Suite
+readersTest =
+  Test "Map reading functions" \_ ->
+    let map = Map.new ["a" <> 1, "b" <> 2, "c" <> 3]
+    Map.get "b" map `shouldBe` Some 2
+    Map.get "d" map `shouldBe` None
+    Map.hasKey "c" map `shouldBe` true
+    Map.keys map `shouldBe` #{"a", "b", "c"}
+    Map.values map `shouldAllBeIn` #{1, 2, 3}
+    Map.size map `shouldBe` 3L
+    (map ++ Map.new ["d" <> 4, "e" <> 5]) `shouldBe` Map.new ["a" <> 1, "b" <> 2, "c" <> 3, "d" <> 4, "e" <> 5]
+
+writersTest : Suite
+writersTest =
+  Test "Map writing functions" \_ ->
+    let map = Map.new ["a" <> 1, "b" <> 2, "c" <> 3]
+    Map.put "d" 4 map `shouldBe` Map.new ["a" <> 1, "b" <> 2, "c" <> 3, "d" <> 4]
+    Map.update "c" (_ + 3) map `shouldBe` Map.new ["a" <> 1, "b" <> 2, "c" <> 6]
+    Map.remove "b" map `shouldBe` Map.new ["a" <> 1, "c" <> 3]
+
+traversersTest : Suite
+traversersTest =
+  Test "Map traversing functions" \_ ->
+    let map = Map.new ["a" <> 1, "b" <> 2, "c" <> 3]
+    Map.mapValues (\_ v -> v + 1) map `shouldBe` Map.new ["a" <> 2, "b" <> 3, "c" <> 4]
+    Map.filter (\_ v -> isOdd v) map `shouldBe` Map.new ["a" <> 1, "c" <> 3]
+    Map.every (\_ v -> isOdd v) map `shouldBe` false
+
+linearTest : Suite
+linearTest =
+  Test "Linear map functions" \_ ->
+    let map = Map.new ["a" <> 1, "b" <> 2, "c" <> 3]
+    let lin = Map.withLinear map \m ->
+                Map.put "d" 4 m
+                Map.remove "b" m
+    lin `shouldBe` Map.new ["a" <> 1, "c" <> 3, "d" <> 4]
+
+pub
+mapTests : Vector Suite
+mapTests =
+  [ readersTest
+  , writersTest
+  , traversersTest
+  , linearTest
+  ]

@@ -77,10 +77,9 @@ runTests suites =
 pub
 shouldBe : {{ Equals a }} -> a -> a -> Unit
 shouldBe {{eq}} x y =
-  if x == y then
-    ()
-  else
-    throw newAssert (format "%s is not equals %s" [x, y])
+  if x == y
+    then ()
+    else throw newAssert (format "%s is not equals %s" [x, y])
 
 /**
  * Fails the test if x is equals y.
@@ -88,10 +87,9 @@ shouldBe {{eq}} x y =
 pub
 shouldNotBe : {{ Equals a }} -> a -> a -> Unit
 shouldNotBe {{eq}} x y =
-  if x != y then
-    ()
-  else
-    throw newAssert (format "%s is equals %s" [x, y])
+  if x != y
+    then ()
+    else throw newAssert (format "%s is equals %s" [x, y])
 
 /**
  * Fails the test if the element is not inside the set.
@@ -99,10 +97,9 @@ shouldNotBe {{eq}} x y =
 pub
 shouldBeIn : a -> Set a -> Unit
 shouldBeIn x set =
-  if Set.contains x set then
-    ()
-  else
-    throw newAssert (format "%s is not inside %s" [toString x, toString set])
+  if Set.contains x set
+    then ()
+    else throw newAssert (format "%s is not inside %s" [toString x, toString set])
 
 /**
  * Fails the test if the element is inside the set.
@@ -110,10 +107,20 @@ shouldBeIn x set =
 pub
 shouldNotBeIn : a -> Set a -> Unit
 shouldNotBeIn x set =
-  if not (Set.contains x set) then
-    ()
-  else
-    throw newAssert (format "%s is inside %s" [toString x, toString set])
+  if not (Set.contains x set)
+    then ()
+    else throw newAssert (format "%s is inside %s" [toString x, toString set])
+
+/**
+ * Fails the test if some element of the vector is not inside the set.
+ */
+pub
+shouldAllBeIn : Vector a -> Set a -> Unit
+shouldAllBeIn vec set =
+  forEach vec \x ->
+    if Set.contains x set
+      then ()
+      else throw newAssert (format "%s is not inside %s" [toString x, toString set])
 
 /**
  * Fails the test if this option is empty.

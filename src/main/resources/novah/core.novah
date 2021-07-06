@@ -275,7 +275,7 @@ int64 : Int32 -> Int64
 int64 i = longValue i
 
 /**
- * Returns the value at index for this Vector.
+ * Returns the value at index for this vector.
  * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: ~O(1)
  */

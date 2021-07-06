@@ -64,8 +64,8 @@ pub
 assert : Boolean -> String -> Unit
 assert cond msg =
   if cond
-  then ()
-  else throw newAssertionError (format "Assert failed: %s" [msg])
+    then ()
+    else throw newAssertionError (format "Assert failed: %s" [msg])
 
 /**
  * Executes the function for each value in this iterator.

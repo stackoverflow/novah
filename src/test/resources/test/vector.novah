@@ -1,5 +1,6 @@
 module vector
 
+import novah.stream as Stream
 import novah.test
 
 streamTest : Suite
@@ -55,6 +56,8 @@ traversersTest =
     Vector.reduce (+) vec `shouldBe` Some 6
     Vector.flatten [[1, 2], [3, 4], [5, 6]] `shouldBe` [1, 2, 3, 4, 5, 6]
     Vector.flatMap (\x -> [x, x]) vec `shouldBe` [1, 1, 2, 2, 3, 3]
+    Vector.every (_ < 10) vec `shouldBe` true
+    Vector.every (_ < 3) vec `shouldBe` false
     Vector.reverse vec `shouldBe` [3, 2, 1]
 
 linearTest : Suite

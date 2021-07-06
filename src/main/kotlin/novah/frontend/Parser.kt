@@ -139,9 +139,9 @@ class Parser(
             if (!aliased.contains(MATH_MODULE)) imports += mathImport
             if (!aliased.contains(OPTION_MODULE)) imports += optionImport
             if (!aliased.contains(SET_MODULE)) imports += setImport
-            if (!aliased.contains(STREAM_MODULE)) imports += streamImport
             if (!aliased.contains(STRING_MODULE)) imports += stringImport
             if (!aliased.contains(VECTOR_MODULE)) imports += vectorImport
+            if (!aliased.contains(MAP_MODULE)) imports += mapImport
             if (!aliased.contains(RESULT_MODULE)) imports += resultImport
         }
     }

@@ -15,6 +15,7 @@ foreign import IList.stream() as vecStream
 foreign import IList.toArray() as vecToArray
 foreign import Core:foldVector(Function, Object, Vector)
 foreign import Core:findVector(Function, Vector)
+foreign import Core:vectorEvery(Function, Vector)
 
 import novah.java (toComparator)
 import novah.stream as S
@@ -303,6 +304,14 @@ reverse vec =
   forEachRange 0L (sizeVec vec) \i ->
     addFirst (vec ! i) lvec
   vecForked lvec
+
+/**
+ * Returns true if the predicate is true for every element in this vector.
+ * Runtime: O(n)
+ */
+pub
+every : (a -> Boolean) -> Vector a -> Boolean
+every pred vec = vectorEvery pred vec
 
 /**
  * Converts this vector into an array.

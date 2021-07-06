@@ -21,10 +21,12 @@ foreign import Set.difference(ISet) as sdifference
 foreign import Set.intersection(ISet) as sintersection
 foreign import Set.size() as sizeSet
 foreign import Core:foldSet(Function, Object, Set)
+foreign import Core:setEvery(Function, Set)
 
 import novah.stream as S
 import novah.java as J
-import novah.option as O
+import novah.option as Option
+import novah.vector as Vector
 
 /**
  * Creates a new set which uses the element equality function and the provided hash function, or the default object hash function.
@@ -36,7 +38,7 @@ import novah.option as O
 pub
 new : {{ Equals a }} -> Option (a -> Int64) -> Set a
 new {{Equals eq}} hashFn =
-  let hash = O.map J.toLong hashFn ?: defaultHashCode
+  let hash = Option.map J.toLong hashFn ?: defaultHashCode
   in newSet hash (J.bipredicate eq.equals)
 
 /**
@@ -71,6 +73,14 @@ isEmpty : Set a -> Boolean
 isEmpty set = sizeSet set == 0L
 
 /**
+ * Returns true if this set is not empty.
+ * Runtime: O(1)
+ */
+pub
+isNotEmpty : Set a -> Boolean
+isNotEmpty set = sizeSet set != 0L
+
+/**
  * Returns some value at index for this set if it exists or none.
  * Runtime: ~O(1)
  */
@@ -78,10 +88,18 @@ pub
 nth : Int64 -> Set a -> Option a
 nth index set =
   let len = sizeSet set
-  if index < 0L || index >= len then
-    None
-  else
-    Some (setNth set index)
+  if index < 0L || index >= len
+    then None
+    else Some (setNth set index)
+
+/**
+ * Returns the value at index for this set.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: ~O(1)
+ */
+pub
+unsafeNth : Int64 -> Set a -> a
+unsafeNth index set = setNth set index
 
 /**
  * Returns the union of these 2 sets.
@@ -92,7 +110,7 @@ union : Set a -> Set a -> Set a
 union s1 s2 = sunion s1 (unsafeCast s2)
 
 /**
- * Returns the difference between these 2 sets.
+ * Returns all elements in set 1 that are not in set 2.
  */
 pub
 difference : Set a -> Set a -> Set a
@@ -196,6 +214,21 @@ foldl : (b -> a -> b) -> b -> Set a -> b
 foldl f init set = foldSet f init set
 
 /**
+ * A specialized version of `foldl` where the first element of the set is used as initial value.
+ * Returns none if the set is empty
+ * Runtime: O(n)
+ */
+pub
+reduce : (a -> a -> a) -> Set a -> Option a
+reduce f set =
+  if isEmpty set
+    then None
+    else
+      let first = setNth set 0L
+      let rest = remove first set
+      Some (foldl f first rest)
+
+/**
  * Flattens a set of sets into a single set by concatenating them together.
  * Runtime: O(n)
  */
@@ -217,3 +250,36 @@ flatten sets =
 pub
 flatMap : (a -> Set b) -> Set a -> Set b
 flatMap f set = flatten (map f set)
+
+/**
+ * Returns true if the predicate is true for every element in this set.
+ * Runtime: O(n)
+ */
+pub
+every : (a -> Boolean) -> Set a -> Boolean
+every pred set = setEvery pred set
+
+/**
+ * Returns true if every element in the vector is contained in the set.
+ */
+pub
+containsAll : Vector a -> Set a -> Boolean
+containsAll vec set = Vector.every (\x -> contains x set) vec
+
+/**
+ * Creates a linear (mutable) version of the given set and applies the function to it.
+ * Returns a forked (persistent) version of the returned linear set.
+ * This function should be used when lots of expensive mutating operations have to be run on a set
+ * and can be seen as a builder for the resulting set.
+ * All functions that alter sets like `add`, `remove`, etc.
+ * will mutate a linear set.
+ * Ex:
+ *   withLinear #{1, 2, 3} \set ->
+ *     add 4 set
+ *     remove 1 set
+ *
+ *   -> #{2, 3, 4}
+ */
+pub
+withLinear : Set a -> (Set a -> Set a) -> Set a
+withLinear set f = setForked (f (setLinear set))

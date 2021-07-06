@@ -1,5 +1,6 @@
 module array
 
+import novah.stream as Stream
 import novah.test
 
 a : Vector a -> Array a

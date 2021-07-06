@@ -15,7 +15,9 @@
  */
 package novah;
 
+import io.lacuna.bifurcan.IEntry;
 import io.lacuna.bifurcan.List;
+import io.lacuna.bifurcan.Map;
 import io.lacuna.bifurcan.Set;
 
 import java.util.Comparator;
@@ -300,9 +302,9 @@ public class Core {
 
     public static <T> boolean equalsVector(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
+        if (v1.hashCode() == v2.hashCode()) return true;
 
-        long total = v1.size();
-        for (long i = 0; i < total; i++) {
+        for (long i = 0; i < v1.size(); i++) {
             if (!comp.apply(v1.nth(i)).apply(v2.nth(i))) return false;
         }
         return true;
@@ -310,9 +312,9 @@ public class Core {
 
     public static <T> boolean equalsSet(Set<T> v1, Set<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
+        if (v1.hashCode() == v2.hashCode()) return true;
 
-        long total = v1.size();
-        for (long i = 0; i < total; i++) {
+        for (long i = 0; i < v1.size(); i++) {
             if (!comp.apply(v1.nth(i)).apply(v2.nth(i))) return false;
         }
         return true;
@@ -321,9 +323,22 @@ public class Core {
     public static <T> boolean equalsArray(T[] v1, T[] v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.length != v2.length) return false;
 
-        int total = v1.length;
-        for (int i = 0; i < total; i++) {
+        for (int i = 0; i < v1.length; i++) {
             if (!comp.apply(v1[i]).apply(v2[i])) return false;
+        }
+        return true;
+    }
+
+    public static <K, V> boolean equalsMap(Map<K, V> m1, Map<K, V> m2, Function<K, Function<K, Boolean>> keyComp
+            , Function<V, Function<V, Boolean>> valComp) {
+        if (m1.size() != m2.size()) return false;
+        if (m1.hashCode() == m2.hashCode()) return true;
+        
+        for (long i = 0; i < m1.size(); i++) {
+            var m1e = m1.nth(i);
+            var m2e = m2.nth(i);
+            if (!keyComp.apply(m1e.key()).apply(m2e.key()) || !valComp.apply(m1e.value()).apply(m2e.value()))
+                return false;
         }
         return true;
     }
@@ -579,7 +594,7 @@ public class Core {
     public static <T, R> BiPredicate<T, R> makeBiPredicate(Function<T, Function<R, Boolean>> f) {
         return (x, y) -> f.apply(x).apply(y);
     }
-    
+
     public static <T> ToLongFunction<T> makeToLongFunction(Function<T, Long> f) {
         return f::apply;
     }
@@ -587,19 +602,19 @@ public class Core {
     public static <T> ToIntFunction<T> makeToIntFunction(Function<T, Integer> f) {
         return f::apply;
     }
-    
+
     public static <T> BinaryOperator<T> makeBinaryOperator(Function<T, Function<T, T>> f) {
         return (x, y) -> f.apply(x).apply(y);
     }
-    
+
     public static <T> UnaryOperator<T> makeUnaryOperator(Function<T, T> f) {
         return f::apply;
     }
-    
+
     public static <T, U, R> BiFunction<T, U, R> makeBiFunction(Function<T, Function<U, R>> fun) {
         return (x, y) -> fun.apply(x).apply(y);
     }
-    
+
     public static <T> Optional<T> findVector(Function<T, Boolean> pred, List<T> vec) {
         T found = null;
         for (T elem : vec) {
@@ -610,7 +625,7 @@ public class Core {
         }
         return Optional.ofNullable(found);
     }
-    
+
     public static <T, R> R foldVector(Function<R, Function<T, R>> f, R init, List<T> vec) {
         R acc = init;
         for (long i = 0; i < vec.size(); i++) {
@@ -625,6 +640,27 @@ public class Core {
             acc = f.apply(acc).apply(set.nth(i));
         }
         return acc;
+    }
+    
+    public static <T> boolean vectorEvery(Function<T, Boolean> pred, List<T> vec) {
+        for (T elem : vec) {
+            if (!pred.apply(elem)) return false;
+        }
+        return true;
+    }
+
+    public static <T> boolean setEvery(Function<T, Boolean> pred, Set<T> set) {
+        for (T elem : set) {
+            if (!pred.apply(elem)) return false;
+        }
+        return true;
+    }
+
+    public static <K, V> boolean mapEvery(Function<K, Function<V, Boolean>> pred, Map<K, V> map) {
+        for (IEntry<K, V> kv : map) {
+            if (!pred.apply(kv.key()).apply(kv.value())) return false;
+        }
+        return true;
     }
 
     @SuppressWarnings("unchecked")
