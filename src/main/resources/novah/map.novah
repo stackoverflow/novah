@@ -2,11 +2,13 @@ module novah.map
 
 foreign import type io.lacuna.bifurcan.Map
 foreign import type io.lacuna.bifurcan.IMap
+foreign import type io.lacuna.bifurcan.IList
 foreign import type io.lacuna.bifurcan.IEntry
 foreign import type java.util.function.BiPredicate
 foreign import type java.util.function.BiFunction
 foreign import type java.util.function.ToLongFunction
 foreign import type java.util.function.UnaryOperator
+foreign import type novah.Core
 foreign import new Map(ToLongFunction, BiPredicate) as newMap
 foreign import Map.linear() as mapLinear
 foreign import Map.forked() as mapForked
@@ -21,14 +23,17 @@ foreign import Map.iterator() as mapIterator
 foreign import Map.mapValues(BiFunction) as mapMapValues
 foreign import IMap.put(Object, Object) as mapPut
 foreign import IMap.get(Object) as mapGet
+foreign import IMap.values() as imapValues
 foreign import IEntry.key() as entryKey
 foreign import IEntry.value() as entryValue
+foreign import Vector:from(IList) as vecFrom
+foreign import Core:mapEvery(Function, Map)
+foreign import Core:equalsMap(Map, Map, Function, Function)
 foreign import get io.lacuna.bifurcan.Maps:DEFAULT_HASH_CODE as defaultHashCode
 
-import novah.java as J
-import novah.option as O
-import novah.vector as V
-import novah.set as S
+import novah.java as Java
+import novah.option as Option
+import novah.vector as Vector
 
 /**
  * Creates a new map with the supplied entries.
@@ -37,7 +42,7 @@ pub
 new : Vector (Tuple k v) -> Map k v
 new vec =
   let lmap = mapLinear (mapEmpty ())
-  V.forEach vec \(Tuple key val) -> put key val lmap
+  Vector.forEach vec \(Tuple key val) -> put key val lmap
   mapForked lmap
 
 /**
@@ -49,8 +54,16 @@ new vec =
 pub
 newEq : {{ Equals k }} -> Option (k -> Int64) -> Map k v
 newEq {{Equals eq}} hashFn =
-  let hash = O.map J.toLong hashFn ?: defaultHashCode
-  newMap hash (J.bipredicate eq.equals)
+  let hash = Option.map Java.toLong hashFn ?: defaultHashCode
+  newMap hash (Java.bipredicate eq.equals)
+
+/**
+ * Returns the size of the map.
+ * Runtime: O(1)
+ */
+pub
+size : Map k v -> Int64
+size m = mapSize m
 
 /**
  * Inserts or replaces a new key/value pair in the map.
@@ -66,17 +79,19 @@ put key val map = unsafeCast (mapPut (unsafeCast map) key val)
  */
 pub
 get : k -> Map k v -> Option v
-get k map = mapGet (unsafeCast map) k |> O.fromOptional
+get k map = mapGet (unsafeCast map) k |> Option.fromOptional
 
 /**
  * Applies the function to the value represented by the key, updating it.
+ * Runtime: ~O(1)
  */
 pub
 update : k -> (v -> v) -> Map k v -> Map k v
-update key fun map = mapUpdate map key (J.unaryOperator fun)
+update key fun map = mapUpdate map key (Java.unaryOperator fun)
 
 /**
  * Removes the key from this map.
+ * Runtime: ~O(1)
  */
 pub
 remove : k -> Map k v -> Map k v
@@ -108,13 +123,20 @@ keys : Map k v -> Set k
 keys map = mapKeys map
 
 /**
+ * Returns a vector of all values in this map.
+ */
+pub
+values : Map k v -> Vector v
+values map = vecFrom (imapValues (unsafeCast map))
+
+/**
  * Executes the function for every key/value pair in this map
  * Runtime: O(n)
  */
 pub
 forEach : Map k v -> (k -> v -> Unit) -> Unit
 forEach map f =
-  J.forEach (mapIterator map) \entry -> f (entryKey entry) (entryValue entry)
+  Java.forEach (mapIterator map) \entry -> f (entryKey entry) (entryValue entry)
 
 /**
  * Maps function f over all entries of this map.
@@ -122,7 +144,7 @@ forEach map f =
  */
 pub
 mapValues : (k -> v -> v2) -> Map k v -> Map k v2
-mapValues f map = mapMapValues map (J.biFunction f)
+mapValues f map = mapMapValues map (Java.biFunction f)
 
 /**
  * Returns a map of the elements that match the given predicate.
@@ -136,14 +158,36 @@ filter pred map =
     when (not (pred k v)) \_ -> mapRemove lmap k
   mapForked lmap
 
+/**
+ * Returns true if the predicate is true for every entry in this map.
+ * Runtime: O(n)
+ */
+pub
+every : (k -> v -> Boolean) -> Map k v -> Boolean
+every pred map = mapEvery pred map
+
 pub instance
 concatMap : Concat (Map k v)
 concatMap = Concat { concat: merge }
 
-/**
- * Returns the size of the map.
- * Runtime: ~O(1)
- */
 pub instance
-countMap : Count (Map k v)
-countMap = Count { count: \m -> mapSize m }
+eqMap : {{ Equals k }} -> {{ Equals v }} -> Equals (Map k v)
+eqMap {{Equals eqk}} {{Equals eqv}} = Equals { equals: \x y -> equalsMap x y eqk.equals eqv.equals }
+
+/**
+ * Creates a linear (mutable) version of the given map and applies the function to it.
+ * Returns a forked (persistent) version of the returned linear map.
+ * This function should be used when lots of expensive mutating operations have to be run on a map
+ * and can be seen as a builder for the resulting map.
+ * All functions that alter maps like `put`, `update`, `remove`, etc.
+ * will mutate a linear map.
+ * Ex:
+ *   withLinear (Map.new ["a" <> 1, "b" <> 2, "c" <> 3]) \map ->
+ *     put "d" 4 map
+ *     remove "b" map
+ *
+ *   -> {"a" 1, "c" 3, "d" 4}
+ */
+pub
+withLinear : Map k v -> (Map k v -> Map k v) -> Map k v
+withLinear vec f = mapForked (f (mapLinear vec))

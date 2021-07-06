@@ -58,9 +58,9 @@ const val LIST_MODULE = "novah.list"
 const val MATH_MODULE = "novah.math"
 const val OPTION_MODULE = "novah.option"
 const val SET_MODULE = "novah.set"
-const val STREAM_MODULE = "novah.stream"
 const val STRING_MODULE = "novah.string"
 const val VECTOR_MODULE = "novah.vector"
+const val MAP_MODULE = "novah.map"
 const val RESULT_MODULE = "novah.result"
 
 const val TEST_MODULE = "novah.test"
@@ -74,9 +74,9 @@ val listImport = Import.Raw(LIST_MODULE, Span.empty(), "List")
 val mathImport = Import.Raw(MATH_MODULE, Span.empty(), "Math")
 val optionImport = Import.Raw(OPTION_MODULE, Span.empty(), "Option")
 val setImport = Import.Raw(SET_MODULE, Span.empty(), "Set")
-val streamImport = Import.Raw(STREAM_MODULE, Span.empty(), "Stream")
 val stringImport = Import.Raw(STRING_MODULE, Span.empty(), "String")
 val vectorImport = Import.Raw(VECTOR_MODULE, Span.empty(), "Vector")
+val mapImport = Import.Raw(MAP_MODULE, Span.empty(), "Map")
 val resultImport = Import.Raw(RESULT_MODULE, Span.empty(), "Result")
 
 const val primByte = "$PRIM.Byte"

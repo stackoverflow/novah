@@ -1,33 +1,11 @@
 module test
 
-import novah.list (::, List(..))
-import novah.test
-import novah.computation
-
-foreign import java.util.Arrays:toString(Array) as toStringArr
-
-foo = do.vector
-  let! x = 1 .. 5
-  let! y = 7 .. 14
-  if isOdd (x + y) then return (x <> y)
-
-toStr : Array a -> String
-toStr arr = toStringArr (unsafeCast arr)
-
-myTest : Unit -> Unit
-myTest () =
-  2 == 2 |> assert "2 != 2"
-  2 == 3 |> assert "2 != 3"
-
-goodTest : TestFun
-goodTest () =
-  println foo
-  1 == 1 |> assert "1 == 1"
+foo : (Int -> Boolean) -> Vector Int -> Int
+foo pred vec = case vec of
+  [] -> 0
+  [x] if pred x -> x
+  _ -> -1
 
 pub
 main : Array String -> Unit
-main _ =
-  runTests
-    [ Test "let's see" myTest
-    , Test "should work" goodTest
-    ]
+main _ = foo (_ > 1) [1, 2, 3, 4] |> println

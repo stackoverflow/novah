@@ -1,0 +1,63 @@
+module list
+
+import novah.list (::, List(..))
+import novah.test
+
+fv : Vector a -> List a
+fv = List.fromVector
+
+readersTest : Suite
+readersTest =
+  Test "List reading functions" \_ ->
+    let l = fv [1, 2, 3, 4]
+    List.nth 2 l `shouldBe` Some 3
+    List.head l `shouldBe` Some 1
+    List.tail l `shouldBe` Some (fv [2, 3, 4])
+    List.singleton 5 `shouldBe` (5 :: Nil)
+    List.isEmpty l `shouldBe` false
+    List.isNotEmpty l `shouldBe` true
+    List.contains 4 l `shouldBe` true
+    List.take 2 l `shouldBe` (1 :: 2 :: Nil)
+    List.drop 2 l `shouldBe` (3 :: 4 :: Nil)
+    List.takeWhile (_ < 3) l `shouldBe` (1 :: 2 :: Nil)
+    List.dropWhile (_ < 3) l `shouldBe` (3 :: 4 :: Nil)
+    List.range 1 5 `shouldBe` fv [1, 2, 3, 4]
+    List.fromVector [1, 2, 3, 4] `shouldBe` (1 :: 2 :: 3 :: 4 :: Nil)
+    List.size l `shouldBe` 4
+    (l ++ (5 :: 6 :: Nil)) `shouldBe` List.range 1 7
+
+writersTest : Suite
+writersTest =
+  Test "List writing functions" \_ ->
+    let l = fv [1, 2, 3]
+    (0 :: l) `shouldBe` fv [0, 1, 2, 3]
+
+traversersTest : Suite
+traversersTest =
+  Test "List traversing functions" \_ ->
+    let l = fv [1, 2, 3]
+    let revSort : {{ Ord a }} -> a -> a -> Ordering
+        revSort {{ord}} x y = case compare x y of
+      GT -> LT
+      LT -> GT
+      EQ -> EQ
+    List.map (_ + 1) l `shouldBe` fv [2, 3, 4]
+    List.filter isOdd l `shouldBe` fv [1, 3]
+    List.find isEven l `shouldBe` Some 2
+    List.find (_ == 11) l `shouldBe` None
+    List.sortBy revSort (fv [4, 1, 3, 5, 2]) `shouldBe` fv [5, 4, 3, 2, 1]
+    List.sort (fv [4, 1, 3, 5, 2]) `shouldBe` fv [1, 2, 3, 4, 5]
+    List.foldl (-) 0 l `shouldBe` -6
+    List.foldr (-) 0 l `shouldBe` 2
+    List.reduce (+) l `shouldBe` Some 6
+    List.flatten (fv [fv [1, 2], fv [3, 4], fv [5, 6]]) `shouldBe` fv [1, 2, 3, 4, 5, 6]
+    List.flatMap (\x -> x :: x :: Nil) l `shouldBe` fv [1, 1, 2, 2, 3, 3]
+    List.reverse l `shouldBe` fv [3, 2, 1]
+
+pub
+listTests : Vector Suite
+listTests =
+  [ readersTest
+  , writersTest
+  , traversersTest
+  ]

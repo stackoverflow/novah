@@ -1,0 +1,68 @@
+module set
+
+import novah.stream as Stream
+import novah.test
+
+streamTest : Suite
+streamTest =
+  Test "Set stream functions" \_ ->
+    let set = #{1, 2, 3, 4}
+    let stm = Stream.from 1
+    let same = Set.stream set |> Set.fromStream
+    Set.fromStream stm `shouldBe` #{1}
+    same `shouldBe` set
+
+readersTest : Suite
+readersTest =
+  Test "Set reading functions" \_ ->
+    let set = #{1, 2, 3, 4}
+    Set.nth 2L set `shouldBe` Some 3
+    Set.unsafeNth 2L set `shouldBe` 3
+    Set.isEmpty set `shouldBe` false
+    Set.isNotEmpty set `shouldBe` true
+    Set.contains 4 set `shouldBe` true
+    Set.containsAll [4, 1, 2, 3] set `shouldBe` true
+    Set.size set `shouldBe` 4L
+    (set ++ #{5, 6}) `shouldBe` #{1, 2, 3, 4, 5, 6}
+    Set.intersection set #{0, 2, 7, 4} `shouldBe` #{2, 4}
+    Set.difference set #{0, 2, 7, 4} `shouldBe` #{1, 3}
+
+writersTest : Suite
+writersTest =
+  Test "Set writing functions" \_ ->
+    let set = #{1, 2, 3}
+    Set.add 4 set `shouldBe` #{1, 2, 3, 4}
+    Set.remove 2 set `shouldBe` #{1, 3}
+
+traversersTest : Suite
+traversersTest =
+  Test "Set traversing functions" \_ ->
+    let set = #{1, 2, 3}
+    Set.map (_ + 1) set `shouldBe` #{2, 3, 4}
+    Set.filter isOdd set `shouldBe` #{1, 3}
+    Set.find isOdd set `shouldBe` Some 1
+    Set.foldl (-) 0 set `shouldBe` -6
+    Set.reduce (+) set `shouldBe` Some 6
+    Set.flatten #{#{1, 2}, #{3, 4}, #{5, 6}} `shouldBe` #{1, 2, 3, 4, 5, 6}
+    Set.flatMap (\x -> #{x, x * 10}) set `shouldBe` #{1, 10, 2, 20, 3, 30}
+    Set.every (_ < 10) set `shouldBe` true
+    Set.every (_ < 3) set `shouldBe` false
+
+linearTest : Suite
+linearTest =
+  Test "Linear set functions" \_ ->
+    let set = #{1, 2, 3}
+    let lin = Set.withLinear set \s ->
+                Set.add 4 s
+                Set.remove 1 s
+    lin `shouldBe` #{2, 3, 4}
+
+pub
+setTests : Vector Suite
+setTests =
+  [ streamTest
+  , readersTest
+  , writersTest
+  , traversersTest
+  , linearTest
+  ]

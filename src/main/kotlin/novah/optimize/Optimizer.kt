@@ -437,7 +437,8 @@ class Optimizer(private val ast: CModule) {
                 conds += Expr.NativeStaticMethod(vecNotEmpty, listOf(exp), boolType, p.span)
                 val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
                 val headExp = mkVectorAccessor(exp, 0, fieltTy)
-                val tailExp = Expr.NativeMethod(vecTail, exp, emptyList(), type, p.span)
+                val vecClass = Clazz(VECTOR_TYPE, listOf(fieltTy))
+                val tailExp = Expr.NativeMethod(vecTail, exp, emptyList(), vecClass, p.span)
 
                 val (hCond, hVs) = desugarPattern(p.head, headExp)
                 val (tCond, tVs) = desugarPattern(p.tail, tailExp)
@@ -489,8 +490,10 @@ class Optimizer(private val ast: CModule) {
                 val guarded = varToLet(vars, case.guard.convert(locals + introducedVariables))
                 val guardCond = if (cond == tru) guarded
                 else Expr.OperatorApp("&&", listOf(cond, guarded), boolType, case.guard.span)
-                // not sure the variables are visible in `caseExpr` better test
-                guardCond to caseExp
+                // we have to duplicate the variable definitions here because
+                // they are not visible in the expression
+                val expr = varToLet(vars, caseExp)
+                guardCond to expr
             } else {
                 val expr = varToLet(vars, caseExp)
                 cond to expr
@@ -598,7 +601,7 @@ class Optimizer(private val ast: CModule) {
             primUnit -> OBJECT_TYPE
             primObject -> OBJECT_TYPE
             primArray -> ARRAY_TYPE
-            primVector -> Type.getType(io.lacuna.bifurcan.List::class.java)
+            primVector -> VECTOR_TYPE
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
         }
@@ -608,6 +611,7 @@ class Optimizer(private val ast: CModule) {
         private val RECORD_TYPE = Type.getType(novah.collections.Record::class.java)
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
         private val LONG_TYPE = Type.getType(Long::class.javaObjectType)
+        private val VECTOR_TYPE = Type.getType(PList::class.java)
         val OBJECT_TYPE = Type.getType(Object::class.java)!!
         val ARRAY_TYPE = Type.getType(Array::class.java)!!
 

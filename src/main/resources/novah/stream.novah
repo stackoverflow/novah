@@ -55,9 +55,12 @@ pub
 toArray : Stream a -> Array a
 toArray st = unsafeCast (stoArray st)
 
-pub instance
-countStream : Count (Stream a)
-countStream = Count { count: \st -> scount st }
+/**
+ * Returns the size of this stream.
+ */
+pub
+size : Stream a -> Int64
+size st = scount st
 
 /**
  * Returns a stream of the elements that match the given predicate.

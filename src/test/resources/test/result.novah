@@ -1,0 +1,20 @@
+module result
+
+import novah.test
+
+readersTest : Suite
+readersTest =
+  Test "Result reading functions" \_ ->
+    Result.isOk (Ok 1) `shouldBe` true
+    Result.isErr (Err 0) `shouldBe` true
+    Result.ok (Ok 1) `shouldBe` Some 1
+    Result.err (Err 0) `shouldBe` Some 0
+    Result.unwrap (Ok "abc") `shouldBe` "abc"
+    Result.map (_ ++ "def") (Ok "abc") `shouldBe` (Ok "abcdef" : Result String Int)
+    Result.mapErr (_ + 1) (Err 1) `shouldBe` (Err 2 : Result String Int)
+    Result.handle (_ ++ "def") toString (Ok "abc") `shouldBe` "abcdef"
+    Result.handle (_ ++ "def") toString (Err 0) `shouldBe` "0"
+
+pub
+resultTests : Vector Suite
+resultTests = [readersTest]

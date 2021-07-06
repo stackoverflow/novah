@@ -4,10 +4,10 @@ foreign import type java.lang.AssertionError
 foreign import type java.lang.Exception
 foreign import type java.lang.Throwable
 
-foreign import java.lang.Throwable.getMessage() as getMessage
+foreign import Throwable.printStackTrace()
 foreign import new AssertionError(String) as newAssert
 
-import novah.vector (forEach)
+import novah.vector (forEach, toArray)
 import novah.set as Set
 import novah.option as Option
 
@@ -24,14 +24,23 @@ type Suite
   | Setup { before : TestFun, after : TestFun, suite : Suite }
 
 /**
+ * All possible results for a test suite.
+ */
+pub+
+type TestResult
+  = Success
+  | Failure
+  | Error
+
+/**
  * Runs all given tests and reports the result.
  * Should be called once at the entry function for tests.
  */
 pub
-runTests : Vector Suite -> Unit
+runTests : Vector Suite -> TestResult
 runTests suites =
   let total = atom 0
-  let stats = arrayOf [0, 0, 0]
+  let stats = toArray [0, 0, 0]
   let addStats v =
         aupdate 0 (_ + (v ! 0L)) stats
         aupdate 1 (_ + (v ! 1L)) stats
@@ -50,69 +59,104 @@ runTests suites =
     swap (_ + 1) total
     runSuite suite
 
+  let failures = aget 1 stats
+  let errors = aget 2 stats
   println "\nSummary"
   printfln "%s/%s tests passed" [aget 0 stats, deref total]
-  printfln "%d failures" [aget 1 stats]
-  printfln "%d errors" [aget 2 stats]
+  printfln "%d failures" [failures]
+  printfln "%d errors" [errors]
+
+  case failures, errors of
+    0, 0 -> Success
+    _, 0 -> Failure
+    _, _ -> Error
 
 /**
- * Fails the test if the condition is false.
+ * Fails the test if x is not equals y.
  */
 pub
-assert : String -> Boolean -> Unit
-assert desc cond =
-  if cond
+shouldBe : {{ Equals a }} -> a -> a -> Unit
+shouldBe {{eq}} x y =
+  if x == y
     then ()
-    else throw newAssert desc
+    else throw newAssert (format "%s is not equals %s" [x, y])
 
 /**
- * Fails the test if the condition is true.
+ * Fails the test if x is equals y.
  */
 pub
-assertFalse : String -> Boolean -> Unit
-assertFalse desc cond = assert desc (not cond)
+shouldNotBe : {{ Equals a }} -> a -> a -> Unit
+shouldNotBe {{eq}} x y =
+  if x != y
+    then ()
+    else throw newAssert (format "%s is equals %s" [x, y])
 
 /**
  * Fails the test if the element is not inside the set.
  */
 pub
-assertIn : String -> Set a -> a -> Unit
-assertIn desc set elem = assert desc (Set.contains elem set)
+shouldBeIn : a -> Set a -> Unit
+shouldBeIn x set =
+  if Set.contains x set
+    then ()
+    else throw newAssert (format "%s is not inside %s" [toString x, toString set])
 
 /**
  * Fails the test if the element is inside the set.
  */
 pub
-assertNotIn : String -> Set a -> a -> Unit
-assertNotIn desc set elem = assert desc (not (Set.contains elem set))
+shouldNotBeIn : a -> Set a -> Unit
+shouldNotBeIn x set =
+  if not (Set.contains x set)
+    then ()
+    else throw newAssert (format "%s is inside %s" [toString x, toString set])
+
+/**
+ * Fails the test if some element of the vector is not inside the set.
+ */
+pub
+shouldAllBeIn : Vector a -> Set a -> Unit
+shouldAllBeIn vec set =
+  forEach vec \x ->
+    if Set.contains x set
+      then ()
+      else throw newAssert (format "%s is not inside %s" [toString x, toString set])
 
 /**
  * Fails the test if this option is empty.
  */
 pub
-assertSome : String -> Option a -> Unit
-assertSome desc opt = assert desc (Option.isSome opt)
+shouldBeSome : Option a -> Unit
+shouldBeSome opt = case opt of
+  Some _ -> ()
+  None -> throw newAssert (format "%s is not Some" [opt])
 
 /**
  * Fails the test if this option is not empty.
  */
 pub
-assertNone : String -> Option a -> Unit
-assertNone desc opt = assert desc (Option.isNone opt)
+shouldBeNone : Option a -> Unit
+shouldBeNone opt = case opt of
+  Some _ -> throw newAssert (format "%s is not None" [opt])
+  None -> ()
 
 /**
  * Fails the test if this vector is not empty.
  */
 pub
-assertEmpty : String -> Vector a -> Unit
-assertEmpty desc vec = assert desc (count vec == 0L)
+shouldBeEmpty : Vector a -> Unit
+shouldBeEmpty vec = case vec of
+  [] -> ()
+  _ -> throw newAssert (format "vector %s is not empty" [vec])
 
 /**
  * Fails the test if this vector is empty.
  */
 pub
-assertNotEmpty : String -> Vector a -> Unit
-assertNotEmpty desc vec = assert desc (count vec != 0L)
+shouldNotBeEmpty : Vector a -> Unit
+shouldNotBeEmpty vec = case vec of
+  [] -> throw newAssert "vector is empty"
+  _ -> ()
 
 check : String -> TestFun -> Vector Int
 check desc fun =
@@ -123,18 +167,8 @@ check desc fun =
     [1, 0, 0]
   catch
     :? AssertionError as err ->
-      printfln "✗ %s" [desc]
-      println (exceptMessage (unsafeCast err))
+      printStackTrace (unsafeCast err)
       [0, 1, 0]
     :? Exception as err ->
-      printfln "error:\t%s" [exceptMessage (unsafeCast err)]
+      printStackTrace (unsafeCast err)
       [0, 0, 1]
-
-yellow : String -> String
-yellow str = format "%s%s%s" ["\u001b[31m", str, "\u001b[0m"]
-
-printf : String -> Vector a -> Unit
-printf form args = print (format form args)
-
-exceptMessage : Throwable -> String
-exceptMessage err = getMessage err

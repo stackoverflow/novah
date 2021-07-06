@@ -18,6 +18,7 @@ pub
 
 /**
  * Returns the head of this list if it's not empty.
+ * Runtime: O(1)
  */
 pub
 head : List a -> Option a
@@ -27,6 +28,7 @@ head = case _ of
 
 /**
  * Returns the tail of this list if it's not empty.
+ * Runtime: O(1)
  */
 pub
 tail : List a -> Option (List a)
@@ -35,13 +37,94 @@ tail = case _ of
   Cons _ xs -> Some xs
 
 /**
+ * Produces a list with a single element.
+ * Runtime: O(1)
+ */
+pub
+singleton : a -> List a
+singleton x = x :: Nil
+
+/**
+ * Takes the first n elements of this list and returns it.
+ * Runtime: O(n)
+ */
+pub
+take : Int32 -> List a -> List a
+take n = case _ of
+  Nil -> Nil
+  _ if n <= 0 -> Nil
+  Cons x xs -> x :: take (n - 1) xs
+
+/**
+ * Drops the first n elements of this list and returns it.
+ * Runtime: O(n)
+ */
+pub
+drop : Int32 -> List a -> List a
+drop n = case _ of
+  Nil -> Nil
+  l if n <= 0 -> l
+  Cons _ xs -> drop (n - 1) xs
+
+/**
+ * Returns some value at index for this list if it exists or none.
+ * Runtime: O(n)
+ */
+pub
+nth : Int32 -> List a -> Option a
+nth index = drop index >> head
+
+/**
+ * Keeps taking elements of this list while the predicate holds.
+ * Runtime: O(n)
+ */
+pub
+takeWhile : (a -> Boolean) -> List a -> List a
+takeWhile pred = case _ of
+  Nil -> Nil
+  (Cons x xs) if pred x -> x :: takeWhile pred xs
+  _ -> Nil
+
+/**
+ * Keeps removing elements from this list while the predicate holds.
+ * Runtime: O(n)
+ */
+pub
+dropWhile : (a -> Boolean) -> List a -> List a
+dropWhile pred = case _ of
+  Nil -> Nil
+  (Cons x xs) if pred x -> dropWhile pred xs
+  l -> l
+
+/**
  * Returns true if this list is empty.
+ * Runtime: O(1)
  */
 pub
 isEmpty : List a -> Boolean
 isEmpty = case _ of
   Nil -> true
   _ -> false
+
+/**
+ * Returns true if this list is not empty.
+ * Runtime: O(1)
+ */
+pub
+isNotEmpty : List a -> Boolean
+isNotEmpty = case _ of
+  Nil -> false
+  _ -> true
+
+/**
+ * Returns true if the element is inside this list.
+ * Runtime: O(n)
+ */
+pub
+contains : {{ Equals a }} -> a -> List a -> Boolean
+contains {{eq}} elem = case _ of
+  Nil -> false
+  Cons x xs -> if x == elem then true else contains {{eq}} elem xs
 
 /**
  * Maps function f over all elements of this List
@@ -78,6 +161,16 @@ filter f = case _ of
   Cons x xs -> if f x then x :: filter f xs else filter f xs
 
 /**
+ * Returns the first occurrence of elem in this list for which the predicate returns true.
+ * Runtime: O(n)
+ */
+pub
+find : (a -> Boolean) -> List a -> Option a
+find pred = case _ of
+  Nil -> None
+  Cons x xs -> if pred x then Some x else find pred xs
+
+/**
  * Like `map` but it will flatten the resulting list.
  * Runtime: O(n)
  */
@@ -87,18 +180,15 @@ flatMap f = case _ of
   Nil -> Nil
   Cons x xs -> f x ++ flatMap f xs
 
-countList_ : List a -> Int64
-countList_ = case _ of
-  Nil -> 0L
-  Cons _ xs -> 1L + (countList_ xs)
-
 /**
  * Returns the size of this list.
  * Runtime: O(n)
  */
-pub instance
-countList : Count (List a)
-countList = Count { count: countList_ }
+pub
+size : List a -> Int32
+size = case _ of
+  Nil -> 0
+  Cons _ xs -> 1 + (size xs)
 
 showList_ : Show a -> List a -> String
 showList_ (Show s) l =
@@ -199,7 +289,70 @@ range : Int32 -> Int32 -> List Int32
 range begin end =
   let op = if begin <= end then (_ + 1) else (_ - 1)
   let go b e acc =
-        if b == e
-        then acc
-        else go (op b) e (b :: acc)
+    if b == e then
+      acc
+    else
+      go (op b) e (b :: acc)
   go begin end Nil |> reverse
+
+/**
+ * Creates a list with the same elements as the given vector.
+ * Runtime: O(n)
+ */
+pub
+fromVector : Vector a -> List a
+fromVector = case _ of
+  [] -> Nil
+  [x :: xs] -> x :: fromVector xs
+
+// sort implementation copied from https://hackage.haskell.org/package/base-4.15.0.0/docs/src/Data-OldList.html#sort
+
+/**
+ * Sorts this list according to the comparing function.
+ * Runtime: O(n log(n))
+ */
+pub
+sortBy : (a -> a -> Ordering) -> List a -> List a
+sortBy cmp =
+  let sequences ascending descending = case _ of
+    Cons a (Cons b xs) ->
+      if a `cmp` b == GT then
+        descending ascending b (singleton a) xs
+      else
+        ascending b (a :: _) xs
+    xs -> singleton xs
+  
+  let descending ascending x xs = case _ of
+    Cons b bs if x `cmp` b == GT -> descending ascending b (x :: xs) bs
+    bs -> (x :: xs) :: sequences ascending descending bs
+  
+  let ascending x xs = case _ of
+    Cons b bs if x `cmp` b != GT -> ascending b (\ys -> xs (x :: ys)) bs
+    bs -> (singleton x |> xs) :: sequences ascending descending bs
+  
+  let merge = case _, _ of
+    (Cons x xss) as xs, (Cons y yss) as ys ->
+      if x `cmp` y == GT then
+        y :: merge xs yss
+      else
+        x :: merge xss ys
+    Nil, ys -> ys
+    xs, Nil -> xs
+
+  let mergePairs = case _ of
+    Cons a (Cons b xs) -> merge a b :: mergePairs xs
+    xs -> xs
+
+  let mergeAll = case _ of
+    Cons x Nil -> x
+    xs -> mergeAll (mergePairs xs)
+  
+  mergeAll << (sequences ascending descending)
+
+/**
+ * Sorts this list according to the element's Ord instance.
+ * Runtime: O(n log(n))
+ */
+pub
+sort : {{ Ord a }} -> List a -> List a
+sort {{Ord _ ord}} = sortBy ord.compare

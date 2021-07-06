@@ -15,5 +15,8 @@
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
 - [ ] Delay unused variables reporting to after type checking
 - [ ] Fix error report span for unused foreign import
-- [ ] Use novah itself for tests
 - [ ] Add nullable types
+- [ ] Report error on unexisting import alias
+- [ ] Revamp shadowed variables and types (not working right now)
+- [ ] Fix indentation at start of declaration
+- [ ] Mutually recursive let definitions?

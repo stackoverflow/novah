@@ -1,0 +1,29 @@
+module string
+
+import novah.test
+
+readersTest : Suite
+readersTest =
+  Test "String reading functions" \_ ->
+    String.isBlank "  " `shouldBe` true
+    String.isEmpty "  " `shouldBe` false
+    String.size "abc" `shouldBe` 3
+    String.lowerCase "Some NaMe" `shouldBe` "some name"
+    String.upperCase "Some NaMe" `shouldBe` "SOME NAME"
+    String.startsWith "some" "some body" `shouldBe` true
+    String.endsWith "dy" "some body" `shouldBe` true
+    String.contains "cat" "a purple caterpillar" `shouldBe` true
+    String.containsChar 'z' "azure" `shouldBe` true
+    String.join " " ["the", "lazy", "fox"] `shouldBe` "the lazy fox"
+    String.strip "  string    " `shouldBe` "string"
+    String.stripl "  string    " `shouldBe` "string    "
+    String.stript "  string    " `shouldBe` "  string"
+    String.repeat 3 "nein!" `shouldBe` "nein!nein!nein!"
+    String.capitalize "nAMe" `shouldBe` "Name"
+    String.splitLines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
+    String.charAt 3 "exquisite" `shouldBe` Some 'u'
+    String.charAt 9 "exquisite" `shouldBe` None
+
+pub
+stringTests : Vector Suite
+stringTests = [readersTest]

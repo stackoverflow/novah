@@ -1,0 +1,60 @@
+module array
+
+import novah.stream as Stream
+import novah.test
+
+a : Vector a -> Array a
+a = Vector.toArray
+
+streamTest : Suite
+streamTest =
+  Test "Array stream functions" \_ ->
+    let arr = a [1, 2, 3, 4]
+    let stm = Stream.from 1
+    let same = Array.stream arr |> Array.fromStream
+    Array.fromStream stm `shouldBe` a [1]
+    same `shouldBe` arr
+
+readersTest : Suite
+readersTest =
+  Test "Array reading functions" \_ ->
+    let arr = a [1, 2, 3, 4]
+    (aget 2 arr) `shouldBe` 3
+    Array.nth 2 arr `shouldBe` Some 3
+    Array.isEmpty arr `shouldBe` false
+    Array.isNotEmpty arr `shouldBe` true
+    Array.contains 4 arr `shouldBe` true
+    Array.size arr `shouldBe` 4
+
+writersTest : Suite
+writersTest =
+  Test "Array writing functions" \_ ->
+    let arr = a [1, 2, 3]
+    aset 1 5 arr
+    arr `shouldBe` a [1, 5, 3]
+    aupdate 2 (_ + 5) arr
+    arr `shouldBe` a [1, 5, 8]
+
+traversersTest : Suite
+traversersTest =
+  Test "Array traversing functions" \_ ->
+    let arr = a [1, 2, 3]
+    Array.map (_ + 1) arr `shouldBe` a [2, 3, 4]
+    Array.filter isOdd arr `shouldBe` a [1, 3]
+    Array.find isEven arr `shouldBe` Some 2
+    let sarr = a [4, 1, 3, 5, 2]
+    Array.sort sarr
+    sarr `shouldBe` a [1, 2, 3, 4, 5]
+    Array.reverse arr `shouldBe` a [3, 2, 1]
+    let rarr = a [1, 2, 3, 4]
+    Array.reversed rarr
+    rarr `shouldBe` a [4, 3, 2, 1]
+
+pub
+arrayTests : Vector Suite
+arrayTests =
+  [ streamTest
+  , readersTest
+  , writersTest
+  , traversersTest
+  ]

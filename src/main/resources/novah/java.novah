@@ -4,6 +4,7 @@
 module novah.java
 
 foreign import type java.lang.Class
+foreign import type java.lang.System
 foreign import type java.util.Iterator
 foreign import type java.util.Comparator
 foreign import type java.util.function.Consumer
@@ -19,6 +20,7 @@ foreign import type novah.Core
 foreign import Object.getClass()
 foreign import Object.hashCode() as jHashCode
 foreign import Object.equals(Object) as jEquals
+foreign import System:exit(Int32) as jExit
 foreign import Iterator.hasNext()
 foreign import Iterator.next()
 foreign import new java.lang.AssertionError(String) as newAssertionError
@@ -62,8 +64,8 @@ pub
 assert : Boolean -> String -> Unit
 assert cond msg =
   if cond
-  then ()
-  else throw newAssertionError (format "Assert failed: %s" [msg])
+    then ()
+    else throw newAssertionError (format "Assert failed: %s" [msg])
 
 /**
  * Executes the function for each value in this iterator.
@@ -76,12 +78,20 @@ forEach it fun =
     fun (next it)
 
 /**
- * Returns a `java.util.Comparator` based on this Ord instance.
+ * Terminates the currently running JVM with the given status.
+ * A status different from 0 indicates abnormal termination.
  */
 pub
-toComparator : Ord a -> Comparator a
-toComparator (Ord _ cmp) =
-  makeComparator \x y -> case cmp.compare x y of
+exit : Int32 -> Unit
+exit status = jExit status
+
+/**
+ * Returns a `java.util.Comparator` based on this ordering function.
+ */
+pub
+toComparator : (a -> a -> Ordering) -> Comparator a
+toComparator cmp =
+  makeComparator \x y -> case cmp x y of
     LT -> -1
     EQ -> 0
     GT -> 1

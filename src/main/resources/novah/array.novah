@@ -7,6 +7,7 @@ foreign import type novah.Core
 
 foreign import Arrays:sort(Array, Comparator) as arraySort
 foreign import Arrays:stream(Array) as arrStream
+foreign import Core:getArrayLength(Array)
 foreign import Core:mkByteArray(Int32)
 foreign import Core:mkInt16Array(Int32)
 foreign import Core:mkInt32Array(Int32)
@@ -18,7 +19,8 @@ foreign import Core:mkBooleanArray(Int32)
 foreign import Core:mkObjectArray(Int32)
 
 import novah.java (toComparator)
-import novah.stream as S
+import novah.option as Option
+import novah.stream as Stream
 
 /**
  * Returns a stream for this array.
@@ -32,7 +34,7 @@ stream arr = arrStream arr
  */
 pub
 fromStream : Stream a -> Array a
-fromStream = S.toArray
+fromStream = Stream.toArray
 
 /**
  * Returns some value at index for this array if it exists or none.
@@ -42,10 +44,58 @@ fromStream = S.toArray
 pub
 nth : Int -> Array a -> Option a
 nth index arr =
-  let size = count arr
-  if index < 0 || index >= (int size)
+  let len = getArrayLength arr
+  if index < 0 || index >= len
   then None
   else Some (aget index arr)
+
+/**
+ * Returns the size of this array.
+ * Runtime: O(1)
+ */
+pub
+size : Array a -> Int32
+size arr = getArrayLength arr
+
+/**
+ * Returns true if the array is empty.
+ * Runtime: O(1)
+ */
+pub
+isEmpty : Array a -> Boolean
+isEmpty arr = getArrayLength arr == 0
+
+/**
+ * Returns true if the array is not empty.
+ * Runtime: O(1)
+ */
+pub
+isNotEmpty : Array a -> Boolean
+isNotEmpty arr = getArrayLength arr != 0
+
+/**
+ * Returns the first occurrence of elem in the array for which the predicate returns true.
+ * Runtime: O(n)
+ */
+pub
+find : (a -> Boolean) -> Array a -> Option a
+find pred arr =
+  let atm = atom None
+  forEachBreak 0L (int64 (getArrayLength arr)) \i ->
+    let elem = aget (int i) arr
+    if pred elem then
+      reset (Some elem) atm
+      -1
+    else 0
+  deref atm
+
+/**
+ * Returns true if the element is inside the array.
+ * Runtime: O(n)
+ */
+pub
+contains : {{ Equals a }} -> a -> Array a -> Boolean
+contains {{Equals eq}} elem arr = find (\x -> eq.equals x elem) arr |> Option.isSome
 
 /**
  * Runs function f for every element of this array, ignoring the result.
@@ -54,7 +104,7 @@ nth index arr =
 pub
 forEach : Array a -> (a -> b) -> Unit
 forEach arr f =
-  forEachRange 0L (count arr) \idx ->
+  forEachRange 0L (int64 (getArrayLength arr)) \idx ->
     f (aget (int idx) arr)
 
 /**
@@ -65,9 +115,9 @@ forEach arr f =
 pub
 map : (a -> b) -> Array a -> Array b
 map f arr =
-  let size = count arr
-  let res = unsafeCast (objectArray (int size))
-  forEachRange 0L size \idx ->
+  let len = getArrayLength arr
+  let res = unsafeCast (objectArray len)
+  forEachRange 0L (int64 len) \idx ->
     let i = int idx
     aset i (f (aget i arr)) res
   res
@@ -78,18 +128,23 @@ map f arr =
  */
 pub
 filter : (a -> Boolean) -> Array a -> Array a
-filter f arr = stream arr |> S.filter f |> fromStream
+filter f arr = stream arr |> Stream.filter f |> fromStream
 
 /**
- * Sorts this array according to the elements Ord instance.
- * Runtime: between O(n) and O(n log n)
+ * Sorts this array in place according to the comparing function.
  */
 pub
-sort : {{ Ord a }} -> Array a -> Array a
-sort {{ord}} arr =
-  let comp = toComparator ord
+sortBy : (a -> a -> Ordering) -> Array a -> Unit
+sortBy cmp arr =
+  let comp = toComparator cmp
   arraySort arr (unsafeCast comp)
-  arr
+
+/**
+ * Sorts this array in place according to the elements Ord instance.
+ */
+pub
+sort : {{ Ord a }} -> Array a -> Unit
+sort {{Ord _ ord}} arr = sortBy ord.compare arr
 
 /**
  * Returns a new array with the same elements in the reverse order of the input array.
@@ -98,73 +153,87 @@ sort {{ord}} arr =
 pub
 reverse : Array a -> Array a
 reverse arr =
-  let size = count arr
-  let res = unsafeCast (objectArray (int size))
-  forEachRange 0L size \idx ->
-    let i = int (size - idx - 1L)
+  let len = getArrayLength arr |> int64
+  let res = unsafeCast (objectArray (int len))
+  forEachRange 0L len \idx ->
+    let i = int (len - idx - 1L)
     let elem = aget (int idx) arr
     aset i elem res
   res
+
+/**
+ * Reverses this array in place.
+ * Runtime: O(n/2)
+ */
+pub
+reversed : Array a -> Unit
+reversed arr =
+  let len = getArrayLength arr
+  forEachRange 0L (len / 2 |> int64) \ii ->
+    let i = int ii
+    let temp = aget i arr
+    aset i (aget (len - i - 1) arr) arr
+    aset (len - i - 1) temp arr
 
 /**
  * Creates a byte array of the specified size.
  */
 pub
 byteArray : Int -> Array Byte
-byteArray size = mkByteArray size
+byteArray len = mkByteArray len
 
 /**
  * Creates a int16 array of the specified size.
  */
 pub
 int16Array : Int -> Array Int16
-int16Array size = mkInt16Array size
+int16Array len = mkInt16Array len
 
 /**
  * Creates a int32 array of the specified size.
  */
 pub
 intArray : Int -> Array Int32
-intArray size = mkInt32Array size
+intArray len = mkInt32Array len
 
 /**
  * Creates a int64 array of the specified size.
  */
 pub
 int64Array : Int -> Array Int64
-int64Array size = mkInt64Array size
+int64Array len = mkInt64Array len
 
 /**
  * Creates a float32 array of the specified size.
  */
 pub
 float32Array : Int -> Array Float32
-float32Array size = mkFloat32Array size
+float32Array len = mkFloat32Array len
 
 /**
  * Creates a float64 array of the specified size.
  */
 pub
 floatArray : Int -> Array Float64
-floatArray size = mkFloat64Array size
+floatArray len = mkFloat64Array len
 
 /**
  * Creates a char array of the specified size.
  */
 pub
 charArray : Int -> Array Char
-charArray size = mkCharArray size
+charArray len = mkCharArray len
 
 /**
  * Creates a boolean array of the specified size.
  */
 pub
 booleanArray : Int -> Array Boolean
-booleanArray size = mkBooleanArray size
+booleanArray len = mkBooleanArray len
 
 /**
  * Creates an Object array of the specified size.
  */
 pub
 objectArray : Int -> Array Object
-objectArray size = mkObjectArray size
+objectArray len = mkObjectArray len

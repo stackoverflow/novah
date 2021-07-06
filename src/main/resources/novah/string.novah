@@ -2,6 +2,7 @@ module novah.string
 
 foreign import type java.lang.CharSequence
 
+foreign import String.length()
 foreign import String.isBlank() as sisBlank
 foreign import String.isEmpty() as sisEmpty
 foreign import String.startsWith(String) as sstartsWith
@@ -20,6 +21,8 @@ foreign import String.split(String) as ssplit
 foreign import String:join(CharSequence, Array) as sjoin
 foreign import Vector:"of"(Array) as fromArray
 
+import novah.vector as Vector
+
 /**
  * Returns true if this string is empty or only contains whitespace codepoints.
  */
@@ -33,6 +36,13 @@ isBlank s = sisBlank s
 pub
 isEmpty : String -> Boolean
 isEmpty s = sisEmpty s
+
+/**
+ * Returns the size of this string.
+ */
+pub
+size : String -> Int32
+size s = length s
 
 /**
  * Returns a lower case version of this string.
@@ -88,7 +98,7 @@ getBytes str = sgetBytes str
  */
 pub
 join : String -> Vector String -> String
-join delimiter vec = sjoin (unsafeCast delimiter) (unsafeCast (arrayOf vec))
+join delimiter vec = sjoin (unsafeCast delimiter) (unsafeCast (Vector.toArray vec))
 
 /**
  * Returns this string with all leading and trailing white spaces removed.
@@ -123,9 +133,9 @@ repeat n str = srepeat str n
  */
 pub
 capitalize : String -> String
-capitalize str = case count str of
-  0L -> str
-  1L -> toUpperCase str
+capitalize str = case length str of
+  0 -> str
+  1 -> toUpperCase str
   _ -> let head = toUpperCase (toString (scharAt str 0))
        let tail = toLowerCase (ssubstring str 1)
        format "%s%s" [head, tail]
@@ -143,6 +153,6 @@ splitLines str = fromArray (ssplit str "[\\r|\\n]+")
 pub
 charAt : Int32 -> String -> Option Char
 charAt idx str =
-  if idx < int (count str) 
-  then Some (scharAt str idx)
+  if idx < length str then
+    Some (scharAt str idx)
   else None
