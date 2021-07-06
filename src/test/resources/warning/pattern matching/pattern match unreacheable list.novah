@@ -1,8 +1,8 @@
 module test
 
-fun : Vector Int -> Int
-fun v =
-  case v of
+fun : List Int -> Int
+fun l =
+  case l of
     [x, _] -> x
     [x, 0] -> x
     _ -> -1

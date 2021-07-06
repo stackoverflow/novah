@@ -59,7 +59,6 @@ const val MATH_MODULE = "novah.math"
 const val OPTION_MODULE = "novah.option"
 const val SET_MODULE = "novah.set"
 const val STRING_MODULE = "novah.string"
-const val VECTOR_MODULE = "novah.vector"
 const val MAP_MODULE = "novah.map"
 const val RESULT_MODULE = "novah.result"
 
@@ -75,7 +74,6 @@ val mathImport = Import.Raw(MATH_MODULE, Span.empty(), "Math")
 val optionImport = Import.Raw(OPTION_MODULE, Span.empty(), "Option")
 val setImport = Import.Raw(SET_MODULE, Span.empty(), "Set")
 val stringImport = Import.Raw(STRING_MODULE, Span.empty(), "String")
-val vectorImport = Import.Raw(VECTOR_MODULE, Span.empty(), "Vector")
 val mapImport = Import.Raw(MAP_MODULE, Span.empty(), "Map")
 val resultImport = Import.Raw(RESULT_MODULE, Span.empty(), "Result")
 
@@ -90,7 +88,7 @@ const val primChar = "$PRIM.Char"
 const val primString = "$PRIM.String"
 const val primUnit = "$PRIM.Unit"
 const val primObject = "$PRIM.Object"
-const val primVector = "$PRIM.Vector"
+const val primList = "$PRIM.List"
 const val primSet = "$PRIM.Set"
 const val primArray = "$PRIM.Array"
 
@@ -105,7 +103,7 @@ val tChar = TConst(primChar)
 val tString = TConst(primString)
 val tObject = TConst(primObject)
 val tUnit = TConst(primUnit)
-val tVector = TApp(TConst(primVector, Kind.Constructor(1)), listOf(tbound(-1)))
+val tList = TApp(TConst(primList, Kind.Constructor(1)), listOf(tbound(-1)))
 val tSet = TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-2)))
 val tArray = TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-3)))
 
@@ -123,13 +121,13 @@ val primTypes = mapOf(
     primString to tString,
     primObject to tObject,
     primUnit to tUnit,
-    primVector to tVector,
+    primList to tList,
     primSet to tSet,
     primArray to tArray
 )
 
-fun isVectorOf(type: Type, of: Type) =
-    type is TApp && type.type is TConst && type.type.name == primVector && type.types[0] == of
+fun isListOf(type: Type, of: Type) =
+    type is TApp && type.type is TConst && type.type.name == primList && type.types[0] == of
 
 fun isSetOf(type: Type, of: Type) =
     type is TApp && type.type is TConst && type.type.name == primSet && type.types[0] == of
@@ -153,7 +151,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     "java.lang.Character" -> primChar
     "java.lang.Boolean" -> primBoolean
     "java.lang.Object" -> primObject
-    "io.lacuna.bifurcan.List" -> primVector
+    "io.lacuna.bifurcan.List" -> primList
     "io.lacuna.bifurcan.Set" -> primSet
     else -> {
         if (jname.endsWith("[]")) primArray
@@ -178,7 +176,7 @@ val primModuleEnv = ModuleEnv(
         "Boolean" to tdecl(tBoolean),
         "Unit" to tdecl(tUnit),
         "Object" to tdecl(tObject),
-        "Vector" to tdecl(tVector),
+        "List" to tdecl(tList),
         "Set" to tdecl(tSet),
         "Array" to tdecl(tArray)
     )

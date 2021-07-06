@@ -26,7 +26,7 @@ foreign import Core:setEvery(Function, Set)
 import novah.stream as S
 import novah.java as J
 import novah.option as Option
-import novah.vector as Vector
+import novah.list as List
 
 /**
  * Creates a new set which uses the element equality function and the provided hash function, or the default object hash function.
@@ -260,11 +260,11 @@ every : (a -> Boolean) -> Set a -> Boolean
 every pred set = setEvery pred set
 
 /**
- * Returns true if every element in the vector is contained in the set.
+ * Returns true if every element in the list is contained in the set.
  */
 pub
-containsAll : Vector a -> Set a -> Boolean
-containsAll vec set = Vector.every (\x -> contains x set) vec
+containsAll : List a -> Set a -> Boolean
+containsAll list set = List.every (\x -> contains x set) list
 
 /**
  * Creates a linear (mutable) version of the given set and applies the function to it.

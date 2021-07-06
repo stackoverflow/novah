@@ -418,7 +418,7 @@ private fun collectType(ty: java.lang.reflect.Type): Type {
 private fun unbounded(ty: TypeVariable<*>): Boolean = ty.bounds.all { it.typeName == "java.lang.Object" }
 
 private fun toNovahType(ty: String): Type = when (ty) {
-    primArray, primVector, primSet -> {
+    primArray, primList, primSet -> {
         TApp(TConst(ty), listOf(Typechecker.newGenVar()))
     }
     else -> TConst(ty)

@@ -246,7 +246,7 @@ class Desugar(private val smod: SModule) {
 
             nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue))
         }
-        is SExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.desugar(locals) }, span)
+        is SExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals) }, span)
         is SExpr.BinApp -> {
             val args = listOf(left, right).map {
@@ -294,8 +294,8 @@ class Desugar(private val smod: SModule) {
         )
         is SPattern.Parens -> pattern.desugar(locals)
         is SPattern.Record -> Pattern.Record(labels.mapList { it.desugar(locals) }, span)
-        is SPattern.Vector -> Pattern.Vector(elems.map { it.desugar(locals) }, span)
-        is SPattern.VectorHT -> Pattern.VectorHT(head.desugar(locals), tail.desugar(locals), span)
+        is SPattern.ListP -> Pattern.ListP(elems.map { it.desugar(locals) }, span)
+        is SPattern.ListHeadTail -> Pattern.ListHeadTail(head.desugar(locals), tail.desugar(locals), span)
         is SPattern.Named -> Pattern.Named(pat.desugar(locals), name, span)
         is SPattern.Unit -> Pattern.Unit(span)
         is SPattern.TypeTest -> Pattern.TypeTest(type.desugar(), alias, span)
@@ -388,8 +388,8 @@ class Desugar(private val smod: SModule) {
         is SPattern.Parens -> collectVars(pat.pattern, implicit)
         is SPattern.Ctor -> pat.fields.flatMap { collectVars(it, implicit) }
         is SPattern.Record -> pat.labels.flatMapList { collectVars(it, implicit) }.toList()
-        is SPattern.Vector -> pat.elems.flatMap { collectVars(it, implicit) }
-        is SPattern.VectorHT -> collectVars(pat.head, implicit) + collectVars(pat.tail, implicit)
+        is SPattern.ListP -> pat.elems.flatMap { collectVars(it, implicit) }
+        is SPattern.ListHeadTail -> collectVars(pat.head, implicit) + collectVars(pat.tail, implicit)
         is SPattern.Named -> collectVars(pat.pat, implicit)
         is SPattern.ImplicitPattern -> collectVars(pat.pat, true)
         is SPattern.Wildcard -> emptyList()

@@ -42,7 +42,7 @@ object Reflection {
         "Float64Array" -> "double[]"
         "CharArray" -> "char[]"
         "BooleanArray" -> "boolean[]"
-        "Vector" -> "io.lacuna.bifurcan.List"
+        "List" -> "io.lacuna.bifurcan.List"
         "Set" -> "io.lacuna.bifurcan.Set"
         "Function" -> "java.util.function.Function"
         else -> type

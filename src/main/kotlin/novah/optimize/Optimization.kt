@@ -16,10 +16,8 @@
 package novah.optimize
 
 import io.lacuna.bifurcan.List
-import io.lacuna.bifurcan.Set
 import novah.Core
 import novah.ast.optimized.*
-import novah.collections.Record
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
 import novah.optimize.Optimizer.Companion.OBJECT_TYPE
 import novah.optimize.Optimizer.Companion.eqDouble
@@ -27,7 +25,6 @@ import novah.optimize.Optimizer.Companion.eqFloat
 import novah.optimize.Optimizer.Companion.eqInt
 import novah.optimize.Optimizer.Companion.eqLong
 import novah.optimize.Optimizer.Companion.eqString
-import novah.optimize.Optimizer.Companion.vecSize
 
 object Optimization {
 
@@ -130,11 +127,11 @@ object Optimization {
                         else Expr.Cast(arg, to, e.span)
                     }
                     // optimize `arrayOf [...]` to a literal array
-                    fn is Var && fn.fullname() == "$coreMod.arrayOf" && arg is Expr.VectorLiteral -> {
+                    fn is Var && fn.fullname() == "$coreMod.arrayOf" && arg is Expr.ListLiteral -> {
                         Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars), e.span)
                     }
                     // optimize `format "..." [...]` to `String.format "..." <literal-array>` 
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.format" && arg is Expr.VectorLiteral -> {
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.format" && arg is Expr.ListLiteral -> {
                         val arr = Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars), e.span)
                         Expr.NativeStaticMethod(stringFormat, listOf(fn.arg, arr), e.type, e.span)
                     }
@@ -143,19 +140,9 @@ object Optimization {
                             && fn.fn.fn.name in binOps.keys && arg.type.type.className in numericClasses -> {
                         Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type, e.span)
                     }
-                    // optimize vector access
+                    // optimize list access
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.\$bang" -> {
                         Expr.NativeMethod(vecNth, fn.arg, listOf(arg), e.type, e.span)
-                    }
-                    // optimize count function for vectors, sets and records
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.count" && arg is Expr.VectorLiteral -> {
-                        Expr.NativeMethod(vecSize, arg, emptyList(), e.type, e.span)
-                    }
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.count" && arg is Expr.SetLiteral -> {
-                        Expr.NativeMethod(setSize, arg, emptyList(), e.type, e.span)
-                    }
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.count" && arg is Expr.RecordExtend -> {
-                        Expr.NativeMethod(recSize, arg, emptyList(), e.type, e.span)
                     }
                     // optimize == for some types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
@@ -299,8 +286,6 @@ object Optimization {
         it.name == "format" && it.parameterTypes[0] == String::class.java
     }!!
     private val vecNth = List::class.java.methods.find { it.name == "nth" }!!
-    private val setSize = Set::class.java.methods.find { it.name == "size" }!!
-    private val recSize = Record::class.java.methods.find { it.name == "size" }!!
     private val gtInt = Core::class.java.methods.find { it.name == "greaterInt" }!!
     private val ltInt = Core::class.java.methods.find { it.name == "smallerInt" }!!
     private val gtEqInt = Core::class.java.methods.find { it.name == "greaterOrEqualsInt" }!!

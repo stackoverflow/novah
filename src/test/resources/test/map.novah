@@ -40,7 +40,7 @@ linearTest =
     lin `shouldBe` Map.new ["a" <> 1, "c" <> 3, "d" <> 4]
 
 pub
-mapTests : Vector Suite
+mapTests : List Suite
 mapTests =
   [ readersTest
   , writersTest

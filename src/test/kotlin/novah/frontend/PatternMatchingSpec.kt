@@ -134,33 +134,33 @@ class PatternMatchingSpec : StringSpec({
         ds["f2"]?.type?.simpleName() shouldBe "{ x : Int32, z : Boolean, y : Int32 | t1 } -> Int32"
     }
     
-    "pattern match vectors" {
+    "pattern match lists" {
         val code = """
             foreign import novah.Core:sum(Int, Int)
             
-            vec = [1, 2, 3, 4]
+            list = [1, 2, 3, 4]
             
-            f1 = case vec of
+            f1 = case list of
               [] -> 0
               [x] -> sum x 1
               [x, y] -> sum x y
               _ -> -1
             
-            f2 v =
-              case v of
+            f2 l =
+              case l of
                 [] -> 0
                 [x :: _] -> x
             
-            len v =
-              case v of
+            len l =
+              case l of
                 [] -> 0
                 [_ :: xs] -> sum 1 (len xs)
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "Int32"
-        ds["f2"]?.type?.simpleName() shouldBe "Vector Int32 -> Int32"
-        ds["len"]?.type?.simpleName() shouldBe "Vector t1 -> Int32"
+        ds["f2"]?.type?.simpleName() shouldBe "List Int32 -> Int32"
+        ds["len"]?.type?.simpleName() shouldBe "List t1 -> Int32"
     }
     
     "pattern match named" {
@@ -192,7 +192,7 @@ class PatternMatchingSpec : StringSpec({
             fun () =
               case ['a', 'b'] of
                 :? Int as i -> i
-                :? Vector-> 1
+                :? List -> 1
                 _ -> -1
         """.module()
 
@@ -215,7 +215,7 @@ class PatternMatchingSpec : StringSpec({
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["fun"]?.type?.simpleName() shouldBe "Int32 -> String -> Vector Int32 -> Int32"
+        ds["fun"]?.type?.simpleName() shouldBe "Int32 -> String -> List Int32 -> Int32"
         ds["fun2"]?.type?.simpleName() shouldBe "Int32 -> String -> String"
     }
     
@@ -241,11 +241,11 @@ class PatternMatchingSpec : StringSpec({
 
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "Unit -> t1 -> t2 -> t1"
-        ds["f2"]?.type?.simpleName() shouldBe "Vector Int32 -> Int32"
+        ds["f2"]?.type?.simpleName() shouldBe "List Int32 -> Int32"
         ds["f3"]?.type?.simpleName() shouldBe "{ x : Int32, y : Int32 | t1 } -> Int32 -> Int32"
         ds["f4"]?.type?.simpleName() shouldBe "t1 -> Int32"
         ds["f5"]?.type?.simpleName() shouldBe "Option t1 -> t1"
-        ds["f6"]?.type?.simpleName() shouldBe "Option t1 -> Unit -> Vector t2 -> Int32"
+        ds["f6"]?.type?.simpleName() shouldBe "Option t1 -> Unit -> List t2 -> Int32"
         ds["f7"]?.type?.simpleName() shouldBe "Int32"
     }
     

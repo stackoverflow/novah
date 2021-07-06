@@ -1,7 +1,0 @@
-module test
-
-fun : Vector Int -> Int
-fun v =
-  case v of
-    [x] -> x
-    [_, y] -> y

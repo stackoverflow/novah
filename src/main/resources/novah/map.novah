@@ -26,23 +26,23 @@ foreign import IMap.get(Object) as mapGet
 foreign import IMap.values() as imapValues
 foreign import IEntry.key() as entryKey
 foreign import IEntry.value() as entryValue
-foreign import Vector:from(IList) as vecFrom
+foreign import List:from(IList) as listFrom
 foreign import Core:mapEvery(Function, Map)
 foreign import Core:equalsMap(Map, Map, Function, Function)
 foreign import get io.lacuna.bifurcan.Maps:DEFAULT_HASH_CODE as defaultHashCode
 
 import novah.java as Java
 import novah.option as Option
-import novah.vector as Vector
+import novah.list as List
 
 /**
  * Creates a new map with the supplied entries.
  */
 pub
-new : Vector (Tuple k v) -> Map k v
-new vec =
+new : List (Tuple k v) -> Map k v
+new list =
   let lmap = mapLinear (mapEmpty ())
-  Vector.forEach vec \(Tuple key val) -> put key val lmap
+  List.forEach list \(Tuple key val) -> put key val lmap
   mapForked lmap
 
 /**
@@ -123,11 +123,11 @@ keys : Map k v -> Set k
 keys map = mapKeys map
 
 /**
- * Returns a vector of all values in this map.
+ * Returns a list of all values in this map.
  */
 pub
-values : Map k v -> Vector v
-values map = vecFrom (imapValues (unsafeCast map))
+values : Map k v -> List v
+values map = listFrom (imapValues (unsafeCast map))
 
 /**
  * Executes the function for every key/value pair in this map
@@ -190,4 +190,4 @@ eqMap {{Equals eqk}} {{Equals eqv}} = Equals { equals: \x y -> equalsMap x y eqk
  */
 pub
 withLinear : Map k v -> (Map k v -> Map k v) -> Map k v
-withLinear vec f = mapForked (f (mapLinear vec))
+withLinear map f = mapForked (f (mapLinear map))

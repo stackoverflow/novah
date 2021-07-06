@@ -25,5 +25,5 @@ readersTest =
     String.charAt 9 "exquisite" `shouldBe` None
 
 pub
-stringTests : Vector Suite
+stringTests : List Suite
 stringTests = [readersTest]

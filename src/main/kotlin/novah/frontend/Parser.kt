@@ -140,7 +140,6 @@ class Parser(
             if (!aliased.contains(OPTION_MODULE)) imports += optionImport
             if (!aliased.contains(SET_MODULE)) imports += setImport
             if (!aliased.contains(STRING_MODULE)) imports += stringImport
-            if (!aliased.contains(VECTOR_MODULE)) imports += vectorImport
             if (!aliased.contains(MAP_MODULE)) imports += mapImport
             if (!aliased.contains(RESULT_MODULE)) imports += resultImport
         }
@@ -473,11 +472,11 @@ class Parser(
                 val tk = iter.next()
                 if (iter.peek().value is RSBracket) {
                     val end = iter.next()
-                    Expr.VectorLiteral(emptyList()).withSpan(tk.span, end.span).withComment(tk.comment)
+                    Expr.ListLiteral(emptyList()).withSpan(tk.span, end.span).withComment(tk.comment)
                 } else {
                     val exps = between<Comma, Expr>(::parseExpression)
-                    val end = expect<RSBracket>(withError(E.rsbracketExpected("vector literal")))
-                    Expr.VectorLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
+                    val end = expect<RSBracket>(withError(E.rsbracketExpected("list literal")))
+                    Expr.ListLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
                 }
             }
             is SetBracket -> {
@@ -846,17 +845,17 @@ class Parser(
                 iter.next()
                 if (iter.peek().value is RSBracket) {
                     val end = iter.next().span
-                    Pattern.Vector(emptyList(), span(tk.span, end))
+                    Pattern.ListP(emptyList(), span(tk.span, end))
                 } else {
                     val elems = between<Comma, Pattern>(::parsePattern)
                     if (elems.size == 1 && iter.peek().value.isDoubleColon()) {
                         iter.next()
                         val tail = parsePattern()
-                        val end = expect<RSBracket>(withError(E.rsbracketExpected("vector pattern"))).span
-                        Pattern.VectorHT(elems[0], tail, span(tk.span, end))
+                        val end = expect<RSBracket>(withError(E.rsbracketExpected("list pattern"))).span
+                        Pattern.ListHeadTail(elems[0], tail, span(tk.span, end))
                     } else {
-                        val end = expect<RSBracket>(withError(E.rsbracketExpected("vector pattern"))).span
-                        Pattern.Vector(elems, span(tk.span, end))
+                        val end = expect<RSBracket>(withError(E.rsbracketExpected("list pattern"))).span
+                        Pattern.ListP(elems, span(tk.span, end))
                     }
                 }
             }

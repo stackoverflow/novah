@@ -19,9 +19,9 @@ foreign import String.charAt(Int32) as scharAt
 foreign import String.substring(Int32) as ssubstring
 foreign import String.split(String) as ssplit
 foreign import String:join(CharSequence, Array) as sjoin
-foreign import Vector:"of"(Array) as fromArray
+foreign import List:"of"(Array) as fromArray
 
-import novah.vector as Vector
+import novah.list as List
 
 /**
  * Returns true if this string is empty or only contains whitespace codepoints.
@@ -94,11 +94,11 @@ getBytes : String -> Array Byte
 getBytes str = sgetBytes str
 
 /**
- * Joins all strings in this vector separated by delimiter.
+ * Joins all strings in this list separated by delimiter.
  */
 pub
-join : String -> Vector String -> String
-join delimiter vec = sjoin (unsafeCast delimiter) (unsafeCast (Vector.toArray vec))
+join : String -> List String -> String
+join delimiter list = sjoin (unsafeCast delimiter) (unsafeCast (List.toArray list))
 
 /**
  * Returns this string with all leading and trailing white spaces removed.
@@ -144,7 +144,7 @@ capitalize str = case length str of
  * Split this string at new lines.
  */
 pub
-splitLines : String -> Vector String
+splitLines : String -> List String
 splitLines str = fromArray (ssplit str "[\\r|\\n]+")
 
 /**

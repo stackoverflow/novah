@@ -3,6 +3,7 @@ module main
 import novah.test
 import array (arrayTests)
 import computation (computationTests)
+import linkedList (linkedListTests)
 import list (listTests)
 import map (mapTests)
 import math (mathTests)
@@ -11,15 +12,14 @@ import result (resultTests)
 import set (setTests)
 import stream (streamTests)
 import string (stringTests)
-import vector (vectorTests)
 
 pub
 main : Array String -> Unit
 main _ =
-  let tests = vectorTests
+  let tests = listTests
                 ++ arrayTests
                 ++ computationTests
-                ++ listTests
+                ++ linkedListTests
                 ++ mapTests
                 ++ mathTests
                 ++ optionTests

@@ -1,7 +1,0 @@
-module [33mtest[0m
-at src/test/resources/warning/pattern matching/pattern match unreacheable vector.novah:5:3 - 8:12
-
-  A case expression contains redundant cases:
-  
-      [x, 0]
-

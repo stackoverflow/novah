@@ -196,11 +196,11 @@ class PatternMatchingCompiler<R> {
     companion object {
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
-        private val vectorEmptyCtor = Ctor("vector", 0, 2)
-        private val vectorHTCtor = Ctor("vector", 2, 2)
+        private val listEmptyCtor = Ctor("list", 0, 2)
+        private val listHeadTailCtor = Ctor("list", 2, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkRecordCtor(arity: Int) = Ctor("record$arity", arity, 1)
-        private fun mkVectorCtor(arity: Int) = Ctor("vector$arity", arity, Integer.MAX_VALUE)
+        private fun mkListCtor(arity: Int) = Ctor("list$arity", arity, Integer.MAX_VALUE)
         private fun mkTypeTestCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkMultiCtor(arity: Int) = Ctor("multi$arity", arity, 1)
 
@@ -251,12 +251,12 @@ class PatternMatchingCompiler<R> {
                 val pats = p.labels.values().flatten().map { convertPattern(it, modName) }
                 Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
             }
-            is Pattern.Vector -> {
-                if (p.elems.isEmpty()) Pat.PCon(vectorEmptyCtor, emptyList())
-                else Pat.PCon(mkVectorCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
+            is Pattern.ListP -> {
+                if (p.elems.isEmpty()) Pat.PCon(listEmptyCtor, emptyList())
+                else Pat.PCon(mkListCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
             }
-            is Pattern.VectorHT -> {
-                Pat.PCon(vectorHTCtor, listOf(convertPattern(p.head, modName), convertPattern(p.tail, modName)))
+            is Pattern.ListHeadTail -> {
+                Pat.PCon(listHeadTailCtor, listOf(convertPattern(p.head, modName), convertPattern(p.tail, modName)))
             }
             is Pattern.Named -> convertPattern(p.pat, modName)
             is Pattern.Unit -> Pat.PVar("()")

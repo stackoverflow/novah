@@ -1,141 +1,43 @@
 module novah.list
 
-/**
- * An immutable linked list.
- * A vector should almost always be prefered over this type as vectors make for good linked lists.
- * Most list operations are O(n) like `count`.
- */
-pub+
-type List a = Nil | Cons a (List a)
+foreign import type java.util.Comparator
+foreign import type java.util.stream.Stream
+foreign import type io.lacuna.bifurcan.IList
+foreign import type novah.Core
+
+foreign import List.linear() as listLinear
+foreign import List.forked() as listForked
+foreign import List.slice(Int64, Int64) as listSlice
+foreign import List.size() as listSize
+foreign import List:"of"(Array) as listFromArray
+foreign import java.util.Arrays:sort(Array, Comparator) as arraySort
+foreign import IList.stream() as listStream
+foreign import IList.toArray() as listToArray
+foreign import Core:foldList(Function, Object, List)
+foreign import Core:findList(Function, List)
+foreign import Core:listEvery(Function, List)
+
+import novah.java (toComparator)
+import novah.stream as S
+import novah.option as O
 
 /**
- * Appends the element as the new head of the list.
- * An alias to the Cons constructor of a list.
- */
-pub
-(::) : a -> List a -> List a
-(::) = Cons
-
-/**
- * Returns the head of this list if it's not empty.
- * Runtime: O(1)
- */
-pub
-head : List a -> Option a
-head = case _ of
-  Nil -> None
-  Cons x _ -> Some x
-
-/**
- * Returns the tail of this list if it's not empty.
- * Runtime: O(1)
+ * Returns a stream for this list.
  */
 pub
-tail : List a -> Option (List a)
-tail = case _ of
-  Nil -> None
-  Cons _ xs -> Some xs
+stream : List a -> Stream a
+stream list = listStream (unsafeCast list)
 
 /**
- * Produces a list with a single element.
- * Runtime: O(1)
- */
-pub
-singleton : a -> List a
-singleton x = x :: Nil
-
-/**
- * Takes the first n elements of this list and returns it.
+ * Collects this stream into a list.
  * Runtime: O(n)
  */
 pub
-take : Int32 -> List a -> List a
-take n = case _ of
-  Nil -> Nil
-  _ if n <= 0 -> Nil
-  Cons x xs -> x :: take (n - 1) xs
-
-/**
- * Drops the first n elements of this list and returns it.
- * Runtime: O(n)
- */
-pub
-drop : Int32 -> List a -> List a
-drop n = case _ of
-  Nil -> Nil
-  l if n <= 0 -> l
-  Cons _ xs -> drop (n - 1) xs
-
-/**
- * Returns some value at index for this list if it exists or none.
- * Runtime: O(n)
- */
-pub
-nth : Int32 -> List a -> Option a
-nth index = drop index >> head
-
-/**
- * Keeps taking elements of this list while the predicate holds.
- * Runtime: O(n)
- */
-pub
-takeWhile : (a -> Boolean) -> List a -> List a
-takeWhile pred = case _ of
-  Nil -> Nil
-  (Cons x xs) if pred x -> x :: takeWhile pred xs
-  _ -> Nil
-
-/**
- * Keeps removing elements from this list while the predicate holds.
- * Runtime: O(n)
- */
-pub
-dropWhile : (a -> Boolean) -> List a -> List a
-dropWhile pred = case _ of
-  Nil -> Nil
-  (Cons x xs) if pred x -> dropWhile pred xs
-  l -> l
-
-/**
- * Returns true if this list is empty.
- * Runtime: O(1)
- */
-pub
-isEmpty : List a -> Boolean
-isEmpty = case _ of
-  Nil -> true
-  _ -> false
-
-/**
- * Returns true if this list is not empty.
- * Runtime: O(1)
- */
-pub
-isNotEmpty : List a -> Boolean
-isNotEmpty = case _ of
-  Nil -> false
-  _ -> true
-
-/**
- * Returns true if the element is inside this list.
- * Runtime: O(n)
- */
-pub
-contains : {{ Equals a }} -> a -> List a -> Boolean
-contains {{eq}} elem = case _ of
-  Nil -> false
-  Cons x xs -> if x == elem then true else contains {{eq}} elem xs
-
-/**
- * Maps function f over all elements of this List
- * returning a List of the same size.
- * Runtime: O(n)
- */
-pub
-map : (a -> b) -> List a -> List b
-map f = case _ of
-  Nil -> Nil
-  Cons x xs -> f x :: map f xs
+fromStream : Stream a -> List a
+fromStream st =
+  let llist = listLinear []
+  S.forEach st \x -> addLast x llist
+  listForked llist
 
 /**
  * Runs function f for every element of this list, ignoring the result.
@@ -143,12 +45,73 @@ map f = case _ of
  */
 pub
 forEach : List a -> (a -> b) -> Unit
-forEach list f =
-  case list of
-    Nil -> ()
-    Cons x xs ->
-      f x
-      forEach xs f
+forEach list f = forEachRange 0L (listSize list) \idx -> f (list ! idx)
+
+/**
+ * Maps function f over all elements of this list
+ * returning a list of the same size.
+ * Runtime: O(n)
+ */
+pub
+map : (a -> b) -> List a -> List b
+map f list =
+  let llist = listLinear []
+  forEachRange 0L (listSize list) \idx ->
+    addLast (f (list ! idx)) llist
+  listForked llist
+
+/**
+ * Returns some value at index for this list if it exists or none.
+ * This is a safe version of !
+ * Runtime: ~O(1)
+ */
+pub
+nth : Int64 -> List a -> Option a
+nth index list =
+  let len = listSize list
+  if index < 0L || index >= len
+  then None
+  else Some (list ! index)
+
+/**
+ * Returns the size of this list.
+ * Runtime: O(1)
+ */
+pub
+size : List a -> Int64
+size list = listSize list
+
+/**
+ * Returns the first element of this list if it's not empty.
+ * Runtime: ~O(1)
+ */
+pub
+first : List a -> Option a
+first list = nth 0L list
+
+/**
+ * Returns the last element of this list if it's not empty.
+ * Runtime: ~O(1)
+ */
+pub
+last : List a -> Option a
+last list = nth (listSize list - 1L) list
+
+/**
+ * Returns true if this list is empty.
+ * Runtime: O(1)
+ */
+pub
+isEmpty : List a -> Boolean
+isEmpty list = listSize list == 0L
+
+/**
+ * Returns true if this list is not empty.
+ * Runtime: O(1)
+ */
+pub
+isNotEmpty : List a -> Boolean
+isNotEmpty list = listSize list != 0L
 
 /**
  * Returns a list of the elements that match the given predicate.
@@ -156,9 +119,13 @@ forEach list f =
  */
 pub
 filter : (a -> Boolean) -> List a -> List a
-filter f = case _ of
-  Nil -> Nil
-  Cons x xs -> if f x then x :: filter f xs else filter f xs
+filter f list =
+  let llist = listLinear []
+  forEachRange 0L (listSize list) \idx ->
+    let elem = list ! idx
+    when (f elem) \_ ->
+      addLast elem llist
+  listForked llist
 
 /**
  * Returns the first occurrence of elem in this list for which the predicate returns true.
@@ -166,76 +133,117 @@ filter f = case _ of
  */
 pub
 find : (a -> Boolean) -> List a -> Option a
-find pred = case _ of
-  Nil -> None
-  Cons x xs -> if pred x then Some x else find pred xs
+find pred list = findList pred list |> O.fromOptional
 
 /**
- * Like `map` but it will flatten the resulting list.
+ * Sorts this list according to the comparing function.
+ */
+pub
+sortBy : (a -> a -> Ordering) -> List a -> List a
+sortBy cmp = case _ of
+  [] -> []
+  [_] as list -> list
+  list ->
+    let arr = toArray list
+    let comp = toComparator cmp
+    arraySort arr (unsafeCast comp)
+    listFromArray arr
+
+/**
+ * Sorts this list according to the element's Ord instance.
+ */
+pub
+sort : {{ Ord a }} -> List a -> List a
+sort {{Ord _ ord}} = sortBy ord.compare
+
+/**
+ * An alias to `addFirst`.
+ * Should be used when using this list as a stack.
+ * Runtime: ~O(1)
+ */
+pub
+push : a -> List a -> List a
+push = addFirst
+
+/**
+ * An alias to `removeFirst`.
+ * Should be used when using this list as a stack.
+ * Runtime: ~O(1)
+ */
+pub
+pop : List a -> List a
+pop = removeFirst
+
+/**
+ * Returns true if the element is inside the list.
  * Runtime: O(n)
  */
 pub
-flatMap : (a -> List b) -> List a -> List b
-flatMap f = case _ of
-  Nil -> Nil
-  Cons x xs -> f x ++ flatMap f xs
+contains : {{ Equals a }} -> a -> List a -> Boolean
+contains {{Equals eq}} elem list = case find (\e -> eq.equals e elem) list of
+  Some _ -> true
+  None -> false
 
 /**
- * Returns the size of this list.
+ * Returns the tail of this list if it's not empty.
+ * Runtime: ~O(1)
+ */
+pub
+tail : List a -> Option (List a)
+tail = case _ of
+  [] -> None
+  [_ :: xs] -> Some xs
+
+/**
+ * Returns a slice of this list starting at from (inclusive)
+ * and ending at to (exclusive).
+ * Runtime: ~O(1)
+ */
+pub
+slice : Int64 -> Int64 -> List a -> List a
+slice from to list = listSlice list from to
+
+/**
+ * Takes the first n elements of this list and returns it.
+ * Runtime: ~O(1)
+ */
+pub
+take : Int64 -> List a -> List a
+take n = slice 0L n
+
+/**
+ * Drops the first n elements of this list and returns it.
+ * Runtime: ~O(1)
+ */
+pub
+drop : Int64 -> List a -> List a
+drop n list = slice n (listSize list) list
+
+/**
+ * Keeps taking elements of this list while the predicate holds.
  * Runtime: O(n)
  */
 pub
-size : List a -> Int32
-size = case _ of
-  Nil -> 0
-  Cons _ xs -> 1 + (size xs)
-
-showList_ : Show a -> List a -> String
-showList_ (Show s) l =
-  let innerShow = case _ of
-        Nil -> "Nil"
-        Cons x xs -> s.show x ++ " :: " ++ innerShow xs
-  case l of
-    Nil -> "Nil"
-    (Cons _ _) as list -> "(" ++ innerShow list ++ ")"
-
-pub instance
-showList : {{ Show a }} -> Show (List a)
-showList {{s}} = Show { show: showList_ s }
-
-eqList_ : Equals a -> List a -> List a -> Boolean
-eqList_ ((Equals eq) as equals) = case _, _ of
-  Nil, Nil -> true
-  Nil, _ -> false
-  _, Nil -> false
-  Cons x xs, Cons y ys -> eq.equals x y && eqList_ equals xs ys
-
-pub instance
-eqList : {{ Equals a }} -> Equals (List a)
-eqList {{eq}} = Equals { equals: eqList_ eq }
-
-concatList_ : List a -> List a -> List a
-concatList_ l1 l2 =
-  let addTo to = case _ of
-        Nil -> to
-        Cons x xs -> addTo (x :: to) xs
-  addTo Nil l1 |> addTo l2
-
-pub instance
-concatList : Concat (List a)
-concatList = Concat { concat: concatList_ }
+takeWhile : (a -> Boolean) -> List a -> List a
+takeWhile pred list =
+  let v = listLinear list
+  let res = listLinear []
+  while isNotEmpty v && pred (v ! 0L) do
+    addLast (v ! 0L) res
+    removeFirst v
+  listForked res
 
 /**
- * Returns a reversed version of this list.
+ * Keeps removing elements from this list while the predicate holds.
  * Runtime: O(n)
  */
 pub
-reverse : List a -> List a
-reverse list =
-  let addTo to = case _ of
-        Nil -> to
-        Cons x xs -> addTo (x :: to) xs
-  addTo Nil list
+dropWhile : (a -> Boolean) -> List a -> List a
+dropWhile pred list =
+  let v = listLinear list
+  while isNotEmpty v && pred (v ! 0L) do
+    removeFirst v
+  listForked v
 
 /**
  * Reduces this list to a single value according to the reducing function.
@@ -244,11 +252,18 @@ reverse list =
  */
 pub
 foldl : (b -> a -> b) -> b -> List a -> b
-foldl f =
-  let go b = case _ of
-        Nil -> b
-        Cons x xs -> go (f b x) xs
-  go
+foldl f init list = foldList f init list
+
+/**
+ * A specialized version of `foldl` where the first element of the list is used as initial value.
+ * Returns none if the list is empty
+ * Runtime: O(n)
+ */
+pub
+reduce : (a -> a -> a) -> List a -> Option a
+reduce f = case _ of
+  [] -> None
+  [x :: xs] -> Some (foldl f x xs)
 
 /**
  * Reduces this list to a single value according to the reducing function.
@@ -266,93 +281,68 @@ foldr f init = foldl (flip f) init << reverse
 pub
 flatten : List (List a) -> List a
 flatten = case _ of
-  Nil -> Nil
-  Cons x xs -> x ++ flatten xs
+  [] -> []
+  [x :: xs] -> foldl (\v1 v2 -> v1 ++ v2) x xs
 
 /**
- * A specialized version of `foldl` where the first element of the list is used as initial value.
- * Returns none if the list is empty
+ * Like map, but the mapping function should return a list.
+ * Flattens the result.
  * Runtime: O(n)
  */
 pub
-reduce : (a -> a -> a) -> List a -> Option a
-reduce f = case _ of
-  Nil -> None
-  Cons x xs -> Some (foldl f x xs)
+flatMap : (a -> List b) -> List a -> List b
+flatMap f list = flatten (map f list)
 
 /**
- * Returns a list in the range from begin (inclusive) to end (exclusive).
+ * Returns a reversed version of this list.
  * Runtime: O(n)
  */
 pub
-range : Int32 -> Int32 -> List Int32
-range begin end =
-  let op = if begin <= end then (_ + 1) else (_ - 1)
-  let go b e acc =
-    if b == e then
-      acc
-    else
-      go (op b) e (b :: acc)
-  go begin end Nil |> reverse
+reverse : List a -> List a
+reverse list =
+  let llist = listLinear []
+  forEachRange 0L (listSize list) \i ->
+    addFirst (list ! i) llist
+  listForked llist
 
 /**
- * Creates a list with the same elements as the given vector.
+ * Returns true if the predicate is true for every element in this list.
  * Runtime: O(n)
  */
 pub
-fromVector : Vector a -> List a
-fromVector = case _ of
-  [] -> Nil
-  [x :: xs] -> x :: fromVector xs
-
-// sort implementation copied from https://hackage.haskell.org/package/base-4.15.0.0/docs/src/Data-OldList.html#sort
+every : (a -> Boolean) -> List a -> Boolean
+every pred list = listEvery pred list
 
 /**
- * Sorts this list according to the comparing function.
- * Runtime: O(n log(n))
+ * Converts this list into an array.
+ * Runtime: O(n)
  */
 pub
-sortBy : (a -> a -> Ordering) -> List a -> List a
-sortBy cmp =
-  let sequences ascending descending = case _ of
-    Cons a (Cons b xs) ->
-      if a `cmp` b == GT then
-        descending ascending b (singleton a) xs
-      else
-        ascending b (a :: _) xs
-    xs -> singleton xs
-  
-  let descending ascending x xs = case _ of
-    Cons b bs if x `cmp` b == GT -> descending ascending b (x :: xs) bs
-    bs -> (x :: xs) :: sequences ascending descending bs
-  
-  let ascending x xs = case _ of
-    Cons b bs if x `cmp` b != GT -> ascending b (\ys -> xs (x :: ys)) bs
-    bs -> (singleton x |> xs) :: sequences ascending descending bs
-  
-  let merge = case _, _ of
-    (Cons x xss) as xs, (Cons y yss) as ys ->
-      if x `cmp` y == GT then
-        y :: merge xs yss
-      else
-        x :: merge xss ys
-    Nil, ys -> ys
-    xs, Nil -> xs
-
-  let mergePairs = case _ of
-    Cons a (Cons b xs) -> merge a b :: mergePairs xs
-    xs -> xs
-
-  let mergeAll = case _ of
-    Cons x Nil -> x
-    xs -> mergeAll (mergePairs xs)
-  
-  mergeAll << (sequences ascending descending)
+toArray : List a -> Array a
+toArray list = unsafeCast (listToArray (unsafeCast list))
 
 /**
- * Sorts this list according to the element's Ord instance.
- * Runtime: O(n log(n))
+ * Converts this array into a list.
+ * Runtime: O(n)
  */
 pub
-sort : {{ Ord a }} -> List a -> List a
-sort {{Ord _ ord}} = sortBy ord.compare
+fromArray : Array a -> List a
+fromArray arr = listFromArray arr
+
+/**
+ * Creates a linear (mutable) version of the given list and applies the function to it.
+ * Returns a forked (persistent) version of the returned linear list.
+ * This function should be used when lots of expensive mutating operations have to be run on a list
+ * and can be seen as a builder for the resulting list.
+ * All functions that alter lists like `addFirst`, `setAt`, `removeLast`, etc.
+ * will mutate a linear list.
+ * Ex:
+ *   withLinear [1, 2, 3] \list ->
+ *     addFirst 0 list
+ *     addLast 4 list
+ *
+ *   -> [0, 1, 2, 3, 4]
+ */
+pub
+withLinear : List a -> (List a -> List a) -> List a
+withLinear list f = listForked (f (listLinear list))

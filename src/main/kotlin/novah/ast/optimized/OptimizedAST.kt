@@ -176,7 +176,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
         override val span: Span
     ) : Expr(type, span)
 
-    data class VectorLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class ListLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class SetLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ArrayLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class TryCatch(
@@ -220,7 +220,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
         is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
         is Expr.RecordUpdate -> f(e.copy(expr = go(e.expr), value = go(e.value)))
-        is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.ListLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.TryCatch -> {

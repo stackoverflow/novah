@@ -3,8 +3,8 @@ module array
 import novah.stream as Stream
 import novah.test
 
-a : Vector a -> Array a
-a = Vector.toArray
+a : List a -> Array a
+a = List.toArray
 
 streamTest : Suite
 streamTest =
@@ -51,7 +51,7 @@ traversersTest =
     rarr `shouldBe` a [4, 3, 2, 1]
 
 pub
-arrayTests : Vector Suite
+arrayTests : List Suite
 arrayTests =
   [ streamTest
   , readersTest

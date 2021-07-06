@@ -296,11 +296,11 @@ public class Core {
         return !b;
     }
 
-    public static boolean vectorNotEmpty(List<?> vec) {
-        return vec.size() != 0;
+    public static boolean listNotEmpty(List<?> list) {
+        return list.size() != 0;
     }
 
-    public static <T> boolean equalsVector(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
+    public static <T> boolean equalsList(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
         if (v1.hashCode() == v2.hashCode()) return true;
 
@@ -343,15 +343,15 @@ public class Core {
         return true;
     }
 
-    public static <T> String toStringVector(List<T> vec, Function<T, String> show) {
-        long size = vec.size();
+    public static <T> String toStringList(List<T> list, Function<T, String> show) {
+        long size = list.size();
         if (size == 0) return "[]";
         StringBuilder builder = new StringBuilder("[");
-        builder.append(show.apply(vec.nth(0)));
+        builder.append(show.apply(list.nth(0)));
 
         for (long i = 1; i < size; i++) {
             builder.append(", ");
-            builder.append(show.apply(vec.nth(i)));
+            builder.append(show.apply(list.nth(i)));
         }
         builder.append("]");
         return builder.toString();
@@ -509,74 +509,74 @@ public class Core {
         }
     }
 
-    public static List<Integer> vecIntRange(int begin, int end) {
-        var vec = new List<Integer>().linear();
+    public static List<Integer> listIntRange(int begin, int end) {
+        var list = new List<Integer>().linear();
         if (begin <= end) {
             for (int i = begin; i < end; i++) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         } else {
             for (int i = begin; i > end; i--) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         }
-        return vec.forked();
+        return list.forked();
     }
 
-    public static List<Long> vecLongRange(long begin, long end) {
-        var vec = new List<Long>().linear();
+    public static List<Long> listLongRange(long begin, long end) {
+        var list = new List<Long>().linear();
         if (begin <= end) {
             for (long i = begin; i < end; i++) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         } else {
             for (long i = begin; i > end; i--) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         }
-        return vec.forked();
+        return list.forked();
     }
 
-    public static List<Float> vecFloatRange(float begin, float end) {
-        var vec = new List<Float>().linear();
+    public static List<Float> listFloatRange(float begin, float end) {
+        var list = new List<Float>().linear();
         if (begin <= end) {
             for (float i = begin; i < end; i++) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         } else {
             for (float i = begin; i > end; i--) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         }
-        return vec.forked();
+        return list.forked();
     }
 
-    public static List<Double> vecDoubleRange(double begin, double end) {
-        var vec = new List<Double>().linear();
+    public static List<Double> listDoubleRange(double begin, double end) {
+        var list = new List<Double>().linear();
         if (begin <= end) {
             for (double i = begin; i < end; i++) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         } else {
             for (double i = begin; i > end; i--) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         }
-        return vec.forked();
+        return list.forked();
     }
 
-    public static List<Character> vecCharRange(char begin, char end) {
-        var vec = new List<Character>().linear();
+    public static List<Character> listCharRange(char begin, char end) {
+        var list = new List<Character>().linear();
         if (begin <= end) {
             for (char i = begin; i < end; i++) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         } else {
             for (char i = begin; i > end; i--) {
-                vec.addLast(i);
+                list.addLast(i);
             }
         }
-        return vec.forked();
+        return list.forked();
     }
 
     public static <T> Comparator<T> makeComparator(Function<T, Function<T, Integer>> compare) {
@@ -615,9 +615,9 @@ public class Core {
         return (x, y) -> fun.apply(x).apply(y);
     }
 
-    public static <T> Optional<T> findVector(Function<T, Boolean> pred, List<T> vec) {
+    public static <T> Optional<T> findList(Function<T, Boolean> pred, List<T> list) {
         T found = null;
-        for (T elem : vec) {
+        for (T elem : list) {
             if (pred.apply(elem)) {
                 found = elem;
                 break;
@@ -626,10 +626,10 @@ public class Core {
         return Optional.ofNullable(found);
     }
 
-    public static <T, R> R foldVector(Function<R, Function<T, R>> f, R init, List<T> vec) {
+    public static <T, R> R foldList(Function<R, Function<T, R>> f, R init, List<T> list) {
         R acc = init;
-        for (long i = 0; i < vec.size(); i++) {
-            acc = f.apply(acc).apply(vec.nth(i));
+        for (long i = 0; i < list.size(); i++) {
+            acc = f.apply(acc).apply(list.nth(i));
         }
         return acc;
     }
@@ -642,8 +642,8 @@ public class Core {
         return acc;
     }
     
-    public static <T> boolean vectorEvery(Function<T, Boolean> pred, List<T> vec) {
-        for (T elem : vec) {
+    public static <T> boolean listEvery(Function<T, Boolean> pred, List<T> list) {
+        for (T elem : list) {
             if (!pred.apply(elem)) return false;
         }
         return true;

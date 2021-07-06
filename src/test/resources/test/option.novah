@@ -15,5 +15,5 @@ readersTest =
     Option.map (_ ++ "def") (Some "abc") `shouldBe` Some "abcdef"
 
 pub
-optionTests : Vector Suite
+optionTests : List Suite
 optionTests = [readersTest]

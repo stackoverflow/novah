@@ -98,7 +98,7 @@ sealed class Expr(open val span: Span) {
     data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
     data class RecordUpdate(val exp: Expr, val label: String, val value: Expr, override val span: Span) : Expr(span)
-    data class VectorLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
+    data class ListLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class Throw(val exp: Expr, override val span: Span) : Expr(span)
     data class TryCatch(val tryExp: Expr, val cases: List<Case>, val finallyExp: Expr?, override val span: Span) :
@@ -146,8 +146,8 @@ sealed class Pattern(open val span: Span) {
     data class Var(val name: String, override val span: Span) : Pattern(span)
     data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
-    data class Vector(val elems: List<Pattern>, override val span: Span) : Pattern(span)
-    data class VectorHT(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
+    data class ListP(val elems: List<Pattern>, override val span: Span) : Pattern(span)
+    data class ListHeadTail(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
     data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
@@ -169,8 +169,8 @@ fun Pattern.show(): String = when (this) {
     is Pattern.Ctor -> if (fields.isEmpty()) ctor.name else "${ctor.name} " + fields.joinToString(" ") { it.show() }
     is Pattern.LiteralP -> lit.show()
     is Pattern.Record -> "{ " + labels.show { l, e -> "$l: ${e.show()}" } + " }"
-    is Pattern.Vector -> "[${elems.joinToString { it.show() }}]"
-    is Pattern.VectorHT -> "[${head.show()} :: ${tail.show()}]"
+    is Pattern.ListP -> "[${elems.joinToString { it.show() }}]"
+    is Pattern.ListHeadTail -> "[${head.show()} :: ${tail.show()}]"
     is Pattern.Named -> "${pat.show()} as $name"
     is Pattern.Unit -> "()"
     is Pattern.TypeTest -> ":? ${type.show()}" + if (alias != null) " $alias" else ""
@@ -204,7 +204,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.RecordRestrict -> f(e.copy(exp = go(e.exp)))
         is Expr.RecordUpdate -> f(e.copy(exp = go(e.exp), value = go(e.value)))
         is Expr.RecordExtend -> f(e.copy(exp = go(e.exp), labels = e.labels.mapList(::go)))
-        is Expr.VectorLiteral -> f(e.copy(exps = e.exps.map(::go)))
+        is Expr.ListLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.Throw -> f(e.copy(exp = go(e.exp)))
         is Expr.TryCatch -> {
@@ -267,7 +267,7 @@ fun Expr.show(): String = when (this) {
         val rest = if (exp is Expr.RecordEmpty) "" else " | ${exp.show()} "
         "{ ${labels.show { s, expr -> "$s: ${expr.show()}" }} $rest}"
     }
-    is Expr.VectorLiteral -> "[${exps.joinToString { it.show() }}]"
+    is Expr.ListLiteral -> "[${exps.joinToString { it.show() }}]"
     is Expr.SetLiteral -> "#{${exps.joinToString { it.show() }}}"
     is Expr.Throw -> "throw ${exp.show()}"
     is Expr.TryCatch -> {

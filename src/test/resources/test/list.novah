@@ -1,63 +1,81 @@
 module list
 
-import novah.list (::, List(..))
+import novah.stream as Stream
 import novah.test
 
-fv : Vector a -> List a
-fv = List.fromVector
+streamTest : Suite
+streamTest =
+  Test "List stream functions" \_ ->
+    let list = [1, 2, 3, 4]
+    let stm = Stream.from 1
+    let same = List.stream list |> List.fromStream
+    List.fromStream stm `shouldBe` [1]
+    same `shouldBe` list
 
 readersTest : Suite
 readersTest =
   Test "List reading functions" \_ ->
-    let l = fv [1, 2, 3, 4]
-    List.nth 2 l `shouldBe` Some 3
-    List.head l `shouldBe` Some 1
-    List.tail l `shouldBe` Some (fv [2, 3, 4])
-    List.singleton 5 `shouldBe` (5 :: Nil)
-    List.isEmpty l `shouldBe` false
-    List.isNotEmpty l `shouldBe` true
-    List.contains 4 l `shouldBe` true
-    List.take 2 l `shouldBe` (1 :: 2 :: Nil)
-    List.drop 2 l `shouldBe` (3 :: 4 :: Nil)
-    List.takeWhile (_ < 3) l `shouldBe` (1 :: 2 :: Nil)
-    List.dropWhile (_ < 3) l `shouldBe` (3 :: 4 :: Nil)
-    List.range 1 5 `shouldBe` fv [1, 2, 3, 4]
-    List.fromVector [1, 2, 3, 4] `shouldBe` (1 :: 2 :: 3 :: 4 :: Nil)
-    List.size l `shouldBe` 4
-    (l ++ (5 :: 6 :: Nil)) `shouldBe` List.range 1 7
+    let list = [1, 2, 3, 4]
+    (list ! 2L) `shouldBe` 3
+    List.nth 2L list `shouldBe` Some 3
+    List.first list `shouldBe` Some 1
+    List.last list `shouldBe` Some 4
+    List.isEmpty list `shouldBe` false
+    List.isNotEmpty list `shouldBe` true
+    List.contains 4 list `shouldBe` true
+    List.slice 1L 3L list `shouldBe` [2, 3]
+    List.take 2L list `shouldBe` [1, 2]
+    List.drop 2L list `shouldBe` [3, 4]
+    List.takeWhile (_ < 3) list `shouldBe` [1, 2]
+    List.dropWhile (_ < 3) list `shouldBe` [3, 4]
+    List.tail list `shouldBe` Some [2, 3, 4]
+    List.size list `shouldBe` 4L
+    (list ++ [5, 6]) `shouldBe` [1, 2, 3, 4, 5, 6]
 
 writersTest : Suite
 writersTest =
   Test "List writing functions" \_ ->
-    let l = fv [1, 2, 3]
-    (0 :: l) `shouldBe` fv [0, 1, 2, 3]
+    let list = [1, 2, 3]
+    addFirst 4 list `shouldBe` [4, 1, 2, 3]
+    addLast 4 list `shouldBe` [1, 2, 3, 4]
+    removeFirst list `shouldBe` [2, 3]
+    removeLast list `shouldBe` [1, 2]
+    setAt 1L 5 list `shouldBe` [1, 5, 3]
+    updateAt 1L (_ + 1) list `shouldBe` [1, 3, 3]
 
 traversersTest : Suite
 traversersTest =
   Test "List traversing functions" \_ ->
-    let l = fv [1, 2, 3]
-    let revSort : {{ Ord a }} -> a -> a -> Ordering
-        revSort {{ord}} x y = case compare x y of
-      GT -> LT
-      LT -> GT
-      EQ -> EQ
-    List.map (_ + 1) l `shouldBe` fv [2, 3, 4]
-    List.filter isOdd l `shouldBe` fv [1, 3]
-    List.find isEven l `shouldBe` Some 2
-    List.find (_ == 11) l `shouldBe` None
-    List.sortBy revSort (fv [4, 1, 3, 5, 2]) `shouldBe` fv [5, 4, 3, 2, 1]
-    List.sort (fv [4, 1, 3, 5, 2]) `shouldBe` fv [1, 2, 3, 4, 5]
-    List.foldl (-) 0 l `shouldBe` -6
-    List.foldr (-) 0 l `shouldBe` 2
-    List.reduce (+) l `shouldBe` Some 6
-    List.flatten (fv [fv [1, 2], fv [3, 4], fv [5, 6]]) `shouldBe` fv [1, 2, 3, 4, 5, 6]
-    List.flatMap (\x -> x :: x :: Nil) l `shouldBe` fv [1, 1, 2, 2, 3, 3]
-    List.reverse l `shouldBe` fv [3, 2, 1]
+    let list = [1, 2, 3]
+    List.map (_ + 1) list `shouldBe` [2, 3, 4]
+    List.filter isOdd list `shouldBe` [1, 3]
+    List.find isOdd list `shouldBe` Some 1
+    List.sort [4, 1, 3, 5, 2] `shouldBe` [1, 2, 3, 4, 5]
+    List.foldl (-) 0 list `shouldBe` -6
+    List.foldr (-) 0 list `shouldBe` 2
+    List.reduce (+) list `shouldBe` Some 6
+    List.flatten [[1, 2], [3, 4], [5, 6]] `shouldBe` [1, 2, 3, 4, 5, 6]
+    List.flatMap (\x -> [x, x]) list `shouldBe` [1, 1, 2, 2, 3, 3]
+    List.every (_ < 10) list `shouldBe` true
+    List.every (_ < 3) list `shouldBe` false
+    List.reverse list `shouldBe` [3, 2, 1]
+
+linearTest : Suite
+linearTest =
+  Test "Linear list functions" \_ ->
+    let list = [1, 2, 3]
+    let lin = List.withLinear list \l ->
+                addFirst 0 l
+                addLast 4 l
+                setAt 2L 5 l
+    lin `shouldBe` [0, 1, 5, 3, 4]
 
 pub
-listTests : Vector Suite
+listTests : List Suite
 listTests =
-  [ readersTest
+  [ streamTest
+  , readersTest
   , writersTest
   , traversersTest
+  , linearTest
   ]

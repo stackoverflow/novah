@@ -23,14 +23,14 @@ foreign import Int64.intValue() as lToI
 foreign import Object.toString() as jToString
 foreign import String:format(String, Array) as sformat
 foreign import String.equals(String) as equalsString
-foreign import IList.toArray() as vecToArr
-foreign import Vector.concat(IList) as vecConcat
-foreign import Vector.nth(Int64) as nthVec
-foreign import Vector.addFirst(Object) as addFirstVec
-foreign import Vector.addLast(Object) as addLastVec
-foreign import Vector.removeFirst() as remFirst
-foreign import Vector.removeLast() as remLast
-foreign import Vector.set(Int64, Object) as setVec
+foreign import IList.toArray() as listToArr
+foreign import List.concat(IList) as listConcat
+foreign import List.nth(Int64) as listNth
+foreign import List.addFirst(Object) as listAddFirst
+foreign import List.addLast(Object) as listAddLast
+foreign import List.removeFirst() as remFirst
+foreign import List.removeLast() as remLast
+foreign import List.set(Int64, Object) as listSet
 foreign import String.concat(String)
 foreign import Set.union(ISet)
 foreign import Byte.intValue() as bToI
@@ -77,10 +77,10 @@ foreign import Core:equivalent(Int64, Int64) as equiInt64
 foreign import Core:equivalent(Float32, Float32) as equiFloat32
 foreign import Core:equivalent(Float64, Float64) as equiFloat64
 foreign import Core:equivalent(Char, Char) as equiChar
-foreign import Core:equalsVector(Vector, Vector, Function)
+foreign import Core:equalsList(List, List, Function)
 foreign import Core:equalsSet(Set, Set, Function)
 foreign import Core:equalsArray(Array, Array, Function)
-foreign import Core:toStringVector(Vector, Function)
+foreign import Core:toStringList(List, Function)
 foreign import Core:toStringSet(Set, Function)
 foreign import Core:toStringArray(Array, Function)
 foreign import Core:compareInt(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
@@ -93,11 +93,11 @@ foreign import Core:and(Boolean, Boolean)
 foreign import Core:or(Boolean, Boolean)
 foreign import Core:eachRange(Int64, Int64, Int32, Function)
 foreign import Core:eachRangeBreak(Int64, Int64, Function)
-foreign import Core:vecIntRange(Int32, Int32)
-foreign import Core:vecLongRange(Int64, Int64)
-foreign import Core:vecFloatRange(Float32, Float32)
-foreign import Core:vecDoubleRange(Float64, Float64)
-foreign import Core:vecCharRange(Char, Char)
+foreign import Core:listIntRange(Int32, Int32)
+foreign import Core:listLongRange(Int64, Int64)
+foreign import Core:listFloatRange(Float32, Float32)
+foreign import Core:listDoubleRange(Float64, Float64)
+foreign import Core:listCharRange(Char, Char)
 foreign import Core:intToChar(Int32)
 foreign import Core:charToInt(Char)
 foreign import Core:bitAndInt(Int32, Int32)
@@ -275,63 +275,63 @@ int64 : Int32 -> Int64
 int64 i = longValue i
 
 /**
- * Returns the value at index for this vector.
+ * Returns the value at index for this list.
  * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: ~O(1)
  */
 pub
-(!) : Vector a -> Int64 -> a
-(!) vec index = nthVec vec index
+(!) : List a -> Int64 -> a
+(!) list index = listNth list index
 
 /**
- * Sets the value of this vector at the specified index to x.
+ * Sets the value of this list at the specified index to x.
  * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: ~O(1)
  */
 pub
-setAt : Int64 -> a -> Vector a -> Vector a
-setAt index x vec = setVec vec index x
+setAt : Int64 -> a -> List a -> List a
+setAt index x list = listSet list index x
 
 /**
- * Updates the value of this vector at the specified index by applying function f to the old value.
+ * Updates the value of this list at the specified index by applying function f to the old value.
  * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: ~O(1)
  */
 pub
-updateAt : Int64 -> (a -> a) -> Vector a -> Vector a
-updateAt index f vec = setVec vec index (f (vec ! index))
+updateAt : Int64 -> (a -> a) -> List a -> List a
+updateAt index f list = listSet list index (f (list ! index))
 
 /**
- * Appends x to the beginning of this vector.
+ * Appends x to the beginning of this list.
  * Runtime: ~O(1)
  */
 pub
-addFirst : a -> Vector a -> Vector a
-addFirst x vec = addFirstVec vec x
+addFirst : a -> List a -> List a
+addFirst x list = listAddFirst list x
 
 /**
- * Appends x to the end of this vector.
+ * Appends x to the end of this list.
  * Runtime: ~O(1)
  */
 pub
-addLast : a -> Vector a -> Vector a
-addLast x vec = addLastVec vec x
+addLast : a -> List a -> List a
+addLast x list = listAddLast list x
 
 /**
- * Removes the first element of this vector.
+ * Removes the first element of this list.
  * Runtime: ~O(1)
  */
 pub
-removeFirst : Vector a -> Vector a
-removeFirst vec = remFirst vec
+removeFirst : List a -> List a
+removeFirst list = remFirst list
 
 /**
- * Removes the last element of this vector.
+ * Removes the last element of this list.
  * Runtime: ~O(1)
  */
 pub
-removeLast : Vector a -> Vector a
-removeLast vec = remLast vec
+removeLast : List a -> List a
+removeLast list = remLast list
 
 /**
  * Gets the element of the array at the specified index.
@@ -366,14 +366,14 @@ aupdate index updateFn arr = setArray index (updateFn (getArray index arr)) arr
  * See `java.util.Formatter` for format explanation.
  */
 pub
-format : String -> Vector a -> String
-format str vec = sformat str (unsafeCast (vecToArr (unsafeCast vec)))
+format : String -> List a -> String
+format str list = sformat str (unsafeCast (listToArr (unsafeCast list)))
 
 /**
  * Prints the formated string to stdout.
  */
 pub
-printfln : String -> Vector a -> Unit
+printfln : String -> List a -> Unit
 printfln form args = println (format form args)
 
 /**
@@ -424,8 +424,8 @@ concatString : Concat String
 concatString = Concat { concat: \s s2 -> concat s s2 }
 
 pub instance
-concatVector : Concat (Vector a)
-concatVector = Concat { concat: \v v2 -> unsafeCast (vecConcat v (unsafeCast v2)) }
+concatList : Concat (List a)
+concatList = Concat { concat: \v v2 -> unsafeCast (listConcat v (unsafeCast v2)) }
 
 pub instance
 concatSet : Concat (Set a)
@@ -636,8 +636,8 @@ showOption : {{ Show a }} -> Show (Option a)
 showOption {{s}} = Show { show: showOpt s }
 
 pub instance
-showVector : {{ Show a }} -> Show (Vector a)
-showVector {{Show s}} = Show { show: \v -> toStringVector v s.show }
+showList : {{ Show a }} -> Show (List a)
+showList {{Show s}} = Show { show: \v -> toStringList v s.show }
 
 pub instance
 showSet : {{ Show a }} -> Show (Set a)
@@ -711,8 +711,8 @@ eqString : Equals String
 eqString = Equals { equals: \x y -> equalsString x y }
 
 pub instance
-eqVector : {{ Equals a }} -> Equals (Vector a)
-eqVector {{Equals eq}} = Equals { equals: \x y -> equalsVector x y eq.equals }
+eqList : {{ Equals a }} -> Equals (List a)
+eqList {{Equals eq}} = Equals { equals: \x y -> equalsList x y eq.equals }
 
 pub instance
 eqSet : {{ Equals a }} -> Equals (Set a)
@@ -1196,7 +1196,7 @@ showAtom {{Show s}} = Show { show: \atm -> format "(Atom %s)" [s.show (deref atm
 
 /**
  * Executes the function for every number from begin (inclusive) to end (exclusive).
- * This is a faster, specialized version of `Vector.forEach (begin .. end) f`.
+ * This is a specialized version of `List.forEach (begin .. end) f`.
  */
 pub
 forEachRange : Int64 -> Int64 -> (Int64 -> a) -> Unit
@@ -1218,64 +1218,64 @@ forEachBreak : Int64 -> Int64 -> (Int64 -> Int32) -> Unit
 forEachBreak begin end f = eachRangeBreak begin end f
 
 /**
- * Types that can generate a vector over a range.
+ * Types that can generate a list over a range.
  */
 pub+
 opaque type Range a =
-  { range: a -> a -> Vector a
-  , rangeInclusive: a -> a -> Vector a
+  { range: a -> a -> List a
+  , rangeInclusive: a -> a -> List a
   }
 
 /**
- * Returns a vector starting at begin (inclusive) and ending at end (exclusive).
+ * Returns a list starting at begin (inclusive) and ending at end (exclusive).
  */
 pub
-(..) : {{ Range a }} -> a -> a -> Vector a
+(..) : {{ Range a }} -> a -> a -> List a
 (..) {{Range r}} begin end = r.range begin end
 
 /**
- * Returns a vector starting at begin (inclusive) and ending at end (inclusive).
+ * Returns a list starting at begin (inclusive) and ending at end (inclusive).
  */
 pub
-(...) : {{ Range a }} -> a -> a -> Vector a
+(...) : {{ Range a }} -> a -> a -> List a
 (...) {{Range r}} begin end = r.rangeInclusive begin end
 
 pub instance
 rangeInt32 : Range Int32
 rangeInt32 =
   Range
-    { range: \begin end -> vecIntRange begin end
-    , rangeInclusive: \begin end -> vecIntRange begin (end + 1)
+    { range: \begin end -> listIntRange begin end
+    , rangeInclusive: \begin end -> listIntRange begin (end + 1)
     }
 
 pub instance
 rangeInt64 : Range Int64
 rangeInt64 =
   Range
-    { range: \begin end -> vecLongRange begin end
-    , rangeInclusive: \begin end -> vecLongRange begin (end + 1L)
+    { range: \begin end -> listLongRange begin end
+    , rangeInclusive: \begin end -> listLongRange begin (end + 1L)
     }
 
 pub instance
 rangeFloat32 : Range Float32
 rangeFloat32 =
   Range
-    { range: \begin end -> vecFloatRange begin end
-    , rangeInclusive: \begin end -> vecFloatRange begin (end + 1.0F)
+    { range: \begin end -> listFloatRange begin end
+    , rangeInclusive: \begin end -> listFloatRange begin (end + 1.0F)
     }
 
 pub instance
 rangeFloat64 : Range Float64
 rangeFloat64 =
   Range
-    { range: \begin end -> vecDoubleRange begin end
-    , rangeInclusive: \begin end -> vecDoubleRange begin (end + 1.0)
+    { range: \begin end -> listDoubleRange begin end
+    , rangeInclusive: \begin end -> listDoubleRange begin (end + 1.0)
     }
 
 pub instance
 rangeChar : Range Char
 rangeChar =
   Range
-    { range: \begin end -> vecCharRange begin end
-    , rangeInclusive: \begin end -> vecCharRange begin (intToChar (charToInt end + 1))
+    { range: \begin end -> listCharRange begin end
+    , rangeInclusive: \begin end -> listCharRange begin (intToChar (charToInt end + 1))
     }

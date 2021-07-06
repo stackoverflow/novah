@@ -14,5 +14,5 @@ readersTest =
     (3.0 ^ 3.0) `shouldBe` 27.0
 
 pub
-mathTests : Vector Suite
+mathTests : List Suite
 mathTests = [readersTest]

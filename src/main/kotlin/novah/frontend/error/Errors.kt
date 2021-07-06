@@ -15,6 +15,8 @@
  */
 package novah.frontend.error
 
+import java.util.*
+
 object Errors {
     val MODULE_DEFINITION = """Expected file to begin with a module declaration.
         |Example:
@@ -64,7 +66,7 @@ object Errors {
         |Variable pattern: x, y, myVar, etc
         |Constructor pattern: Some "ok", Result res, None, etc
         |Record pattern: { x, y: 3 }
-        |Vector pattern: [x, y, _], [x :: xs]
+        |List pattern: [x, y, _], [x :: xs]
         |Named pattern: 10 as number
         |Type test: :? Int as i
     """.trimMargin()
@@ -165,8 +167,6 @@ object Errors {
     
     const val LET_BANG = "`let!` syntax can only be used inside a computation expression."
 
-    const val IF_BANG = "`if!` syntax can only be used inside a computation expression."
-
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
         
@@ -254,7 +254,8 @@ object Errors {
         else "The variables ${typeVars.joinToString()} are undefined in constructor $name."
     }
 
-    fun emptyImportExport(ctx: String) = "${ctx.capitalize()} list cannot be empty."
+    fun emptyImportExport(ctx: String) =
+        "${ctx.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} list cannot be empty."
 
     fun duplicatedImport(name: String) = "Another import with name $name is already in scope."
 
