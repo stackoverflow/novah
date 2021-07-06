@@ -409,6 +409,8 @@ object Errors {
         
             ${pats.joinToString()}
     """.trimIndent()
+    
+    fun noAliasFound(alias: String) = "Could not find import alias $alias."
 
     fun equalsExpected(ctx: String) = "Expected `=` after $ctx."
 

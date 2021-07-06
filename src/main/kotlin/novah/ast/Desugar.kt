@@ -148,16 +148,26 @@ class Desugar(private val smod: SModule) {
                     }
                     validateNativeCall(exp, appFnDepth)
                     exp
-                } else Expr.Var(name, span, imports[fullname()])
+                } else {
+                    if (alias != null) checkAlias(alias, span)
+                    Expr.Var(name, span, imports[fullname()])
+                }
             }
         }
-        is SExpr.ImplicitVar -> Expr.ImplicitVar(name, span, if (name in locals) null else imports[fullname()])
+        is SExpr.ImplicitVar -> {
+            if (alias != null) checkAlias(alias, span)
+            Expr.ImplicitVar(name, span, if (name in locals) null else imports[fullname()])
+        }
         is SExpr.Operator -> {
             unusedVars.remove(name)
             usedVars += name
+            if (alias != null) checkAlias(alias, span)
             Expr.Var(name, span, imports[fullname()])
         }
-        is SExpr.Constructor -> Expr.Constructor(name, span, imports[fullname()])
+        is SExpr.Constructor -> {
+            if (alias != null) checkAlias(alias, span)
+            Expr.Constructor(name, span, imports[fullname()])
+        }
         is SExpr.Lambda -> {
             val vars = patterns.map { collectVars(it) }.flatten()
             vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
@@ -756,6 +766,21 @@ class Desugar(private val smod: SModule) {
             smod.name
         )
         errors += err
+    }
+    
+    private val aliasedImports = smod.imports.mapNotNull { it.alias() }.toSet()
+    
+    private fun checkAlias(alias: String, span: Span) {
+        if (alias !in aliasedImports) {
+            val err = CompilerProblem(
+                E.noAliasFound(alias),
+                ProblemContext.DESUGAR,
+                span,
+                smod.sourceName,
+                smod.name
+            )
+            errors += err
+        }
     }
 
     private fun desugarErrors(errs: List<CompilerProblem>): Nothing {

@@ -1,0 +1,5 @@
+module test
+
+import novah.list as Right
+            
+foo = Wrong.reverse [1, 2, 3, 4]
