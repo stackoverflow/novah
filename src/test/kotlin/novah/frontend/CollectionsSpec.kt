@@ -22,31 +22,31 @@ import novah.frontend.TestUtil.simpleName
 
 class CollectionsSpec : StringSpec({
 
-    "basic vectors" {
+    "basic lists" {
         val code = """
-            vec = []
+            list = []
             
-            vec2 = [1, 2, 3, 4, 5]
+            list2 = [1, 2, 3, 4, 5]
             
-            vec3 = ["a", "b", "c"]
+            list3 = ["a", "b", "c"]
             
-            tvec : Vector Int64
-            tvec = []
+            tlist : List Int64
+            tlist = []
             
-            tvec2 : Vector String
-            tvec2 = ["a", "b", "c"]
+            tlist2 : List String
+            tlist2 = ["a", "b", "c"]
             
-            tvec3 : Vector Byte
-            tvec3 = [1, 2, 3, 4]
+            tlist3 : List Byte
+            tlist3 = [1, 2, 3, 4]
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
-        ds["vec"]?.type?.simpleName() shouldBe "Vector t1"
-        ds["vec2"]?.type?.simpleName() shouldBe "Vector Int32"
-        ds["vec3"]?.type?.simpleName() shouldBe "Vector String"
-        ds["tvec"]?.type?.simpleName() shouldBe "Vector Int64"
-        ds["tvec2"]?.type?.simpleName() shouldBe "Vector String"
-        ds["tvec3"]?.type?.simpleName() shouldBe "Vector Byte"
+        ds["list"]?.type?.simpleName() shouldBe "List t1"
+        ds["list2"]?.type?.simpleName() shouldBe "List Int32"
+        ds["list3"]?.type?.simpleName() shouldBe "List String"
+        ds["tlist"]?.type?.simpleName() shouldBe "List Int64"
+        ds["tlist2"]?.type?.simpleName() shouldBe "List String"
+        ds["tlist3"]?.type?.simpleName() shouldBe "List Byte"
     }
 
     "basic sets" {

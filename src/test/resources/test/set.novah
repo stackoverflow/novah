@@ -58,7 +58,7 @@ linearTest =
     lin `shouldBe` #{2, 3, 4}
 
 pub
-setTests : Vector Suite
+setTests : List Suite
 setTests =
   [ streamTest
   , readersTest

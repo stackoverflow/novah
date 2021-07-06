@@ -193,12 +193,12 @@ object Inference {
                 val resTy = when {
                     expr is Expr.Int32 && type == tByte && validByte(expr.v) -> tByte
                     expr is Expr.Int32 && type == tInt16 && validShort(expr.v) -> tInt16
-                    expr is Expr.VectorLiteral && isVectorOf(type, tByte)
+                    expr is Expr.ListLiteral && isListOf(type, tByte)
                             && expr.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
                         expr.exps.forEach { it.withType(tByte) }
                         type
                     }
-                    expr is Expr.VectorLiteral && isVectorOf(type, tInt16)
+                    expr is Expr.ListLiteral && isListOf(type, tInt16)
                             && expr.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
                         expr.exps.forEach { it.withType(tInt16) }
                         type
@@ -296,12 +296,12 @@ object Inference {
                 val ty = TRecord(TRowExtend(labelTys, rest))
                 exp.withType(ty)
             }
-            is Expr.VectorLiteral -> {
+            is Expr.ListLiteral -> {
                 val ty = newVar(level)
                 exp.exps.forEach { e ->
                     unify(ty, infer(env, level, e), e.span)
                 }
-                val res = TApp(TConst(primVector), listOf(ty))
+                val res = TApp(TConst(primList), listOf(ty))
                 exp.withType(res)
             }
             is Expr.SetLiteral -> {
@@ -406,29 +406,29 @@ object Inference {
                 unify(TRecord(TRowExtend(tys, newVar(level))), ty, pat.span)
                 vars
             }
-            is Pattern.Vector -> {
+            is Pattern.ListP -> {
                 if (pat.elems.isEmpty()) {
-                    unify(TApp(TConst(primVector), listOf(newVar(level))), ty, pat.span)
+                    unify(TApp(TConst(primList), listOf(newVar(level))), ty, pat.span)
                     return emptyList()
                 }
 
                 val vars = mutableListOf<PatternVar>()
                 val elemTy = newVar(level)
-                unify(TApp(TConst(primVector), listOf(elemTy)), ty, pat.span)
+                unify(TApp(TConst(primList), listOf(elemTy)), ty, pat.span)
 
                 pat.elems.forEach { p ->
                     vars += inferpattern(env, level, p, elemTy)
                 }
                 vars
             }
-            is Pattern.VectorHT -> {
+            is Pattern.ListHeadTail -> {
                 val vars = mutableListOf<PatternVar>()
                 val elemTy = newVar(level)
-                val vecTy = TApp(TConst(primVector), listOf(elemTy))
-                unify(vecTy, ty, pat.span)
+                val listTy = TApp(TConst(primList), listOf(elemTy))
+                unify(listTy, ty, pat.span)
 
                 vars += inferpattern(env, level, pat.head, elemTy)
-                vars += inferpattern(env, level, pat.tail, vecTy)
+                vars += inferpattern(env, level, pat.tail, listTy)
                 vars
             }
             is Pattern.Named -> {
@@ -440,9 +440,9 @@ object Inference {
             is Pattern.TypeTest -> {
                 validateType(pat.type, env, pat.span)
                 if (pat.alias != null) {
-                    // we need special handling for Vectors, Sets and Arrays
+                    // we need special handling for Lists, Sets and Arrays
                     val type = when {
-                        pat.type is TConst && pat.type.name == primVector -> TApp(TConst(primVector), listOf(tObject))
+                        pat.type is TConst && pat.type.name == primList -> TApp(TConst(primList), listOf(tObject))
                         pat.type is TConst && pat.type.name == primSet -> TApp(TConst(primSet), listOf(tObject))
                         pat.type is TConst && pat.type.name == primArray -> TApp(TConst(primArray), listOf(tObject))
                         else -> pat.type

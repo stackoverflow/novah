@@ -12,7 +12,7 @@
 - [X] Anonymous function arguments
 - [X] Full pattern destructuring for function and let parameters
 - [X] Multi-expression pattern matching
-- [X] Full support for pattern matching (records, vectors, named, guards)
+- [X] Full support for pattern matching (records, lists, named, guards)
 - [X] Opaque/newtypes
 - [X] Generic programming with instance arguments (implicits)
 - [X] Literal syntax for basic data structures

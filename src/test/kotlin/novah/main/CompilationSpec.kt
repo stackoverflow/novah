@@ -22,12 +22,6 @@ import novah.frontend.TestUtil.cleanAndGetOutDir
 
 class CompilationSpec : StringSpec({
 
-    "fully compile all files in a directory structure" {
-        val compiler = TestUtil.compilerFor("fullCompilation")
-        val warns = compiler.run(cleanAndGetOutDir())
-        warns.forEach { println(it.formatToConsole()) }
-    }
-
     "empty modules succeed" {
         val compiler = TestUtil.compilerFor("fullCompilation/empty")
 

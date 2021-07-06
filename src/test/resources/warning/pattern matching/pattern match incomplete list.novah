@@ -1,0 +1,7 @@
+module test
+
+fun : List Int -> Int
+fun l =
+  case l of
+    [x] -> x
+    [_, y] -> y

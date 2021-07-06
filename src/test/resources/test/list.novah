@@ -1,0 +1,81 @@
+module list
+
+import novah.stream as Stream
+import novah.test
+
+streamTest : Suite
+streamTest =
+  Test "List stream functions" \_ ->
+    let list = [1, 2, 3, 4]
+    let stm = Stream.from 1
+    let same = List.stream list |> List.fromStream
+    List.fromStream stm `shouldBe` [1]
+    same `shouldBe` list
+
+readersTest : Suite
+readersTest =
+  Test "List reading functions" \_ ->
+    let list = [1, 2, 3, 4]
+    (list ! 2L) `shouldBe` 3
+    List.nth 2L list `shouldBe` Some 3
+    List.first list `shouldBe` Some 1
+    List.last list `shouldBe` Some 4
+    List.isEmpty list `shouldBe` false
+    List.isNotEmpty list `shouldBe` true
+    List.contains 4 list `shouldBe` true
+    List.slice 1L 3L list `shouldBe` [2, 3]
+    List.take 2L list `shouldBe` [1, 2]
+    List.drop 2L list `shouldBe` [3, 4]
+    List.takeWhile (_ < 3) list `shouldBe` [1, 2]
+    List.dropWhile (_ < 3) list `shouldBe` [3, 4]
+    List.tail list `shouldBe` Some [2, 3, 4]
+    List.size list `shouldBe` 4L
+    (list ++ [5, 6]) `shouldBe` [1, 2, 3, 4, 5, 6]
+
+writersTest : Suite
+writersTest =
+  Test "List writing functions" \_ ->
+    let list = [1, 2, 3]
+    addFirst 4 list `shouldBe` [4, 1, 2, 3]
+    addLast 4 list `shouldBe` [1, 2, 3, 4]
+    removeFirst list `shouldBe` [2, 3]
+    removeLast list `shouldBe` [1, 2]
+    setAt 1L 5 list `shouldBe` [1, 5, 3]
+    updateAt 1L (_ + 1) list `shouldBe` [1, 3, 3]
+
+traversersTest : Suite
+traversersTest =
+  Test "List traversing functions" \_ ->
+    let list = [1, 2, 3]
+    List.map (_ + 1) list `shouldBe` [2, 3, 4]
+    List.filter isOdd list `shouldBe` [1, 3]
+    List.find isOdd list `shouldBe` Some 1
+    List.sort [4, 1, 3, 5, 2] `shouldBe` [1, 2, 3, 4, 5]
+    List.foldl (-) 0 list `shouldBe` -6
+    List.foldr (-) 0 list `shouldBe` 2
+    List.reduce (+) list `shouldBe` Some 6
+    List.flatten [[1, 2], [3, 4], [5, 6]] `shouldBe` [1, 2, 3, 4, 5, 6]
+    List.flatMap (\x -> [x, x]) list `shouldBe` [1, 1, 2, 2, 3, 3]
+    List.every (_ < 10) list `shouldBe` true
+    List.every (_ < 3) list `shouldBe` false
+    List.reverse list `shouldBe` [3, 2, 1]
+
+linearTest : Suite
+linearTest =
+  Test "Linear list functions" \_ ->
+    let list = [1, 2, 3]
+    let lin = List.withLinear list \l ->
+                addFirst 0 l
+                addLast 4 l
+                setAt 2L 5 l
+    lin `shouldBe` [0, 1, 5, 3, 4]
+
+pub
+listTests : List Suite
+listTests =
+  [ streamTest
+  , readersTest
+  , writersTest
+  , traversersTest
+  , linearTest
+  ]

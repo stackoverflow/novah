@@ -62,7 +62,7 @@ class InstanceArgumentsSpec : StringSpec({
     
     "recursive search" {
         val code = """
-            import novah.vector as V
+            import novah.list as L
             
             opaque type View a = { view : a -> String }
             
@@ -106,7 +106,7 @@ class InstanceArgumentsSpec : StringSpec({
                   xx = Some (Ok true)
               in view xx
             
-            main3 () = V.map view [3, 4, 5]
+            main3 () = L.map view [3, 4, 5]
             
             printx : {{ View a }} -> Option a -> String
             printx {{s}} o = view o

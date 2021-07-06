@@ -113,7 +113,7 @@ class DesugarSpec : StringSpec({
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "Boolean -> Int32"
         ds["f2"]?.type?.simpleName() shouldBe "Int32 -> t1 -> t1 -> t1"
-        ds["f3"]?.type?.simpleName() shouldBe "Vector t1 -> Int32"
+        ds["f3"]?.type?.simpleName() shouldBe "List t1 -> Int32"
         ds["f4"]?.type?.simpleName() shouldBe "Option Int32 -> Option Int32 -> Int32"
         ds["f5"]?.type?.simpleName() shouldBe "{ name : t2 | t1 } -> t2"
         ds["f6"]?.type?.simpleName() shouldBe "{ address : { street : t3 | t2 } | t1 } -> t3"
@@ -129,7 +129,7 @@ class DesugarSpec : StringSpec({
         val code = """
             import novah.computation
             
-            foo = do.vector
+            foo = do.list
               let! x = 1 .. 6
               let! y = 7 .. 14
               if isEven (x + y) then return (x + y)

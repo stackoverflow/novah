@@ -202,7 +202,7 @@ class Formatter {
                 "{ .${e.labels.joinToString(".") { showLabel(it) }} = ${show(e.value)} | ${show(e.exp)} }"
             }
             is Expr.RecordExtend -> "{ ${e.labels.show(::showLabelExpr)} | ${show(e.exp)} }"
-            is Expr.VectorLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
+            is Expr.ListLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
             is Expr.Underscore -> "_"
             is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
@@ -239,8 +239,8 @@ class Formatter {
         is Pattern.LiteralP -> show(p.lit)
         is Pattern.Parens -> "(${show(p.pattern)})"
         is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }}"
-        is Pattern.Vector -> "[${p.elems.joinToString { show(it) }}]"
-        is Pattern.VectorHT -> "[${show(p.head)} :: ${show(p.tail)}]"
+        is Pattern.ListP -> "[${p.elems.joinToString { show(it) }}]"
+        is Pattern.ListHeadTail -> "[${show(p.head)} :: ${show(p.tail)}]"
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"
         is Pattern.Unit -> "()"
         is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " as ${p.alias}" else ""

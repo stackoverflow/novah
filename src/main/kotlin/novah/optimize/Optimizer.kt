@@ -234,7 +234,7 @@ class Optimizer(private val ast: CModule) {
             is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ, span)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ, span)
             is CExpr.RecordUpdate -> Expr.RecordUpdate(exp.convert(locals), label, value.convert(locals), typ, span)
-            is CExpr.VectorLiteral -> Expr.VectorLiteral(exps.map { it.convert(locals) }, typ, span)
+            is CExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Throw -> Expr.Throw(exp.convert(locals), span)
             is CExpr.TryCatch -> {
@@ -352,14 +352,14 @@ class Optimizer(private val ast: CModule) {
             }
         }
 
-        fun mkVectorSizeCheck(exp: Expr, size: Long): Expr {
-            val sizeExp = Expr.NativeMethod(vecSize, exp, emptyList(), longType, exp.span)
+        fun mkListSizeCheck(exp: Expr, size: Long): Expr {
+            val sizeExp = Expr.NativeMethod(listSize, exp, emptyList(), longType, exp.span)
             val longe = Expr.Int64(size, longType, exp.span)
             return Expr.NativeStaticMethod(eqLong, listOf(sizeExp, longe), boolType, exp.span)
         }
 
-        fun mkVectorAccessor(exp: Expr, index: Long, type: Clazz): Expr =
-            Expr.NativeMethod(vecAccess, exp, listOf(Expr.Int64(index, longType, exp.span)), type, exp.span)
+        fun mkListAccessor(exp: Expr, index: Long, type: Clazz): Expr =
+            Expr.NativeMethod(listAccess, exp, listOf(Expr.Int64(index, longType, exp.span)), type, exp.span)
 
         fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
             is Pattern.Wildcard -> PatternResult(tru)
@@ -415,14 +415,14 @@ class Optimizer(private val ast: CModule) {
 
                 PatternResult(simplifyConds(conds), vars)
             }
-            is Pattern.Vector -> {
+            is Pattern.ListP -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                conds += mkVectorSizeCheck(exp, p.elems.size.toLong())
-                val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
+                conds += mkListSizeCheck(exp, p.elems.size.toLong())
+                val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for list: ${exp.type}")
                 p.elems.forEachIndexed { i, pat ->
-                    val field = mkVectorAccessor(exp, i.toLong(), fieltTy)
+                    val field = mkListAccessor(exp, i.toLong(), fieltTy)
                     val (cond, vs) = desugarPattern(pat, field)
                     conds += cond
                     vars += vs
@@ -430,15 +430,15 @@ class Optimizer(private val ast: CModule) {
 
                 PatternResult(simplifyConds(conds), vars)
             }
-            is Pattern.VectorHT -> {
+            is Pattern.ListHeadTail -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                conds += Expr.NativeStaticMethod(vecNotEmpty, listOf(exp), boolType, p.span)
-                val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for vector: ${exp.type}")
-                val headExp = mkVectorAccessor(exp, 0, fieltTy)
-                val vecClass = Clazz(VECTOR_TYPE, listOf(fieltTy))
-                val tailExp = Expr.NativeMethod(vecTail, exp, emptyList(), vecClass, p.span)
+                conds += Expr.NativeStaticMethod(listNotEmpty, listOf(exp), boolType, p.span)
+                val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for list: ${exp.type}")
+                val headExp = mkListAccessor(exp, 0, fieltTy)
+                val vecClass = Clazz(LIST_TYPE, listOf(fieltTy))
+                val tailExp = Expr.NativeMethod(listTail, exp, emptyList(), vecClass, p.span)
 
                 val (hCond, hVs) = desugarPattern(p.head, headExp)
                 val (tCond, tVs) = desugarPattern(p.tail, tailExp)
@@ -601,7 +601,7 @@ class Optimizer(private val ast: CModule) {
             primUnit -> OBJECT_TYPE
             primObject -> OBJECT_TYPE
             primArray -> ARRAY_TYPE
-            primVector -> VECTOR_TYPE
+            primList -> LIST_TYPE
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
         }
@@ -611,7 +611,7 @@ class Optimizer(private val ast: CModule) {
         private val RECORD_TYPE = Type.getType(novah.collections.Record::class.java)
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
         private val LONG_TYPE = Type.getType(Long::class.javaObjectType)
-        private val VECTOR_TYPE = Type.getType(PList::class.java)
+        private val LIST_TYPE = Type.getType(PList::class.java)
         val OBJECT_TYPE = Type.getType(Object::class.java)!!
         val ARRAY_TYPE = Type.getType(Array::class.java)!!
 
@@ -619,10 +619,10 @@ class Optimizer(private val ast: CModule) {
             it.parameterCount == 1 && it.parameterTypes[0].canonicalName == "java.lang.String"
         }!!
 
-        val vecSize = PList::class.java.methods.find { it.name == "size" }!!
-        private val vecAccess = PList::class.java.methods.find { it.name == "nth" }!!
-        private val vecTail = PList::class.java.methods.find { it.name == "removeFirst" }!!
-        private val vecNotEmpty = Core::class.java.methods.find { it.name == "vectorNotEmpty" }!!
+        val listSize = PList::class.java.methods.find { it.name == "size" }!!
+        private val listAccess = PList::class.java.methods.find { it.name == "nth" }!!
+        private val listTail = PList::class.java.methods.find { it.name == "removeFirst" }!!
+        private val listNotEmpty = Core::class.java.methods.find { it.name == "listNotEmpty" }!!
         val eqInt = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
         }!!

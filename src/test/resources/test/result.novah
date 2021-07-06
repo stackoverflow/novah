@@ -16,5 +16,5 @@ readersTest =
     Result.handle (_ ++ "def") toString (Err 0) `shouldBe` "0"
 
 pub
-resultTests : Vector Suite
+resultTests : List Suite
 resultTests = [readersTest]

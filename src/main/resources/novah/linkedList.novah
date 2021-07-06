@@ -3,21 +3,21 @@ module novah.linkedList
 /**
  * An immutable linked list.
  * A List should almost always be prefered over this type as lists make for good linked lists.
- * Most list operations are O(n) like `size`.
+ * Most linked list operations are O(n) like `size`.
  */
 pub+
 type LinkedList a = Nil | Cons a (LinkedList a)
 
 /**
- * Appends the element as the new head of the list.
- * An alias to the Cons constructor of a list.
+ * Appends the element as the new head of the linked list.
+ * An alias to the Cons constructor of a linked list.
  */
 pub
 (::) : a -> LinkedList a -> LinkedList a
 (::) = Cons
 
 /**
- * Returns the head of this list if it's not empty.
+ * Returns the head of this linked list if it's not empty.
  * Runtime: O(1)
  */
 pub
@@ -27,7 +27,7 @@ head = case _ of
   Cons x _ -> Some x
 
 /**
- * Returns the tail of this list if it's not empty.
+ * Returns the tail of this linked list if it's not empty.
  * Runtime: O(1)
  */
 pub
@@ -37,7 +37,7 @@ tail = case _ of
   Cons _ xs -> Some xs
 
 /**
- * Produces a list with a single element.
+ * Produces a linked list with a single element.
  * Runtime: O(1)
  */
 pub
@@ -45,7 +45,7 @@ singleton : a -> LinkedList a
 singleton x = x :: Nil
 
 /**
- * Takes the first n elements of this list and returns it.
+ * Takes the first n elements of this linked list and returns it.
  * Runtime: O(n)
  */
 pub
@@ -56,7 +56,7 @@ take n = case _ of
   Cons x xs -> x :: take (n - 1) xs
 
 /**
- * Drops the first n elements of this list and returns it.
+ * Drops the first n elements of this linked list and returns it.
  * Runtime: O(n)
  */
 pub
@@ -67,7 +67,7 @@ drop n = case _ of
   Cons _ xs -> drop (n - 1) xs
 
 /**
- * Returns some value at index for this list if it exists or none.
+ * Returns some value at index for this linked list if it exists or none.
  * Runtime: O(n)
  */
 pub
@@ -75,7 +75,7 @@ nth : Int32 -> LinkedList a -> Option a
 nth index = drop index >> head
 
 /**
- * Keeps taking elements of this list while the predicate holds.
+ * Keeps taking elements of this linked list while the predicate holds.
  * Runtime: O(n)
  */
 pub
@@ -86,7 +86,7 @@ takeWhile pred = case _ of
   _ -> Nil
 
 /**
- * Keeps removing elements from this list while the predicate holds.
+ * Keeps removing elements from this linked list while the predicate holds.
  * Runtime: O(n)
  */
 pub
@@ -97,7 +97,7 @@ dropWhile pred = case _ of
   l -> l
 
 /**
- * Returns true if this list is empty.
+ * Returns true if this linked list is empty.
  * Runtime: O(1)
  */
 pub
@@ -107,7 +107,7 @@ isEmpty = case _ of
   _ -> false
 
 /**
- * Returns true if this list is not empty.
+ * Returns true if this linked list is not empty.
  * Runtime: O(1)
  */
 pub
@@ -117,7 +117,7 @@ isNotEmpty = case _ of
   _ -> true
 
 /**
- * Returns true if the element is inside this list.
+ * Returns true if the element is inside this linked list.
  * Runtime: O(n)
  */
 pub
@@ -127,8 +127,8 @@ contains {{eq}} elem = case _ of
   Cons x xs -> if x == elem then true else contains {{eq}} elem xs
 
 /**
- * Maps function f over all elements of this List
- * returning a List of the same size.
+ * Maps function f over all elements of this linked list
+ * returning a linked list of the same size.
  * Runtime: O(n)
  */
 pub
@@ -138,7 +138,7 @@ map f = case _ of
   Cons x xs -> f x :: map f xs
 
 /**
- * Runs function f for every element of this list, ignoring the result.
+ * Runs function f for every element of this linked list, ignoring the result.
  * Runtime: O(n)
  */
 pub
@@ -151,7 +151,7 @@ forEach list f =
       forEach xs f
 
 /**
- * Returns a list of the elements that match the given predicate.
+ * Returns a linked list of the elements that match the given predicate.
  * Runtime: O(n)
  */
 pub
@@ -161,7 +161,7 @@ filter f = case _ of
   Cons x xs -> if f x then x :: filter f xs else filter f xs
 
 /**
- * Returns the first occurrence of elem in this list for which the predicate returns true.
+ * Returns the first occurrence of elem in this linked list for which the predicate returns true.
  * Runtime: O(n)
  */
 pub
@@ -171,7 +171,7 @@ find pred = case _ of
   Cons x xs -> if pred x then Some x else find pred xs
 
 /**
- * Like `map` but it will flatten the resulting list.
+ * Like `map` but it will flatten the resulting linked list.
  * Runtime: O(n)
  */
 pub
@@ -181,7 +181,7 @@ flatMap f = case _ of
   Cons x xs -> f x ++ flatMap f xs
 
 /**
- * Returns the size of this list.
+ * Returns the size of this linked list.
  * Runtime: O(n)
  */
 pub
@@ -190,8 +190,8 @@ size = case _ of
   Nil -> 0
   Cons _ xs -> 1 + (size xs)
 
-showList_ : Show a -> LinkedList a -> String
-showList_ (Show s) l =
+showLinkedList_ : Show a -> LinkedList a -> String
+showLinkedList_ (Show s) l =
   let innerShow = case _ of
         Nil -> "Nil"
         Cons x xs -> s.show x ++ " :: " ++ innerShow xs
@@ -200,33 +200,33 @@ showList_ (Show s) l =
     (Cons _ _) as list -> "(" ++ innerShow list ++ ")"
 
 pub instance
-showList : {{ Show a }} -> Show (LinkedList a)
-showList {{s}} = Show { show: showList_ s }
+showLinkedList : {{ Show a }} -> Show (LinkedList a)
+showLinkedList {{s}} = Show { show: showLinkedList_ s }
 
-eqList_ : Equals a -> LinkedList a -> LinkedList a -> Boolean
-eqList_ ((Equals eq) as equals) = case _, _ of
+eqLinkedList_ : Equals a -> LinkedList a -> LinkedList a -> Boolean
+eqLinkedList_ ((Equals eq) as equals) = case _, _ of
   Nil, Nil -> true
   Nil, _ -> false
   _, Nil -> false
-  Cons x xs, Cons y ys -> eq.equals x y && eqList_ equals xs ys
+  Cons x xs, Cons y ys -> eq.equals x y && eqLinkedList_ equals xs ys
 
 pub instance
-eqList : {{ Equals a }} -> Equals (LinkedList a)
-eqList {{eq}} = Equals { equals: eqList_ eq }
+eqLinkedList : {{ Equals a }} -> Equals (LinkedList a)
+eqLinkedList {{eq}} = Equals { equals: eqLinkedList_ eq }
 
-concatList_ : LinkedList a -> LinkedList a -> LinkedList a
-concatList_ l1 l2 =
+concatLinkedList_ : LinkedList a -> LinkedList a -> LinkedList a
+concatLinkedList_ l1 l2 =
   let addTo to = case _ of
         Nil -> to
         Cons x xs -> addTo (x :: to) xs
   addTo Nil l1 |> addTo l2
 
 pub instance
-concatList : Concat (LinkedList a)
-concatList = Concat { concat: concatList_ }
+concatLinkedList : Concat (LinkedList a)
+concatLinkedList = Concat { concat: concatLinkedList_ }
 
 /**
- * Returns a reversed version of this list.
+ * Returns a reversed version of this linked list.
  * Runtime: O(n)
  */
 pub
@@ -238,7 +238,7 @@ reverse list =
   addTo Nil list
 
 /**
- * Reduces this list to a single value according to the reducing function.
+ * Reduces this linked list to a single value according to the reducing function.
  * Goes from the left to the right.
  * Runtime: O(n)
  */
@@ -251,7 +251,7 @@ foldl f =
   go
 
 /**
- * Reduces this list to a single value according to the reducing function.
+ * Reduces this linked list to a single value according to the reducing function.
  * Goes from the right to the left.
  * Runtime: O(n)
  */
@@ -260,7 +260,7 @@ foldr : (a -> b -> b) -> b -> LinkedList a -> b
 foldr f init = foldl (flip f) init << reverse
 
 /**
- * Flattens a list of lists into a single list by concatenating them together.
+ * Flattens a linked list of linked lists into a single linked list by concatenating them together.
  * Runtime: O(n)
  */
 pub
@@ -270,8 +270,8 @@ flatten = case _ of
   Cons x xs -> x ++ flatten xs
 
 /**
- * A specialized version of `foldl` where the first element of the list is used as initial value.
- * Returns none if the list is empty
+ * A specialized version of `foldl` where the first element of the linked list is used as initial value.
+ * Returns none if the linked list is empty
  * Runtime: O(n)
  */
 pub
@@ -281,7 +281,7 @@ reduce f = case _ of
   Cons x xs -> Some (foldl f x xs)
 
 /**
- * Returns a list in the range from begin (inclusive) to end (exclusive).
+ * Returns a linked list in the range from begin (inclusive) to end (exclusive).
  * Runtime: O(n)
  */
 pub
@@ -296,19 +296,19 @@ range begin end =
   go begin end Nil |> reverse
 
 /**
- * Creates a list with the same elements as the given vector.
+ * Creates a linked list with the same elements as the given list.
  * Runtime: O(n)
  */
 pub
-fromVector : Vector a -> LinkedList a
-fromVector = case _ of
+fromList : List a -> LinkedList a
+fromList = case _ of
   [] -> Nil
-  [x :: xs] -> x :: fromVector xs
+  [x :: xs] -> x :: fromList xs
 
 // sort implementation copied from https://hackage.haskell.org/package/base-4.15.0.0/docs/src/Data-OldList.html#sort
 
 /**
- * Sorts this list according to the comparing function.
+ * Sorts this linked list according to the comparing function.
  * Runtime: O(n log(n))
  */
 pub
@@ -350,7 +350,7 @@ sortBy cmp =
   mergeAll << (sequences ascending descending)
 
 /**
- * Sorts this list according to the element's Ord instance.
+ * Sorts this linked list according to the element's Ord instance.
  * Runtime: O(n log(n))
  */
 pub

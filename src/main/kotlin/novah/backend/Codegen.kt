@@ -42,8 +42,8 @@ import novah.backend.TypeUtil.SET_CLASS
 import novah.backend.TypeUtil.SET_DESC
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_DESC
-import novah.backend.TypeUtil.VECTOR_CLASS
-import novah.backend.TypeUtil.VECTOR_DESC
+import novah.backend.TypeUtil.LIST_CLASS
+import novah.backend.TypeUtil.LIST_DESC
 import novah.backend.TypeUtil.box
 import novah.backend.TypeUtil.descriptor
 import novah.backend.TypeUtil.lambdaMethodType
@@ -462,9 +462,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_forked", "()$RECORD_DESC", false)
                 }
             }
-            is Expr.VectorLiteral -> {
+            is Expr.ListLiteral -> {
                 if (e.exps.isEmpty()) {
-                    mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "empty", "()$VECTOR_DESC", false)
+                    mv.visitMethodInsn(INVOKESTATIC, LIST_CLASS, "empty", "()$LIST_DESC", false)
                 } else {
                     genInt(intExp(e.exps.size), mv)
                     mv.visitTypeInsn(ANEWARRAY, e.exps[0].type.type.internalName)
@@ -474,7 +474,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                         genExpr(exp, mv, ctx)
                         mv.visitInsn(AASTORE)
                     }
-                    mv.visitMethodInsn(INVOKESTATIC, VECTOR_CLASS, "of", "([$OBJECT_DESC)$VECTOR_DESC", false)
+                    mv.visitMethodInsn(INVOKESTATIC, LIST_CLASS, "of", "([$OBJECT_DESC)$LIST_DESC", false)
                 }
             }
             is Expr.SetLiteral -> {
@@ -685,7 +685,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     }
 
     private fun genChar(e: Expr.CharE, mv: MethodVisitor) {
-        val i = e.v.toInt()
+        val i = e.v.code
         when {
             i >= Byte.MIN_VALUE && i <= Byte.MAX_VALUE -> mv.visitIntInsn(BIPUSH, i)
             i >= Short.MIN_VALUE && i <= Short.MAX_VALUE -> mv.visitIntInsn(SIPUSH, i)
@@ -836,7 +836,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordSelect -> go(exp.expr)
             is Expr.RecordRestrict -> go(exp.expr)
-            is Expr.VectorLiteral -> for (e in exp.exps) go(e)
+            is Expr.ListLiteral -> for (e in exp.exps) go(e)
             is Expr.SetLiteral -> for (e in exp.exps) go(e)
             is Expr.ArrayLiteral -> for (e in exp.exps) go(e)
             is Expr.TryCatch -> {

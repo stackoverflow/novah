@@ -7,7 +7,7 @@ foreign import type java.lang.Throwable
 foreign import Throwable.printStackTrace()
 foreign import new AssertionError(String) as newAssert
 
-import novah.vector (forEach, toArray)
+import novah.list (forEach, toArray)
 import novah.set as Set
 import novah.option as Option
 
@@ -20,7 +20,7 @@ typealias TestFun = Unit -> Unit
 pub+
 type Suite
   = Test String TestFun
-  | Tests String (Vector TestFun)
+  | Tests String (List TestFun)
   | Setup { before : TestFun, after : TestFun, suite : Suite }
 
 /**
@@ -37,7 +37,7 @@ type TestResult
  * Should be called once at the entry function for tests.
  */
 pub
-runTests : Vector Suite -> TestResult
+runTests : List Suite -> TestResult
 runTests suites =
   let total = atom 0
   let stats = toArray [0, 0, 0]
@@ -112,12 +112,12 @@ shouldNotBeIn x set =
     else throw newAssert (format "%s is inside %s" [toString x, toString set])
 
 /**
- * Fails the test if some element of the vector is not inside the set.
+ * Fails the test if some element of the list is not inside the set.
  */
 pub
-shouldAllBeIn : Vector a -> Set a -> Unit
-shouldAllBeIn vec set =
-  forEach vec \x ->
+shouldAllBeIn : List a -> Set a -> Unit
+shouldAllBeIn list set =
+  forEach list \x ->
     if Set.contains x set
       then ()
       else throw newAssert (format "%s is not inside %s" [toString x, toString set])
@@ -141,24 +141,24 @@ shouldBeNone opt = case opt of
   None -> ()
 
 /**
- * Fails the test if this vector is not empty.
+ * Fails the test if this list is not empty.
  */
 pub
-shouldBeEmpty : Vector a -> Unit
-shouldBeEmpty vec = case vec of
+shouldBeEmpty : List a -> Unit
+shouldBeEmpty list = case list of
   [] -> ()
-  _ -> throw newAssert (format "vector %s is not empty" [vec])
+  _ -> throw newAssert (format "list %s is not empty" [list])
 
 /**
- * Fails the test if this vector is empty.
+ * Fails the test if this list is empty.
  */
 pub
-shouldNotBeEmpty : Vector a -> Unit
-shouldNotBeEmpty vec = case vec of
-  [] -> throw newAssert "vector is empty"
+shouldNotBeEmpty : List a -> Unit
+shouldNotBeEmpty list = case list of
+  [] -> throw newAssert "list is empty"
   _ -> ()
 
-check : String -> TestFun -> Vector Int
+check : String -> TestFun -> List Int
 check desc fun =
   try
     println ""

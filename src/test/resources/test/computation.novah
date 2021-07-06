@@ -5,14 +5,14 @@ import novah.linkedList (::, LinkedList(..))
 import novah.linkedList as LinkedList
 import novah.test
 
-vectorTest : Suite
-vectorTest =
-  Test "Vector computations" \_ ->
-    let vec = do.vector
+listTest : Suite
+listTest =
+  Test "List computations" \_ ->
+    let l = do.list
       let! x = 1 .. 5
       let! y = 2 .. 6
       if isEven (x + y) then return (x <> y)
-    vec `shouldBe` [1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4]
+    l `shouldBe` [1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4]
 
 setTest : Suite
 setTest =
@@ -23,8 +23,8 @@ setTest =
       if isEven (x + y) then return (x <> y)
     s `shouldBe` #{1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4}
 
-listTest : Suite
-listTest =
+linkedListTest : Suite
+linkedListTest =
   Test "LinkedList computations" \_ ->
     let l = do.linkedList
       let! x = LinkedList.range 1 5
@@ -69,11 +69,11 @@ resultTest =
     res2 `shouldBe` Err 3
 
 pub
-computationTests : Vector Suite
+computationTests : List Suite
 computationTests =
-  [ vectorTest
+  [ listTest
   , setTest
-  , listTest
+  , linkedListTest
   , optionTest
   , resultTest
   ]

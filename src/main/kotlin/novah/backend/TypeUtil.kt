@@ -20,6 +20,7 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.Type.*
+import java.util.*
 
 object TypeUtil {
 
@@ -33,7 +34,7 @@ object TypeUtil {
     const val BOOL_CLASS = "java/lang/Boolean"
 
     const val RECORD_CLASS = "novah/collections/Record"
-    const val VECTOR_CLASS = "io/lacuna/bifurcan/List"
+    const val LIST_CLASS = "io/lacuna/bifurcan/List"
     const val SET_CLASS = "io/lacuna/bifurcan/Set"
     const val FUNCTION_CLASS = "java/util/function/Function"
 
@@ -41,14 +42,14 @@ object TypeUtil {
     const val OBJECT_DESC = "Ljava/lang/Object;"
     const val STRING_DESC = "Ljava/lang/String;"
     const val RECORD_DESC = "Lnovah/collections/Record;"
-    const val VECTOR_DESC = "Lio/lacuna/bifurcan/List;"
+    const val LIST_DESC = "Lio/lacuna/bifurcan/List;"
     const val SET_DESC = "Lio/lacuna/bifurcan/Set;"
 
     fun buildClassSignature(tyVars: List<String>, superClass: String = OBJECT_CLASS): String? {
         if (tyVars.isEmpty()) return null
 
         val tvarStr = tyVars.joinToString("", prefix = "<", postfix = ">") {
-            it.toUpperCase() + ":$OBJECT_DESC"
+            it.uppercase(Locale.getDefault()) + ":$OBJECT_DESC"
         }
 
         val superVars = if (superClass != OBJECT_CLASS) {
