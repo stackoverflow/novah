@@ -42,18 +42,18 @@ runTests suites =
   let total = atom 0
   let stats = toArray [0, 0, 0]
   let addStats v =
-        aupdate 0 (_ + (v ! 0L)) stats
-        aupdate 1 (_ + (v ! 1L)) stats
-        aupdate 2 (_ + (v ! 2L)) stats
+    aupdate 0 (_ + (v ! 0L)) stats
+    aupdate 1 (_ + (v ! 1L)) stats
+    aupdate 2 (_ + (v ! 2L)) stats
       
   let runSuite = case _ of
-        Test desc fun -> check desc fun |> addStats
-        Tests desc funs -> forEach funs (check desc >> addStats)
-        Setup {before, after, suite} ->
-          try
-            before ()
-            runSuite suite
-          finally after ()
+    Test desc fun -> check desc fun |> addStats
+    Tests desc funs -> forEach funs (check desc >> addStats)
+    Setup {before, after, suite} ->
+      try
+        before ()
+        runSuite suite
+      finally after ()
 
   forEach suites \suite ->
     swap (_ + 1) total
@@ -127,36 +127,40 @@ shouldAllBeIn list set =
  */
 pub
 shouldBeSome : Option a -> Unit
-shouldBeSome opt = case opt of
-  Some _ -> ()
-  None -> throw newAssert (format "%s is not Some" [opt])
+shouldBeSome opt =
+  case opt of
+    Some _ -> ()
+    None -> throw newAssert (format "%s is not Some" [opt])
 
 /**
  * Fails the test if this option is not empty.
  */
 pub
 shouldBeNone : Option a -> Unit
-shouldBeNone opt = case opt of
-  Some _ -> throw newAssert (format "%s is not None" [opt])
-  None -> ()
+shouldBeNone opt =
+  case opt of
+    Some _ -> throw newAssert (format "%s is not None" [opt])
+    None -> ()
 
 /**
  * Fails the test if this list is not empty.
  */
 pub
 shouldBeEmpty : List a -> Unit
-shouldBeEmpty list = case list of
-  [] -> ()
-  _ -> throw newAssert (format "list %s is not empty" [list])
+shouldBeEmpty list =
+  case list of
+    [] -> ()
+    _ -> throw newAssert (format "list %s is not empty" [list])
 
 /**
  * Fails the test if this list is empty.
  */
 pub
 shouldNotBeEmpty : List a -> Unit
-shouldNotBeEmpty list = case list of
-  [] -> throw newAssert "list is empty"
-  _ -> ()
+shouldNotBeEmpty list =
+  case list of
+    [] -> throw newAssert "list is empty"
+    _ -> ()
 
 check : String -> TestFun -> List Int
 check desc fun =

@@ -85,11 +85,13 @@ result =
   }
 
 optBind : Option a -> (a -> Option b) -> Option b
-optBind opt f = case opt of
-  Some x -> f x
-  None -> None
+optBind opt f =
+  case opt of
+    Some x -> f x
+    None -> None
 
 resultBind : Result a err -> (a -> Result b err) -> Result b err
-resultBind res f = case res of
-  Ok x -> f x
-  Err e -> Err e
+resultBind res f =
+  case res of
+    Ok x -> f x
+    Err e -> Err e

@@ -70,8 +70,8 @@ nth : Int64 -> List a -> Option a
 nth index list =
   let len = listSize list
   if index < 0L || index >= len
-  then None
-  else Some (list ! index)
+    then None
+    else Some (list ! index)
 
 /**
  * Returns the size of this list.
@@ -140,14 +140,15 @@ find pred list = findList pred list |> O.fromOptional
  */
 pub
 sortBy : (a -> a -> Ordering) -> List a -> List a
-sortBy cmp = case _ of
-  [] -> []
-  [_] as list -> list
-  list ->
-    let arr = toArray list
-    let comp = toComparator cmp
-    arraySort arr (unsafeCast comp)
-    listFromArray arr
+sortBy cmp =
+  case _ of
+    [] -> []
+    [_] as list -> list
+    list ->
+      let arr = toArray list
+      let comp = toComparator cmp
+      arraySort arr (unsafeCast comp)
+      listFromArray arr
 
 /**
  * Sorts this list according to the element's Ord instance.
@@ -180,9 +181,10 @@ pop = removeFirst
  */
 pub
 contains : {{ Equals a }} -> a -> List a -> Boolean
-contains {{Equals eq}} elem list = case find (\e -> eq.equals e elem) list of
-  Some _ -> true
-  None -> false
+contains {{Equals eq}} elem list =
+  case find (\e -> eq.equals e elem) list of
+    Some _ -> true
+    None -> false
 
 /**
  * Returns the tail of this list if it's not empty.
@@ -190,9 +192,10 @@ contains {{Equals eq}} elem list = case find (\e -> eq.equals e elem) list of
  */
 pub
 tail : List a -> Option (List a)
-tail = case _ of
-  [] -> None
-  [_ :: xs] -> Some xs
+tail =
+  case _ of
+    [] -> None
+    [_ :: xs] -> Some xs
 
 /**
  * Returns a slice of this list starting at from (inclusive)
@@ -261,9 +264,10 @@ foldl f init list = foldList f init list
  */
 pub
 reduce : (a -> a -> a) -> List a -> Option a
-reduce f = case _ of
-  [] -> None
-  [x :: xs] -> Some (foldl f x xs)
+reduce f =
+  case _ of
+    [] -> None
+    [x :: xs] -> Some (foldl f x xs)
 
 /**
  * Reduces this list to a single value according to the reducing function.
@@ -280,9 +284,10 @@ foldr f init = foldl (flip f) init << reverse
  */
 pub
 flatten : List (List a) -> List a
-flatten = case _ of
-  [] -> []
-  [x :: xs] -> foldl (\v1 v2 -> v1 ++ v2) x xs
+flatten =
+  case _ of
+    [] -> []
+    [x :: xs] -> foldl (\v1 v2 -> v1 ++ v2) x xs
 
 /**
  * Like map, but the mapping function should return a list.

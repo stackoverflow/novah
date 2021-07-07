@@ -36,18 +36,20 @@ maybe def f =
  */
 pub
 isSome : Option a -> Boolean
-isSome = case _ of
-  Some _ -> true
-  None -> false
+isSome =
+  case _ of
+    Some _ -> true
+    None -> false
 
 /**
  * Returns true if this option *doesn't* contain a value.
  */
 pub
 isNone : Option a -> Boolean
-isNone = case _ of
-  Some _ -> false
-  None -> true
+isNone =
+  case _ of
+    Some _ -> false
+    None -> true
 
 /**
  * Extracts the value out of this option.
@@ -55,9 +57,10 @@ isNone = case _ of
  */
 pub
 unwrap : Option a -> a
-unwrap = case _ of
-  Some x -> x
-  None -> throw (assertErr "Empty Option")
+unwrap =
+  case _ of
+    Some x -> x
+    None -> throw (assertErr "Empty Option")
 
 /**
  * Transforms a `java.util.Optional` into an option.
@@ -71,6 +74,7 @@ fromOptional opt = if isPresent opt then Some (optGet opt) else None
  */
 pub
 toOptional : Option a -> Optional a
-toOptional = case _ of
-  None -> empty ()
-  Some x -> newOptional x
+toOptional =
+  case _ of
+    None -> empty ()
+    Some x -> newOptional x

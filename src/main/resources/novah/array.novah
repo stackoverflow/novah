@@ -46,8 +46,8 @@ nth : Int -> Array a -> Option a
 nth index arr =
   let len = getArrayLength arr
   if index < 0 || index >= len
-  then None
-  else Some (aget index arr)
+    then None
+    else Some (aget index arr)
 
 /**
  * Returns the size of this array.
@@ -83,10 +83,11 @@ find pred arr =
   let atm = atom None
   forEachBreak 0L (int64 (getArrayLength arr)) \i ->
     let elem = aget (int i) arr
-    if pred elem then
-      reset (Some elem) atm
-      -1
-    else 0
+    if pred elem
+      then
+        reset (Some elem) atm
+        -1
+      else 0
   deref atm
 
 /**

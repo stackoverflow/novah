@@ -64,10 +64,11 @@ linearTest : Suite
 linearTest =
   Test "Linear list functions" \_ ->
     let list = [1, 2, 3]
-    let lin = List.withLinear list \l ->
-                addFirst 0 l
-                addLast 4 l
-                setAt 2L 5 l
+    let lin =
+      List.withLinear list \l ->
+        addFirst 0 l
+        addLast 4 l
+        setAt 2L 5 l
     lin `shouldBe` [0, 1, 5, 3, 4]
 
 pub

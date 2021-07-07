@@ -8,9 +8,10 @@ foreign import new java.lang.AssertionError(String) as assertErr
  */
 pub
 map : (a -> b) -> Result a err -> Result b err
-map f = case _ of
-  Ok x -> Ok (f x)
-  Err e -> Err e
+map f =
+  case _ of
+    Ok x -> Ok (f x)
+    Err e -> Err e
 
 /**
  * Maps a function over this result if it is an error.
@@ -18,9 +19,10 @@ map f = case _ of
  */
 pub
 mapErr : (a -> b) -> Result ok a -> Result ok b
-mapErr f = case _ of
-  Ok x -> Ok x
-  Err e -> Err (f e)
+mapErr f =
+  case _ of
+    Ok x -> Ok x
+    Err e -> Err (f e)
 
 /**
  * Extracts the value out of this result.
@@ -28,45 +30,50 @@ mapErr f = case _ of
  */
 pub
 unwrap : Result a b -> a
-unwrap = case _ of
-  Ok x -> x
-  _ -> throw (assertErr "Empty Result")
+unwrap =
+  case _ of
+    Ok x -> x
+    _ -> throw (assertErr "Empty Result")
 
 /**
  * Returns true if this result is ok.
  */
 pub
 isOk : Result a b -> Boolean
-isOk = case _ of
-  Ok _ -> true
-  _ -> false
+isOk =
+  case _ of
+    Ok _ -> true
+    _ -> false
 
 /**
  * Returns true if this result is an error.
  */
 pub
 isErr : Result a b -> Boolean
-isErr = case _ of
-  Err _ -> true
-  _ -> false
+isErr =
+  case _ of
+    Err _ -> true
+    _ -> false
 
 /**
  * Transforms this result into an option discarding the error.
  */
 pub
 ok : Result a b -> Option a
-ok = case _ of
-  Ok x -> Some x
-  _ -> None
+ok =
+  case _ of
+    Ok x -> Some x
+    _ -> None
 
 /**
  * Transforms this result into an option discarding the success.
  */
 pub
 err : Result a b -> Option b
-err = case _ of
-  Err x -> Some x
-  _ -> None
+err =
+  case _ of
+    Err x -> Some x
+    _ -> None
 
 /**
  * Handles this result by either applying the first function
@@ -74,6 +81,7 @@ err = case _ of
  */
 pub
 handle : (a -> c) -> (b -> c) -> Result a b -> c
-handle f1 f2 = case _ of
-  Ok x -> f1 x
-  Err e -> f2 e
+handle f1 f2 =
+  case _ of
+    Ok x -> f1 x
+    Err e -> f2 e

@@ -94,11 +94,12 @@ myFun x = case x of
     4
   Some (Maybe (Perhaps x y 8)) -> x
 
-ex = \x ->
-  let z = 4
-  let y = \p -> 9
-  sideEffect (if false then "false" else "true") -1
-  x * y
+ex =
+  \x ->
+    let z = 4
+    let y = \p -> 9
+    sideEffect (if false then "false" else "true") -1
+    x * y
 
 normalString = "a normal\\ \"single\nline\tstring\'"
 
@@ -114,9 +115,11 @@ doIt () =
   println
     "not pure"
       // bla
-  fun (\x y -> \z ->
-    println x
-    x + 1) "a" (Some (3 + 1) 4)
+  fun
+    (\x y ->
+      \z ->
+        println x
+        x + 1) "a" (Some (3 + 1) 4)
   let f : a -> a
       f x = x
   let y : Int

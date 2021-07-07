@@ -22,9 +22,10 @@ pub
  */
 pub
 head : LinkedList a -> Option a
-head = case _ of
-  Nil -> None
-  Cons x _ -> Some x
+head =
+  case _ of
+    Nil -> None
+    Cons x _ -> Some x
 
 /**
  * Returns the tail of this linked list if it's not empty.
@@ -32,9 +33,10 @@ head = case _ of
  */
 pub
 tail : LinkedList a -> Option (LinkedList a)
-tail = case _ of
-  Nil -> None
-  Cons _ xs -> Some xs
+tail =
+  case _ of
+    Nil -> None
+    Cons _ xs -> Some xs
 
 /**
  * Produces a linked list with a single element.
@@ -50,10 +52,11 @@ singleton x = x :: Nil
  */
 pub
 take : Int32 -> LinkedList a -> LinkedList a
-take n = case _ of
-  Nil -> Nil
-  _ if n <= 0 -> Nil
-  Cons x xs -> x :: take (n - 1) xs
+take n =
+  case _ of
+    Nil -> Nil
+    _ if n <= 0 -> Nil
+    Cons x xs -> x :: take (n - 1) xs
 
 /**
  * Drops the first n elements of this linked list and returns it.
@@ -61,10 +64,11 @@ take n = case _ of
  */
 pub
 drop : Int32 -> LinkedList a -> LinkedList a
-drop n = case _ of
-  Nil -> Nil
-  l if n <= 0 -> l
-  Cons _ xs -> drop (n - 1) xs
+drop n =
+  case _ of
+    Nil -> Nil
+    l if n <= 0 -> l
+    Cons _ xs -> drop (n - 1) xs
 
 /**
  * Returns some value at index for this linked list if it exists or none.
@@ -80,10 +84,11 @@ nth index = drop index >> head
  */
 pub
 takeWhile : (a -> Boolean) -> LinkedList a -> LinkedList a
-takeWhile pred = case _ of
-  Nil -> Nil
-  (Cons x xs) if pred x -> x :: takeWhile pred xs
-  _ -> Nil
+takeWhile pred =
+  case _ of
+    Nil -> Nil
+    (Cons x xs) if pred x -> x :: takeWhile pred xs
+    _ -> Nil
 
 /**
  * Keeps removing elements from this linked list while the predicate holds.
@@ -91,10 +96,11 @@ takeWhile pred = case _ of
  */
 pub
 dropWhile : (a -> Boolean) -> LinkedList a -> LinkedList a
-dropWhile pred = case _ of
-  Nil -> Nil
-  (Cons x xs) if pred x -> dropWhile pred xs
-  l -> l
+dropWhile pred =
+  case _ of
+    Nil -> Nil
+    (Cons x xs) if pred x -> dropWhile pred xs
+    l -> l
 
 /**
  * Returns true if this linked list is empty.
@@ -102,9 +108,10 @@ dropWhile pred = case _ of
  */
 pub
 isEmpty : LinkedList a -> Boolean
-isEmpty = case _ of
-  Nil -> true
-  _ -> false
+isEmpty =
+  case _ of
+    Nil -> true
+    _ -> false
 
 /**
  * Returns true if this linked list is not empty.
@@ -112,9 +119,10 @@ isEmpty = case _ of
  */
 pub
 isNotEmpty : LinkedList a -> Boolean
-isNotEmpty = case _ of
-  Nil -> false
-  _ -> true
+isNotEmpty =
+  case _ of
+    Nil -> false
+    _ -> true
 
 /**
  * Returns true if the element is inside this linked list.
@@ -122,9 +130,10 @@ isNotEmpty = case _ of
  */
 pub
 contains : {{ Equals a }} -> a -> LinkedList a -> Boolean
-contains {{eq}} elem = case _ of
-  Nil -> false
-  Cons x xs -> if x == elem then true else contains {{eq}} elem xs
+contains {{eq}} elem =
+  case _ of
+    Nil -> false
+    Cons x xs -> if x == elem then true else contains {{eq}} elem xs
 
 /**
  * Maps function f over all elements of this linked list
@@ -133,9 +142,10 @@ contains {{eq}} elem = case _ of
  */
 pub
 map : (a -> b) -> LinkedList a -> LinkedList b
-map f = case _ of
-  Nil -> Nil
-  Cons x xs -> f x :: map f xs
+map f =
+  case _ of
+    Nil -> Nil
+    Cons x xs -> f x :: map f xs
 
 /**
  * Runs function f for every element of this linked list, ignoring the result.
@@ -156,9 +166,10 @@ forEach list f =
  */
 pub
 filter : (a -> Boolean) -> LinkedList a -> LinkedList a
-filter f = case _ of
-  Nil -> Nil
-  Cons x xs -> if f x then x :: filter f xs else filter f xs
+filter f =
+  case _ of
+    Nil -> Nil
+    Cons x xs -> if f x then x :: filter f xs else filter f xs
 
 /**
  * Returns the first occurrence of elem in this linked list for which the predicate returns true.
@@ -166,9 +177,10 @@ filter f = case _ of
  */
 pub
 find : (a -> Boolean) -> LinkedList a -> Option a
-find pred = case _ of
-  Nil -> None
-  Cons x xs -> if pred x then Some x else find pred xs
+find pred =
+  case _ of
+    Nil -> None
+    Cons x xs -> if pred x then Some x else find pred xs
 
 /**
  * Like `map` but it will flatten the resulting linked list.
@@ -176,9 +188,10 @@ find pred = case _ of
  */
 pub
 flatMap : (a -> LinkedList b) -> LinkedList a -> LinkedList b
-flatMap f = case _ of
-  Nil -> Nil
-  Cons x xs -> f x ++ flatMap f xs
+flatMap f =
+  case _ of
+    Nil -> Nil
+    Cons x xs -> f x ++ flatMap f xs
 
 /**
  * Returns the size of this linked list.
@@ -186,15 +199,17 @@ flatMap f = case _ of
  */
 pub
 size : LinkedList a -> Int32
-size = case _ of
-  Nil -> 0
-  Cons _ xs -> 1 + (size xs)
+size =
+  case _ of
+    Nil -> 0
+    Cons _ xs -> 1 + (size xs)
 
 showLinkedList_ : Show a -> LinkedList a -> String
 showLinkedList_ (Show s) l =
-  let innerShow = case _ of
-        Nil -> "Nil"
-        Cons x xs -> s.show x ++ " :: " ++ innerShow xs
+  let innerShow =
+    case _ of
+      Nil -> "Nil"
+      Cons x xs -> s.show x ++ " :: " ++ innerShow xs
   case l of
     Nil -> "Nil"
     (Cons _ _) as list -> "(" ++ innerShow list ++ ")"
@@ -204,11 +219,12 @@ showLinkedList : {{ Show a }} -> Show (LinkedList a)
 showLinkedList {{s}} = Show { show: showLinkedList_ s }
 
 eqLinkedList_ : Equals a -> LinkedList a -> LinkedList a -> Boolean
-eqLinkedList_ ((Equals eq) as equals) = case _, _ of
-  Nil, Nil -> true
-  Nil, _ -> false
-  _, Nil -> false
-  Cons x xs, Cons y ys -> eq.equals x y && eqLinkedList_ equals xs ys
+eqLinkedList_ ((Equals eq) as equals) =
+  case _, _ of
+    Nil, Nil -> true
+    Nil, _ -> false
+    _, Nil -> false
+    Cons x xs, Cons y ys -> eq.equals x y && eqLinkedList_ equals xs ys
 
 pub instance
 eqLinkedList : {{ Equals a }} -> Equals (LinkedList a)
@@ -216,9 +232,10 @@ eqLinkedList {{eq}} = Equals { equals: eqLinkedList_ eq }
 
 concatLinkedList_ : LinkedList a -> LinkedList a -> LinkedList a
 concatLinkedList_ l1 l2 =
-  let addTo to = case _ of
-        Nil -> to
-        Cons x xs -> addTo (x :: to) xs
+  let addTo to =
+    case _ of
+      Nil -> to
+      Cons x xs -> addTo (x :: to) xs
   addTo Nil l1 |> addTo l2
 
 pub instance
@@ -232,9 +249,10 @@ concatLinkedList = Concat { concat: concatLinkedList_ }
 pub
 reverse : LinkedList a -> LinkedList a
 reverse list =
-  let addTo to = case _ of
-        Nil -> to
-        Cons x xs -> addTo (x :: to) xs
+  let addTo to =
+    case _ of
+      Nil -> to
+      Cons x xs -> addTo (x :: to) xs
   addTo Nil list
 
 /**
@@ -245,9 +263,10 @@ reverse list =
 pub
 foldl : (b -> a -> b) -> b -> LinkedList a -> b
 foldl f =
-  let go b = case _ of
-        Nil -> b
-        Cons x xs -> go (f b x) xs
+  let go b =
+    case _ of
+      Nil -> b
+      Cons x xs -> go (f b x) xs
   go
 
 /**
@@ -265,9 +284,10 @@ foldr f init = foldl (flip f) init << reverse
  */
 pub
 flatten : LinkedList (LinkedList a) -> LinkedList a
-flatten = case _ of
-  Nil -> Nil
-  Cons x xs -> x ++ flatten xs
+flatten =
+  case _ of
+    Nil -> Nil
+    Cons x xs -> x ++ flatten xs
 
 /**
  * A specialized version of `foldl` where the first element of the linked list is used as initial value.
@@ -276,9 +296,10 @@ flatten = case _ of
  */
 pub
 reduce : (a -> a -> a) -> LinkedList a -> Option a
-reduce f = case _ of
-  Nil -> None
-  Cons x xs -> Some (foldl f x xs)
+reduce f =
+  case _ of
+    Nil -> None
+    Cons x xs -> Some (foldl f x xs)
 
 /**
  * Returns a linked list in the range from begin (inclusive) to end (exclusive).
@@ -289,10 +310,9 @@ range : Int32 -> Int32 -> LinkedList Int32
 range begin end =
   let op = if begin <= end then (_ + 1) else (_ - 1)
   let go b e acc =
-    if b == e then
-      acc
-    else
-      go (op b) e (b :: acc)
+    if b == e
+      then acc
+      else go (op b) e (b :: acc)
   go begin end Nil |> reverse
 
 /**
@@ -301,9 +321,10 @@ range begin end =
  */
 pub
 fromList : List a -> LinkedList a
-fromList = case _ of
-  [] -> Nil
-  [x :: xs] -> x :: fromList xs
+fromList =
+  case _ of
+    [] -> Nil
+    [x :: xs] -> x :: fromList xs
 
 // sort implementation copied from https://hackage.haskell.org/package/base-4.15.0.0/docs/src/Data-OldList.html#sort
 
@@ -314,38 +335,42 @@ fromList = case _ of
 pub
 sortBy : (a -> a -> Ordering) -> LinkedList a -> LinkedList a
 sortBy cmp =
-  let sequences ascending descending = case _ of
-    Cons a (Cons b xs) ->
-      if a `cmp` b == GT then
-        descending ascending b (singleton a) xs
-      else
-        ascending b (a :: _) xs
-    xs -> singleton xs
+  let sequences ascending descending =
+    case _ of
+      Cons a (Cons b xs) ->
+        if a `cmp` b == GT
+          then descending ascending b (singleton a) xs
+          else ascending b (a :: _) xs
+      xs -> singleton xs
   
-  let descending ascending x xs = case _ of
-    Cons b bs if x `cmp` b == GT -> descending ascending b (x :: xs) bs
-    bs -> (x :: xs) :: sequences ascending descending bs
+  let descending ascending x xs =
+    case _ of
+      Cons b bs if x `cmp` b == GT -> descending ascending b (x :: xs) bs
+      bs -> (x :: xs) :: sequences ascending descending bs
   
-  let ascending x xs = case _ of
-    Cons b bs if x `cmp` b != GT -> ascending b (\ys -> xs (x :: ys)) bs
-    bs -> (singleton x |> xs) :: sequences ascending descending bs
+  let ascending x xs =
+    case _ of
+      Cons b bs if x `cmp` b != GT -> ascending b (\ys -> xs (x :: ys)) bs
+      bs -> (singleton x |> xs) :: sequences ascending descending bs
   
-  let merge = case _, _ of
-    (Cons x xss) as xs, (Cons y yss) as ys ->
-      if x `cmp` y == GT then
-        y :: merge xs yss
-      else
-        x :: merge xss ys
-    Nil, ys -> ys
-    xs, Nil -> xs
+  let merge =
+    case _, _ of
+      (Cons x xss) as xs, (Cons y yss) as ys ->
+        if x `cmp` y == GT
+          then y :: merge xs yss
+          else x :: merge xss ys
+      Nil, ys -> ys
+      xs, Nil -> xs
 
-  let mergePairs = case _ of
-    Cons a (Cons b xs) -> merge a b :: mergePairs xs
-    xs -> xs
+  let mergePairs =
+    case _ of
+      Cons a (Cons b xs) -> merge a b :: mergePairs xs
+      xs -> xs
 
-  let mergeAll = case _ of
-    Cons x Nil -> x
-    xs -> mergeAll (mergePairs xs)
+  let mergeAll =
+    case _ of
+      Cons x Nil -> x
+      xs -> mergeAll (mergePairs xs)
   
   mergeAll << (sequences ascending descending)
 

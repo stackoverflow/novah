@@ -16,17 +16,20 @@ import string (stringTests)
 pub
 main : Array String -> Unit
 main _ =
-  let tests = listTests
-                ++ arrayTests
-                ++ computationTests
-                ++ linkedListTests
-                ++ mapTests
-                ++ mathTests
-                ++ optionTests
-                ++ resultTests
-                ++ setTests
-                ++ streamTests
-                ++ stringTests
+  let tests =
+    List.flatten
+      [ listTests
+      , arrayTests
+      , computationTests
+      , linkedListTests
+      , mapTests
+      , mathTests
+      , optionTests
+      , resultTests
+      , setTests
+      , streamTests
+      , stringTests
+      ]
   case runTests tests of
     Success -> Java.exit 0
     Failure -> Java.exit 1

@@ -91,10 +91,11 @@ exit status = jExit status
 pub
 toComparator : (a -> a -> Ordering) -> Comparator a
 toComparator cmp =
-  makeComparator \x y -> case cmp x y of
-    LT -> -1
-    EQ -> 0
-    GT -> 1
+  makeComparator \x y ->
+    case cmp x y of
+      LT -> -1
+      EQ -> 0
+      GT -> 1
 
 /**
  * Creates a `java.util.function.Consumer` out of this function, ignoring the result.

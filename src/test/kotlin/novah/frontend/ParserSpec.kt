@@ -164,25 +164,30 @@ class ParserSpec : StringSpec({
     
     "Indentation is correctly parsed" {
         val code = """
+            module indentationTest
+            
             rec = { fun: \x -> x, notfun: 0 }
             
-            foo = \x ->
-              x + 1
+            foo =
+              \x ->
+                x + 1
             
             fun () =
               let x =
-                   1
-                   2
+                1
+                2
               x
             
-            fun x = while true do
-              println "hello"
-              x
+            fun x =
+              while true do
+                println "hello"
+                x
             
-            fun x = case x of
-              Some _ -> 1
-              None -> 0
-        """.module()
+            fun x =
+              case x of
+                Some _ -> 1
+                None -> 0
+        """.trimIndent()
 
         val ast = parseString(code)
         val des = Desugar(ast)
