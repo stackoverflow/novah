@@ -1,10 +1,11 @@
 module test
 
 foo : (Int -> Boolean) -> List Int -> Int
-foo pred list = case list of
-  [] -> 0
-  [x] if pred x -> x
-  _ -> -1
+foo pred list =
+  case list of
+    [] -> 0
+    [x] if pred x -> x
+    _ -> -1
 
 pub
 main : Array String -> Unit

@@ -52,9 +52,10 @@ linearTest : Suite
 linearTest =
   Test "Linear set functions" \_ ->
     let set = #{1, 2, 3}
-    let lin = Set.withLinear set \s ->
-                Set.add 4 s
-                Set.remove 1 s
+    let lin =
+      Set.withLinear set \s ->
+        Set.add 4 s
+        Set.remove 1 s
     lin `shouldBe` #{2, 3, 4}
 
 pub

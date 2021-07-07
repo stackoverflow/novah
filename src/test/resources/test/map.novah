@@ -34,9 +34,10 @@ linearTest : Suite
 linearTest =
   Test "Linear map functions" \_ ->
     let map = Map.new ["a" <> 1, "b" <> 2, "c" <> 3]
-    let lin = Map.withLinear map \m ->
-                Map.put "d" 4 m
-                Map.remove "b" m
+    let lin =
+      Map.withLinear map \m ->
+        Map.put "d" 4 m
+        Map.remove "b" m
     lin `shouldBe` Map.new ["a" <> 1, "c" <> 3, "d" <> 4]
 
 pub

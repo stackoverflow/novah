@@ -20,15 +20,17 @@ readersTest =
     let st2 = vs [1, 2, 3, 4]
     Stream.size st2 `shouldBe` 4L
 
-    let st3 = vs [1, 2, 3, 4, 5, 6, 7]
-                |> Stream.flatMap Stream.from
-                |> Stream.limit 5L
-                |> Stream.skip 2L
+    let st3 =
+      vs [1, 2, 3, 4, 5, 6, 7]
+        |> Stream.flatMap Stream.from
+        |> Stream.limit 5L
+        |> Stream.skip 2L
     List.fromStream st3 `shouldBe` [3, 4, 5]
 
-    let st4 = vs [1, 2, 3, 4, 5, 6, 7, 8]
-                |> Stream.takeWhile (_ <= 6)
-                |> Stream.dropWhile (_ < 3)
+    let st4 =
+      vs [1, 2, 3, 4, 5, 6, 7, 8]
+        |> Stream.takeWhile (_ <= 6)
+        |> Stream.dropWhile (_ < 3)
     List.fromStream st4 `shouldBe` [3, 4, 5, 6]
 
     let res2 = vs [1, 2, 3, 4, 5] |> Stream.reduce (+)

@@ -607,7 +607,7 @@ class Parser(
         }
 
         return if (hasElse) {
-            val elses = parseDo()
+            val elses = withOffside { parseDo() }
             Expr.If(cond, thens, elses)
                 .withSpan(ifTk.span, elses.span)
                 .withComment(ifTk.comment)
@@ -1007,30 +1007,24 @@ class Parser(
     }
 
     private fun parseDo(): Expr {
-        val doo = iter.peek()
+        val spanned = iter.peek()
+        if (spanned.value is DoDot) return parseExpression()
 
-        val start = doo.value
-        if (start is Backslash || start is WhileT || start is DoDot) {
-            return parseExpression()
-        }
-
-        if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
-        val align = iter.peek().offside()
+        if (iter.peekIsOffside()) throwMismatchedIndentation(spanned)
+        val align = spanned.offside()
+        val exps = mutableListOf<Expr>()
         return withIgnoreOffside(false) {
             withOffside(align) {
-                val exps = mutableListOf<Expr>()
-                val first = parseExpression()
-                exps += first
-
-                var tk = iter.peek()
-                while (!iter.peekIsOffside() && tk.value !in statementEnding) {
+                var tk: Spanned<Token>
+                do {
                     exps += parseExpression()
                     tk = iter.peek()
-                }
+                } while (!iter.peekIsOffside() && tk.value !in statementEnding)
+                
                 if (exps.size == 1) {
                     exps[0]
                 } else {
-                    Expr.Do(exps).withSpan(doo.span, iter.current().span).withComment(doo.comment)
+                    Expr.Do(exps).withSpan(spanned.span, iter.current().span).withComment(spanned.comment)
                 }
             }
         }

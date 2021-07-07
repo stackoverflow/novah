@@ -133,12 +133,14 @@ repeat n str = srepeat str n
  */
 pub
 capitalize : String -> String
-capitalize str = case length str of
-  0 -> str
-  1 -> toUpperCase str
-  _ -> let head = toUpperCase (toString (scharAt str 0))
-       let tail = toLowerCase (ssubstring str 1)
-       format "%s%s" [head, tail]
+capitalize str =
+  case length str of
+    0 -> str
+    1 -> toUpperCase str
+    _ ->
+      let head = toUpperCase (toString (scharAt str 0))
+      let tail = toLowerCase (ssubstring str 1)
+      format "%s%s" [head, tail]
 
 /**
  * Split this string at new lines.
@@ -153,6 +155,6 @@ splitLines str = fromArray (ssplit str "[\\r|\\n]+")
 pub
 charAt : Int32 -> String -> Option Char
 charAt idx str =
-  if idx < length str then
-    Some (scharAt str idx)
-  else None
+  if idx < length str
+    then Some (scharAt str idx)
+    else None

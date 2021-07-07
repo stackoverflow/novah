@@ -39,7 +39,7 @@ pub
 new : {{ Equals a }} -> Option (a -> Int64) -> Set a
 new {{Equals eq}} hashFn =
   let hash = Option.map J.toLong hashFn ?: defaultHashCode
-  in newSet hash (J.bipredicate eq.equals)
+  newSet hash (J.bipredicate eq.equals)
 
 /**
  * Inserts this element in the set.
@@ -189,10 +189,11 @@ find pred set =
   let lset = setLinear #{}
   forEachBreak 0L (sizeSet set) \idx ->
     let elem = setNth set idx
-    if pred elem then
-      add elem lset
-      -1
-    else 0 
+    if pred elem
+      then
+        add elem lset
+        -1
+      else 0
   nth 0L lset
 
 /**
@@ -235,12 +236,12 @@ reduce f set =
 pub
 flatten : Set (Set a) -> Set a
 flatten sets =
-  if isEmpty sets then
-    #{}
-  else
-    let first = setNth sets 0L
-    let ssets = remove first sets
-    foldl (\s1 s2 -> s1 ++ s2) first ssets
+  if isEmpty sets
+    then #{}
+    else
+      let first = setNth sets 0L
+      let ssets = remove first sets
+      foldl (\s1 s2 -> s1 ++ s2) first ssets
 
 /**
  * Like map, but the mapping function should return a set.

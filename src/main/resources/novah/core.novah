@@ -384,10 +384,10 @@ pub
 when : Boolean -> (Unit -> a) -> Unit
 when cond action =
   if cond
-  then
-    action ()
-    ()
-  else ()
+    then
+      action ()
+      ()
+    else ()
 
 /**
  * Represents the possibility of a missing value.
@@ -858,11 +858,12 @@ ordString : Ord String
 ordString = Ord eqString { compare: unsafeCast (compareString LT EQ GT) }
 
 compareOption : Ord a -> Option a -> Option a -> Ordering
-compareOption (Ord _ o) = case _, _ of
-  Some x, Some y -> o.compare x y
-  Some _, None -> GT
-  None, Some _ -> LT
-  None, None -> EQ
+compareOption (Ord _ o) =
+  case _, _ of
+    Some x, Some y -> o.compare x y
+    Some _, None -> GT
+    None, Some _ -> LT
+    None, None -> EQ
 
 /**
  * Compares two options if their values are comparable.
