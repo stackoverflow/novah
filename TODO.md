@@ -17,5 +17,4 @@
 - [ ] Fix error report span for unused foreign import
 - [ ] Add nullable types
 - [ ] Revamp shadowed variables and types (not working right now)
-- [ ] Fix indentation at start of declaration
 - [ ] Mutually recursive let definitions?
