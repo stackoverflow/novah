@@ -112,6 +112,7 @@ object Inference {
             is Expr.Bool -> exp.withType(tBoolean)
             is Expr.StringE -> exp.withType(tString)
             is Expr.Unit -> exp.withType(tUnit)
+            is Expr.Null -> exp.withType(instantiate(level, tNullable))
             is Expr.Var -> {
                 val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
                 exp.withType(instantiate(level, ty))

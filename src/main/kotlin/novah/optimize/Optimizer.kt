@@ -246,6 +246,7 @@ class Optimizer(private val ast: CModule) {
                 Expr.TryCatch(tryExp.convert(locals), catches, finallyExp?.convert(locals), typ, span)
             }
             is CExpr.While -> Expr.While(cond.convert(locals), exps.map { it.convert(locals) }, typ, span)
+            is CExpr.Null -> Expr.Null(typ, span)
         }
     }
 
@@ -256,7 +257,14 @@ class Optimizer(private val ast: CModule) {
             if (show(false)[0].isLowerCase()) Clazz(OBJECT_TYPE)
             else Clazz(getPrimitiveTypeName(this))
         }
-        is TApp -> Clazz(type.convert().type, types.map { it.convert() })
+        is TApp -> {
+            val conv = type.convert()
+            if (conv.type.className == primNullable) {
+                types[0].convert()
+            } else {
+                Clazz(conv.type, types.map { it.convert() })
+            }
+        }
         // the only functions that can have more than 1 argument are native ones
         // but those don't need a type as we get the type from the reflected method/field/constructor
         is TArrow -> Clazz(FUNCTION_TYPE, listOf(args[0].convert(), ret.convert()))

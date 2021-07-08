@@ -91,6 +91,7 @@ const val primObject = "$PRIM.Object"
 const val primList = "$PRIM.List"
 const val primSet = "$PRIM.Set"
 const val primArray = "$PRIM.Array"
+const val primNullable = "$PRIM.Nullable"
 
 val tByte = TConst(primByte)
 val tInt16 = TConst(primInt16)
@@ -106,6 +107,7 @@ val tUnit = TConst(primUnit)
 val tList = TApp(TConst(primList, Kind.Constructor(1)), listOf(tbound(-1)))
 val tSet = TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-2)))
 val tArray = TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-3)))
+val tNullable = TApp(TConst(primNullable, Kind.Constructor(1)), listOf(tbound(-4)))
 
 val tUnsafeCoerce = TArrow(listOf(tbound(-4)), tbound(-5))
 
@@ -123,7 +125,8 @@ val primTypes = mapOf(
     primUnit to tUnit,
     primList to tList,
     primSet to tSet,
-    primArray to tArray
+    primArray to tArray,
+    primNullable to tNullable
 )
 
 fun isListOf(type: Type, of: Type) =
@@ -178,6 +181,7 @@ val primModuleEnv = ModuleEnv(
         "Object" to tdecl(tObject),
         "List" to tdecl(tList),
         "Set" to tdecl(tSet),
-        "Array" to tdecl(tArray)
+        "Array" to tdecl(tArray),
+        "Nullable" to tdecl(tNullable)
     )
 )

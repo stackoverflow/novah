@@ -63,6 +63,7 @@ sealed class Token {
     object CatchT : Token()
     object FinallyT : Token()
     object WhileT : Token()
+    object Null : Token()
 
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char, val raw: String) : Token()
@@ -287,6 +288,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "catch" -> CatchT
             "finally" -> FinallyT
             "while" -> WhileT
+            "null" -> Null
             "do" -> {
                 if (iter.peek() == '.') {
                     iter.next()

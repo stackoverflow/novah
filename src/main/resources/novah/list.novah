@@ -12,7 +12,6 @@ foreign import List.size() as listSize
 foreign import List:"of"(Array) as listFromArray
 foreign import java.util.Arrays:sort(Array, Comparator) as arraySort
 foreign import IList.stream() as listStream
-foreign import IList.toArray() as listToArray
 foreign import Core:foldList(Function, Object, List)
 foreign import Core:findList(Function, List)
 foreign import Core:listEvery(Function, List)
@@ -145,7 +144,7 @@ sortBy cmp =
     [] -> []
     [_] as list -> list
     list ->
-      let arr = toArray list
+      let arr = arrayOf list
       let comp = toComparator cmp
       arraySort arr (unsafeCast comp)
       listFromArray arr
@@ -320,11 +319,12 @@ every pred list = listEvery pred list
 
 /**
  * Converts this list into an array.
+ * This is an alias to the `arrayOf` function in the core namespace.
  * Runtime: O(n)
  */
 pub
 toArray : List a -> Array a
-toArray list = unsafeCast (listToArray (unsafeCast list))
+toArray = arrayOf
 
 /**
  * Converts this array into a list.

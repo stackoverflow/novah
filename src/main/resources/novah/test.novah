@@ -7,7 +7,7 @@ foreign import type java.lang.Throwable
 foreign import Throwable.printStackTrace()
 foreign import new AssertionError(String) as newAssert
 
-import novah.list (forEach, toArray)
+import novah.list (forEach)
 import novah.set as Set
 import novah.option as Option
 
@@ -40,7 +40,7 @@ pub
 runTests : List Suite -> TestResult
 runTests suites =
   let total = atom 0
-  let stats = toArray [0, 0, 0]
+  let stats = arrayOf [0, 0, 0]
   let addStats v =
     aupdate 0 (_ + (v ! 0L)) stats
     aupdate 1 (_ + (v ! 1L)) stats

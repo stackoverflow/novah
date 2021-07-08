@@ -4,7 +4,7 @@ import novah.stream as Stream
 import novah.test
 
 a : List a -> Array a
-a = List.toArray
+a = arrayOf
 
 streamTest : Suite
 streamTest =
