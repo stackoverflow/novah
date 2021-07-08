@@ -94,10 +94,12 @@ class Desugar(private val smod: SModule) {
             if (declNames.contains(name)) parserError(E.duplicatedDecl(name), span)
             declNames += name
             declVars.clear()
+            checkShadow(name, span)
 
             unusedVars.clear()
             patterns.map { collectVars(it) }.flatten().forEach {
                 if (!it.instance && !it.implicit) unusedVars[it.name] = it.span
+                checkShadow(it.name, it.span)
             }
 
             var expr = nestLambdaPatterns(patterns, exp.desugar(), emptyList())
@@ -170,7 +172,10 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.Lambda -> {
             val vars = patterns.map { collectVars(it) }.flatten()
-            vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
+            vars.forEach {
+                if (!it.implicit && !it.instance) unusedVars[it.name] = it.span
+                checkShadow(it.name, it.span)
+            }
             nestLambdaPatterns(patterns, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.App -> Expr.App(fn.desugar(locals, appFnDepth + 1), arg.desugar(locals), span)
@@ -188,7 +193,10 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.Let -> {
             val vars = collectVars(letDef)
-            vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
+            vars.forEach {
+                if (!it.implicit && !it.instance) unusedVars[it.name] = it.span
+                checkShadow(it.name, it.span)
+            }
             nestLets(letDef, body.desugar(locals + vars.map { it.name }), locals)
         }
         is SExpr.Match -> {
@@ -289,7 +297,10 @@ class Desugar(private val smod: SModule) {
 
     private fun SCase.desugar(locals: List<String>): Case {
         val vars = patterns.map { collectVars(it) }.flatten()
-        vars.forEach { if (!it.implicit && !it.instance) unusedVars[it.name] = it.span }
+        vars.forEach {
+            if (!it.implicit && !it.instance) unusedVars[it.name] = it.span
+            checkShadow(it.name, it.span)
+        }
         return Case(patterns.map { it.desugar(locals) }, exp.desugar(), guard?.desugar(locals))
     }
 
@@ -774,6 +785,19 @@ class Desugar(private val smod: SModule) {
         if (alias !in aliasedImports) {
             val err = CompilerProblem(
                 E.noAliasFound(alias),
+                ProblemContext.DESUGAR,
+                span,
+                smod.sourceName,
+                smod.name
+            )
+            errors += err
+        }
+    }
+    
+    private fun checkShadow(name: String, span: Span) {
+        if (imports.containsKey(name)) {
+            val err = CompilerProblem(
+                E.shadowedVariable(name),
                 ProblemContext.DESUGAR,
                 span,
                 smod.sourceName,
