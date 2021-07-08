@@ -423,6 +423,7 @@ class Parser(
             is BoolT -> parseBool()
             is Ident -> parseVar()
             is Op -> parseOperator()
+            is Null -> parseNull()
             is Underline -> {
                 val tk = iter.next()
                 Expr.Underscore().withSpan(tk.span).withComment(tk.comment)
@@ -556,6 +557,11 @@ class Parser(
     private fun parseOperator(): Expr {
         val op = expect<Op>(withError("Expected Operator."))
         return Expr.Operator(op.value.op).withSpanAndComment(op)
+    }
+    
+    private fun parseNull(): Expr {
+        val nul = expect<Null>(noErr())
+        return Expr.Null().withSpanAndComment(nul)
     }
 
     private fun parseAliasedVar(alias: Spanned<UpperIdent>): Expr {

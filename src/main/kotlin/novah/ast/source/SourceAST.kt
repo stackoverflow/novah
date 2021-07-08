@@ -246,6 +246,7 @@ sealed class Expr {
     data class While(val cond: Expr, val exps: List<Expr>) : Expr()
     data class Computation(val builder: Var, val exps: List<Expr>) : Expr()
     data class IfBang(val cond: Expr, val thenCase: Expr) : Expr()
+    class Null : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null

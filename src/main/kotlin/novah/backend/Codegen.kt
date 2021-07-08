@@ -198,6 +198,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.StringE -> {
                 mv.visitLdcInsn(e.v)
             }
+            is Expr.Null -> {
+                mv.visitInsn(ACONST_NULL)
+            }
             is Expr.LocalVar -> {
                 val local = ctx[e.name] ?: internalError("unmapped local variable (${e.name}) in code generation: $e")
                 ctx.setLocalVar(e)

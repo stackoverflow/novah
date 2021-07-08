@@ -92,7 +92,7 @@ sealed class Expr(open val span: Span) {
         Expr(span)
 
     data class NativeConstructor(val name: String, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
-    data class Unit(override val span: Span) : Expr(span)
+    class Unit(span: Span) : Expr(span)
     class RecordEmpty(span: Span) : Expr(span)
     data class RecordSelect(val exp: Expr, val label: String, override val span: Span) : Expr(span)
     data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
@@ -105,6 +105,7 @@ sealed class Expr(open val span: Span) {
         Expr(span)
 
     data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
+    class Null(span: Span) : Expr(span)
 
     // end of subclasses
 
@@ -279,4 +280,5 @@ fun Expr.show(): String = when (this) {
         "try ${tryExp.show()}\ncatch\n  $cs$fin"
     }
     is Expr.While -> "while ${cond.show()} do\n  " + exps.joinToString("\n  ") { it.show() }
+    is Expr.Null -> "null"
 }

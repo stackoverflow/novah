@@ -222,6 +222,7 @@ class Formatter {
             is Expr.Computation -> {
                 "do." + e.builder.name + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
+            is Expr.Null -> "null"
         }
     }
 
