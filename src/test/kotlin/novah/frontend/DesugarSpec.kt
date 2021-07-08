@@ -50,7 +50,7 @@ class DesugarSpec : StringSpec({
         """.trimIndent()
 
         val ast = parseString(code)
-        val dast = Desugar(ast).desugar().unwrap()
+        val dast = Desugar(ast).desugar().unwrap().first
 
         val tds = dast.decls.filterIsInstance<Decl.TypeDecl>()
 

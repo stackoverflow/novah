@@ -19,7 +19,6 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import novah.ast.Desugar
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.simpleName
 import novah.frontend.typechecker.*
@@ -158,8 +157,9 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck polymorphic let bindings" {
         val code = """
-            f _ = let identity a = a
-                  in identity 10
+            f _ =
+              let id a = a
+              id 10
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]
@@ -198,15 +198,15 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck a recursive function" {
-        // TODO: write a factorial when we have stdlib
         val code = """
-            pseudofact x =
-              if x == 1
-              then x
-              else pseudofact x
+            fact =
+              case _ of
+                0 -> 1
+                1 -> 1
+                x -> x * fact (x - 1)
         """.module()
 
-        val ty = TestUtil.compileCode(code).env.decls["pseudofact"]
+        val ty = TestUtil.compileCode(code).env.decls["fact"]
 
         ty?.type?.simpleName() shouldBe "Int32 -> Int32"
     }

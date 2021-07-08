@@ -57,7 +57,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
 
     private val errors = mutableListOf<CompilerProblem>()
     private val warnings = mutableListOf<CompilerProblem>()
-    
+
     init {
         classLoader = NovahClassLoader(classPath)
     }
@@ -129,10 +129,12 @@ class Environment(classPath: String, private val verbose: Boolean) {
             if (verbose) echo("Typechecking ${mod.data.name}")
 
             val desugar = Desugar(mod.data)
-            val canonical = desugar.desugar().unwrapOrElse { throwErrors(it) }
+            val (canonical, errs_) = desugar.desugar().unwrapOrElse { throwAllErrors(it) }
+            errors += errs_
             warnings.addAll(desugar.getWarnings())
-            val menv = Typechecker.infer(canonical).unwrapOrElse { throwErrors(it) }
+            val menv = Typechecker.infer(canonical).unwrapOrElse { throwAllErrors(it) }
             warnings.addAll(Inference.getWarnings())
+            if (errors.isNotEmpty()) throwErrors()
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
             modules[mod.data.name] = FullModuleEnv(menv, canonical, taliases)
@@ -163,7 +165,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
         }
         if (!dryRun) copyNativeLibs(output)
     }
-    
+
     fun getModuleEnvs() = modules
 
     /**
@@ -194,25 +196,26 @@ class Environment(classPath: String, private val verbose: Boolean) {
         )
     }
 
+    private fun throwAllErrors(errs: List<CompilerProblem>): Nothing = throw CompilationError(errors + errs)
     private fun throwErrors(errs: List<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
     private fun throwError(err: CompilerProblem): Nothing = throw CompilationError(listOf(err))
-    
+
     companion object {
         private var classLoader: NovahClassLoader? = null
-        
+
         fun classLoader(): NovahClassLoader {
             return if (classLoader == null) internalError("Novah class loader is null")
             else classLoader!!
         }
-        
+
         private val constructorTypes = mutableMapOf<String, Type>()
-        
+
         fun cacheConstructorType(name: String, type: Type) {
             constructorTypes[name] = type
         }
-        
+
         fun findConstructor(name: String): Type? = constructorTypes[name]
-        
+
         private val stdlibCompiled = mutableMapOf<String, FullModuleEnv>()
     }
 }

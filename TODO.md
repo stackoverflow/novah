@@ -13,8 +13,5 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Use ropes instead of char arrays to process strings
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
-- [ ] Delay unused variables reporting to after type checking
 - [ ] Fix error report span for unused foreign import
 - [ ] Add nullable types
-- [ ] Revamp shadowed variables and types (not working right now)
-- [ ] Mutually recursive let definitions?
