@@ -14,4 +14,3 @@
 - [ ] Use ropes instead of char arrays to process strings
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
 - [ ] Fix error report span for unused foreign import
-- [ ] Add nullable types
