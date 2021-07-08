@@ -362,12 +362,20 @@ aupdate : Int32 -> (a -> a) -> Array a -> Unit
 aupdate index updateFn arr = setArray index (updateFn (getArray index arr)) arr
 
 /**
+ * Converts a list of some type `a` to an Array of `a`.
+ * Runtime: O(n)
+ */
+pub
+arrayOf : List a -> Array a
+arrayOf vec = unsafeCast (listToArr (unsafeCast vec))
+
+/**
  * Returns a formatted string using the specified format string and arguments.
  * See `java.util.Formatter` for format explanation.
  */
 pub
 format : String -> List a -> String
-format str list = sformat str (unsafeCast (listToArr (unsafeCast list)))
+format str list = sformat str (unsafeCast (arrayOf list))
 
 /**
  * Prints the formated string to stdout.
