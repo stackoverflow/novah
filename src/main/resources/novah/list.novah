@@ -324,7 +324,7 @@ every pred list = listEvery pred list
  */
 pub
 toArray : List a -> Array a
-toArray list = arrayOf
+toArray = arrayOf
 
 /**
  * Converts this array into a list.

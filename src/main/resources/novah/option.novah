@@ -63,6 +63,28 @@ unwrap =
     None -> throw (assertErr "Empty Option")
 
 /**
+ * Transforms this nullable value into an option.
+ * `null` is represented as `None`.
+ */
+pub
+toOption : Nullable a -> Option a
+toOption x =
+  if x === null
+    then None
+    else Some (unsafeCast x)
+
+/**
+ * Transforms this option into an nullable value.
+ * This function should only be used to interact with Java methods.
+ */
+pub
+toNullable : Option a -> Nullable a
+toNullable =
+  case _ of
+    Some x -> (unsafeCast x)
+    None -> null
+
+/**
  * Transforms a `java.util.Optional` into an option.
  */
 pub

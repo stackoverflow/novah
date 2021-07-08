@@ -398,6 +398,17 @@ when cond action =
     else ()
 
 /**
+ * Coerces a value to a nullable.
+ * Should only be used for Java interoperability
+ * when a foreign imported value can be null
+ * or a method can return null.
+ * Ex.: let possibleNullResult = foreignFunction x y z |> nullable
+ */
+pub
+nullable : a -> Nullable a
+nullable x = unsafeCast x
+
+/**
  * Represents the possibility of a missing value.
  */
 pub+
@@ -655,6 +666,16 @@ pub instance
 showArray : {{ Show a }} -> Show (Array a)
 showArray {{Show s}} = Show { show: \a -> toStringArray a s.show }
 
+showNull : Show a -> Nullable a -> String
+showNull (Show s) x =
+  if x === null
+    then "null"
+    else s.show (unsafeCast x)
+
+pub instance
+showNullable : {{ Show a }} -> Show (Nullable a)
+showNullable {{s}} = Show { show: showNull s }
+
 /**
  * The type of things that support equality comparison.
  */
@@ -740,6 +761,19 @@ equalsOption (Equals eq) =
 pub instance
 eqOption : {{ Equals a }} -> Equals (Option a)
 eqOption {{eq}} = Equals { equals: equalsOption eq }
+
+equalsNullable : Equals a -> Nullable a -> Nullable a -> Boolean
+equalsNullable (Equals eq) x y =
+  if x === null && y === null
+    then true
+    else
+      if x === null || y === null
+        then false
+        else eq.equals (unsafeCast x) (unsafeCast y)
+
+pub instance
+eqNullable : {{ Equals a }} -> Equals (Nullable a)
+eqNullable {{eq}} = Equals { equals: equalsNullable eq }
 
 /**
  * The ordering type represents the outcome
