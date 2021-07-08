@@ -198,15 +198,15 @@ class TypecheckerSpec : StringSpec({
     }
 
     "typecheck a recursive function" {
-        // TODO: write a factorial when we have stdlib
         val code = """
-            pseudofact x =
-              if x == 1
-              then x
-              else pseudofact x
+            fact =
+              case _ of
+                0 -> 1
+                1 -> 1
+                x -> x * fact (x - 1)
         """.module()
 
-        val ty = TestUtil.compileCode(code).env.decls["pseudofact"]
+        val ty = TestUtil.compileCode(code).env.decls["fact"]
 
         ty?.type?.simpleName() shouldBe "Int32 -> Int32"
     }

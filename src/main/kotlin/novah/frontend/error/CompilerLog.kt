@@ -84,7 +84,6 @@ enum class ProblemContext {
     FOREIGN_IMPORT,
     DESUGAR,
     TYPECHECK,
-    SUBSUMPTION,
     PATTERN_MATCHING,
     FOREIGN,
     UNIFICATION;

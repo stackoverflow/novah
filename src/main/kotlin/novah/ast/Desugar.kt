@@ -63,15 +63,14 @@ class Desugar(private val smod: SModule) {
 
     private val declNames = mutableSetOf<String>()
 
-    fun desugar(): Result<Module, List<CompilerProblem>> {
+    fun desugar(): Result<Pair<Module, List<CompilerProblem>>, List<CompilerProblem>> {
         declNames.clear()
         declNames += imports.keys
         return try {
             synonyms = validateTypealiases()
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
             reportUnusedImports()
-            if (errors.isNotEmpty()) desugarErrors(errors)
-            Ok(Module(moduleName, smod.sourceName, decls, unusedImports))
+            Ok(Module(moduleName, smod.sourceName, decls, unusedImports) to errors)
         } catch (pe: ParserError) {
             Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name)))
         } catch (ce: CompilationError) {
