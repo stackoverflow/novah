@@ -108,7 +108,16 @@ class Desugar(private val smod: SModule) {
                 Expr.Ann(expr, type.desugar(), expr.span)
             } else expr
             if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
-            Decl.ValDecl(binder.desugar(), expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
+            Decl.ValDecl(
+                binder.desugar(),
+                expr,
+                name in declVars,
+                span,
+                type?.desugar(),
+                visibility,
+                isInstance,
+                isOperator
+            )
         }
         else -> null
     }
@@ -552,14 +561,14 @@ class Desugar(private val smod: SModule) {
      */
     private fun resolveAliases(ty: SType): SType {
         return when (ty) {
-            is SType.TConst -> synonyms[ty.name]?.expanded ?: ty
+            is SType.TConst -> synonyms[ty.name]?.expanded?.withSpan(ty.span) ?: ty
             is SType.TParens -> ty.copy(type = resolveAliases(ty.type))
             is SType.TFun -> ty.copy(arg = resolveAliases(ty.arg), ret = resolveAliases(ty.ret))
             is SType.TApp -> {
                 val typ = ty.type as SType.TConst
                 val syn = synonyms[typ.name]
                 if (syn != null) {
-                    val synTy = syn.expanded ?: internalError("Got unexpanded typealias: $syn")
+                    val synTy = syn.expanded?.withSpan(ty.type.span) ?: internalError("Got unexpanded typealias: $syn")
                     syn.tyVars.zip(ty.types).fold(synTy) { oty, (tvar, type) ->
                         oty.substVar(tvar, resolveAliases(type))
                     }
@@ -779,9 +788,9 @@ class Desugar(private val smod: SModule) {
         )
         errors += err
     }
-    
+
     private val aliasedImports = smod.imports.mapNotNull { it.alias() }.toSet()
-    
+
     private fun checkAlias(alias: String, span: Span) {
         if (alias !in aliasedImports) {
             val err = CompilerProblem(
@@ -794,7 +803,7 @@ class Desugar(private val smod: SModule) {
             errors += err
         }
     }
-    
+
     private fun checkShadow(name: String, span: Span) {
         if (imports.containsKey(name)) {
             val err = CompilerProblem(

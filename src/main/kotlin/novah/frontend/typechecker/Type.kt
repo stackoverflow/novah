@@ -115,6 +115,46 @@ sealed class Type {
         go(this)
     }
 
+    /**
+     * Recursively walks this type bottom->up
+     */
+    fun everywhereUnitBottomUp(f: (Type) -> Unit) {
+        fun go(t: Type) {
+            when (t) {
+                is TConst -> f(t)
+                is TApp -> {
+                    go(t.type)
+                    t.types.forEach(::go)
+                    f(t)
+                }
+                is TArrow -> {
+                    t.args.forEach(::go)
+                    go(t.ret)
+                    f(t)
+                }
+                is TVar -> {
+                    if (t.tvar is TypeVar.Link) go((t.tvar as TypeVar.Link).type)
+                    f(t)
+                }
+                is TRowEmpty -> f(t)
+                is TRecord -> {
+                    go(t.row)
+                    f(t)
+                }
+                is TRowExtend -> {
+                    go(t.row)
+                    t.labels.forEachList(::go)
+                    f(t)
+                }
+                is TImplicit -> {
+                    go(t.type)
+                    f(t)
+                }
+            }
+        }
+        go(this)
+    }
+
     fun kind(): Kind = when (this) {
         is TConst -> kind
         is TArrow -> Kind.Constructor(1)

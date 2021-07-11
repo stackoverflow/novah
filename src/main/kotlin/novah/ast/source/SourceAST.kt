@@ -382,6 +382,17 @@ sealed class Type(open val span: Span) {
         is TParens -> type.simpleName()
         else -> null
     }
+    
+    fun withSpan(s: Span) = when (this) {
+        is TConst -> copy(span = s)
+        is TFun -> copy(span = s)
+        is TApp -> copy(span = s)
+        is TParens -> copy(span = s)
+        is TRecord -> copy(span = s)
+        is TRowEmpty -> copy(span = s)
+        is TRowExtend -> copy(span = s)
+        is TImplicit -> copy(span = s)
+    }
 }
 
 fun Type.TConst.fullname(): String = if (alias != null) "$alias.$name" else name

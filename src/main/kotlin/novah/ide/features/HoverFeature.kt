@@ -20,6 +20,7 @@ import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
 import novah.ast.canonical.everywhere
 import novah.ast.source.Visibility
+import novah.frontend.typechecker.Type
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import org.eclipse.lsp4j.Hover
@@ -43,10 +44,10 @@ class HoverFeature(private val server: NovahServer) {
             val msg = when (decl) {
                 is Decl.TypeDecl -> declToHover(decl)
                 is Decl.ValDecl -> {
-                    if (decl.exp.span.matches(line, col)) expToHover(searchExpr(decl, line, col))
+                    if (decl.exp.span.matches(line, col)) expToHover(searchExpr(decl, line, col), line, col)
                     else {
-                        
-                        declToHover(decl)
+                        val ty = searchType(decl.type, line, col)
+                        ty?.show(true) ?: declToHover(decl)
                     }
                 }
             } ?: return null
@@ -68,13 +69,24 @@ class HoverFeature(private val server: NovahServer) {
             var exp: Expr? = null
             decl.exp.everywhere {
                 if (exp == null && it.span.matches(line, col) &&
-                    (it.type != null || it is Expr.Lambda && it.binder.type != null)) {
+                    (it.type != null || it is Expr.Lambda && it.binder.type != null)
+                ) {
                     exp = it
                 }
                 it
             }
             exp
         } else null
+    }
+
+    private fun searchType(type: Type?, line: Int, col: Int): Type? {
+        var ty: Type? = null
+        type?.everywhereUnitBottomUp {
+            if (ty == null && it.span?.matches(line, col) == true) {
+                ty = it
+            }
+        }
+        return ty
     }
 
     private fun declToHover(decl: Decl) = when (decl) {
@@ -91,11 +103,12 @@ class HoverFeature(private val server: NovahServer) {
         }
     }
 
-    private fun expToHover(expr: Expr?): String? {
+    private fun expToHover(expr: Expr?, line: Int, col: Int): String? {
         if (expr == null) return null
         if (expr.type != null) return expr.type!!.show(true)
         if (expr !is Expr.Lambda) return null
-        return expr.binder.type?.show(true)
+        if (expr.binder.span.matches(line, col)) return expr.binder.type?.show(true)
+        return null
     }
 
     private fun Decl.TypeDecl.isPublic() = visibility == Visibility.PUBLIC
