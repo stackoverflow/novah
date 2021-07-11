@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah;
+package novah.ide
 
-import java.util.function.Function;
+import java.io.File
+import java.net.URI
 
-/**
- * A recursive function used for recursive let bindings.
- */
-public class RecFunction<T, R> {
-    public Function<T, R> fun;
+object IdeUtil {
+
+    fun uriToFile(uri: String) = File(URI(uri).path)
 }

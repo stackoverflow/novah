@@ -13,13 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah;
+package novah.ide
 
-import java.util.function.Function;
+import org.eclipse.lsp4j.DidChangeConfigurationParams
+import org.eclipse.lsp4j.DidChangeWatchedFilesParams
+import org.eclipse.lsp4j.services.WorkspaceService
 
-/**
- * A recursive function used for recursive let bindings.
- */
-public class RecFunction<T, R> {
-    public Function<T, R> fun;
+class NovahWorkspaceService(private val server: NovahServer) : WorkspaceService {
+
+    private var settings: Any? = null
+
+    override fun didChangeConfiguration(params: DidChangeConfigurationParams?) {
+        settings = params?.settings
+    }
+
+    override fun didChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
+    }
 }

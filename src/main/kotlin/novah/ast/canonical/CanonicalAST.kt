@@ -37,25 +37,25 @@ data class Module(
     val unusedImports: Map<String, Span>
 )
 
-sealed class Decl {
+sealed class Decl(open val span: Span) {
     data class TypeDecl(
         val name: String,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
-        val span: Span,
+        override val span: Span,
         val visibility: Visibility
-    ) : Decl()
+    ) : Decl(span)
 
     data class ValDecl(
         val name: String,
         val exp: Expr,
         val recursive: Boolean,
-        val span: Span,
+        override val span: Span,
         val type: Type?,
         val visibility: Visibility,
         val isInstance: Boolean,
         val isOperator: Boolean
-    ) : Decl()
+    ) : Decl(span)
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {

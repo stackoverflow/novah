@@ -54,6 +54,7 @@ import novah.ast.canonical.Module as TypedModule
  */
 class Environment(classPath: String, private val verbose: Boolean) {
     private val modules = mutableMapOf<String, FullModuleEnv>()
+    private val sourceMap = mutableMapOf<Path, String>()
 
     private val errors = mutableListOf<CompilerProblem>()
     private val warnings = mutableListOf<CompilerProblem>()
@@ -90,6 +91,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
                 val parser = Parser(lexer, isStdlib, path.toFile().invariantSeparatorsPath)
                 parser.parseFullModule().mapBoth(
                     { mod ->
+                        if (!isStdlib) sourceMap[path] = mod.name
                         val node = DagNode(mod.name, mod)
                         if (modMap.containsKey(mod.name)) {
                             errors += duplicateError(mod, path)
@@ -103,7 +105,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
         if (errors.isNotEmpty()) throwErrors()
 
         if (modMap.isEmpty()) {
-            println("No files to compile")
+            if (verbose) echo("No files to compile")
             return modules
         }
 
@@ -166,7 +168,16 @@ class Environment(classPath: String, private val verbose: Boolean) {
         if (!dryRun) copyNativeLibs(output)
     }
 
-    fun getModuleEnvs() = modules
+    fun modules() = modules
+
+    fun sourceMap() = sourceMap
+    
+    fun reset() {
+        modules.clear()
+        sourceMap.clear()
+        errors.clear()
+        warnings.clear()
+    }
 
     /**
      * Copy all the java classes necessary for novah to run
