@@ -105,10 +105,10 @@ class Desugar(private val smod: SModule) {
 
             // if the declaration has a type annotation, annotate it
             expr = if (type != null) {
-                Expr.Ann(expr, type.desugar(), span)
+                Expr.Ann(expr, type.desugar(), expr.span)
             } else expr
             if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
-            Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
+            Decl.ValDecl(binder.desugar(), expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
         }
         else -> null
     }
@@ -272,7 +272,7 @@ class Desugar(private val smod: SModule) {
                     Binder(v, it.span) to Expr.Var(v, it.span)
                 } else null to it.desugar(locals)
             }
-            val inner = Expr.App(op.desugar(locals), args[0].second, Span.new(op.span, left.span))
+            val inner = Expr.App(op.desugar(locals), args[0].second, Span.new(left.span, op.span))
             val app = Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
             nestLambdas(args.mapNotNull { it.first }, app)
         }
@@ -378,7 +378,7 @@ class Desugar(private val smod: SModule) {
                 }
             }
             is SType.TFun -> TArrow(listOf(arg.goDesugar(isCtor, vars)), ret.goDesugar(isCtor, vars)).span(span)
-            is SType.TParens -> type.goDesugar(isCtor, vars, kindArity)
+            is SType.TParens -> type.goDesugar(isCtor, vars, kindArity).parens(true)
             is SType.TApp -> TApp(
                 type.goDesugar(isCtor, vars, types.size),
                 types.map { it.goDesugar(isCtor, vars) }).span(span)
@@ -433,14 +433,14 @@ class Desugar(private val smod: SModule) {
                 is SPattern.Var -> Expr.Lambda(
                     Binder(pat.name, pat.span, false),
                     nestLambdaPatterns(pats.drop(1), exp, locals),
-                    exp.span
+                    Span.new(pat.span, exp.span)
                 )
                 is SPattern.ImplicitPattern -> {
                     if (pat.pat is SPattern.Var) {
                         Expr.Lambda(
                             Binder(pat.pat.name, pat.span, true),
                             nestLambdaPatterns(pats.drop(1), exp, locals),
-                            exp.span
+                            Span.new(pat.span, exp.span)
                         )
                     } else {
                         val v = newVar()
@@ -449,13 +449,14 @@ class Desugar(private val smod: SModule) {
                         Expr.Lambda(
                             Binder(v, pat.span, true),
                             nestLambdaPatterns(pats.drop(1), expr, locals),
-                            exp.span
+                            Span.new(pat.span, exp.span)
                         )
                     }
                 }
                 else -> {
                     val vars = pats.map { Expr.Var(newVar(), it.span) }
-                    val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals) }, exp)), exp.span)
+                    val span = Span.new(pat.span, exp.span)
+                    val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals) }, exp)), span)
                     nestLambdas(vars.map { Binder(it.name, it.span) }, expr)
                 }
             }
@@ -613,10 +614,10 @@ class Desugar(private val smod: SModule) {
         }
 
         val (decls, types) = desugared.partitionIsInstance<Decl.ValDecl, Decl>()
-        val deps = decls.associate { it.name to collectDependencies(it.exp) }
+        val deps = decls.associate { it.name.name to collectDependencies(it.exp) }
 
         val dag = DAG<String, Decl.ValDecl>()
-        val nodes = decls.associate { it.name to DagNode(it.name, it) }
+        val nodes = decls.associate { it.name.name to DagNode(it.name.name, it) }
         dag.addNodes(nodes.values)
 
         nodes.values.forEach { node ->

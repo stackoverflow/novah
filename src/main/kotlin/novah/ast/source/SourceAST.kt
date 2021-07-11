@@ -138,14 +138,14 @@ sealed class Decl(val name: String, val visibility: Visibility) {
     ) : Decl(name, visibility)
 
     class ValDecl(
-        name: String,
+        val binder: Binder,
         val patterns: List<Pattern>,
         val exp: Expr,
         val type: Type?,
         visibility: Visibility,
         val isInstance: Boolean,
         val isOperator: Boolean
-    ) : Decl(name, visibility)
+    ) : Decl(binder.name, visibility)
 
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
         Decl(name, visibility) {

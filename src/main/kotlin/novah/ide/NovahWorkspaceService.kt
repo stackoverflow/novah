@@ -21,10 +21,7 @@ import org.eclipse.lsp4j.services.WorkspaceService
 
 class NovahWorkspaceService(private val server: NovahServer) : WorkspaceService {
 
-    private var settings: Any? = null
-
     override fun didChangeConfiguration(params: DidChangeConfigurationParams?) {
-        settings = params?.settings
     }
 
     override fun didChangeWatchedFiles(params: DidChangeWatchedFilesParams) {

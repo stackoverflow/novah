@@ -47,7 +47,7 @@ sealed class Decl(open val span: Span) {
     ) : Decl(span)
 
     data class ValDecl(
-        val name: String,
+        val name: Binder,
         val exp: Expr,
         val recursive: Boolean,
         override val span: Span,
@@ -128,6 +128,8 @@ fun Expr.Constructor.fullname(module: String): String = "$module.$name"
 
 data class Binder(val name: String, val span: Span, val isImplicit: Boolean = false) {
     override fun toString(): String = if (isImplicit) "{{$name}}" else name
+    
+    var type: Type? = null
 }
 
 data class LetDef(

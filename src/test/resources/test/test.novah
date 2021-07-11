@@ -1,5 +1,9 @@
 module test
 
+type Maybe a
+  = Just a
+  | Nothing
+
 foo : (Int -> Boolean) -> List Int -> Int
 foo pred list =
   case list of

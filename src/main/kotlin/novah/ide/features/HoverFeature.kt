@@ -37,9 +37,19 @@ class HoverFeature(private val server: NovahServer) {
             val mod = env().modules()[moduleName] ?: return null
             val line = params.position.line + 1
             val col = params.position.character + 1
+            logger().log("hovering on ${mod.ast.name} $line:$col")
 
             val decl = searchPosition(mod.ast, line, col) ?: return null
-            val msg = expToHover(searchExpr(decl, line, col)) ?: declToHover(decl)
+            val msg = when (decl) {
+                is Decl.TypeDecl -> declToHover(decl)
+                is Decl.ValDecl -> {
+                    if (decl.exp.span.matches(line, col)) expToHover(searchExpr(decl, line, col))
+                    else {
+                        
+                        declToHover(decl)
+                    }
+                }
+            } ?: return null
 
             return Hover(Either.forLeft(msg))
         }
@@ -57,7 +67,8 @@ class HoverFeature(private val server: NovahServer) {
         return if (decl is Decl.ValDecl) {
             var exp: Expr? = null
             decl.exp.everywhere {
-                if (exp == null && it.type != null && it.span.matches(line, col)) {
+                if (exp == null && it.span.matches(line, col) &&
+                    (it.type != null || it is Expr.Lambda && it.binder.type != null)) {
                     exp = it
                 }
                 it
@@ -67,16 +78,25 @@ class HoverFeature(private val server: NovahServer) {
     }
 
     private fun declToHover(decl: Decl) = when (decl) {
-        is Decl.TypeDecl -> if (decl.isPublic()) "pub ${decl.name}" else decl.name
-        is Decl.ValDecl -> {
+        is Decl.TypeDecl -> {
             val header = if (decl.isPublic()) "pub ${decl.name}" else decl.name
+            if (decl.tyVars.isEmpty()) header
+            else "$header ${decl.tyVars.joinToString(" ")}"
+        }
+        is Decl.ValDecl -> {
+            val header = if (decl.isPublic()) "pub ${decl.name.name}" else decl.name.name
             if (decl.type != null) {
                 "$header : ${decl.type.show(qualified = true)}"
             } else header
         }
     }
-    
-    private fun expToHover(expr: Expr?) = expr?.type?.show(true)
+
+    private fun expToHover(expr: Expr?): String? {
+        if (expr == null) return null
+        if (expr.type != null) return expr.type!!.show(true)
+        if (expr !is Expr.Lambda) return null
+        return expr.binder.type?.show(true)
+    }
 
     private fun Decl.TypeDecl.isPublic() = visibility == Visibility.PUBLIC
     private fun Decl.ValDecl.isPublic() = visibility == Visibility.PUBLIC

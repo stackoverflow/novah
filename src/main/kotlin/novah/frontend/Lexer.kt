@@ -92,9 +92,14 @@ data class Position(val line: Int, val column: Int) {
 
 data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val endColumn: Int) {
     override fun toString(): String = "$startLine:$startColumn - $endLine:$endColumn"
-    
-    fun matches(line: Int, col: Int) =
-        line in startLine..endLine && col in startColumn..endColumn
+
+    fun matches(line: Int, col: Int) = !(before(line, col) || after(line, col))
+
+    private fun before(line: Int, col: Int) =
+        line < startLine || (line == startLine && col < startColumn)
+
+    private fun after(line: Int, col: Int) =
+        line > endLine || (line == endLine && col > endColumn)
 
     companion object {
         fun empty() = Span(-1, -1, -1, -1)
