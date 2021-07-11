@@ -171,13 +171,6 @@ class Environment(classPath: String, private val verbose: Boolean) {
     fun modules() = modules
 
     fun sourceMap() = sourceMap
-    
-    fun reset() {
-        modules.clear()
-        sourceMap.clear()
-        errors.clear()
-        warnings.clear()
-    }
 
     /**
      * Copy all the java classes necessary for novah to run

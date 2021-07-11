@@ -15,12 +15,13 @@
  */
 package novah.ide
 
+import novah.frontend.Span
+import novah.frontend.error.CompilerProblem
+import novah.frontend.error.Severity
+import novah.main.CompilationError
 import novah.main.Environment
 import novah.main.Source
-import org.eclipse.lsp4j.InitializeParams
-import org.eclipse.lsp4j.InitializeResult
-import org.eclipse.lsp4j.ServerCapabilities
-import org.eclipse.lsp4j.TextDocumentSyncKind
+import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import java.io.File
@@ -93,8 +94,44 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             .map { Source.SPath(Path(it.absolutePath)) }
         logger().info("compiling project")
 
-        env!!.reset()
-        env!!.parseSources(sources.asSequence())
-        env!!.generateCode(File("."), dryRun = true)
+        val lenv = Environment(root!!, verbose = false)
+        try {
+            lenv.parseSources(sources.asSequence())
+            lenv.generateCode(File("."), dryRun = true)
+            diags.clear()
+            saveDiagnostics(lenv.getWarnings())
+        } catch (ce: CompilationError) {
+            saveDiagnostics(ce.problems + lenv.getWarnings())
+        } finally {
+            env = lenv
+        }
+    }
+
+    private var diags = mutableMapOf<String, List<Diagnostic>>()
+
+    fun publishDiagnostics(uri: String) {
+        val diag = diags[uri] ?: listOf()
+        logger().log("publishing diagnostics for $uri")
+        val params = PublishDiagnosticsParams(uri, diag)
+        client!!.publishDiagnostics(params)
+    }
+
+    private fun saveDiagnostics(errors: List<CompilerProblem>) {
+        if (errors.isEmpty()) return
+
+        diags = errors.map { err ->
+            val sev = if (err.severity == Severity.ERROR) DiagnosticSeverity.Error else DiagnosticSeverity.Warning
+            val diag = Diagnostic(spanToRange(err.span), err.msg)
+            diag.severity = sev
+            val uri = File(err.fileName).toURI().toString()
+            logger().log("error on $uri span ${err.span}")
+            uri to diag
+        }.groupBy { it.first }.mapValues { kv -> kv.value.map { it.second } }.toMutableMap()
+    }
+
+    private fun spanToRange(s: Span): Range {
+        val start = Position(s.startLine - 1, s.startColumn - 1)
+        val end = Position(s.endLine - 1, s.endColumn - 1)
+        return Range(start, end)
     }
 }

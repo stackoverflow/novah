@@ -25,7 +25,10 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     private var hover = HoverFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams?) {
-        server.logger().info("opened ${params!!.textDocument.uri}")
+        val uri = params!!.textDocument.uri
+        val cleaned = IdeUtil.uriToFile(uri).toURI().toString()
+        server.logger().info("opened $uri")
+        server.publishDiagnostics(cleaned)
     }
 
     override fun didChange(params: DidChangeTextDocumentParams?) {
@@ -33,14 +36,18 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     }
 
     override fun didClose(params: DidCloseTextDocumentParams?) {
-        server.logger().info("closed ${params!!.textDocument.uri}")
+        val uri = params!!.textDocument.uri
+        server.logger().info("closed $uri")
     }
 
     override fun didSave(params: DidSaveTextDocumentParams?) {
-        server.logger().info("saved ${params!!.textDocument.uri}")
+        val uri = params!!.textDocument.uri
+        server.logger().info("saved $uri")
 
-        val file = IdeUtil.uriToFile(params.textDocument.uri)
+        val file = IdeUtil.uriToFile(uri)
         if (file.extension == "novah") server.build()
+        val cleaned = file.toURI().toString()
+        server.publishDiagnostics(cleaned)
     }
 
     override fun hover(params: HoverParams): CompletableFuture<Hover> {
