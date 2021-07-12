@@ -80,17 +80,17 @@ const val RESULT_MODULE = "novah.result"
 const val TEST_MODULE = "novah.test"
 const val COMPUTATION_MODULE = "novah.computation"
 
-val primImport = Import.Raw(PRIM, Span.empty())
-val coreImport = Import.Raw(CORE_MODULE, Span.empty())
-val arrayImport = Import.Raw(ARRAY_MODULE, Span.empty(), "Array")
-val javaImport = Import.Raw(JAVA_MODULE, Span.empty(), "Java")
-val listImport = Import.Raw(LIST_MODULE, Span.empty(), "List")
-val mathImport = Import.Raw(MATH_MODULE, Span.empty(), "Math")
-val optionImport = Import.Raw(OPTION_MODULE, Span.empty(), "Option")
-val setImport = Import.Raw(SET_MODULE, Span.empty(), "Set")
-val stringImport = Import.Raw(STRING_MODULE, Span.empty(), "String")
-val mapImport = Import.Raw(MAP_MODULE, Span.empty(), "Map")
-val resultImport = Import.Raw(RESULT_MODULE, Span.empty(), "Result")
+val primImport = Import.Raw(PRIM, Span.empty(), auto = true)
+val coreImport = Import.Raw(CORE_MODULE, Span.empty(), auto = true)
+val arrayImport = Import.Raw(ARRAY_MODULE, Span.empty(), "Array", auto = true)
+val javaImport = Import.Raw(JAVA_MODULE, Span.empty(), "Java", auto = true)
+val listImport = Import.Raw(LIST_MODULE, Span.empty(), "List", auto = true)
+val mathImport = Import.Raw(MATH_MODULE, Span.empty(), "Math", auto = true)
+val optionImport = Import.Raw(OPTION_MODULE, Span.empty(), "Option", auto = true)
+val setImport = Import.Raw(SET_MODULE, Span.empty(), "Set", auto = true)
+val stringImport = Import.Raw(STRING_MODULE, Span.empty(), "String", auto = true)
+val mapImport = Import.Raw(MAP_MODULE, Span.empty(), "Map", auto = true)
+val resultImport = Import.Raw(RESULT_MODULE, Span.empty(), "Result", auto = true)
 
 const val primByte = "$PRIM.Byte"
 const val primInt16 = "$PRIM.Int16"

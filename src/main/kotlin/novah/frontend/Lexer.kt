@@ -384,8 +384,9 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         }
 
         val n = if (negative) -1 else 1
+        val pref = if (negative) "-" else ""
         if (!iter.hasNext()) {
-            return genNumIntToken("$init".toSafeLong(10) * n, "$init")
+            return genNumIntToken("$init".toSafeLong(10) * n, "$pref$init")
         }
         return if (init == '0' && iter.peek() != '.') {
             when (val c = iter.peek()) {
@@ -395,8 +396,8 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val bin = acceptMany("01")
                     if (bin.isEmpty()) lexError("Binary number cannot be empty")
                     val l = accept("L")
-                    if (l != null) LongT(bin.toSafeLong(2) * n, "0$c$bin")
-                    else genNumIntToken(bin.toSafeLong(2) * n, "0$c$bin")
+                    if (l != null) LongT(bin.toSafeLong(2) * n, "${pref}0$c$bin")
+                    else genNumIntToken(bin.toSafeLong(2) * n, "${pref}0$c$bin")
                 }
                 // hex numbers
                 'x', 'X' -> {
@@ -404,8 +405,8 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val hex = acceptMany("0123456789abcdefABCDEF")
                     if (hex.isEmpty()) lexError("Hexadecimal number cannot be empty")
                     val l = accept("L")
-                    if (l != null) LongT(hex.toSafeLong(16) * n, "0$c$hex")
-                    else genNumIntToken(hex.toSafeLong(16) * n, "0$c$hex")
+                    if (l != null) LongT(hex.toSafeLong(16) * n, "${pref}0$c$hex")
+                    else genNumIntToken(hex.toSafeLong(16) * n, "${pref}0$c$hex")
                 }
                 else -> {
                     if (c.isDigit()) lexError("Number 0 can only be followed by b|B or x|X: `$c`")
@@ -428,23 +429,23 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     iter.next()
                     val end = acceptMany("0123456789")
                     if (end.isEmpty()) lexError("Invalid number format: number cannot end in `.`")
-                    val number = if (iter.hasNext() && iter.peek().toLowerCase() == 'e') {
+                    val number = if (iter.hasNext() && iter.peek().lowercaseChar() == 'e') {
                         "$num.$end${readE()}"
                     } else "$num.$end"
 
                     val f = accept("F")
 
-                    if (f != null) FloatT(number.toSafeFloat() * n, number + f)
-                    else DoubleT(number.toSafeDouble() * n, number)
+                    if (f != null) FloatT(number.toSafeFloat() * n, pref + number + f)
+                    else DoubleT(number.toSafeDouble() * n, pref + number)
                 }
-                next.toLowerCase() == 'e' -> {
+                next.lowercaseChar() == 'e' -> {
                     // Double
                     val number = "$num${readE()}"
 
                     val f = accept("F")
 
-                    if (f != null) FloatT(number.toSafeFloat() * n, number + f)
-                    else DoubleT(number.toSafeDouble() * n, number)
+                    if (f != null) FloatT(number.toSafeFloat() * n, pref + number + f)
+                    else DoubleT(number.toSafeDouble() * n, pref + number)
                 }
                 else -> {
                     // Int or Double
@@ -452,10 +453,10 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                         val l = accept("L")
                         if (l == null) {
                             val f = accept("F")
-                            if (f != null) FloatT(num.toSafeFloat() * n, num + f)
-                            else genNumIntToken(num.toSafeLong(10) * n, num)
-                        } else LongT(num.toSafeLong(10) * n, num + l)
-                    } else genNumIntToken(num.toSafeLong(10) * n, num)
+                            if (f != null) FloatT(num.toSafeFloat() * n, pref+ num + f)
+                            else genNumIntToken(num.toSafeLong(10) * n, pref + num)
+                        } else LongT(num.toSafeLong(10) * n, pref + num + l)
+                    } else genNumIntToken(num.toSafeLong(10) * n, pref + num)
                 }
             }
         }

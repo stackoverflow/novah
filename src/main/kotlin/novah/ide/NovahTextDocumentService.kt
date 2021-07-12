@@ -15,6 +15,7 @@
  */
 package novah.ide
 
+import novah.ide.features.FormattingFeature
 import novah.ide.features.HoverFeature
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.services.TextDocumentService
@@ -23,6 +24,7 @@ import java.util.concurrent.CompletableFuture
 class NovahTextDocumentService(private val server: NovahServer) : TextDocumentService {
 
     private var hover = HoverFeature(server)
+    private var formatting = FormattingFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams?) {
         val uri = params!!.textDocument.uri
@@ -52,5 +54,9 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
 
     override fun hover(params: HoverParams): CompletableFuture<Hover> {
         return hover.onHover(params)
+    }
+
+    override fun formatting(params: DocumentFormattingParams?): CompletableFuture<MutableList<out TextEdit>> {
+        return formatting.onFormat(params!!)
     }
 }

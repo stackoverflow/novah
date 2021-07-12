@@ -57,6 +57,8 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
         // Hover capability
         initializeResult.capabilities.setHoverProvider(true)
+        // Formatting capability
+        initializeResult.capabilities.setDocumentFormattingProvider(true)
 
         // initial build
         build()

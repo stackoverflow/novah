@@ -39,9 +39,10 @@ class Formatter {
 
         builder.append("module ${m.name}")
 
-        if (m.imports.isNotEmpty()) {
+        val imps = m.imports.filter { !ignoreImport(it) }
+        if (imps.isNotEmpty()) {
             builder.append("\n\n")
-            builder.append(m.imports.sortedBy { it.module }.joinToString("\n") { show(it) })
+            builder.append(imps.sortedBy { it.module }.joinToString("\n") { show(it) })
         }
         if (m.foreigns.isNotEmpty()) {
             builder.append("\n\n")
@@ -129,7 +130,11 @@ class Formatter {
 
         return if (shouldNewline(d.exp)) {
             prefix + withIndent { tab + show(d.exp) }
-        } else "$prefix " + show(d.exp)
+        } else {
+            val str = show(d.exp)
+            if (str.contains(newlineRegex)) prefix + withIndent { tab + show(d.exp) }
+            else "$prefix $str"
+        }
     }
 
     fun show(d: DataConstructor): String {
@@ -179,11 +184,19 @@ class Formatter {
                 "${show(e.exp)} : ${show(e.type)}"
             }
             is Expr.Lambda -> {
-                val shown = if (shouldNewline(e.body)) withIndent { tab + show(e.body) } else show(e.body)
-                "\\" + e.patterns.joinToString(" ") { show(it) } + " -> $shown"
+                val shown = when {
+                    shouldNewline(e.body) -> " ->" + withIndent { tab + show(e.body) }
+                    e.body is Expr.Do -> " ->" + show(e.body)
+                    else -> " -> " + show(e.body)
+                }
+                "\\" + e.patterns.joinToString(" ") { show(it) } + shown
             }
             is Expr.Var -> e.toString()
-            is Expr.Operator -> e.toString()
+            is Expr.Operator -> {
+                val str = if (e.alias != null) "${e.alias}.${e.name}" else e.name
+                val isFun = wordRegex.containsMatchIn(e.name)
+                if (isFun) "`$str`" else str
+            }
             is Expr.ImplicitVar -> "{{${e.name}}}"
             is Expr.Constructor -> e.toString()
             is Expr.Int32 -> e.text
@@ -324,7 +337,8 @@ class Formatter {
         }
     }
 
-    private fun shouldNewline(e: Expr) = e is Expr.Let || e is Expr.If || e is Expr.Match
+    private fun shouldNewline(e: Expr) =
+        e is Expr.Let || e is Expr.If || e is Expr.Match || e is Expr.While || e is Expr.TryCatch
 
     private inline fun withIndent(shouldBreak: Boolean = true, f: () -> String): String {
         val oldIndent = tab
@@ -334,8 +348,16 @@ class Formatter {
         return if (shouldBreak) "\n$res" else res
     }
 
+    private fun ignoreImport(imp: Import): Boolean = when (imp) {
+        is Import.Exposing -> false
+        is Import.Raw -> imp.auto
+    }
+
     companion object {
-        const val maxColumns = 120
+        const val maxColumns = 80
         const val tabSize = "  " // 2 spaces
+
+        val wordRegex = Regex("\\w")
+        val newlineRegex = Regex("\\R")
     }
 }

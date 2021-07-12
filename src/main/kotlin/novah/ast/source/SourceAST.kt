@@ -78,7 +78,9 @@ sealed class ForeignRef {
 }
 
 sealed class Import(open val module: String) {
-    data class Raw(override val module: String, val span: Span, val alias: String? = null) : Import(module)
+    data class Raw(override val module: String, val span: Span, val alias: String? = null, val auto: Boolean = false) :
+        Import(module)
+
     data class Exposing(
         override val module: String,
         val defs: List<DeclarationRef>,
@@ -382,7 +384,7 @@ sealed class Type(open val span: Span) {
         is TParens -> type.simpleName()
         else -> null
     }
-    
+
     fun withSpan(s: Span) = when (this) {
         is TConst -> copy(span = s)
         is TFun -> copy(span = s)
