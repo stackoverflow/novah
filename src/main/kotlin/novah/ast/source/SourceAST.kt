@@ -25,7 +25,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Method
 
 data class Module(
-    val name: String,
+    val name: Spanned<String>,
     val sourceName: String,
     val imports: List<Import>,
     val foreigns: List<ForeignImport>,
@@ -50,8 +50,8 @@ enum class Visibility {
 /**
  * A reference that can be imported
  */
-sealed class DeclarationRef(open val name: String) {
-    data class RefVar(override val name: String) : DeclarationRef(name) {
+sealed class DeclarationRef(open val name: String, open val span: Span) {
+    data class RefVar(override val name: String, override val span: Span) : DeclarationRef(name, span) {
         override fun toString(): String = name
     }
 
@@ -59,7 +59,8 @@ sealed class DeclarationRef(open val name: String) {
      * `null` ctors mean only the type is imported, but no constructors.
      * Empty ctors mean all constructors are imported.
      */
-    data class RefType(override val name: String, val ctors: List<String>? = null) : DeclarationRef(name) {
+    data class RefType(override val name: String, override val span: Span, val ctors: List<String>? = null) :
+        DeclarationRef(name, span) {
         override fun toString(): String = when {
             ctors == null -> name
             ctors.isEmpty() -> "$name(..)"
@@ -77,12 +78,16 @@ sealed class ForeignRef {
     data class CtorRef(val ctor: Constructor<*>) : ForeignRef()
 }
 
-sealed class Import(open val module: String) {
-    data class Raw(override val module: String, val span: Span, val alias: String? = null, val auto: Boolean = false) :
-        Import(module)
+sealed class Import(open val module: Spanned<String>) {
+    data class Raw(
+        override val module: Spanned<String>,
+        val span: Span,
+        val alias: String? = null,
+        val auto: Boolean = false
+    ) : Import(module)
 
     data class Exposing(
-        override val module: String,
+        override val module: Spanned<String>,
         val defs: List<DeclarationRef>,
         val span: Span,
         val alias: String? = null

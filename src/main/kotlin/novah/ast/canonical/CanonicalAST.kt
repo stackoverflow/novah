@@ -15,11 +15,13 @@
  */
 package novah.ast.canonical
 
+import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.data.LabelMap
 import novah.data.mapList
 import novah.data.show
 import novah.frontend.Span
+import novah.frontend.Spanned
 import novah.frontend.typechecker.Env
 import novah.frontend.typechecker.Type
 import java.lang.reflect.Field
@@ -31,10 +33,11 @@ import java.lang.reflect.Constructor as JConstructor
  */
 
 data class Module(
-    val name: String,
+    val name: Spanned<String>,
     val sourceName: String,
     val decls: List<Decl>,
-    val unusedImports: Map<String, Span>
+    val unusedImports: Map<String, Span>,
+    val imports: List<Import>
 )
 
 sealed class Decl(open val span: Span) {

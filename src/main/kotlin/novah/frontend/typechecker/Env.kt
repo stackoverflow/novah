@@ -19,6 +19,7 @@ import io.lacuna.bifurcan.Map
 import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.frontend.Span
+import novah.frontend.Spanned
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
@@ -80,17 +81,20 @@ const val RESULT_MODULE = "novah.result"
 const val TEST_MODULE = "novah.test"
 const val COMPUTATION_MODULE = "novah.computation"
 
-val primImport = Import.Raw(PRIM, Span.empty(), auto = true)
-val coreImport = Import.Raw(CORE_MODULE, Span.empty(), auto = true)
-val arrayImport = Import.Raw(ARRAY_MODULE, Span.empty(), "Array", auto = true)
-val javaImport = Import.Raw(JAVA_MODULE, Span.empty(), "Java", auto = true)
-val listImport = Import.Raw(LIST_MODULE, Span.empty(), "List", auto = true)
-val mathImport = Import.Raw(MATH_MODULE, Span.empty(), "Math", auto = true)
-val optionImport = Import.Raw(OPTION_MODULE, Span.empty(), "Option", auto = true)
-val setImport = Import.Raw(SET_MODULE, Span.empty(), "Set", auto = true)
-val stringImport = Import.Raw(STRING_MODULE, Span.empty(), "String", auto = true)
-val mapImport = Import.Raw(MAP_MODULE, Span.empty(), "Map", auto = true)
-val resultImport = Import.Raw(RESULT_MODULE, Span.empty(), "Result", auto = true)
+private val espan = Span.empty()
+private fun spanned(name: String) = Spanned(espan, name)
+
+val primImport = Import.Raw(spanned(PRIM), espan, auto = true)
+val coreImport = Import.Raw(spanned(CORE_MODULE), espan, auto = true)
+val arrayImport = Import.Raw(spanned(ARRAY_MODULE), espan, "Array", auto = true)
+val javaImport = Import.Raw(spanned(JAVA_MODULE), espan, "Java", auto = true)
+val listImport = Import.Raw(spanned(LIST_MODULE), espan, "List", auto = true)
+val mathImport = Import.Raw(spanned(MATH_MODULE), espan, "Math", auto = true)
+val optionImport = Import.Raw(spanned(OPTION_MODULE), espan, "Option", auto = true)
+val setImport = Import.Raw(spanned(SET_MODULE), espan, "Set", auto = true)
+val stringImport = Import.Raw(spanned(STRING_MODULE), espan, "String", auto = true)
+val mapImport = Import.Raw(spanned(MAP_MODULE), espan, "Map", auto = true)
+val resultImport = Import.Raw(spanned(RESULT_MODULE), espan, "Result", auto = true)
 
 const val primByte = "$PRIM.Byte"
 const val primInt16 = "$PRIM.Int16"

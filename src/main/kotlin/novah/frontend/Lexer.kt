@@ -102,7 +102,8 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
         line > endLine || (line == endLine && col > endColumn)
 
     companion object {
-        fun empty() = Span(-1, -1, -1, -1)
+        private val emptySpan = Span(-1, -1, -1, -1)
+        fun empty() = emptySpan
 
         fun new(begin: Span, end: Span) = Span(begin.startLine, begin.startColumn, end.endLine, end.endColumn)
         fun new(begin: Position, end: Position) = Span(begin.line, begin.column, end.line, end.column)

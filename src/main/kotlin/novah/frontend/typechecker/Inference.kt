@@ -44,7 +44,7 @@ object Inference {
 
     private val implicitsToCheck = mutableListOf<Expr>()
     private val warnings = mutableListOf<CompilerProblem>()
-    
+
     fun getWarnings(): List<CompilerProblem> = warnings
 
     /**
@@ -63,15 +63,15 @@ object Inference {
 
         val datas = ast.decls.filterIsInstance<Decl.TypeDecl>()
         datas.forEach { d ->
-            val (ty, map) = getDataType(d, ast.name)
+            val (ty, map) = getDataType(d, ast.name.value)
             checkShadowType(env, d.name, d.span)
-            env.extendType("${ast.name}.${d.name}", ty)
+            env.extendType("${ast.name.value}.${d.name}", ty)
 
             d.dataCtors.forEach { dc ->
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
-                Environment.cacheConstructorType("${ast.name}.${dc.name}", dcty)
+                Environment.cacheConstructorType("${ast.name.value}.${dc.name}", dcty)
                 decls[dc.name] = DeclRef(dcty, dc.visibility, false)
             }
             types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
@@ -608,8 +608,14 @@ object Inference {
     }
 
     private fun makeWarner(ast: Module) = { msg: String, span: Span ->
-        val warn =
-            CompilerProblem(msg, ProblemContext.TYPECHECK, span, ast.sourceName, ast.name, severity = Severity.WARN)
+        val warn = CompilerProblem(
+            msg,
+            ProblemContext.TYPECHECK,
+            span,
+            ast.sourceName,
+            ast.name.value,
+            severity = Severity.WARN
+        )
         warnings += warn
     }
 }

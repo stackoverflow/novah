@@ -49,7 +49,7 @@ import novah.frontend.error.Errors as E
 class Desugar(private val smod: SModule) {
 
     private val imports = smod.resolvedImports
-    private val moduleName = smod.name
+    private val moduleName = smod.name.value
     private var synonyms = emptyMap<String, TypealiasDecl>()
     private val warnings = mutableListOf<CompilerProblem>()
     private val errors = mutableListOf<CompilerProblem>()
@@ -70,9 +70,9 @@ class Desugar(private val smod: SModule) {
             synonyms = validateTypealiases()
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
             reportUnusedImports()
-            Ok(Module(moduleName, smod.sourceName, decls, unusedImports) to errors)
+            Ok(Module(smod.name, smod.sourceName, decls, unusedImports, smod.imports) to errors)
         } catch (pe: ParserError) {
-            Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name)))
+            Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, moduleName)))
         } catch (ce: CompilationError) {
             Err(ce.problems)
         }
@@ -758,7 +758,7 @@ class Desugar(private val smod: SModule) {
         fun findImport(name: String): Span? = smod.imports.find {
             when (it) {
                 is Import.Raw -> false
-                is Import.Exposing -> it.module == name
+                is Import.Exposing -> it.module.value == name
             }
         }?.span()
 
@@ -784,7 +784,7 @@ class Desugar(private val smod: SModule) {
             ProblemContext.DESUGAR,
             unusedVars.values.first(),
             smod.sourceName,
-            smod.name
+            moduleName
         )
         errors += err
     }
@@ -798,7 +798,7 @@ class Desugar(private val smod: SModule) {
                 ProblemContext.DESUGAR,
                 span,
                 smod.sourceName,
-                smod.name
+                moduleName
             )
             errors += err
         }
@@ -811,7 +811,7 @@ class Desugar(private val smod: SModule) {
                 ProblemContext.DESUGAR,
                 span,
                 smod.sourceName,
-                smod.name
+                moduleName
             )
             errors += err
         }
@@ -824,7 +824,7 @@ class Desugar(private val smod: SModule) {
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
 
     private fun makeError(msg: String, span: Span): CompilerProblem =
-        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
+        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, moduleName)
 
     companion object {
         fun collectVars(exp: Expr): List<String> =

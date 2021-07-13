@@ -37,12 +37,12 @@ class Formatter {
         } else ""
         builder.append(cmt)
 
-        builder.append("module ${m.name}")
+        builder.append("module ${m.name.value}")
 
         val imps = m.imports.filter { !ignoreImport(it) }
         if (imps.isNotEmpty()) {
             builder.append("\n\n")
-            builder.append(imps.sortedBy { it.module }.joinToString("\n") { show(it) })
+            builder.append(imps.sortedBy { it.module.value }.joinToString("\n") { show(it) })
         }
         if (m.foreigns.isNotEmpty()) {
             builder.append("\n\n")

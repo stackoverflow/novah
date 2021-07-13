@@ -210,7 +210,7 @@ class PatternMatchingCompiler<R> {
             for (dd in mod.decls.filterIsInstance<Decl.TypeDecl>()) {
                 val span = dd.dataCtors.size
                 for (c in dd.dataCtors) {
-                    val name = "${mod.name}.${c.name}"
+                    val name = "${mod.name.value}.${c.name}"
                     if (ctorCache.containsKey(name)) break
                     ctorCache[name] = Ctor(c.name, c.args.size, span)
                 }

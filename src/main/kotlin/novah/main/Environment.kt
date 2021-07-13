@@ -91,12 +91,13 @@ class Environment(classPath: String, private val verbose: Boolean) {
                 val parser = Parser(lexer, isStdlib, path.toFile().invariantSeparatorsPath)
                 parser.parseFullModule().mapBoth(
                     { mod ->
-                        if (!isStdlib) sourceMap[path] = mod.name
-                        val node = DagNode(mod.name, mod)
-                        if (modMap.containsKey(mod.name)) {
+                        val module = mod.name.value
+                        if (!isStdlib) sourceMap[path] = module
+                        val node = DagNode(module, mod)
+                        if (modMap.containsKey(module)) {
                             errors += duplicateError(mod, path)
                         }
-                        modMap[mod.name] = node
+                        modMap[module] = node
                     },
                     { err -> errors += err }
                 )
@@ -114,7 +115,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
         // link all the nodes
         modMap.values.forEach { node ->
             node.data.imports.forEach { imp ->
-                modMap[imp.module]?.link(node)
+                modMap[imp.module.value]?.link(node)
             }
         }
         modGraph.findCycle()?.let { reportCycle(it) }
@@ -128,7 +129,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
             if (errs.isNotEmpty()) throwErrors(errs)
             warnings.addAll(warns)
 
-            if (verbose) echo("Typechecking ${mod.data.name}")
+            if (verbose) echo("Typechecking ${mod.data.name.value}")
 
             val desugar = Desugar(mod.data)
             val (canonical, errs_) = desugar.desugar().unwrapOrElse { throwAllErrors(it) }
@@ -139,7 +140,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
             if (errors.isNotEmpty()) throwErrors()
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
-            modules[mod.data.name] = FullModuleEnv(menv, canonical, taliases)
+            modules[mod.data.name.value] = FullModuleEnv(menv, canonical, taliases)
         }
         return modules
     }
@@ -185,18 +186,18 @@ class Environment(classPath: String, private val verbose: Boolean) {
         val msg = Errors.cycleFound(nodes.map { it.value })
         nodes.forEach { n ->
             val mod = n.data
-            errors += CompilerProblem(msg, ProblemContext.MODULE, mod.span, mod.sourceName, mod.name)
+            errors += CompilerProblem(msg, ProblemContext.MODULE, mod.span, mod.sourceName, mod.name.value)
         }
         throwErrors()
     }
 
     private fun duplicateError(mod: Module, path: Path): CompilerProblem {
         return CompilerProblem(
-            Errors.duplicateModule(mod.name),
+            Errors.duplicateModule(mod.name.value),
             ProblemContext.MODULE,
             mod.span,
             path.toFile().invariantSeparatorsPath,
-            mod.name
+            mod.name.value
         )
     }
 

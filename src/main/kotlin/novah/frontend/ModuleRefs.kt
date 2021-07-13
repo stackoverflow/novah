@@ -40,11 +40,11 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
     val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
 
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
-        CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name)
+        CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name.value)
     }
 
     fun makeWarn(span: Span): (String) -> CompilerProblem = { msg ->
-        CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name, null, Severity.WARN)
+        CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name.value, null, Severity.WARN)
     }
 
     val env = Typechecker.env
@@ -54,13 +54,13 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
     for (imp in mod.imports) {
         val mkError = makeError(imp.span())
         val mkWarn = makeWarn(imp.span())
-        val m = if (imp.module == PRIM) primModuleEnv else modules[imp.module]?.env
+        val mname = imp.module.value
+        val m = if (mname == PRIM) primModuleEnv else modules[mname]?.env
         if (m == null) {
-            errors += mkError(Errors.moduleNotFound(imp.module))
+            errors += mkError(Errors.moduleNotFound(mname))
             continue
         }
-        val typealiases = modules[imp.module]?.aliases?.associate { it.name to it } ?: emptyMap()
-        val mname = imp.module
+        val typealiases = modules[mname]?.aliases?.associate { it.name to it } ?: emptyMap()
         when (imp) {
             // Import all declarations, types and type aliases from this module
             is Import.Raw -> {
@@ -170,7 +170,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     val errors = mutableListOf<CompilerProblem>()
 
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
-        CompilerProblem(msg, ProblemContext.FOREIGN_IMPORT, span, mod.sourceName, mod.name)
+        CompilerProblem(msg, ProblemContext.FOREIGN_IMPORT, span, mod.sourceName, mod.name.value)
     }
 
     val typealiases = mutableMapOf<String, String>()
@@ -447,7 +447,7 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
                     ProblemContext.FOREIGN_IMPORT,
                     ta.span,
                     ast.sourceName,
-                    ast.name
+                    ast.name.value
                 )
             }
         }
@@ -458,4 +458,4 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
 private val allowedRawModules = setOf(PRIM, CORE_MODULE, TEST_MODULE, COMPUTATION_MODULE)
 
 private fun warnOnRawImport(imp: Import.Raw): Boolean =
-    imp.alias == null && imp.module !in allowedRawModules
+    imp.alias == null && imp.module.value !in allowedRawModules

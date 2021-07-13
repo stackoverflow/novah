@@ -38,7 +38,7 @@ class HoverFeature(private val server: NovahServer) {
             val mod = env().modules()[moduleName] ?: return null
             val line = params.position.line + 1
             val col = params.position.character + 1
-            logger().log("hovering on ${mod.ast.name} $line:$col")
+            logger().log("hovering on ${mod.ast.name.value} $line:$col")
 
             val decl = searchPosition(mod.ast, line, col) ?: return null
             val msg = when (decl) {

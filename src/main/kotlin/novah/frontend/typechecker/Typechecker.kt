@@ -52,7 +52,7 @@ object Typechecker {
         return try {
             Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
-            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name, context)))
+            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name.value, context)))
         } catch (ce: CompilationError) {
             Err(ce.problems.map { it.copy(typingContext = context) })
         }
