@@ -15,10 +15,19 @@
  */
 package novah.ide
 
+import novah.frontend.Span
+import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.Range
 import java.io.File
 import java.net.URI
 
 object IdeUtil {
 
     fun uriToFile(uri: String) = File(URI(uri).path)
+
+    fun spanToRange(s: Span): Range {
+        val start = Position(s.startLine - 1, s.startColumn - 1)
+        val end = Position(s.endLine - 1, s.endColumn - 1)
+        return Range(start, end)
+    }
 }

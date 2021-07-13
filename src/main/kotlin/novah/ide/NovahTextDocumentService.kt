@@ -17,14 +17,17 @@ package novah.ide
 
 import novah.ide.features.FormattingFeature
 import novah.ide.features.HoverFeature
+import novah.ide.features.SymbolsFeature
 import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.TextDocumentService
 import java.util.concurrent.CompletableFuture
 
 class NovahTextDocumentService(private val server: NovahServer) : TextDocumentService {
 
-    private var hover = HoverFeature(server)
-    private var formatting = FormattingFeature(server)
+    private val hover = HoverFeature(server)
+    private val formatting = FormattingFeature(server)
+    private val symbols = SymbolsFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams?) {
         val uri = params!!.textDocument.uri
@@ -56,7 +59,11 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
         return hover.onHover(params)
     }
 
-    override fun formatting(params: DocumentFormattingParams?): CompletableFuture<MutableList<out TextEdit>> {
-        return formatting.onFormat(params!!)
+    override fun formatting(params: DocumentFormattingParams): CompletableFuture<MutableList<out TextEdit>> {
+        return formatting.onFormat(params)
+    }
+
+    override fun documentSymbol(params: DocumentSymbolParams): CompletableFuture<MutableList<Either<SymbolInformation, DocumentSymbol>>> {
+        return symbols.onDocumentSymbols(params)
     }
 }

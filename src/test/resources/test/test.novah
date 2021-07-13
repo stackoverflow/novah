@@ -11,6 +11,9 @@ foo pred list =
     [x] if pred x -> x
     _ -> -1
 
+bar : String
+bar = "asd"
+
 pub
 main : Array String -> Unit
 main _ = foo (_ > 1) [1, 2, 3, 4] |> println

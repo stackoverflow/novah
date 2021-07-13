@@ -1,0 +1,82 @@
+package novah.ide.features
+
+import novah.ast.canonical.Decl
+import novah.ast.canonical.Module
+import novah.ast.canonical.show
+import novah.frontend.typechecker.TArrow
+import novah.ide.IdeUtil
+import novah.ide.IdeUtil.spanToRange
+import novah.ide.NovahServer
+import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.jsonrpc.messages.Either
+import java.util.concurrent.CompletableFuture
+
+class SymbolsFeature(private val server: NovahServer) {
+
+    fun onDocumentSymbols(params: DocumentSymbolParams): CompletableFuture<MutableList<Either<SymbolInformation, DocumentSymbol>>> {
+        fun run(): MutableList<Either<SymbolInformation, DocumentSymbol>>? {
+            val file = IdeUtil.uriToFile(params.textDocument.uri)
+            server.logger().log("received symbol request for ${file.absolutePath}")
+
+            val moduleName = env().sourceMap()[file.toPath()] ?: return null
+            val mod = env().modules()[moduleName] ?: return null
+
+            return mutableListOf(Either.forRight(moduleToSymbol(mod.ast)))
+        }
+
+        return CompletableFuture.supplyAsync(::run)
+    }
+
+    private fun moduleToSymbol(ast: Module): DocumentSymbol {
+        val modRange = spanToRange(ast.name.span)
+        val modSym = DocumentSymbol(ast.name.value, SymbolKind.Module, modRange, modRange, "module ${ast.name.value}")
+
+        val decls = ast.decls.map { decl ->
+            when (decl) {
+                is Decl.TypeDecl -> typeDeclToSymbol(decl)
+                is Decl.ValDecl -> {
+                    DocumentSymbol(
+                        decl.name.name,
+                        if (decl.type is TArrow) SymbolKind.Function else SymbolKind.Variable,
+                        spanToRange(decl.span),
+                        spanToRange(decl.name.span),
+                        decl.type?.show(true)
+                    )
+                }
+            }
+        }
+
+        modSym.children = decls
+        return modSym
+    }
+    
+    private fun typeDeclToSymbol(d: Decl.TypeDecl): DocumentSymbol {
+        val tySym = DocumentSymbol(
+            d.name,
+            SymbolKind.Class,
+            spanToRange(d.span),
+            spanToRange(d.span),
+            d.show()
+        )
+        val ctors = d.dataCtors.map {
+            DocumentSymbol(
+                it.name,
+                SymbolKind.Constructor,
+                spanToRange(it.span),
+                spanToRange(it.span)
+            )
+        }
+        val tvars = d.tyVars.map {
+            DocumentSymbol(
+                it,
+                SymbolKind.TypeParameter,
+                spanToRange(d.span),
+                spanToRange(d.span)
+            )
+        }
+        tySym.children = tvars + ctors
+        return tySym
+    }
+
+    private fun env() = server.env()
+}

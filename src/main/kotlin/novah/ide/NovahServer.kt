@@ -15,9 +15,9 @@
  */
 package novah.ide
 
-import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Severity
+import novah.ide.IdeUtil.spanToRange
 import novah.main.CompilationError
 import novah.main.Environment
 import novah.main.Source
@@ -59,6 +59,8 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         initializeResult.capabilities.setHoverProvider(true)
         // Formatting capability
         initializeResult.capabilities.setDocumentFormattingProvider(true)
+        // Document symbols capability
+        initializeResult.capabilities.setDocumentSymbolProvider(true)
 
         // initial build
         build()
@@ -129,11 +131,5 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             logger().log("error on $uri span ${err.span}")
             uri to diag
         }.groupBy { it.first }.mapValues { kv -> kv.value.map { it.second } }.toMutableMap()
-    }
-
-    private fun spanToRange(s: Span): Range {
-        val start = Position(s.startLine - 1, s.startColumn - 1)
-        val end = Position(s.endLine - 1, s.endColumn - 1)
-        return Range(start, end)
     }
 }

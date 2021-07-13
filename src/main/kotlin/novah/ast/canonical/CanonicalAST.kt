@@ -61,6 +61,10 @@ sealed class Decl(open val span: Span) {
     ) : Decl(span)
 }
 
+fun Decl.TypeDecl.show(): String {
+    return if (tyVars.isEmpty()) name else name + tyVars.joinToString(" ", prefix = " ")
+}
+
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
     override fun toString(): String {
         return name + args.joinToString(" ", prefix = " ")
