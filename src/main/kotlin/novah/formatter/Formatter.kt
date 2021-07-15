@@ -39,7 +39,7 @@ class Formatter {
 
         builder.append("module ${m.name.value}")
 
-        val imps = m.imports.filter { !ignoreImport(it) }
+        val imps = m.imports.filter { !it.isAuto() }
         if (imps.isNotEmpty()) {
             builder.append("\n\n")
             builder.append(imps.sortedBy { it.module.value }.joinToString("\n") { show(it) })
@@ -346,11 +346,6 @@ class Formatter {
         val res = f()
         tab = oldIndent
         return if (shouldBreak) "\n$res" else res
-    }
-
-    private fun ignoreImport(imp: Import): Boolean = when (imp) {
-        is Import.Exposing -> false
-        is Import.Raw -> imp.auto
     }
 
     companion object {

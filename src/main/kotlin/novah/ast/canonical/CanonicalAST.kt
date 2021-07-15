@@ -15,11 +15,13 @@
  */
 package novah.ast.canonical
 
+import novah.ast.source.ForeignImport
 import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.data.LabelMap
 import novah.data.mapList
 import novah.data.show
+import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
 import novah.frontend.typechecker.Env
@@ -37,7 +39,9 @@ data class Module(
     val sourceName: String,
     val decls: List<Decl>,
     val unusedImports: Map<String, Span>,
-    val imports: List<Import>
+    val imports: List<Import>,
+    val foreigns: List<ForeignImport>,
+    val comment: Comment?
 )
 
 sealed class Decl(open val span: Span) {

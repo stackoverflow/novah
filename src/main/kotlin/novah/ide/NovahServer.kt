@@ -61,6 +61,8 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         initializeResult.capabilities.setDocumentFormattingProvider(true)
         // Document symbols capability
         initializeResult.capabilities.setDocumentSymbolProvider(true)
+        // Folding capability
+        initializeResult.capabilities.setFoldingRangeProvider(true)
 
         // initial build
         build()

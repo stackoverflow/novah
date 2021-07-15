@@ -15,6 +15,7 @@
  */
 package novah.ide
 
+import novah.ide.features.FoldingFeature
 import novah.ide.features.FormattingFeature
 import novah.ide.features.HoverFeature
 import novah.ide.features.SymbolsFeature
@@ -28,6 +29,7 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     private val hover = HoverFeature(server)
     private val formatting = FormattingFeature(server)
     private val symbols = SymbolsFeature(server)
+    private val folding = FoldingFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams?) {
         val uri = params!!.textDocument.uri
@@ -65,5 +67,9 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
 
     override fun documentSymbol(params: DocumentSymbolParams): CompletableFuture<MutableList<Either<SymbolInformation, DocumentSymbol>>> {
         return symbols.onDocumentSymbols(params)
+    }
+
+    override fun foldingRange(params: FoldingRangeRequestParams): CompletableFuture<MutableList<FoldingRange>> {
+        return folding.onFolding(params)
     }
 }

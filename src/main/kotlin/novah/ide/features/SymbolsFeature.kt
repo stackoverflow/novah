@@ -18,8 +18,9 @@ class SymbolsFeature(private val server: NovahServer) {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
             server.logger().log("received symbol request for ${file.absolutePath}")
 
-            val moduleName = env().sourceMap()[file.toPath()] ?: return null
-            val mod = env().modules()[moduleName] ?: return null
+            val env = server.env()
+            val moduleName = env.sourceMap()[file.toPath()] ?: return null
+            val mod = env.modules()[moduleName] ?: return null
 
             return mutableListOf(Either.forRight(moduleToSymbol(mod.ast)))
         }
@@ -77,6 +78,4 @@ class SymbolsFeature(private val server: NovahServer) {
         tySym.children = tvars + ctors
         return tySym
     }
-
-    private fun env() = server.env()
 }

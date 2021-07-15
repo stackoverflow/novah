@@ -102,6 +102,11 @@ sealed class Import(open val module: Spanned<String>) {
         is Raw -> span
         is Exposing -> span
     }
+    
+    fun isAuto(): Boolean = when (this) {
+        is Exposing -> false
+        is Raw -> auto
+    }
 
     var comment: Comment? = null
 

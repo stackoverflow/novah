@@ -17,7 +17,7 @@ package novah.frontend
 
 import novah.frontend.Token.*
 
-data class Comment(val comment: String, val isMulti: Boolean = false)
+data class Comment(val comment: String, val span: Span, val isMulti: Boolean = false)
 
 sealed class Token {
 
@@ -92,6 +92,8 @@ data class Position(val line: Int, val column: Int) {
 
 data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val endColumn: Int) {
     override fun toString(): String = "$startLine:$startColumn - $endLine:$endColumn"
+
+    fun isMultiline() = startLine < endLine
 
     fun matches(line: Int, col: Int) = !(before(line, col) || after(line, col))
 
@@ -185,16 +187,18 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             '/' -> when (iter.peek()) {
                 '/' -> {
                     val comm = lineComment()
+                    val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
-                    comment = Comment(comm)
+                    comment = Comment(comm, endSpan)
                     return next.copy(comment = comment)
                 }
                 '*' -> {
                     val comm = multiLineComment()
+                    val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
-                    comment = Comment(comm, true)
+                    comment = Comment(comm, endSpan, isMulti = true)
                     return next.copy(comment = comment)
                 }
             }
@@ -454,7 +458,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                         val l = accept("L")
                         if (l == null) {
                             val f = accept("F")
-                            if (f != null) FloatT(num.toSafeFloat() * n, pref+ num + f)
+                            if (f != null) FloatT(num.toSafeFloat() * n, pref + num + f)
                             else genNumIntToken(num.toSafeLong(10) * n, pref + num)
                         } else LongT(num.toSafeLong(10) * n, pref + num + l)
                     } else genNumIntToken(num.toSafeLong(10) * n, pref + num)

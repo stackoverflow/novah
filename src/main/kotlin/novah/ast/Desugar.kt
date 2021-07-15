@@ -70,7 +70,17 @@ class Desugar(private val smod: SModule) {
             synonyms = validateTypealiases()
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
             reportUnusedImports()
-            Ok(Module(smod.name, smod.sourceName, decls, unusedImports, smod.imports) to errors)
+            Ok(
+                Module(
+                    smod.name,
+                    smod.sourceName,
+                    decls,
+                    unusedImports,
+                    smod.imports,
+                    smod.foreigns,
+                    smod.comment
+                ) to errors
+            )
         } catch (pe: ParserError) {
             Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, moduleName)))
         } catch (ce: CompilationError) {
@@ -677,14 +687,14 @@ class Desugar(private val smod: SModule) {
             val exp = exprs[0]
             if (exp is SExpr.DoLet) {
                 val body = convertDoLets(exprs.drop(1), builder)
-                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body)
+                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
                 if (exp.isBind && builder != null) {
                     val span = exp.span
                     val select = SExpr.RecordSelect(builder, listOf("bind")).withSpan(span)
                     val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), bodyExp).withSpan(span)
                     listOf(SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span))
                 } else {
-                    listOf(SExpr.Let(exp.letDef, bodyExp))
+                    listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span))
                 }
             } else {
                 listOf(exp) + convertDoLets(exprs.drop(1), builder)
