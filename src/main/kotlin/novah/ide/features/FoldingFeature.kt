@@ -8,6 +8,7 @@ import novah.frontend.Span
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import org.eclipse.lsp4j.FoldingRange
+import org.eclipse.lsp4j.FoldingRangeKind
 import org.eclipse.lsp4j.FoldingRangeRequestParams
 import java.util.concurrent.CompletableFuture
 
@@ -34,7 +35,11 @@ class FoldingFeature(private val server: NovahServer) {
         // import folding
         val imps = ast.imports.filter { !it.isAuto() }.map { it.span() }
         val allImps = (ast.foreigns.map { it.span } + imps).sortedBy { it.startLine }
-        if (allImps.size > 1) folds += FoldingRange(allImps[0].startLine - 1, allImps.last().endLine - 1)
+        if (allImps.size > 1) {
+            val fold = FoldingRange(allImps[0].startLine - 1, allImps.last().endLine - 1)
+            fold.kind = FoldingRangeKind.Imports
+            folds += fold
+        }
 
         // function/let folding
         ast.decls.forEach { d ->
