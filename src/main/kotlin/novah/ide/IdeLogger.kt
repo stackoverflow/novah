@@ -19,24 +19,28 @@ import org.eclipse.lsp4j.MessageParams
 import org.eclipse.lsp4j.MessageType
 import org.eclipse.lsp4j.services.LanguageClient
 
-class IdeLogger(private val client: LanguageClient) {
+class IdeLogger(private val client: LanguageClient, private val verbose: Boolean) {
     
     fun log(msg: String) {
+        if (!verbose) return
         val params = MessageParams(MessageType.Log, msg)
         client.logMessage(params)
     }
     
     fun warn(msg: String) {
+        if (!verbose) return
         val params = MessageParams(MessageType.Warning, msg)
         client.logMessage(params)
     }
     
     fun info(msg: String) {
+        if (!verbose) return
         val params = MessageParams(MessageType.Info, msg)
         client.logMessage(params)
     }
     
     fun error(msg: String) {
+        if (!verbose) return
         val params = MessageParams(MessageType.Error, msg)
         client.logMessage(params)
     }

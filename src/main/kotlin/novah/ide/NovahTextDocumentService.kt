@@ -31,24 +31,24 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     private val symbols = SymbolsFeature(server)
     private val folding = FoldingFeature(server)
 
-    override fun didOpen(params: DidOpenTextDocumentParams?) {
-        val uri = params!!.textDocument.uri
+    override fun didOpen(params: DidOpenTextDocumentParams) {
+        val uri = params.textDocument.uri
         val cleaned = IdeUtil.uriToFile(uri).toURI().toString()
         server.logger().info("opened $uri")
         server.publishDiagnostics(cleaned)
     }
 
-    override fun didChange(params: DidChangeTextDocumentParams?) {
-        server.logger().info("changed ${params!!.textDocument.uri}")
+    override fun didChange(params: DidChangeTextDocumentParams) {
+        server.logger().info("changed ${params.textDocument.uri}")
     }
 
-    override fun didClose(params: DidCloseTextDocumentParams?) {
-        val uri = params!!.textDocument.uri
+    override fun didClose(params: DidCloseTextDocumentParams) {
+        val uri = params.textDocument.uri
         server.logger().info("closed $uri")
     }
 
-    override fun didSave(params: DidSaveTextDocumentParams?) {
-        val uri = params!!.textDocument.uri
+    override fun didSave(params: DidSaveTextDocumentParams) {
+        val uri = params.textDocument.uri
         server.logger().info("saved $uri")
 
         val file = IdeUtil.uriToFile(uri)

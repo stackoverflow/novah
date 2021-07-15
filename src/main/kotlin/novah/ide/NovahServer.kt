@@ -85,7 +85,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     override fun connect(client: LanguageClient) {
         this.client = client
-        this.logger = IdeLogger(client)
+        this.logger = IdeLogger(client, verbose)
     }
 
     fun env(): Environment = env!!
@@ -127,8 +127,9 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
         diags = errors.map { err ->
             val sev = if (err.severity == Severity.ERROR) DiagnosticSeverity.Error else DiagnosticSeverity.Warning
-            val diag = Diagnostic(spanToRange(err.span), err.msg)
+            val diag = Diagnostic(spanToRange(err.span), err.msg + "\n")
             diag.severity = sev
+            diag.source = "Novah compiler"
             val uri = File(err.fileName).toURI().toString()
             logger().log("error on $uri span ${err.span}")
             uri to diag
