@@ -17,9 +17,9 @@ class FoldingFeature(private val server: NovahServer) {
     fun onFolding(params: FoldingRangeRequestParams): CompletableFuture<MutableList<FoldingRange>> {
         fun run(): MutableList<FoldingRange>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
-            server.logger().log("received folding request for ${file.absolutePath}")
 
             val env = server.env()
+            server.logger().log("received folding request for ${file.absolutePath}")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
 

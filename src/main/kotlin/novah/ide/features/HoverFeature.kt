@@ -33,12 +33,13 @@ class HoverFeature(private val server: NovahServer) {
     fun onHover(params: HoverParams): CompletableFuture<Hover> {
         fun run(): Hover? {
             val path = IdeUtil.uriToFile(params.textDocument.uri)
-            val moduleName = env().sourceMap()[path.toPath()] ?: return null
+            val env = server.env()
+            val moduleName = env.sourceMap()[path.toPath()] ?: return null
 
-            val mod = env().modules()[moduleName] ?: return null
+            val mod = env.modules()[moduleName] ?: return null
             val line = params.position.line + 1
             val col = params.position.character + 1
-            logger().log("hovering on ${mod.ast.name.value} $line:$col")
+            server.logger().log("hovering on ${mod.ast.name.value} $line:$col")
 
             val decl = searchPosition(mod.ast, line, col) ?: return null
             val msg = when (decl) {
@@ -56,9 +57,6 @@ class HoverFeature(private val server: NovahServer) {
         }
         return CompletableFuture.supplyAsync(::run)
     }
-
-    private fun env() = server.env()
-    private fun logger() = server.logger()
 
     private fun searchPosition(mod: Module, line: Int, col: Int): Decl? {
         return mod.decls.find { it.span.matches(line, col) }

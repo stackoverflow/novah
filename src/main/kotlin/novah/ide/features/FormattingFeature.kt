@@ -20,7 +20,8 @@ class FormattingFeature(private val server: NovahServer) {
         server.logger().log("formatting ${file.absolutePath}")
 
         fun formatFile(): MutableList<TextEdit>? {
-            val txt = file.readText()
+            val change = server.change()
+            val txt = if (change != null && change.path == file.absolutePath) change.txt else file.readText()
             val ast = parseFile(txt)
             return if (ast == null) null
             else {

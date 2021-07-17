@@ -68,7 +68,7 @@ class Formatter {
             if (exposes.length > maxColumns) exposes = showList(i.defs.map { it.toString() })
         }
         val alias = if (i.alias() != null) " as ${i.alias()}" else ""
-        return "${cmt}import ${i.module}$exposes$alias"
+        return "${cmt}import ${i.module.value}$exposes$alias"
     }
 
     fun show(fi: ForeignImport): String {

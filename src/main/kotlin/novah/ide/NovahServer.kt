@@ -26,14 +26,19 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import java.io.File
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
 import kotlin.system.exitProcess
 
 class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClientAware {
 
     private var logger: IdeLogger? = null
-    private var env: Environment? = null
     private var root: String? = null
+    private val changes: AtomicReference<FileChange?> = AtomicReference(null)
+    private var env: AtomicReference<Environment?> = AtomicReference(null)
+    private val buildThread = Executors.newSingleThreadScheduledExecutor()
 
     private var client: LanguageClient? = null
     private var errorCode = 1
@@ -50,7 +55,6 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         root = params.workspaceFolders[0].uri
 
         logger!!.info("starting server on $root")
-        env = Environment(root!!, verbose = false)
 
         val initializeResult = InitializeResult(ServerCapabilities())
         initializeResult.capabilities.textDocumentSync = Either.forLeft(TextDocumentSyncKind.Full)
@@ -67,11 +71,20 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         // initial build
         build()
 
+        // start build thread
+        buildThread.scheduleWithFixedDelay(::buildRun, 0, 500, TimeUnit.MILLISECONDS)
+
         return CompletableFuture.supplyAsync { initializeResult }
     }
 
     override fun shutdown(): CompletableFuture<Any> {
         errorCode = 0
+        buildThread.shutdown()
+        try {
+            buildThread.awaitTermination(10, TimeUnit.SECONDS)
+        } catch (_: InterruptedException) {
+            buildThread.shutdownNow()
+        }
         return CompletableFuture.supplyAsync(::Object)
     }
 
@@ -88,30 +101,30 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         this.logger = IdeLogger(client, verbose)
     }
 
-    fun env(): Environment = env!!
+    fun env(): Environment {
+        var envv = env.get()
+        while (envv == null) {
+            Thread.sleep(300)
+            envv = env.get()
+        }
+        return envv
+    }
+
+    fun resetEnv() {
+        env.set(null)
+    }
 
     fun logger(): IdeLogger = logger!!
 
-    fun build() {
-        if (root == null) return
-        val path = IdeUtil.uriToFile(root!!)
-        logger().info("root: $path")
-        val sources = path.walkTopDown().filter { it.isFile && it.extension == "novah" }
-            .map { Source.SPath(Path(it.absolutePath)) }
-        logger().info("compiling project")
-
-        val lenv = Environment(root!!, verbose = false)
-        try {
-            lenv.parseSources(sources.asSequence())
-            lenv.generateCode(File("."), dryRun = true)
-            diags.clear()
-            saveDiagnostics(lenv.getWarnings())
-        } catch (ce: CompilationError) {
-            saveDiagnostics(ce.problems + lenv.getWarnings())
-        } finally {
-            env = lenv
-        }
+    fun addChange(uri: String, text: String) {
+        changes.set(FileChange(uri, text))
     }
+    
+    fun resetChange() {
+        changes.set(null)
+    }
+    
+    fun change() = changes.get()
 
     private var diags = mutableMapOf<String, List<Diagnostic>>()
 
@@ -127,7 +140,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
         diags = errors.map { err ->
             val sev = if (err.severity == Severity.ERROR) DiagnosticSeverity.Error else DiagnosticSeverity.Warning
-            val diag = Diagnostic(spanToRange(err.span), err.msg + "\n")
+            val diag = Diagnostic(spanToRange(err.span), err.msg + "\n\n")
             diag.severity = sev
             diag.source = "Novah compiler"
             val uri = File(err.fileName).toURI().toString()
@@ -135,4 +148,41 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             uri to diag
         }.groupBy { it.first }.mapValues { kv -> kv.value.map { it.second } }.toMutableMap()
     }
+
+    private fun build() {
+        if (root == null) return
+        val change = changes.getAndUpdate { it?.copy(built = true) }
+        val rootPath = IdeUtil.uriToFile(root!!)
+        logger().info("root: $rootPath")
+        val sources = rootPath.walkTopDown().filter { it.isFile && it.extension == "novah" }
+            .map {
+                val path = Path(it.absolutePath)
+                if (change != null && change.path == it.absolutePath) Source.SString(path, change.txt)
+                else Source.SPath(path)
+            }
+        logger().info("compiling project")
+
+        val lenv = Environment(root!!, verbose = false)
+        try {
+            lenv.parseSources(sources.asSequence())
+            lenv.generateCode(File("."), dryRun = true)
+            diags.clear()
+            saveDiagnostics(lenv.getWarnings())
+        } catch (ce: CompilationError) {
+            saveDiagnostics(ce.problems + lenv.getWarnings())
+        } finally {
+            env.set(lenv)
+        }
+    }
+
+    private fun buildRun() {
+        val change = changes.get()
+        if (change != null && !change.built) {
+            build()
+            // publish diagnostics
+            publishDiagnostics(File(change.path).toURI().toString())
+        }
+    }
 }
+
+data class FileChange(val path: String, val txt: String, val built: Boolean = false)

@@ -16,9 +16,9 @@ class SymbolsFeature(private val server: NovahServer) {
     fun onDocumentSymbols(params: DocumentSymbolParams): CompletableFuture<MutableList<Either<SymbolInformation, DocumentSymbol>>> {
         fun run(): MutableList<Either<SymbolInformation, DocumentSymbol>>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
-            server.logger().log("received symbol request for ${file.absolutePath}")
 
             val env = server.env()
+            server.logger().log("received symbol request for ${file.absolutePath}")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
 
