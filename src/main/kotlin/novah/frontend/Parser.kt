@@ -349,11 +349,13 @@ class Parser(
         val (nameTk, name) = parseName("")
         return withOffside(nameTk.offside() + 1) {
             var type: Type? = null
+            var nameTk2: Spanned<Token>? = null
             if (iter.peek().value is Colon) {
                 type = parseTypeSignature()
                 withOffside(nameTk.offside()) {
-                    val (nameTk2, name2) = parseName(name)
-                    if (name != name2) throwError(withError(E.expectedDefinition(name))(nameTk2))
+                    val (tk, name2) = parseName(name)
+                    nameTk2 = tk
+                    if (name != name2) throwError(withError(E.expectedDefinition(name))(tk))
                 }
             }
             val vars = tryParseListOf { tryParsePattern(true) }
@@ -361,7 +363,8 @@ class Parser(
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
             val exp = parseDo()
-            Decl.ValDecl(Binder(name, nameTk.span), vars, exp, type, vis, isInstance, isOperator)
+            val binder = Binder(name, if (nameTk2 != null) nameTk2!!.span else nameTk.span)
+            Decl.ValDecl(binder, vars, exp, type, vis, isInstance, isOperator)
                 .withSpan(nameTk.span, exp.span)
         }
     }

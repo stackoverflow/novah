@@ -15,10 +15,7 @@
  */
 package novah.ide
 
-import novah.ide.features.FoldingFeature
-import novah.ide.features.FormattingFeature
-import novah.ide.features.HoverFeature
-import novah.ide.features.SymbolsFeature
+import novah.ide.features.*
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.TextDocumentService
@@ -30,6 +27,7 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     private val formatting = FormattingFeature(server)
     private val symbols = SymbolsFeature(server)
     private val folding = FoldingFeature(server)
+    private val semanticTokens = SemanticTokensFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val uri = params.textDocument.uri
@@ -73,5 +71,9 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
 
     override fun foldingRange(params: FoldingRangeRequestParams): CompletableFuture<MutableList<FoldingRange>> {
         return folding.onFolding(params)
+    }
+
+    override fun semanticTokensFull(params: SemanticTokensParams): CompletableFuture<SemanticTokens> {
+        return semanticTokens.onSemanticTokensFull(params)
     }
 }

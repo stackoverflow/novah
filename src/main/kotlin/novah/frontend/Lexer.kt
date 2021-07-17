@@ -95,6 +95,8 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
 
     fun isMultiline() = startLine < endLine
 
+    fun length() = endColumn - startColumn
+
     fun matches(line: Int, col: Int) = !(before(line, col) || after(line, col))
 
     private fun before(line: Int, col: Int) =

@@ -18,6 +18,7 @@ package novah.ide
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Severity
 import novah.ide.IdeUtil.spanToRange
+import novah.ide.features.SemanticTokensFeature
 import novah.main.CompilationError
 import novah.main.Environment
 import novah.main.Source
@@ -67,7 +68,11 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         initializeResult.capabilities.setDocumentSymbolProvider(true)
         // Folding capability
         initializeResult.capabilities.setFoldingRangeProvider(true)
-
+        // Semantic tokens capability
+        val semOpts =
+            SemanticTokensWithRegistrationOptions(SemanticTokensFeature.legend, SemanticTokensServerFull(false))
+        initializeResult.capabilities.semanticTokensProvider = semOpts
+ 
         // initial build
         build()
 
@@ -119,11 +124,11 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     fun addChange(uri: String, text: String) {
         changes.set(FileChange(uri, text))
     }
-    
+
     fun resetChange() {
         changes.set(null)
     }
-    
+
     fun change() = changes.get()
 
     private var diags = mutableMapOf<String, List<Diagnostic>>()

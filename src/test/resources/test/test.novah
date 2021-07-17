@@ -1,5 +1,9 @@
 module test
 
+type MyList a
+  = Niu
+  | Kons a (MyList a)
+
 type Maybe a
   = Just a
   | Nothing
