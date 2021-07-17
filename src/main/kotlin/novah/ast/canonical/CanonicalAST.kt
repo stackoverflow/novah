@@ -44,14 +44,15 @@ data class Module(
     val comment: Comment?
 )
 
-sealed class Decl(open val span: Span) {
+sealed class Decl(open val span: Span, open val comment: Comment?) {
     data class TypeDecl(
         val name: String,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
         override val span: Span,
-        val visibility: Visibility
-    ) : Decl(span)
+        val visibility: Visibility,
+        override val comment: Comment? = null
+    ) : Decl(span, comment)
 
     data class ValDecl(
         val name: Binder,
@@ -61,8 +62,14 @@ sealed class Decl(open val span: Span) {
         val type: Type?,
         val visibility: Visibility,
         val isInstance: Boolean,
-        val isOperator: Boolean
-    ) : Decl(span)
+        val isOperator: Boolean,
+        override val comment: Comment? = null
+    ) : Decl(span, comment)
+
+    fun isPublic() = when (this) {
+        is TypeDecl -> visibility == Visibility.PUBLIC
+        is ValDecl -> visibility == Visibility.PUBLIC
+    }
 }
 
 fun Decl.TypeDecl.show(): String {
@@ -73,6 +80,8 @@ data class DataConstructor(val name: String, val args: List<Type>, val visibilit
     override fun toString(): String {
         return name + args.joinToString(" ", prefix = " ")
     }
+    
+    fun isPublic() = visibility == Visibility.PUBLIC
 }
 
 sealed class Expr(open val span: Span) {
@@ -139,7 +148,7 @@ fun Expr.Constructor.fullname(module: String): String = "$module.$name"
 
 data class Binder(val name: String, val span: Span, val isImplicit: Boolean = false) {
     override fun toString(): String = if (isImplicit) "{{$name}}" else name
-    
+
     var type: Type? = null
 }
 

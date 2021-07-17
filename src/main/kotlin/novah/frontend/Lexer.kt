@@ -506,7 +506,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             last = c
         }
 
-        return builder.toString().trimMargin("*").trim()
+        return builder.toString().trimMargin("*").trimIndent()
     }
 
     private fun accept(chars: String): Char? {

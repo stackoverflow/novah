@@ -50,7 +50,7 @@ class SymbolsFeature(private val server: NovahServer) {
         modSym.children = decls
         return modSym
     }
-    
+
     private fun typeDeclToSymbol(d: Decl.TypeDecl): DocumentSymbol {
         val tySym = DocumentSymbol(
             d.name,

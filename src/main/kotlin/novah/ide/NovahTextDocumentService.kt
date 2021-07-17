@@ -28,6 +28,7 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     private val symbols = SymbolsFeature(server)
     private val folding = FoldingFeature(server)
     private val semanticTokens = SemanticTokensFeature(server)
+    private val completionFeature = CompletionFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val uri = params.textDocument.uri
@@ -75,5 +76,9 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
 
     override fun semanticTokensFull(params: SemanticTokensParams): CompletableFuture<SemanticTokens> {
         return semanticTokens.onSemanticTokensFull(params)
+    }
+
+    override fun completion(params: CompletionParams): CompletableFuture<Either<MutableList<CompletionItem>, CompletionList>> {
+        return completionFeature.onCompletion(params)
     }
 }

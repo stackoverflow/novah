@@ -39,6 +39,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     private var root: String? = null
     private val changes: AtomicReference<FileChange?> = AtomicReference(null)
     private var env: AtomicReference<Environment?> = AtomicReference(null)
+    private var lastSuccessfulEnv: Environment? = null
     private val buildThread = Executors.newSingleThreadScheduledExecutor()
 
     private var client: LanguageClient? = null
@@ -68,11 +69,13 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         initializeResult.capabilities.setDocumentSymbolProvider(true)
         // Folding capability
         initializeResult.capabilities.setFoldingRangeProvider(true)
+        // Completion capability
+        initializeResult.capabilities.completionProvider = CompletionOptions(false, listOf("."))
         // Semantic tokens capability
         val semOpts =
             SemanticTokensWithRegistrationOptions(SemanticTokensFeature.legend, SemanticTokensServerFull(false))
         initializeResult.capabilities.semanticTokensProvider = semOpts
- 
+
         // initial build
         build()
 
@@ -118,6 +121,8 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     fun resetEnv() {
         env.set(null)
     }
+
+    fun lastSuccessfulEnv() = lastSuccessfulEnv
 
     fun logger(): IdeLogger = logger!!
 
@@ -173,6 +178,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             lenv.generateCode(File("."), dryRun = true)
             diags.clear()
             saveDiagnostics(lenv.getWarnings())
+            lastSuccessfulEnv = lenv
         } catch (ce: CompilationError) {
             saveDiagnostics(ce.problems + lenv.getWarnings())
         } finally {

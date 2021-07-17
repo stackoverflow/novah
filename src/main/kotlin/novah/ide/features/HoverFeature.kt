@@ -19,7 +19,6 @@ import novah.ast.canonical.Decl
 import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
 import novah.ast.canonical.everywhere
-import novah.ast.source.Visibility
 import novah.frontend.typechecker.Type
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
@@ -108,7 +107,4 @@ class HoverFeature(private val server: NovahServer) {
         if (expr.binder.span.matches(line, col)) return expr.binder.type?.show(true)
         return null
     }
-
-    private fun Decl.TypeDecl.isPublic() = visibility == Visibility.PUBLIC
-    private fun Decl.ValDecl.isPublic() = visibility == Visibility.PUBLIC
 }

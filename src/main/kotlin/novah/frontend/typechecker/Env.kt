@@ -16,8 +16,11 @@
 package novah.frontend.typechecker
 
 import io.lacuna.bifurcan.Map
+import novah.ast.canonical.Decl
+import novah.ast.canonical.Module
 import novah.ast.source.Import
 import novah.ast.source.Visibility
+import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
 import novah.main.ModuleEnv
@@ -204,3 +207,39 @@ val primModuleEnv = ModuleEnv(
         "Nullable" to tdecl(tNullable)
     )
 )
+
+val primModule = Module(
+    spanned(PRIM),
+    PRIM,
+    listOf(
+        primType("Byte", "A 8 bits integer.\nEquivalent to `java.lang.Byte`."),
+        primType("Int16", "A 16 bits integer.\nEquivalent to `java.lang.Short`."),
+        primType("Int32", "A 32 bits integer.\nEquivalent to `java.lang.Integer`."),
+        primType("Int64", "A 64 bits integer.\nEquivalent to `java.lang.Long`."),
+        primType("Float32", "A 32 bits floating point number.\nEquivalent to `java.lang.Float`."),
+        primType("Float64", "A 64 bits floating point number.\nEquivalent to `java.lang.Double`."),
+        primType("Char", "A UTF-16 character.\nEquivalent to `java.lang.Character`."),
+        primType("Boolean", "A value that can be either true or false.\nEquivalent to `java.lang.Boolean`."),
+        primType("String", "A String of characters.\nEquivalent to `java.lang.String`."),
+        primType(
+            "Unit", """Represents the absence of a value.
+            |Normally used to represent a function that takes no parameters or returns nothing""".trimMargin()
+        ),
+        primType("Object", "A platform reference value.\nEquivalent to `java.lang.Object`."),
+        primType("Nullable", "Represents a foreign value that can be `null`.\nUsed for Java interop."),
+        primType("Array", "A platform array.\nEquivalent to a Java array."),
+        primType(
+            "List", """A persistent, immutable list of values.
+            |Can also be used as a vector, stack or queue.
+            |Equivalent to `io.lacuna.bifurcan.List`.""".trimMargin()
+        ),
+        primType("Set", "A persistent, immutable set of values.\nEquivalent to `io.lacuna.bifurcan.Set`."),
+    ),
+    emptyMap(),
+    emptyList(),
+    emptyList(),
+    Comment("The primitive module contains all primitive defined types.", Span.empty(), true)
+)
+
+private fun primType(name: String, comment: String) =
+    Decl.TypeDecl(name, emptyList(), emptyList(), Span.empty(), Visibility.PUBLIC, Comment(comment, Span.empty(), true))
