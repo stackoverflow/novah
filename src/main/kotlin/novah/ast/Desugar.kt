@@ -216,7 +216,7 @@ class Desugar(private val smod: SModule) {
                 if (!it.implicit && !it.instance) unusedVars[it.name] = it.span
                 checkShadow(it.name, it.span)
             }
-            nestLets(letDef, body.desugar(locals + vars.map { it.name }), locals)
+            nestLets(letDef, body.desugar(locals + vars.map { it.name }), span, locals)
         }
         is SExpr.Match -> {
             val args = exps.map {
@@ -483,13 +483,13 @@ class Desugar(private val smod: SModule) {
         }
     }
 
-    private fun nestLets(ld: SLetDef, exp: Expr, locals: List<String>): Expr = when (ld) {
+    private fun nestLets(ld: SLetDef, exp: Expr, span: Span, locals: List<String>): Expr = when (ld) {
         is SLetDef.DefBind -> {
-            Expr.Let(ld.desugar(locals), exp, exp.span)
+            Expr.Let(ld.desugar(locals), exp, span)
         }
         is SLetDef.DefPattern -> {
             val case = Case(listOf(ld.pat.desugar(locals)), exp)
-            Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), Span.new(ld.pat.span, exp.span))
+            Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), span)
         }
     }
 
@@ -695,7 +695,7 @@ class Desugar(private val smod: SModule) {
                     val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), bodyExp).withSpan(span)
                     listOf(SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span))
                 } else {
-                    listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span))
+                    listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span, bodyExp.span))
                 }
             } else {
                 listOf(exp) + convertDoLets(exprs.drop(1), builder)
