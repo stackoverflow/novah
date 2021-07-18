@@ -135,9 +135,9 @@ sealed class ForeignImport(val type: String, val span: Span) {
 fun ForeignImport.name(): String = when (this) {
     is ForeignImport.Type -> alias ?: type.split(".").last()
     is ForeignImport.Ctor -> alias
-    is ForeignImport.Method -> name
-    is ForeignImport.Getter -> name
-    is ForeignImport.Setter -> name
+    is ForeignImport.Method -> alias ?: name
+    is ForeignImport.Getter -> alias ?: name
+    is ForeignImport.Setter -> alias
 }
 
 sealed class Decl(val name: String, val visibility: Visibility) {

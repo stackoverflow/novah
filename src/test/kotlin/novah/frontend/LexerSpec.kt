@@ -51,7 +51,7 @@ class LexerSpec : StringSpec({
         typ.comment shouldBe Comment("comments on type definitions work", Span(3, 1, 3, 37))
 
         myFun.span shouldBe span(10 to 1, 10 to 6)
-        myFun.comment shouldBe Comment("comments on var\n types work", Span(6, 1, 9, 4), true)
+        myFun.comment shouldBe Comment("comments on var\ntypes work", Span(6, 1, 9, 4), true)
     }
     
     "Lex UTF escapes correctly" {
