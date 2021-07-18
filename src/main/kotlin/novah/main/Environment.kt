@@ -154,9 +154,9 @@ class Environment(classPath: String, private val verbose: Boolean) {
             val opt = optimizer.convert().unwrapOrElse { throwError(it) }
 
             warnings.addAll(optimizer.getWarnings())
-            val optAST = Optimization.run(opt)
 
             if (!dryRun) {
+                val optAST = Optimization.run(opt)
                 val codegen = Codegen(optAST) { dirName, fileName, bytes ->
                     val dir = output.resolve(dirName)
                     dir.mkdirs()
