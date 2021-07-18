@@ -240,6 +240,9 @@ class Parser(
                 val maybename = parseFullName()
                 val static = parseStatic()
                 val idx = maybename.lastIndexOf('.')
+                if (!static && idx == -1) {
+                    throwError(E.FOREIGN_METHOD_ERROR to span(tkSpan, iter.current().span))
+                }
                 val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseIdentOrString()
                 val pars = parsePars("method")
                 val alias = parseAlias()
