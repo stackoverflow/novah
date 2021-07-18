@@ -181,6 +181,8 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             lastSuccessfulEnv = lenv
         } catch (ce: CompilationError) {
             saveDiagnostics(ce.problems + lenv.getWarnings())
+        } catch (e: Exception) {
+            logger().error(e.stackTraceToString())
         } finally {
             env.set(lenv)
         }
