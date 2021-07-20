@@ -5,10 +5,9 @@ import novah.ast.source.ForeignImport
 import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.ast.source.name
+import novah.data.LabelMap
 import novah.frontend.Comment
-import novah.frontend.typechecker.PRIM
-import novah.frontend.typechecker.TArrow
-import novah.frontend.typechecker.primModule
+import novah.frontend.typechecker.*
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.Environment
@@ -18,6 +17,7 @@ import java.util.concurrent.CompletableFuture
 
 class CompletionFeature(private val server: NovahServer) {
 
+    @Suppress("WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
     fun onCompletion(params: CompletionParams): CompletableFuture<Either<MutableList<CompletionItem>, CompletionList>> {
         fun run(): Either<MutableList<CompletionItem>, CompletionList>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
@@ -30,11 +30,21 @@ class CompletionFeature(private val server: NovahServer) {
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
 
-            return if (params.context.triggerKind == CompletionTriggerKind.Invoked) {
-                val comps = findCompletion(mod.ast, env, name, line + 1, col + 1, incomplete = true)
-                Either.forRight(CompletionList(true, comps))
-            } else {
-                Either.forLeft(findCompletion(mod.ast, env, name, line + 1, col + 1, incomplete = false))
+            return when (params.context.triggerKind) {
+                CompletionTriggerKind.Invoked -> {
+                    val comps = findCompletion(mod.ast, env, name, line + 1, incomplete = true)
+                    Either.forRight(CompletionList(true, comps))
+                }
+                CompletionTriggerKind.TriggerForIncompleteCompletions -> {
+                    Either.forLeft(findCompletion(mod.ast, env, name, line + 1, incomplete = false))
+                }
+                CompletionTriggerKind.TriggerCharacter -> {
+                    if (name == "do") null
+                    else {
+                        val comps = findRecord(mod.ast, env, name, line + 1)
+                        comps?.let { Either.forLeft(it.toMutableList()) }
+                    }
+                }
             }
         }
 
@@ -46,14 +56,13 @@ class CompletionFeature(private val server: NovahServer) {
         env: Environment,
         name: String,
         line: Int,
-        col: Int,
         incomplete: Boolean
     ): MutableList<CompletionItem> {
         val completions = mutableListOf<CompletionItem>()
         val imported = mutableSetOf<String>()
 
         // find completions in own module
-        completions.addAll(findCompletionInModule(ast, name, null, line, col, true))
+        completions.addAll(findCompletionInModule(ast, name, null, line, true))
 
         // find all imported names
         ast.imports.forEach { imp ->
@@ -62,10 +71,10 @@ class CompletionFeature(private val server: NovahServer) {
             when (imp) {
                 is Import.Exposing -> {
                     val exposes = imp.defs.map { it.name }.toSet()
-                    val comps = findCompletionInModule(mod, name, imp.alias, line, col, pred = { it in exposes })
+                    val comps = findCompletionInModule(mod, name, imp.alias, line, pred = { it in exposes })
                     completions.addAll(comps)
                 }
-                is Import.Raw -> completions.addAll(findCompletionInModule(mod, name, imp.alias, line, col))
+                is Import.Raw -> completions.addAll(findCompletionInModule(mod, name, imp.alias, line))
             }
         }
 
@@ -107,7 +116,7 @@ class CompletionFeature(private val server: NovahServer) {
         // TODO: non-imported symbols need a code action to import the module
         env.modules().filter { (k, _) -> k !in imported }.forEach { (mod, env) ->
             env.env.decls.forEach { (sym, ref) ->
-                if (ref.visibility == Visibility.PUBLIC && sym.startsWith(name)) {
+                if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = if (ref.type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
                     ci.detail = ref.type.show(true)
@@ -117,7 +126,7 @@ class CompletionFeature(private val server: NovahServer) {
             }
             env.env.types.forEach { (sym, ref) ->
                 // TODO: add type constructors (needs change to `ModuleRefs`)
-                if (ref.visibility == Visibility.PUBLIC && sym.startsWith(name)) {
+                if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = CompletionItemKind.Class
                     ci.detail = ref.type.show(true)
@@ -134,7 +143,6 @@ class CompletionFeature(private val server: NovahServer) {
         name: String,
         alias: String?,
         line: Int,
-        col: Int,
         ownModule: Boolean = false,
         pred: (String) -> Boolean = { true }
     ): MutableList<CompletionItem> {
@@ -161,15 +169,24 @@ class CompletionFeature(private val server: NovahServer) {
                     }
                 }
                 is Decl.ValDecl -> {
-                    // local variables
-                    if (ownModule && d.span.matches(line, col)) {
+                    // local variables and function parameters
+                    if (ownModule && d.span.matchesLine(line)) {
+                        val pars = collectParameters(d) { it.startsWith(name) }
+                        comps.addAll(pars.map { (binder, type) ->
+                            val ci = CompletionItem(binder)
+                            ci.detail = type?.show(true)
+                            ci.kind = if (type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
+                            ci
+                        })
                         d.exp.everywhereAccumulating { if (it is Expr.Let) listOf(it) else emptyList() }
-                            .filter { it.span.matches(line, col) }
+                            .filter { it.span.matchesLine(line) }
                             .forEach { let ->
                                 val binder = let.letDef.binder.name
-                                if (!binder.startsWith("$")) {
+                                if (binder.startsWith(name) && !binder.startsWith("$")) {
                                     val ci = CompletionItem(binder)
-                                    ci.kind = CompletionItemKind.Value
+                                    ci.kind = if (let.letDef.expr.type is TArrow) {
+                                        CompletionItemKind.Function
+                                    } else CompletionItemKind.Value
                                     ci.detail = let.letDef.expr.type?.show(true)
                                     comps += ci
                                 }
@@ -186,6 +203,61 @@ class CompletionFeature(private val server: NovahServer) {
             }
         }
         return comps
+    }
+
+    private fun findRecord(ast: Module, env: Environment, name: String, line: Int): List<CompletionItem>? {
+        fun addLabels(labels: LabelMap<Type>): List<CompletionItem> {
+            return labels.map { kv ->
+                val ty = kv.value().first()
+                val ci = CompletionItem(kv.key())
+                ci.kind = if (ty is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
+                ci.detail = ty.show(true)
+                ci
+            }
+        }
+
+        // search first in the module itself
+        val ownModule = env.modules()[ast.name.value]!!
+        val rec = ownModule.env.decls[name]
+        if (rec != null && rec.type is TRecord) {
+            return addLabels((rec.type.row as TRowExtend).labels)
+        }
+
+        // then search in the parameters of functions
+        for (d in ast.decls) {
+            if (d is Decl.ValDecl && d.span.matchesLine(line)) {
+                val pars = collectParameters(d) { it == name }
+                if (pars.isNotEmpty() && pars[0].second is TRecord) {
+                    val (_, ty) = pars[0]
+                    return addLabels(((ty as TRecord).row as TRowExtend).labels)
+                }
+            }
+        }
+
+        // finally, search for imported values
+        for (imp in ast.imports) {
+            val mod = env.modules()[imp.module.value]?.env ?: break
+            when (imp) {
+                is Import.Exposing -> {
+                    for (d in imp.defs) {
+                        if (d.name == name) {
+                            val decl = mod.decls[name]
+                            if (decl != null && decl.type is TRecord) {
+                                return addLabels((decl.type.row as TRowExtend).labels)
+                            }
+                        }
+                    }
+                }
+                is Import.Raw -> {
+                    for ((binder, d) in mod.decls) {
+                        if (binder == name && d.visibility.isPublic() && d.type is TRecord) {
+                            return addLabels((d.type.row as TRowExtend).labels)
+                        }
+                    }
+                }
+            }
+        }
+        return null
     }
 
     private fun getDoc(com: Comment?, module: String): Either<String, MarkupContent> {
@@ -216,10 +288,29 @@ class CompletionFeature(private val server: NovahServer) {
         else (dc.args.map { it.show(true) } + typeName).joinToString(" -> ")
     }
 
+    private fun collectParameters(d: Decl.ValDecl, pred: (String) -> Boolean): List<Pair<String, Type?>> {
+        fun paramType(ty: Type): Type {
+            return if (ty is TArrow) ty.args[0]
+            else ty
+        }
+
+        val comps = mutableListOf<Pair<String, Type?>>()
+        var exp = if (d.exp is Expr.Ann) d.exp.exp else d.exp
+        while (exp is Expr.Lambda) {
+            val binder = exp.binder.name
+            if (pred(binder) && !binder.startsWith("$")) {
+                comps += exp.binder.name to exp.type?.let(::paramType)
+            }
+            exp = if (exp.body is Expr.Ann) (exp.body as Expr.Ann).exp else exp.body
+        }
+        return comps
+    }
+
     private fun getPartialName(txt: String, line: Int, col: Int): String? {
         val l = txt.lines().getOrNull(line) ?: return null
         val b = StringBuilder()
         var i = col - 1
+        if (col > 0 && l[i] == '.') i--
         while (i >= 0 && l[i].isLetterOrDigit()) {
             b.append(l[i])
             i--

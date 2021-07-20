@@ -99,6 +99,8 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
 
     fun matches(line: Int, col: Int) = !(before(line, col) || after(line, col))
 
+    fun matchesLine(line: Int) = line in startLine..endLine
+
     private fun before(line: Int, col: Int) =
         line < startLine || (line == startLine && col < startColumn)
 

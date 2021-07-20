@@ -45,6 +45,8 @@ data class Module(
 
 enum class Visibility {
     PUBLIC, PRIVATE;
+
+    fun isPublic() = this == PUBLIC
 }
 
 /**
@@ -102,7 +104,7 @@ sealed class Import(open val module: Spanned<String>) {
         is Raw -> span
         is Exposing -> span
     }
-    
+
     fun isAuto(): Boolean = when (this) {
         is Exposing -> false
         is Raw -> auto
