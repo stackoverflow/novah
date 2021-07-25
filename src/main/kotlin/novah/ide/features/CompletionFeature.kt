@@ -1,12 +1,14 @@
 package novah.ide.features
 
 import novah.ast.canonical.*
+import novah.ast.source.DeclarationRef
 import novah.ast.source.ForeignImport
 import novah.ast.source.Import
-import novah.ast.source.Visibility
 import novah.ast.source.name
 import novah.data.LabelMap
+import novah.formatter.Formatter
 import novah.frontend.Comment
+import novah.frontend.Span
 import novah.frontend.typechecker.*
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
@@ -60,21 +62,25 @@ class CompletionFeature(private val server: NovahServer) {
     ): MutableList<CompletionItem> {
         val completions = mutableListOf<CompletionItem>()
         val imported = mutableSetOf<String>()
+        val exposed = mutableMapOf<String, Import.Exposing>()
 
         // find completions in own module
         completions.addAll(findCompletionInModule(ast, name, null, line, true))
 
         // find all imported names
         ast.imports.forEach { imp ->
-            imported += imp.module.value
             val mod = if (imp.module.value == PRIM) primModule else env.modules()[imp.module.value]!!.ast
             when (imp) {
                 is Import.Exposing -> {
+                    exposed[imp.module.value] = imp
                     val exposes = imp.defs.map { it.name }.toSet()
                     val comps = findCompletionInModule(mod, name, imp.alias, line, pred = { it in exposes })
                     completions.addAll(comps)
                 }
-                is Import.Raw -> completions.addAll(findCompletionInModule(mod, name, imp.alias, line))
+                is Import.Raw -> {
+                    imported += imp.module.value
+                    completions.addAll(findCompletionInModule(mod, name, imp.alias, line))
+                }
             }
         }
 
@@ -112,25 +118,45 @@ class CompletionFeature(private val server: NovahServer) {
 
         if (incomplete) return completions
 
+        val lastImportLine = ast.imports.maxByOrNull { it.span().startLine }!!.span().endLine
+        val (lineToAdd, prefix) = if (lastImportLine < 0) ast.name.span.endLine to "\n" else lastImportLine to ""
+
+        fun makeImportEdit(mod: String, sym: String): TextEdit {
+            val fmt = Formatter()
+            val expo = exposed[mod]
+            return if (expo != null && expo.defs.none { it.name == sym }) {
+                val range = IdeUtil.spanToRange(expo.span)
+                val decl = if (sym[0].isUpperCase()) DeclarationRef.RefType(sym, Span.empty())
+                else DeclarationRef.RefVar(sym, Span.empty())
+
+                val imp = expo.copy(defs = expo.defs + decl)
+                server.logger().info("import edit for $mod $sym")
+                TextEdit(range, fmt.show(imp))
+            } else {
+                TextEdit(range(lineToAdd, 1, lineToAdd, 1), "${prefix}import $mod ($sym)\n")
+            }
+        }
+
         // lastly, add non-imported symbols
-        // TODO: non-imported symbols need a code action to import the module
         env.modules().filter { (k, _) -> k !in imported }.forEach { (mod, env) ->
             env.env.decls.forEach { (sym, ref) ->
-                if (ref.visibility.isPublic() && sym.startsWith(name)) {
+                // TODO: add type constructors (needs change to `ModuleRefs`)
+                if (ref.visibility.isPublic() && sym.startsWith(name) && sym[0].isLowerCase()) {
                     val ci = CompletionItem(sym)
                     ci.kind = if (ref.type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
                     ci.detail = ref.type.show(true)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
+                    ci.additionalTextEdits = listOf(makeImportEdit(mod, sym))
                     completions += ci
                 }
             }
             env.env.types.forEach { (sym, ref) ->
-                // TODO: add type constructors (needs change to `ModuleRefs`)
                 if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = CompletionItemKind.Class
                     ci.detail = ref.type.show(true)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
+                    ci.additionalTextEdits = listOf(makeImportEdit(mod, sym))
                     completions += ci
                 }
             }
@@ -319,4 +345,9 @@ class CompletionFeature(private val server: NovahServer) {
     }
 
     private fun name(alias: String?, name: String) = if (alias != null) "$alias.$name" else name
+
+    companion object {
+        private fun range(sLine: Int, sCol: Int, eLine: Int, eCol: Int) =
+            Range(Position(sLine, sCol), Position(eLine, eCol))
+    }
 }

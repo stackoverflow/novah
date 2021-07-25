@@ -219,6 +219,10 @@ class PatternMatchingCompiler<R> {
 
         fun getFromCache(name: String): Ctor? = ctorCache[name]
 
+        fun resetCache() {
+            ctorCache.clear()
+        }
+
         fun convert(c: Case, modName: String): MatchRule<Pattern> {
             val pat = if (c.patterns.size == 1) convertPattern(c.patterns[0], modName)
             else {

@@ -17,6 +17,7 @@ package novah.ide
 
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Severity
+import novah.frontend.matching.PatternMatchingCompiler
 import novah.ide.IdeUtil.spanToRange
 import novah.ide.features.SemanticTokensFeature
 import novah.main.CompilationError
@@ -173,6 +174,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         logger().info("compiling project")
 
         val lenv = Environment(root!!, verbose = false)
+        PatternMatchingCompiler.resetCache()
         try {
             lenv.parseSources(sources.asSequence())
             lenv.generateCode(File("."), dryRun = true)
