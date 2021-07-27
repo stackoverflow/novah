@@ -13,6 +13,8 @@ import novah.frontend.typechecker.*
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.Environment
+import novah.main.ModuleEnv
+import novah.main.TypeDeclRef
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.util.concurrent.CompletableFuture
@@ -121,32 +123,52 @@ class CompletionFeature(private val server: NovahServer) {
         val lastImportLine = ast.imports.maxByOrNull { it.span().startLine }!!.span().endLine
         val (lineToAdd, prefix) = if (lastImportLine < 0) ast.name.span.endLine to "\n" else lastImportLine to ""
 
-        fun makeImportEdit(mod: String, sym: String): TextEdit {
-            val fmt = Formatter()
+        fun makeImportEdit(mod: String, sym: String, type: String?): TextEdit {
             val expo = exposed[mod]
             return if (expo != null && expo.defs.none { it.name == sym }) {
                 val range = IdeUtil.spanToRange(expo.span)
-                val decl = if (sym[0].isUpperCase()) DeclarationRef.RefType(sym, Span.empty())
-                else DeclarationRef.RefVar(sym, Span.empty())
+                val ref = expo.defs.find { it.name == type } as? DeclarationRef.RefType
+                
+                // the type is already imported, just add the constructor
+                if (ref != null) {
+                    val defs = expo.defs.map {
+                        if (it.name == type && it is DeclarationRef.RefType) {
+                            val ctors = when {
+                                it.ctors != null && (sym in it.ctors || it.ctors.isEmpty()) -> it.ctors
+                                it.ctors != null -> it.ctors + sym
+                                else -> listOf(sym)
+                            }
+                            it.copy(ctors = ctors)
+                        } else it
+                    }
+                    val imp = expo.copy(defs = defs)
+                    return TextEdit(range, Formatter().show(imp))
+                }
+                val decl = when {
+                    type != null -> DeclarationRef.RefType(type, Span.empty(), listOf(sym))
+                    sym[0].isUpperCase() -> DeclarationRef.RefType(sym, Span.empty())
+                    else -> DeclarationRef.RefVar(sym, Span.empty())
+                }
 
                 val imp = expo.copy(defs = expo.defs + decl)
-                server.logger().info("import edit for $mod $sym")
-                TextEdit(range, fmt.show(imp))
+                TextEdit(range, Formatter().show(imp))
             } else {
-                TextEdit(range(lineToAdd, 1, lineToAdd, 1), "${prefix}import $mod ($sym)\n")
+                val imp = if (type != null) "$type($sym)" else sym
+                TextEdit(range(lineToAdd, 1, lineToAdd, 1), "${prefix}import $mod ($imp)\n")
             }
         }
 
         // lastly, add non-imported symbols
         env.modules().filter { (k, _) -> k !in imported }.forEach { (mod, env) ->
+            val ctorMap = makeCtorMap(env.env)
+
             env.env.decls.forEach { (sym, ref) ->
-                // TODO: add type constructors (needs change to `ModuleRefs`)
-                if (ref.visibility.isPublic() && sym.startsWith(name) && sym[0].isLowerCase()) {
+                if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = if (ref.type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
                     ci.detail = ref.type.show(true)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
-                    ci.additionalTextEdits = listOf(makeImportEdit(mod, sym))
+                    ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, ctorMap[sym]))
                     completions += ci
                 }
             }
@@ -156,7 +178,7 @@ class CompletionFeature(private val server: NovahServer) {
                     ci.kind = CompletionItemKind.Class
                     ci.detail = ref.type.show(true)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
-                    ci.additionalTextEdits = listOf(makeImportEdit(mod, sym))
+                    ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, null))
                     completions += ci
                 }
             }
@@ -286,67 +308,77 @@ class CompletionFeature(private val server: NovahServer) {
         return null
     }
 
-    private fun getDoc(com: Comment?, module: String): Either<String, MarkupContent> {
-        val doc = if (com == null) "### $module" else "### $module\n\n${com.comment}"
-        return Either.forRight(MarkupContent("markdown", doc))
-    }
-
-    private fun getKind(d: Decl.ValDecl): CompletionItemKind {
-        if (d.type != null) {
-            return if (d.type is TArrow) CompletionItemKind.Function
-            else CompletionItemKind.Value
-        }
-        val typ = d.exp.type
-        if (typ != null) {
-            return if (typ is TArrow) CompletionItemKind.Function
-            else CompletionItemKind.Value
-        }
-        return CompletionItemKind.Function
-    }
-
-    private fun getDetail(d: Decl.ValDecl): String? {
-        val typ = d.type ?: d.exp.type ?: return null
-        return typ.show(true)
-    }
-
-    private fun getCtorDetails(dc: DataConstructor, typeName: String): String {
-        return if (dc.args.isEmpty()) typeName
-        else (dc.args.map { it.show(true) } + typeName).joinToString(" -> ")
-    }
-
-    private fun collectParameters(d: Decl.ValDecl, pred: (String) -> Boolean): List<Pair<String, Type?>> {
-        fun paramType(ty: Type): Type {
-            return if (ty is TArrow) ty.args[0]
-            else ty
-        }
-
-        val comps = mutableListOf<Pair<String, Type?>>()
-        var exp = if (d.exp is Expr.Ann) d.exp.exp else d.exp
-        while (exp is Expr.Lambda) {
-            val binder = exp.binder.name
-            if (pred(binder) && !binder.startsWith("$")) {
-                comps += exp.binder.name to exp.type?.let(::paramType)
-            }
-            exp = if (exp.body is Expr.Ann) (exp.body as Expr.Ann).exp else exp.body
-        }
-        return comps
-    }
-
-    private fun getPartialName(txt: String, line: Int, col: Int): String? {
-        val l = txt.lines().getOrNull(line) ?: return null
-        val b = StringBuilder()
-        var i = col - 1
-        if (col > 0 && l[i] == '.') i--
-        while (i >= 0 && l[i].isLetterOrDigit()) {
-            b.append(l[i])
-            i--
-        }
-        return b.toString().reversed()
-    }
-
-    private fun name(alias: String?, name: String) = if (alias != null) "$alias.$name" else name
-
     companion object {
+        private fun getDoc(com: Comment?, module: String): Either<String, MarkupContent> {
+            val doc = if (com == null) "### $module" else "### $module\n\n${com.comment}"
+            return Either.forRight(MarkupContent("markdown", doc))
+        }
+
+        private fun getKind(d: Decl.ValDecl): CompletionItemKind {
+            if (d.type != null) {
+                return if (d.type is TArrow) CompletionItemKind.Function
+                else CompletionItemKind.Value
+            }
+            val typ = d.exp.type
+            if (typ != null) {
+                return if (typ is TArrow) CompletionItemKind.Function
+                else CompletionItemKind.Value
+            }
+            return CompletionItemKind.Function
+        }
+
+        private fun getDetail(d: Decl.ValDecl): String? {
+            val typ = d.type ?: d.exp.type ?: return null
+            return typ.show(true)
+        }
+
+        private fun getCtorDetails(dc: DataConstructor, typeName: String): String {
+            return if (dc.args.isEmpty()) typeName
+            else (dc.args.map { it.show(true) } + typeName).joinToString(" -> ")
+        }
+
+        private fun collectParameters(d: Decl.ValDecl, pred: (String) -> Boolean): List<Pair<String, Type?>> {
+            fun paramType(ty: Type): Type {
+                return if (ty is TArrow) ty.args[0]
+                else ty
+            }
+
+            val comps = mutableListOf<Pair<String, Type?>>()
+            var exp = if (d.exp is Expr.Ann) d.exp.exp else d.exp
+            while (exp is Expr.Lambda) {
+                val binder = exp.binder.name
+                if (pred(binder) && !binder.startsWith("$")) {
+                    comps += exp.binder.name to exp.type?.let(::paramType)
+                }
+                exp = if (exp.body is Expr.Ann) (exp.body as Expr.Ann).exp else exp.body
+            }
+            return comps
+        }
+
+        private fun getPartialName(txt: String, line: Int, col: Int): String? {
+            val l = txt.lines().getOrNull(line) ?: return null
+            val b = StringBuilder()
+            var i = col - 1
+            if (col > 0 && l[i] == '.') i--
+            while (i >= 0 && l[i].isLetterOrDigit()) {
+                b.append(l[i])
+                i--
+            }
+            return b.toString().reversed()
+        }
+
+        private fun makeCtorMap(menv: ModuleEnv): Map<String, String> {
+            val map = mutableMapOf<String, String>()
+            for ((name, ref) in menv.types) {
+                for (ctor in ref.ctors) {
+                    map[ctor] = name
+                }
+            }
+            return map
+        }
+
+        private fun name(alias: String?, name: String) = if (alias != null) "$alias.$name" else name
+
         private fun range(sLine: Int, sCol: Int, eLine: Int, eCol: Int) =
             Range(Position(sLine, sCol), Position(eLine, eCol))
     }

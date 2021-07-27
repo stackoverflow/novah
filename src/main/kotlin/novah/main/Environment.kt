@@ -266,5 +266,5 @@ data class TypeDeclRef(val type: Type, val visibility: Visibility, val ctors: Li
 
 data class ModuleEnv(
     val decls: Map<String, DeclRef>,
-    val types: Map<String, TypeDeclRef>,
+    val types: Map<String, TypeDeclRef>
 )

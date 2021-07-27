@@ -27,7 +27,6 @@ import novah.main.CompilationError
 import novah.main.ModuleEnv
 import java.util.ArrayDeque
 
-
 object Typechecker {
     private var currentId = 0
 
