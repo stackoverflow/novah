@@ -47,7 +47,7 @@ class HoverFeature(private val server: NovahServer) {
                     if (decl.exp.span.matches(line, col)) expToHover(searchExpr(decl, line, col), line, col)
                     else {
                         val ty = searchType(decl.type, line, col)
-                        ty?.show(true) ?: declToHover(decl)
+                        ty?.show(true, pretty = true) ?: declToHover(decl)
                     }
                 }
             } ?: return null
@@ -95,16 +95,16 @@ class HoverFeature(private val server: NovahServer) {
         is Decl.ValDecl -> {
             val header = if (decl.isPublic()) "pub ${decl.name.name}" else decl.name.name
             if (decl.type != null) {
-                "$header : ${decl.type.show(qualified = true)}"
+                "$header : ${decl.type.show(qualified = true, pretty = true)}"
             } else header
         }
     }
 
     private fun expToHover(expr: Expr?, line: Int, col: Int): String? {
         if (expr == null) return null
-        if (expr.type != null) return expr.type!!.show(true)
+        if (expr.type != null) return expr.type!!.show(true, pretty = true)
         if (expr !is Expr.Lambda) return null
-        if (expr.binder.span.matches(line, col)) return expr.binder.type?.show(true)
+        if (expr.binder.span.matches(line, col)) return expr.binder.type?.show(true, pretty = true)
         return null
     }
 }

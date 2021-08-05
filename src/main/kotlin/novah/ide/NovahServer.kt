@@ -27,11 +27,11 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.io.path.Path
 import kotlin.system.exitProcess
 
 class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClientAware {
@@ -167,7 +167,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         logger().info("root: $rootPath")
         val sources = rootPath.walkTopDown().filter { it.isFile && it.extension == "novah" }
             .map {
-                val path = Path(it.absolutePath)
+                val path = Path.of(it.absolutePath)
                 if (change != null && change.path == it.absolutePath) Source.SString(path, change.txt)
                 else Source.SPath(path)
             }

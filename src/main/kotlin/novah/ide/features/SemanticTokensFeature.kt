@@ -28,7 +28,8 @@ class SemanticTokensFeature(private val server: NovahServer) {
 
     private fun genTokens(ast: Module): SemanticTokens {
         var prevLine = 0
-        var prevChar  = 0
+        var prevChar = 0
+
         val tks = ast.decls.filterIsInstance<Decl.ValDecl>().flatMap {
             val name = it.name
             val startLine = name.span.startLine - 1

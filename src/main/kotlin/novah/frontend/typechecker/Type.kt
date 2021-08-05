@@ -67,9 +67,6 @@ sealed class Type {
     var span: Span? = null
     fun span(s: Span?): Type = apply { span = s }
 
-    private var isParens: Boolean = false
-    fun parens(b: Boolean): Type = apply { isParens = b }
-
     fun realType(): Type = when {
         this is TVar && tvar is TypeVar.Link -> (tvar as TypeVar.Link).type.realType()
         else -> this
@@ -229,69 +226,80 @@ sealed class Type {
     /**
      * Pretty print version of [toString]
      */
-    fun show(qualified: Boolean = true): String {
-        fun showId(id: Id) = if (id >= 0) "t$id" else "u${-id}"
+    fun show(qualified: Boolean = true, pretty: Boolean = false): String {
+        var idCount = -1
+        val varMap = mutableMapOf<Int, Int>()
+        fun showId(id: Id): String {
+            return if (pretty) {
+                val index = varMap[id]
+                if (index != null) letters[index]
+                else {
+                    idCount = (idCount + 1) % letters.size
+                    varMap[id] = idCount
+                    letters[idCount]
+                }
+            } else if (id >= 0) "t$id" else "u${-id}"
+        }
 
-        fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String {
-            val str = when (t) {
-                is TConst -> {
-                    val isCurrent = Typechecker.context?.mod?.name?.value?.let { t.name.startsWith(it) } ?: false
-                    val shouldQualify = !t.name.startsWith("prim.") && !isCurrent
-                    if (qualified && shouldQualify) t.name else t.name.split('.').last()
-                }
-                is TApp -> {
-                    val sname = go(t.type, nested)
-                    val str = if (t.types.isEmpty()) sname
-                    else sname + " " + t.types.joinToString(" ") { go(it, true) }
-                    if (nested) "($str)" else str
-                }
-                is TArrow -> {
-                    val args = if (t.args.size == 1) {
-                        go(t.args[0], false)
-                    } else {
-                        t.args.joinToString(" ", prefix = "(", postfix = ")") { go(it, false) }
-                    }
-                    if (nested) "($args -> ${go(t.ret, false)})"
-                    else "$args -> ${go(t.ret, nested)}"
-                }
-                is TVar -> {
-                    when (val tv = t.tvar) {
-                        is TypeVar.Link -> go(tv.type, nested, topLevel)
-                        is TypeVar.Unbound -> showId(tv.id)
-                        is TypeVar.Generic -> showId(tv.id)
-                    }
-                }
-                is TRowEmpty -> "{}"
-                is TRecord -> {
-                    when (val ty = t.row.realType()) {
-                        is TRowEmpty -> "{}"
-                        !is TRowExtend -> "{ | ${go(ty, topLevel = true)} }"
-                        else -> {
-                            val rows = go(ty, topLevel = true)
-                            "{" + rows.substring(1, rows.lastIndex) + "}"
-                        }
-                    }
-                }
-                is TRowExtend -> {
-                    val labels = t.labels.show { k, v -> "$k : ${go(v, topLevel = true)}" }
-                    val str = when (val ty = t.row.realType()) {
-                        is TRowEmpty -> labels
-                        !is TRowExtend -> "$labels | ${go(ty, topLevel = true)}"
-                        else -> {
-                            val rows = go(ty, topLevel = true)
-                            "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
-                        }
-                    }
-                    "[ $str ]"
-                }
-                is TImplicit -> "{{ ${go(t.type)} }}"
+        fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
+            is TConst -> {
+                val isCurrent = Typechecker.context?.mod?.name?.value?.let { t.name.startsWith(it) } ?: false
+                val shouldQualify = !t.name.startsWith("prim.") && !isCurrent
+                if (qualified && shouldQualify) t.name else t.name.split('.').last()
             }
-            return if (t.isParens) "($str)" else str
+            is TApp -> {
+                val sname = go(t.type, nested)
+                val str = if (t.types.isEmpty()) sname
+                else sname + " " + t.types.joinToString(" ") { go(it, true) }
+                if (nested) "($str)" else str
+            }
+            is TArrow -> {
+                val args = if (t.args.size == 1) {
+                    go(t.args[0], t.args[0] is TArrow)
+                } else {
+                    t.args.joinToString(" ", prefix = "(", postfix = ")") { go(it, false) }
+                }
+                if (nested) "($args -> ${go(t.ret, false)})"
+                else "$args -> ${go(t.ret, nested)}"
+            }
+            is TVar -> {
+                when (val tv = t.tvar) {
+                    is TypeVar.Link -> go(tv.type, nested, topLevel)
+                    is TypeVar.Unbound -> showId(tv.id)
+                    is TypeVar.Generic -> showId(tv.id)
+                }
+            }
+            is TRowEmpty -> "{}"
+            is TRecord -> {
+                when (val ty = t.row.realType()) {
+                    is TRowEmpty -> "{}"
+                    !is TRowExtend -> "{ | ${go(ty, topLevel = true)} }"
+                    else -> {
+                        val rows = go(ty, topLevel = true)
+                        "{" + rows.substring(1, rows.lastIndex) + "}"
+                    }
+                }
+            }
+            is TRowExtend -> {
+                val labels = t.labels.show { k, v -> "$k : ${go(v, topLevel = true)}" }
+                val str = when (val ty = t.row.realType()) {
+                    is TRowEmpty -> labels
+                    !is TRowExtend -> "$labels | ${go(ty, topLevel = true)}"
+                    else -> {
+                        val rows = go(ty, topLevel = true)
+                        "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                    }
+                }
+                "[ $str ]"
+            }
+            is TImplicit -> "{{ ${go(t.type)} }}"
         }
         return go(this, false, topLevel = true)
     }
 
     companion object {
+        private val letters = "abcdefghijklmnopqrstuvwxyz".toList().map { it.toString() }
+
         fun nestArrows(args: List<Type>, ret: Type): Type = when {
             args.isEmpty() -> ret
             else -> TArrow(listOf(args[0]), nestArrows(args.drop(1), ret))

@@ -393,12 +393,12 @@ class Desugar(private val smod: SModule) {
                         }
                     } else TConst(name).span(span)
                 } else {
-                    val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
+                    val varName = smod.foreignTypes[name] ?: ((imports[fullname()] ?: moduleName) + ".$name")
                     TConst(varName, kind).span(span)
                 }
             }
             is SType.TFun -> TArrow(listOf(arg.goDesugar(isCtor, vars)), ret.goDesugar(isCtor, vars)).span(span)
-            is SType.TParens -> type.goDesugar(isCtor, vars, kindArity).parens(true)
+            is SType.TParens -> type.goDesugar(isCtor, vars, kindArity)
             is SType.TApp -> TApp(
                 type.goDesugar(isCtor, vars, types.size),
                 types.map { it.goDesugar(isCtor, vars) }).span(span)
