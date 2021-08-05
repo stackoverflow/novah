@@ -125,16 +125,11 @@ class Formatter {
 
     fun show(d: Decl.ValDecl): String {
         var prefix = ""
-        if (d.type != null) prefix = show(d.name, d.type) + "\n" + prefix
+        if (d.type != null) prefix = show(d.name, d.type) + "\n"
         prefix += d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
-        return if (shouldNewline(d.exp)) {
-            prefix + withIndent { tab + show(d.exp) }
-        } else {
-            val str = show(d.exp)
-            if (str.contains(newlineRegex)) prefix + withIndent { tab + show(d.exp) }
-            else "$prefix $str"
-        }
+        return if (d.exp.isSimpleExpr()) "$prefix ${show(d.exp)}"
+        else prefix + withIndent { tab + show(d.exp) }
     }
 
     fun show(d: DataConstructor): String {
@@ -144,28 +139,19 @@ class Formatter {
     fun show(e: Expr): String {
         val cmt = if (e.comment != null) show(e.comment!!) + tab else ""
         return cmt + when (e) {
-            is Expr.Do -> {
-                withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
-            }
+            is Expr.Do -> e.exps.joinToString("\n$tab") { show(it) }
             is Expr.Match -> {
                 val expsStr = e.exps.joinToString { show(it) }
                 "case $expsStr of" + withIndent { e.cases.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
             is Expr.Let -> {
-                val str = if (shouldNewline(e.body)) withIndent { "$tab${show(e.body)}" } else show(e.body)
-                "let " + withIndent(false) {
-                    withIndent(false) {
-                        show(e.letDef)
-                    }
-                } + "\n${tab}in $str"
+                val str = if (e.body.isSimpleExpr()) "in " + show(e.body)
+                else "in" + withIndent { tab + show(e.body) }
+                "let " + show(e.letDef) + "\n${tab}$str"
             }
             is Expr.DoLet -> {
                 val let = if (e.isBind) "let! " else "let "
-                let + withIndent(false) {
-                    withIndent(false) {
-                        show(e.letDef)
-                    }
-                }
+                let + show(e.letDef)
             }
             is Expr.If -> {
                 val simple = e.thenCase.isSimpleExpr() && e.elseCase.isSimpleExpr()
@@ -184,11 +170,9 @@ class Formatter {
                 "${show(e.exp)} : ${show(e.type)}"
             }
             is Expr.Lambda -> {
-                val shown = when {
-                    shouldNewline(e.body) -> " ->" + withIndent { tab + show(e.body) }
-                    e.body is Expr.Do -> " ->" + show(e.body)
-                    else -> " -> " + show(e.body)
-                }
+                val shown = if (e.body.isSimpleExpr()) " -> " + show(e.body)
+                else " ->" + withIndent { tab + show(e.body) }
+                
                 "\\" + e.patterns.joinToString(" ") { show(it) } + shown
             }
             is Expr.Var -> e.toString()
@@ -214,9 +198,12 @@ class Formatter {
             is Expr.RecordUpdate -> {
                 "{ .${e.labels.joinToString(".") { showLabel(it) }} = ${show(e.value)} | ${show(e.exp)} }"
             }
-            is Expr.RecordExtend -> "{ ${e.labels.show(::showLabelExpr)} | ${show(e.exp)} }"
-            is Expr.ListLiteral -> e.exps.joinToString(prefix = "[", postfix = "]")
-            is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}")
+            is Expr.RecordExtend -> {
+                val labels = e.labels.show(::showLabelExpr)
+                if (e.exp is Expr.RecordEmpty) "{ $labels }" else "{ $labels | ${show(e.exp)} }"
+            }
+            is Expr.ListLiteral -> e.exps.joinToString(prefix = "[", postfix = "]") { show(it) }
+            is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}") { show(it) }
             is Expr.Underscore -> "_"
             is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
             is Expr.Throw -> "throw ${show(e.exp)}"
@@ -271,14 +258,16 @@ class Formatter {
         is LiteralPattern.Float64Literal -> show(p.e)
     }
 
-    private fun show(l: LetDef): String = when (l) {
-        is LetDef.DefBind -> {
-            val typ = if (l.type != null) "${l.name} : ${show(l.type)}\n$tab" else ""
-            "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " = ${show(l.expr)}"
+    private fun show(l: LetDef): String {
+        val prefix = when (l) {
+            is LetDef.DefBind -> {
+                val typ = if (l.type != null) "${l.name} : ${show(l.type)}\n$tab" else ""
+                "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
+            }
+            is LetDef.DefPattern -> "${show(l.pat)} ="
         }
-        is LetDef.DefPattern -> {
-            "${show(l.pat)} = ${show(l.expr)}"
-        }
+        return if (l.expr.isSimpleExpr()) "$prefix ${show(l.expr)}"
+        else prefix + withIndent { tab + show(l.expr) }
     }
 
     fun show(t: Type): String = when (t) {
@@ -295,9 +284,12 @@ class Formatter {
         is Type.TApp -> show(t.type) + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
         is Type.TConst -> t.fullname()
-        is Type.TRecord -> "{ ${show(t.row)} }"
+        is Type.TRecord -> show(t.row)
         is Type.TRowEmpty -> "{}"
-        is Type.TRowExtend -> "{ ${t.labels.show(::showLabelType)} | ${show(t.row)} }"
+        is Type.TRowExtend -> {
+            val labels = t.labels.show(::showLabelType)
+            if (t.row is Type.TRowEmpty) "{ $labels }" else "{ $labels | ${show(t.row)} }"
+        }
         is Type.TImplicit -> "{{ ${show(t.type)} }}"
     }
 
@@ -337,9 +329,6 @@ class Formatter {
         }
     }
 
-    private fun shouldNewline(e: Expr) =
-        e is Expr.Let || e is Expr.If || e is Expr.Match || e is Expr.While || e is Expr.TryCatch
-
     private inline fun withIndent(shouldBreak: Boolean = true, f: () -> String): String {
         val oldIndent = tab
         tab = "$tab${tabSize}"
@@ -353,6 +342,5 @@ class Formatter {
         const val tabSize = "  " // 2 spaces
 
         val wordRegex = Regex("\\w")
-        val newlineRegex = Regex("\\R")
     }
 }
