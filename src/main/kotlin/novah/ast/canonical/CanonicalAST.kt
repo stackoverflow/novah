@@ -15,11 +15,15 @@
  */
 package novah.ast.canonical
 
+import novah.ast.source.ForeignImport
+import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.data.LabelMap
 import novah.data.mapList
 import novah.data.show
+import novah.frontend.Comment
 import novah.frontend.Span
+import novah.frontend.Spanned
 import novah.frontend.typechecker.Env
 import novah.frontend.typechecker.Type
 import java.lang.reflect.Field
@@ -31,37 +35,53 @@ import java.lang.reflect.Constructor as JConstructor
  */
 
 data class Module(
-    val name: String,
+    val name: Spanned<String>,
     val sourceName: String,
     val decls: List<Decl>,
-    val unusedImports: Map<String, Span>
+    val unusedImports: Map<String, Span>,
+    val imports: List<Import>,
+    val foreigns: List<ForeignImport>,
+    val comment: Comment?
 )
 
-sealed class Decl {
+sealed class Decl(open val span: Span, open val comment: Comment?) {
     data class TypeDecl(
         val name: String,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
-        val span: Span,
-        val visibility: Visibility
-    ) : Decl()
+        override val span: Span,
+        val visibility: Visibility,
+        override val comment: Comment? = null
+    ) : Decl(span, comment)
 
     data class ValDecl(
-        val name: String,
+        val name: Binder,
         val exp: Expr,
         val recursive: Boolean,
-        val span: Span,
+        override val span: Span,
         val type: Type?,
         val visibility: Visibility,
         val isInstance: Boolean,
-        val isOperator: Boolean
-    ) : Decl()
+        val isOperator: Boolean,
+        override val comment: Comment? = null
+    ) : Decl(span, comment)
+
+    fun isPublic() = when (this) {
+        is TypeDecl -> visibility == Visibility.PUBLIC
+        is ValDecl -> visibility == Visibility.PUBLIC
+    }
+}
+
+fun Decl.TypeDecl.show(): String {
+    return if (tyVars.isEmpty()) name else name + tyVars.joinToString(" ", prefix = " ")
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
     override fun toString(): String {
         return name + args.joinToString(" ", prefix = " ")
     }
+    
+    fun isPublic() = visibility == Visibility.PUBLIC
 }
 
 sealed class Expr(open val span: Span) {
@@ -128,6 +148,8 @@ fun Expr.Constructor.fullname(module: String): String = "$module.$name"
 
 data class Binder(val name: String, val span: Span, val isImplicit: Boolean = false) {
     override fun toString(): String = if (isImplicit) "{{$name}}" else name
+
+    var type: Type? = null
 }
 
 data class LetDef(

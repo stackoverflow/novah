@@ -34,7 +34,7 @@ class Parser(
 
     private var moduleName: String? = null
 
-    private data class ModuleDef(val name: String, val span: Span, val comment: Comment?)
+    private data class ModuleDef(val name: Spanned<String>, val span: Span, val comment: Comment?)
 
     fun parseFullModule(): Result<Module, CompilerProblem> {
         return try {
@@ -49,7 +49,7 @@ class Parser(
 
     private fun innerParseFullModule(): Module {
         val (mname, mspan, comment) = parseModule()
-        moduleName = mname
+        moduleName = mname.value
 
         val imports = mutableListOf<Import>()
         val foreigns = mutableListOf<ForeignImport>()
@@ -79,7 +79,7 @@ class Parser(
 
     private fun parseModule(): ModuleDef {
         val m = expect<ModuleT>(withError(E.MODULE_DEFINITION))
-        return ModuleDef(parseModuleName().joinToString("."), span(m.span, iter.current().span), m.comment)
+        return ModuleDef(parseModuleName(), span(m.span, iter.current().span), m.comment)
     }
 
     private fun parseDeclarationRefs(): List<DeclarationRef> {
@@ -97,7 +97,7 @@ class Parser(
     private fun parseDeclarationRef(): DeclarationRef {
         val sp = iter.next()
         return when (sp.value) {
-            is Ident -> DeclarationRef.RefVar(sp.value.v)
+            is Ident -> DeclarationRef.RefVar(sp.value.v, sp.span)
             is UpperIdent -> {
                 if (iter.peek().value is LParen) {
                     expect<LParen>(noErr())
@@ -108,17 +108,19 @@ class Parser(
                     } else {
                         between<Comma, UpperIdent> { parseUpperIdent() }.map { it.v }
                     }
-                    expect<RParen>(withError(E.DECLARATION_REF_ALL))
-                    DeclarationRef.RefType(sp.value.v, ctors)
-                } else DeclarationRef.RefType(sp.value.v)
+                    val end = expect<RParen>(withError(E.DECLARATION_REF_ALL))
+                    DeclarationRef.RefType(sp.value.v, span(sp.span, end.span), ctors)
+                } else DeclarationRef.RefType(sp.value.v, sp.span)
             }
-            is Op -> DeclarationRef.RefVar(sp.value.op)
+            is Op -> DeclarationRef.RefVar(sp.value.op, sp.span)
             else -> throwError(withError(E.EXPORT_REFER)(sp))
         }
     }
 
-    private fun parseModuleName(): List<String> {
-        return between<Dot, String> { expect<Ident>(withError(E.MODULE_NAME)).value.v }
+    private fun parseModuleName(): Spanned<String> {
+        val idents = between<Dot, Spanned<Ident>> { expect(withError(E.MODULE_NAME)) }
+        val span = span(idents[0].span, idents.last().span)
+        return Spanned(span, idents.joinToString(".") { it.value.v })
     }
 
     /**
@@ -126,12 +128,12 @@ class Parser(
      */
     private fun addDefaultImports(imports: MutableList<Import>) {
         imports += primImport
-        if (imports.none { it.module == CORE_MODULE } && moduleName != CORE_MODULE) {
+        if (imports.none { it.module.value == CORE_MODULE } && moduleName != CORE_MODULE) {
             imports += coreImport
         }
         if (!isStdlib) {
             // all aliased modules
-            val aliased = imports.filter { it.alias() != null }.map { it.module }.toSet()
+            val aliased = imports.filter { it.alias() != null }.map { it.module.value }.toSet()
 
             if (!aliased.contains(ARRAY_MODULE)) imports += arrayImport
             if (!aliased.contains(JAVA_MODULE)) imports += javaImport
@@ -147,7 +149,7 @@ class Parser(
 
     private fun parseImport(): Import {
         val impTk = expect<ImportT>(noErr())
-        val mname = parseModuleName().joinToString(".")
+        val mod = parseModuleName()
 
         val import = when (iter.peek().value) {
             is LParen -> {
@@ -155,15 +157,15 @@ class Parser(
                 if (iter.peek().value is As) {
                     iter.next()
                     val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
-                    Import.Exposing(mname, imp, span(impTk.span, alias.span), alias.value.v)
-                } else Import.Exposing(mname, imp, span(impTk.span, iter.current().span))
+                    Import.Exposing(mod, imp, span(impTk.span, alias.span), alias.value.v)
+                } else Import.Exposing(mod, imp, span(impTk.span, iter.current().span))
             }
             is As -> {
                 iter.next()
                 val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
-                Import.Raw(mname, span(impTk.span, alias.span), alias.value.v)
+                Import.Raw(mod, span(impTk.span, alias.span), alias.value.v)
             }
-            else -> Import.Raw(mname, span(impTk.span, iter.current().span))
+            else -> Import.Raw(mod, span(impTk.span, iter.current().span))
         }
 
         return import.withComment(impTk.comment)
@@ -238,6 +240,9 @@ class Parser(
                 val maybename = parseFullName()
                 val static = parseStatic()
                 val idx = maybename.lastIndexOf('.')
+                if (!static && idx == -1) {
+                    throwError(E.FOREIGN_METHOD_ERROR to span(tkSpan, iter.current().span))
+                }
                 val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseIdentOrString()
                 val pars = parsePars("method")
                 val alias = parseAlias()
@@ -347,11 +352,13 @@ class Parser(
         val (nameTk, name) = parseName("")
         return withOffside(nameTk.offside() + 1) {
             var type: Type? = null
+            var nameTk2: Spanned<Token>? = null
             if (iter.peek().value is Colon) {
                 type = parseTypeSignature()
                 withOffside(nameTk.offside()) {
-                    val (nameTk2, name2) = parseName(name)
-                    if (name != name2) throwError(withError(E.expectedDefinition(name))(nameTk2))
+                    val (tk, name2) = parseName(name)
+                    nameTk2 = tk
+                    if (name != name2) throwError(withError(E.expectedDefinition(name))(tk))
                 }
             }
             val vars = tryParseListOf { tryParsePattern(true) }
@@ -359,7 +366,9 @@ class Parser(
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
             val exp = parseDo()
-            Decl.ValDecl(name, vars, exp, type, vis, isInstance, isOperator).withSpan(nameTk.span, exp.span)
+            val binder = Binder(name, if (nameTk2 != null) nameTk2!!.span else nameTk.span)
+            Decl.ValDecl(binder, vars, exp, type, vis, isInstance, isOperator)
+                .withSpan(nameTk.span, exp.span)
         }
     }
 
@@ -558,7 +567,7 @@ class Parser(
         val op = expect<Op>(withError("Expected Operator."))
         return Expr.Operator(op.value.op).withSpanAndComment(op)
     }
-    
+
     private fun parseNull(): Expr {
         val nul = expect<Null>(noErr())
         return Expr.Null().withSpanAndComment(nul)
@@ -1026,7 +1035,7 @@ class Parser(
                     exps += parseExpression()
                     tk = iter.peek()
                 } while (!iter.peekIsOffside() && tk.value !in statementEnding)
-                
+
                 if (exps.size == 1) {
                     exps[0]
                 } else {
@@ -1066,7 +1075,7 @@ class Parser(
     private fun parseComputation(): Expr {
         val doo = expect<DoDot>(noErr())
         val builder = parseVar() as Expr.Var
-        
+
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val align = iter.peek().offside()
         return withIgnoreOffside(false) {

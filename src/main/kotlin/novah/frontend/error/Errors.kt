@@ -114,6 +114,8 @@ object Errors {
 
     const val FOREIGN_ALIAS = "Identifier has to start with a lower case letter."
 
+    const val FOREIGN_METHOD_ERROR = "Wrong syntax for foreign method."
+
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
 
     const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
@@ -164,7 +166,7 @@ object Errors {
     const val DO_WHILE = "Expected keyword `do` after while condition."
 
     const val EXP_SIMPLE = "Invalid expression for while condition."
-    
+
     const val LET_BANG = "`let!` syntax can only be used inside a computation expression."
 
     val ANONYMOUS_FUNCTION_ARGUMENT = """
@@ -409,7 +411,7 @@ object Errors {
         
             ${pats.joinToString()}
     """.trimIndent()
-    
+
     fun noAliasFound(alias: String) = "Could not find import alias $alias."
 
     fun equalsExpected(ctx: String) = "Expected `=` after $ctx."

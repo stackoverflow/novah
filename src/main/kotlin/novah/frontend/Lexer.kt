@@ -17,7 +17,7 @@ package novah.frontend
 
 import novah.frontend.Token.*
 
-data class Comment(val comment: String, val isMulti: Boolean = false)
+data class Comment(val comment: String, val span: Span, val isMulti: Boolean = false)
 
 sealed class Token {
 
@@ -93,8 +93,23 @@ data class Position(val line: Int, val column: Int) {
 data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val endColumn: Int) {
     override fun toString(): String = "$startLine:$startColumn - $endLine:$endColumn"
 
+    fun isMultiline() = startLine < endLine
+
+    fun length() = endColumn - startColumn
+
+    fun matches(line: Int, col: Int) = !(before(line, col) || after(line, col))
+
+    fun matchesLine(line: Int) = line in startLine..endLine
+
+    private fun before(line: Int, col: Int) =
+        line < startLine || (line == startLine && col < startColumn)
+
+    private fun after(line: Int, col: Int) =
+        line > endLine || (line == endLine && col > endColumn)
+
     companion object {
-        fun empty() = Span(-1, -1, -1, -1)
+        private val emptySpan = Span(-1, -1, -1, -1)
+        fun empty() = emptySpan
 
         fun new(begin: Span, end: Span) = Span(begin.startLine, begin.startColumn, end.endLine, end.endColumn)
         fun new(begin: Position, end: Position) = Span(begin.line, begin.column, end.line, end.column)
@@ -176,16 +191,18 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             '/' -> when (iter.peek()) {
                 '/' -> {
                     val comm = lineComment()
+                    val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
-                    comment = Comment(comm)
+                    comment = Comment(comm, endSpan)
                     return next.copy(comment = comment)
                 }
                 '*' -> {
                     val comm = multiLineComment()
+                    val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
-                    comment = Comment(comm, true)
+                    comment = Comment(comm, endSpan, isMulti = true)
                     return next.copy(comment = comment)
                 }
             }
@@ -376,8 +393,9 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         }
 
         val n = if (negative) -1 else 1
+        val pref = if (negative) "-" else ""
         if (!iter.hasNext()) {
-            return genNumIntToken("$init".toSafeLong(10) * n, "$init")
+            return genNumIntToken("$init".toSafeLong(10) * n, "$pref$init")
         }
         return if (init == '0' && iter.peek() != '.') {
             when (val c = iter.peek()) {
@@ -387,8 +405,8 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val bin = acceptMany("01")
                     if (bin.isEmpty()) lexError("Binary number cannot be empty")
                     val l = accept("L")
-                    if (l != null) LongT(bin.toSafeLong(2) * n, "0$c$bin")
-                    else genNumIntToken(bin.toSafeLong(2) * n, "0$c$bin")
+                    if (l != null) LongT(bin.toSafeLong(2) * n, "${pref}0$c$bin")
+                    else genNumIntToken(bin.toSafeLong(2) * n, "${pref}0$c$bin")
                 }
                 // hex numbers
                 'x', 'X' -> {
@@ -396,8 +414,8 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val hex = acceptMany("0123456789abcdefABCDEF")
                     if (hex.isEmpty()) lexError("Hexadecimal number cannot be empty")
                     val l = accept("L")
-                    if (l != null) LongT(hex.toSafeLong(16) * n, "0$c$hex")
-                    else genNumIntToken(hex.toSafeLong(16) * n, "0$c$hex")
+                    if (l != null) LongT(hex.toSafeLong(16) * n, "${pref}0$c$hex")
+                    else genNumIntToken(hex.toSafeLong(16) * n, "${pref}0$c$hex")
                 }
                 else -> {
                     if (c.isDigit()) lexError("Number 0 can only be followed by b|B or x|X: `$c`")
@@ -420,23 +438,23 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     iter.next()
                     val end = acceptMany("0123456789")
                     if (end.isEmpty()) lexError("Invalid number format: number cannot end in `.`")
-                    val number = if (iter.hasNext() && iter.peek().toLowerCase() == 'e') {
+                    val number = if (iter.hasNext() && iter.peek().lowercaseChar() == 'e') {
                         "$num.$end${readE()}"
                     } else "$num.$end"
 
                     val f = accept("F")
 
-                    if (f != null) FloatT(number.toSafeFloat() * n, number + f)
-                    else DoubleT(number.toSafeDouble() * n, number)
+                    if (f != null) FloatT(number.toSafeFloat() * n, pref + number + f)
+                    else DoubleT(number.toSafeDouble() * n, pref + number)
                 }
-                next.toLowerCase() == 'e' -> {
+                next.lowercaseChar() == 'e' -> {
                     // Double
                     val number = "$num${readE()}"
 
                     val f = accept("F")
 
-                    if (f != null) FloatT(number.toSafeFloat() * n, number + f)
-                    else DoubleT(number.toSafeDouble() * n, number)
+                    if (f != null) FloatT(number.toSafeFloat() * n, pref + number + f)
+                    else DoubleT(number.toSafeDouble() * n, pref + number)
                 }
                 else -> {
                     // Int or Double
@@ -444,10 +462,10 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                         val l = accept("L")
                         if (l == null) {
                             val f = accept("F")
-                            if (f != null) FloatT(num.toSafeFloat() * n, num + f)
-                            else genNumIntToken(num.toSafeLong(10) * n, num)
-                        } else LongT(num.toSafeLong(10) * n, num + l)
-                    } else genNumIntToken(num.toSafeLong(10) * n, num)
+                            if (f != null) FloatT(num.toSafeFloat() * n, pref + num + f)
+                            else genNumIntToken(num.toSafeLong(10) * n, pref + num)
+                        } else LongT(num.toSafeLong(10) * n, pref + num + l)
+                    } else genNumIntToken(num.toSafeLong(10) * n, pref + num)
                 }
             }
         }
@@ -490,7 +508,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             last = c
         }
 
-        return builder.toString().trimMargin("*").trim()
+        return builder.toString().trimMargin("*").trimIndent()
     }
 
     private fun accept(chars: String): Char? {

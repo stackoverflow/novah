@@ -1,3 +1,18 @@
+/**
+ * Copyright 2021 Islon Scherer
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package novah.frontend.typechecker
 
 import novah.data.*
@@ -97,6 +112,46 @@ sealed class Type {
         go(this)
     }
 
+    /**
+     * Recursively walks this type bottom->up
+     */
+    fun everywhereUnitBottomUp(f: (Type) -> Unit) {
+        fun go(t: Type) {
+            when (t) {
+                is TConst -> f(t)
+                is TApp -> {
+                    go(t.type)
+                    t.types.forEach(::go)
+                    f(t)
+                }
+                is TArrow -> {
+                    t.args.forEach(::go)
+                    go(t.ret)
+                    f(t)
+                }
+                is TVar -> {
+                    if (t.tvar is TypeVar.Link) go((t.tvar as TypeVar.Link).type)
+                    f(t)
+                }
+                is TRowEmpty -> f(t)
+                is TRecord -> {
+                    go(t.row)
+                    f(t)
+                }
+                is TRowExtend -> {
+                    go(t.row)
+                    t.labels.forEachList(::go)
+                    f(t)
+                }
+                is TImplicit -> {
+                    go(t.type)
+                    f(t)
+                }
+            }
+        }
+        go(this)
+    }
+
     fun kind(): Kind = when (this) {
         is TConst -> kind
         is TArrow -> Kind.Constructor(1)
@@ -171,12 +226,24 @@ sealed class Type {
     /**
      * Pretty print version of [toString]
      */
-    fun show(qualified: Boolean = true): String {
-        fun showId(id: Id) = if (id >= 0) "t$id" else "u${-id}"
+    fun show(qualified: Boolean = true, pretty: Boolean = false): String {
+        var idCount = -1
+        val varMap = mutableMapOf<Int, Int>()
+        fun showId(id: Id): String {
+            return if (pretty) {
+                val index = varMap[id]
+                if (index != null) letters[index]
+                else {
+                    idCount = (idCount + 1) % letters.size
+                    varMap[id] = idCount
+                    letters[idCount]
+                }
+            } else if (id >= 0) "t$id" else "u${-id}"
+        }
 
         fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
             is TConst -> {
-                val isCurrent = Typechecker.context?.mod?.name?.let { t.name.startsWith(it) } ?: false
+                val isCurrent = Typechecker.context?.mod?.name?.value?.let { t.name.startsWith(it) } ?: false
                 val shouldQualify = !t.name.startsWith("prim.") && !isCurrent
                 if (qualified && shouldQualify) t.name else t.name.split('.').last()
             }
@@ -188,7 +255,7 @@ sealed class Type {
             }
             is TArrow -> {
                 val args = if (t.args.size == 1) {
-                    go(t.args[0], false)
+                    go(t.args[0], t.args[0] is TArrow)
                 } else {
                     t.args.joinToString(" ", prefix = "(", postfix = ")") { go(it, false) }
                 }
@@ -231,6 +298,8 @@ sealed class Type {
     }
 
     companion object {
+        private val letters = "abcdefghijklmnopqrstuvwxyz".toList().map { it.toString() }
+
         fun nestArrows(args: List<Type>, ret: Type): Type = when {
             args.isEmpty() -> ret
             else -> TArrow(listOf(args[0]), nestArrows(args.drop(1), ret))

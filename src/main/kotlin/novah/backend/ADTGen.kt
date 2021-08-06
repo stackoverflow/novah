@@ -124,7 +124,7 @@ class ADTGen(
                     "",
                     prefix = "<",
                     postfix = ">"
-                ) { "T${it.toUpperCase()};" } + ";"
+                ) { "T${it.uppercase()};" } + ";"
             } else null
             cw.visitField(ACC_PUBLIC + ACC_FINAL + ACC_STATIC, INSTANCE, descriptor(className), fieldSig, null)
 

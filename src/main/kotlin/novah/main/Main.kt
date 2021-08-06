@@ -27,6 +27,7 @@ import novah.frontend.error.CompilerProblem.Companion.RED
 import novah.frontend.error.CompilerProblem.Companion.RESET
 import novah.frontend.error.CompilerProblem.Companion.YELLOW
 import novah.frontend.error.Severity
+import novah.ide.NovahIde
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -66,6 +67,7 @@ class CompileCommand : CliktCommand() {
         }
         if (classPath == null) {
             echo("classpath was not specified. Specify it with -cp <classpath>", err = true)
+            exitProcess(1)
         }
         if (verbose) echo("Compiling files to $out")
 
@@ -97,9 +99,26 @@ class CompileCommand : CliktCommand() {
     }
 }
 
+class IdeCommand : CliktCommand() {
+
+    private val verbose by option(
+        "-v",
+        "--verbose",
+        help = "Sends debug messages to the client"
+    ).flag(default = false)
+    
+    override fun run() {
+        NovahIde.run(verbose)
+    }
+}
+
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
-        CompileCommand().main(args)
+        if (args.isNotEmpty() && args[0] == "ide") {
+            IdeCommand().main(args.drop(1))
+        } else {
+            CompileCommand().main(args)
+        }
     }
 }

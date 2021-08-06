@@ -131,7 +131,7 @@ class ParserSpec : StringSpec({
         val vard = ast.decls[2] as Decl.ValDecl
 
         data.comment?.comment should contain("comments on type definitions work")
-        type.comment?.comment should contain("comments on var\n types work")
+        type.comment?.comment should contain("comments on var\ntypes work")
         vard.comment?.comment should contain("comments on var declaration work")
     }
 

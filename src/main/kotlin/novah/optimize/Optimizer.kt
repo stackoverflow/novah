@@ -71,7 +71,7 @@ class Optimizer(private val ast: CModule) {
             reportUnusedImports()
             Ok(optimized)
         } catch (ie: InferenceError) {
-            Err(CompilerProblem(ie.msg, ie.ctx, ie.span, ast.sourceName, ast.name))
+            Err(CompilerProblem(ie.msg, ie.ctx, ie.span, ast.sourceName, ast.name.value))
         }
     }
 
@@ -81,11 +81,11 @@ class Optimizer(private val ast: CModule) {
             if (d is CDataDecl) ds += d.convert()
             if (d is CValDecl) ds += d.convert()
         }
-        return Module(internalize(name), sourceName, haslambda, ds)
+        return Module(internalize(name.value), sourceName, haslambda, ds)
     }
 
     private fun CValDecl.convert(): Decl.ValDecl =
-        Decl.ValDecl(Names.convert(name), exp.convert(), visibility, span)
+        Decl.ValDecl(Names.convert(name.name), exp.convert(), visibility, span)
 
     private fun CDataDecl.convert(): Decl.TypeDecl =
         Decl.TypeDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span)
@@ -116,7 +116,7 @@ class Optimizer(private val ast: CModule) {
                 val conName = Names.convert(name)
                 val vvar = if (name in locals) Expr.LocalVar(conName, typ, span)
                 else {
-                    val cname = internalize(moduleName ?: ast.name) + "/Module"
+                    val cname = internalize(moduleName ?: ast.name.value) + "/Module"
                     Expr.Var(conName, cname, typ, span)
                 }
                 if (implicitContext != null) {
@@ -129,7 +129,7 @@ class Optimizer(private val ast: CModule) {
                 } else vvar
             }
             is CExpr.Constructor -> {
-                val ctorName = fullname(moduleName ?: ast.name)
+                val ctorName = fullname(moduleName ?: ast.name.value)
                 val arity = PatternMatchingCompiler.getFromCache(ctorName)?.arity
                     ?: internalError("Could not find constructor $name")
                 Expr.Constructor(internalize(ctorName), arity, typ, span)
@@ -138,7 +138,7 @@ class Optimizer(private val ast: CModule) {
                 val conName = Names.convert(name)
                 if (name in locals) Expr.LocalVar(conName, typ, span)
                 else {
-                    val cname = internalize(moduleName ?: ast.name) + "/Module"
+                    val cname = internalize(moduleName ?: ast.name.value) + "/Module"
                     Expr.Var(conName, cname, typ, span)
                 }
             }
@@ -206,7 +206,7 @@ class Optimizer(private val ast: CModule) {
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Match -> {
-                val match = cases.map { PatternMatchingCompiler.convert(it, ast.name) }
+                val match = cases.map { PatternMatchingCompiler.convert(it, ast.name.value) }
                 // guarded matches are ignored
                 val matches = match.filter { !it.isGuarded }
                 val compRes = PatternMatchingCompiler<Pattern>().compile(matches)
@@ -390,7 +390,7 @@ class Optimizer(private val ast: CModule) {
                 val vars = mutableListOf<VarDef>()
 
                 val ctor = p.ctor.convert(locals) as Expr.Constructor
-                val name = p.ctor.fullname(p.ctor.moduleName ?: ast.name)
+                val name = p.ctor.fullname(p.ctor.moduleName ?: ast.name.value)
                 val ctorType = Clazz(Type.getObjectType(internalize(name)))
                 conds += Expr.InstanceOf(exp, ctorType, p.span)
 
@@ -578,7 +578,7 @@ class Optimizer(private val ast: CModule) {
         if (unusedImports.isEmpty()) return
         val errs = unusedImports.map { (vvar, span) ->
             val msg = E.unusedImport(vvar)
-            CompilerProblem(msg, ProblemContext.DESUGAR, span, ast.sourceName, ast.name)
+            CompilerProblem(msg, ProblemContext.DESUGAR, span, ast.sourceName, ast.name.value)
         }
         throw CompilationError(errs)
     }
@@ -589,7 +589,7 @@ class Optimizer(private val ast: CModule) {
             ProblemContext.PATTERN_MATCHING,
             span,
             ast.sourceName,
-            ast.name,
+            ast.name.value,
             null,
             Severity.WARN
         )

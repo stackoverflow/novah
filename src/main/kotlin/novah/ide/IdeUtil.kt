@@ -13,13 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah;
+package novah.ide
 
-import java.util.function.Function;
+import novah.frontend.Span
+import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.Range
+import java.io.File
+import java.net.URI
 
-/**
- * A recursive function used for recursive let bindings.
- */
-public class RecFunction<T, R> {
-    public Function<T, R> fun;
+object IdeUtil {
+
+    fun uriToFile(uri: String) = File(URI(uri).path)
+
+    fun spanToRange(s: Span): Range {
+        val start = Position(s.startLine - 1, s.startColumn - 1)
+        val end = Position(s.endLine - 1, s.endColumn - 1)
+        return Range(start, end)
+    }
 }

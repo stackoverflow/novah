@@ -25,7 +25,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Method
 
 data class Module(
-    val name: String,
+    val name: Spanned<String>,
     val sourceName: String,
     val imports: List<Import>,
     val foreigns: List<ForeignImport>,
@@ -45,13 +45,15 @@ data class Module(
 
 enum class Visibility {
     PUBLIC, PRIVATE;
+
+    fun isPublic() = this == PUBLIC
 }
 
 /**
  * A reference that can be imported
  */
-sealed class DeclarationRef(open val name: String) {
-    data class RefVar(override val name: String) : DeclarationRef(name) {
+sealed class DeclarationRef(open val name: String, open val span: Span) {
+    data class RefVar(override val name: String, override val span: Span) : DeclarationRef(name, span) {
         override fun toString(): String = name
     }
 
@@ -59,7 +61,8 @@ sealed class DeclarationRef(open val name: String) {
      * `null` ctors mean only the type is imported, but no constructors.
      * Empty ctors mean all constructors are imported.
      */
-    data class RefType(override val name: String, val ctors: List<String>? = null) : DeclarationRef(name) {
+    data class RefType(override val name: String, override val span: Span, val ctors: List<String>? = null) :
+        DeclarationRef(name, span) {
         override fun toString(): String = when {
             ctors == null -> name
             ctors.isEmpty() -> "$name(..)"
@@ -77,10 +80,16 @@ sealed class ForeignRef {
     data class CtorRef(val ctor: Constructor<*>) : ForeignRef()
 }
 
-sealed class Import(open val module: String) {
-    data class Raw(override val module: String, val span: Span, val alias: String? = null) : Import(module)
+sealed class Import(open val module: Spanned<String>) {
+    data class Raw(
+        override val module: Spanned<String>,
+        val span: Span,
+        val alias: String? = null,
+        val auto: Boolean = false
+    ) : Import(module)
+
     data class Exposing(
-        override val module: String,
+        override val module: Spanned<String>,
         val defs: List<DeclarationRef>,
         val span: Span,
         val alias: String? = null
@@ -94,6 +103,11 @@ sealed class Import(open val module: String) {
     fun span(): Span = when (this) {
         is Raw -> span
         is Exposing -> span
+    }
+
+    fun isAuto(): Boolean = when (this) {
+        is Exposing -> false
+        is Raw -> auto
     }
 
     var comment: Comment? = null
@@ -123,9 +137,9 @@ sealed class ForeignImport(val type: String, val span: Span) {
 fun ForeignImport.name(): String = when (this) {
     is ForeignImport.Type -> alias ?: type.split(".").last()
     is ForeignImport.Ctor -> alias
-    is ForeignImport.Method -> name
-    is ForeignImport.Getter -> name
-    is ForeignImport.Setter -> name
+    is ForeignImport.Method -> alias ?: name
+    is ForeignImport.Getter -> alias ?: name
+    is ForeignImport.Setter -> alias
 }
 
 sealed class Decl(val name: String, val visibility: Visibility) {
@@ -138,14 +152,14 @@ sealed class Decl(val name: String, val visibility: Visibility) {
     ) : Decl(name, visibility)
 
     class ValDecl(
-        name: String,
+        val binder: Binder,
         val patterns: List<Pattern>,
         val exp: Expr,
         val type: Type?,
         visibility: Visibility,
         val isInstance: Boolean,
         val isOperator: Boolean
-    ) : Decl(name, visibility)
+    ) : Decl(binder.name, visibility)
 
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
         Decl(name, visibility) {
@@ -381,6 +395,17 @@ sealed class Type(open val span: Span) {
         is TApp -> type.simpleName()
         is TParens -> type.simpleName()
         else -> null
+    }
+
+    fun withSpan(s: Span) = when (this) {
+        is TConst -> copy(span = s)
+        is TFun -> copy(span = s)
+        is TApp -> copy(span = s)
+        is TParens -> copy(span = s)
+        is TRecord -> copy(span = s)
+        is TRowEmpty -> copy(span = s)
+        is TRowExtend -> copy(span = s)
+        is TImplicit -> copy(span = s)
     }
 }
 

@@ -54,6 +54,7 @@ import novah.ast.canonical.Module as TypedModule
  */
 class Environment(classPath: String, private val verbose: Boolean) {
     private val modules = mutableMapOf<String, FullModuleEnv>()
+    private val sourceMap = mutableMapOf<Path, String>()
 
     private val errors = mutableListOf<CompilerProblem>()
     private val warnings = mutableListOf<CompilerProblem>()
@@ -90,11 +91,13 @@ class Environment(classPath: String, private val verbose: Boolean) {
                 val parser = Parser(lexer, isStdlib, path.toFile().invariantSeparatorsPath)
                 parser.parseFullModule().mapBoth(
                     { mod ->
-                        val node = DagNode(mod.name, mod)
-                        if (modMap.containsKey(mod.name)) {
+                        val module = mod.name.value
+                        if (!isStdlib) sourceMap[path] = module
+                        val node = DagNode(module, mod)
+                        if (modMap.containsKey(module)) {
                             errors += duplicateError(mod, path)
                         }
-                        modMap[mod.name] = node
+                        modMap[module] = node
                     },
                     { err -> errors += err }
                 )
@@ -103,7 +106,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
         if (errors.isNotEmpty()) throwErrors()
 
         if (modMap.isEmpty()) {
-            println("No files to compile")
+            if (verbose) echo("No files to compile")
             return modules
         }
 
@@ -112,7 +115,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
         // link all the nodes
         modMap.values.forEach { node ->
             node.data.imports.forEach { imp ->
-                modMap[imp.module]?.link(node)
+                modMap[imp.module.value]?.link(node)
             }
         }
         modGraph.findCycle()?.let { reportCycle(it) }
@@ -126,7 +129,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
             if (errs.isNotEmpty()) throwErrors(errs)
             warnings.addAll(warns)
 
-            if (verbose) echo("Typechecking ${mod.data.name}")
+            if (verbose) echo("Typechecking ${mod.data.name.value}")
 
             val desugar = Desugar(mod.data)
             val (canonical, errs_) = desugar.desugar().unwrapOrElse { throwAllErrors(it) }
@@ -137,7 +140,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
             if (errors.isNotEmpty()) throwErrors()
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
-            modules[mod.data.name] = FullModuleEnv(menv, canonical, taliases)
+            modules[mod.data.name.value] = FullModuleEnv(menv, canonical, taliases)
         }
         return modules
     }
@@ -151,9 +154,9 @@ class Environment(classPath: String, private val verbose: Boolean) {
             val opt = optimizer.convert().unwrapOrElse { throwError(it) }
 
             warnings.addAll(optimizer.getWarnings())
-            val optAST = Optimization.run(opt)
 
             if (!dryRun) {
+                val optAST = Optimization.run(opt)
                 val codegen = Codegen(optAST) { dirName, fileName, bytes ->
                     val dir = output.resolve(dirName)
                     dir.mkdirs()
@@ -166,7 +169,9 @@ class Environment(classPath: String, private val verbose: Boolean) {
         if (!dryRun) copyNativeLibs(output)
     }
 
-    fun getModuleEnvs() = modules
+    fun modules() = modules
+
+    fun sourceMap() = sourceMap
 
     /**
      * Copy all the java classes necessary for novah to run
@@ -181,18 +186,18 @@ class Environment(classPath: String, private val verbose: Boolean) {
         val msg = Errors.cycleFound(nodes.map { it.value })
         nodes.forEach { n ->
             val mod = n.data
-            errors += CompilerProblem(msg, ProblemContext.MODULE, mod.span, mod.sourceName, mod.name)
+            errors += CompilerProblem(msg, ProblemContext.MODULE, mod.span, mod.sourceName, mod.name.value)
         }
         throwErrors()
     }
 
     private fun duplicateError(mod: Module, path: Path): CompilerProblem {
         return CompilerProblem(
-            Errors.duplicateModule(mod.name),
+            Errors.duplicateModule(mod.name.value),
             ProblemContext.MODULE,
             mod.span,
             path.toFile().invariantSeparatorsPath,
-            mod.name
+            mod.name.value
         )
     }
 
@@ -261,5 +266,5 @@ data class TypeDeclRef(val type: Type, val visibility: Visibility, val ctors: Li
 
 data class ModuleEnv(
     val decls: Map<String, DeclRef>,
-    val types: Map<String, TypeDeclRef>,
+    val types: Map<String, TypeDeclRef>
 )

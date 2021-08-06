@@ -1,9 +1,28 @@
+/**
+ * Copyright 2021 Islon Scherer
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package novah.frontend.typechecker
 
 import io.lacuna.bifurcan.Map
+import novah.ast.canonical.Decl
+import novah.ast.canonical.Module
 import novah.ast.source.Import
 import novah.ast.source.Visibility
+import novah.frontend.Comment
 import novah.frontend.Span
+import novah.frontend.Spanned
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
@@ -65,17 +84,20 @@ const val RESULT_MODULE = "novah.result"
 const val TEST_MODULE = "novah.test"
 const val COMPUTATION_MODULE = "novah.computation"
 
-val primImport = Import.Raw(PRIM, Span.empty())
-val coreImport = Import.Raw(CORE_MODULE, Span.empty())
-val arrayImport = Import.Raw(ARRAY_MODULE, Span.empty(), "Array")
-val javaImport = Import.Raw(JAVA_MODULE, Span.empty(), "Java")
-val listImport = Import.Raw(LIST_MODULE, Span.empty(), "List")
-val mathImport = Import.Raw(MATH_MODULE, Span.empty(), "Math")
-val optionImport = Import.Raw(OPTION_MODULE, Span.empty(), "Option")
-val setImport = Import.Raw(SET_MODULE, Span.empty(), "Set")
-val stringImport = Import.Raw(STRING_MODULE, Span.empty(), "String")
-val mapImport = Import.Raw(MAP_MODULE, Span.empty(), "Map")
-val resultImport = Import.Raw(RESULT_MODULE, Span.empty(), "Result")
+private val espan = Span.empty()
+private fun spanned(name: String) = Spanned(espan, name)
+
+val primImport = Import.Raw(spanned(PRIM), espan, auto = true)
+val coreImport = Import.Raw(spanned(CORE_MODULE), espan, auto = true)
+val arrayImport = Import.Raw(spanned(ARRAY_MODULE), espan, "Array", auto = true)
+val javaImport = Import.Raw(spanned(JAVA_MODULE), espan, "Java", auto = true)
+val listImport = Import.Raw(spanned(LIST_MODULE), espan, "List", auto = true)
+val mathImport = Import.Raw(spanned(MATH_MODULE), espan, "Math", auto = true)
+val optionImport = Import.Raw(spanned(OPTION_MODULE), espan, "Option", auto = true)
+val setImport = Import.Raw(spanned(SET_MODULE), espan, "Set", auto = true)
+val stringImport = Import.Raw(spanned(STRING_MODULE), espan, "String", auto = true)
+val mapImport = Import.Raw(spanned(MAP_MODULE), espan, "Map", auto = true)
+val resultImport = Import.Raw(spanned(RESULT_MODULE), espan, "Result", auto = true)
 
 const val primByte = "$PRIM.Byte"
 const val primInt16 = "$PRIM.Int16"
@@ -185,3 +207,39 @@ val primModuleEnv = ModuleEnv(
         "Nullable" to tdecl(tNullable)
     )
 )
+
+val primModule = Module(
+    spanned(PRIM),
+    PRIM,
+    listOf(
+        primType("Byte", "A 8 bits integer.\nEquivalent to `java.lang.Byte`."),
+        primType("Int16", "A 16 bits integer.\nEquivalent to `java.lang.Short`."),
+        primType("Int32", "A 32 bits integer.\nEquivalent to `java.lang.Integer`."),
+        primType("Int64", "A 64 bits integer.\nEquivalent to `java.lang.Long`."),
+        primType("Float32", "A 32 bits floating point number.\nEquivalent to `java.lang.Float`."),
+        primType("Float64", "A 64 bits floating point number.\nEquivalent to `java.lang.Double`."),
+        primType("Char", "A UTF-16 character.\nEquivalent to `java.lang.Character`."),
+        primType("Boolean", "A value that can be either true or false.\nEquivalent to `java.lang.Boolean`."),
+        primType("String", "A String of characters.\nEquivalent to `java.lang.String`."),
+        primType(
+            "Unit", """Represents the absence of a value.
+            |Normally used to represent a function that takes no parameters or returns nothing""".trimMargin()
+        ),
+        primType("Object", "A platform reference value.\nEquivalent to `java.lang.Object`."),
+        primType("Nullable", "Represents a foreign value that can be `null`.\nUsed for Java interop."),
+        primType("Array", "A platform array.\nEquivalent to a Java array."),
+        primType(
+            "List", """A persistent, immutable list of values.
+            |Can also be used as a vector, stack or queue.
+            |Equivalent to `io.lacuna.bifurcan.List`.""".trimMargin()
+        ),
+        primType("Set", "A persistent, immutable set of values.\nEquivalent to `io.lacuna.bifurcan.Set`."),
+    ),
+    emptyMap(),
+    emptyList(),
+    emptyList(),
+    Comment("The primitive module contains all primitive defined types.", Span.empty(), true)
+)
+
+private fun primType(name: String, comment: String) =
+    Decl.TypeDecl(name, emptyList(), emptyList(), Span.empty(), Visibility.PUBLIC, Comment(comment, Span.empty(), true))

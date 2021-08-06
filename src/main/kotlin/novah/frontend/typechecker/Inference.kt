@@ -1,3 +1,18 @@
+/**
+ * Copyright 2021 Islon Scherer
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package novah.frontend.typechecker
 
 import novah.Util.internalError
@@ -29,7 +44,7 @@ object Inference {
 
     private val implicitsToCheck = mutableListOf<Expr>()
     private val warnings = mutableListOf<CompilerProblem>()
-    
+
     fun getWarnings(): List<CompilerProblem> = warnings
 
     /**
@@ -48,15 +63,15 @@ object Inference {
 
         val datas = ast.decls.filterIsInstance<Decl.TypeDecl>()
         datas.forEach { d ->
-            val (ty, map) = getDataType(d, ast.name)
+            val (ty, map) = getDataType(d, ast.name.value)
             checkShadowType(env, d.name, d.span)
-            env.extendType("${ast.name}.${d.name}", ty)
+            env.extendType("${ast.name.value}.${d.name}", ty)
 
             d.dataCtors.forEach { dc ->
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
-                Environment.cacheConstructorType("${ast.name}.${dc.name}", dcty)
+                Environment.cacheConstructorType("${ast.name.value}.${dc.name}", dcty)
                 decls[dc.name] = DeclRef(dcty, dc.visibility, false)
             }
             types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
@@ -70,7 +85,7 @@ object Inference {
         val vals = ast.decls.filterIsInstance<Decl.ValDecl>()
         vals.filter { it.exp is Expr.Ann }.forEach { decl ->
             val expr = decl.exp as Expr.Ann
-            val name = decl.name
+            val name = decl.name.name
             checkShadow(env, name, decl.span)
             env.extend(name, expr.annType)
             if (decl.isInstance) env.extendInstance(name, expr.annType)
@@ -79,7 +94,7 @@ object Inference {
         vals.forEach { decl ->
             implicitsToCheck.clear()
             context?.apply { this.decl = decl }
-            val name = decl.name
+            val name = decl.name.name
             val isAnnotated = decl.exp is Expr.Ann
             if (!isAnnotated) checkShadow(env, name, decl.span)
 
@@ -149,6 +164,7 @@ object Inference {
                 if (binder.isImplicit) newEnv.extendInstance(binder.name, param, true)
                 val returnTy = infer(newEnv, level, exp.body)
                 val ty = TArrow(listOf(param), returnTy)
+                binder.type = param
                 exp.withType(ty)
             }
             is Expr.Let -> {
@@ -592,8 +608,14 @@ object Inference {
     }
 
     private fun makeWarner(ast: Module) = { msg: String, span: Span ->
-        val warn =
-            CompilerProblem(msg, ProblemContext.TYPECHECK, span, ast.sourceName, ast.name, severity = Severity.WARN)
+        val warn = CompilerProblem(
+            msg,
+            ProblemContext.TYPECHECK,
+            span,
+            ast.sourceName,
+            ast.name.value,
+            severity = Severity.WARN
+        )
         warnings += warn
     }
 }

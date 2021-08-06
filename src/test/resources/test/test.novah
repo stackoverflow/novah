@@ -1,5 +1,43 @@
 module test
 
+import novah.linkedList as LList
+
+foreign import type java.io.File
+foreign import new File(String) as newFile
+foreign import File.getName() as fileName
+
+type MyList a
+  = Niu
+  | Kons a (MyList a)
+
+type Maybe a
+  = Just a
+  | Nothing
+
+baz = 1
+
+nf : String -> File
+nf x =
+  newFile x
+
+name : File -> String
+name f =
+  fileName f
+
+myfun : Int -> String
+myfun x =
+  let vari = x * x
+  let other = vari * x
+  x + vari + other |> show
+
+rec : { age : Int, name : String, pet : String }
+rec =
+  { age: 20, name: "Pete", pet: "cat" }
+
+fullname : { name : String, lastName : String } -> String
+fullname person =
+  format "%s %s" [person.name, person.lastName]
+
 foo : (Int -> Boolean) -> List Int -> Int
 foo pred list =
   case list of
@@ -7,6 +45,10 @@ foo pred list =
     [x] if pred x -> x
     _ -> -1
 
+bar : String
+bar = "asd"
+
 pub
 main : Array String -> Unit
-main _ = foo (_ > 1) [1, 2, 3, 4] |> println
+main _ =
+  foo (_ > 1) [1, 2, 3, 4] |> println

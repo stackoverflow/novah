@@ -54,7 +54,7 @@ object TypeUtil {
 
         val superVars = if (superClass != OBJECT_CLASS) {
             tyVars.joinToString("", prefix = "<", postfix = ">") {
-                "T${it.toUpperCase()};"
+                "T${it.uppercase()};"
             }
         } else ""
 

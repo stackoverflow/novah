@@ -49,7 +49,7 @@ import novah.frontend.error.Errors as E
 class Desugar(private val smod: SModule) {
 
     private val imports = smod.resolvedImports
-    private val moduleName = smod.name
+    private val moduleName = smod.name.value
     private var synonyms = emptyMap<String, TypealiasDecl>()
     private val warnings = mutableListOf<CompilerProblem>()
     private val errors = mutableListOf<CompilerProblem>()
@@ -70,9 +70,19 @@ class Desugar(private val smod: SModule) {
             synonyms = validateTypealiases()
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
             reportUnusedImports()
-            Ok(Module(moduleName, smod.sourceName, decls, unusedImports) to errors)
+            Ok(
+                Module(
+                    smod.name,
+                    smod.sourceName,
+                    decls,
+                    unusedImports,
+                    smod.imports,
+                    smod.foreigns,
+                    smod.comment
+                ) to errors
+            )
         } catch (pe: ParserError) {
-            Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, smod.name)))
+            Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, moduleName)))
         } catch (ce: CompilationError) {
             Err(ce.problems)
         }
@@ -87,7 +97,7 @@ class Desugar(private val smod: SModule) {
             if (smod.foreignTypes[name] != null || imports[name] != null) {
                 parserError(E.duplicatedType(name), span)
             }
-            Decl.TypeDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility)
+            Decl.TypeDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility, comment)
         }
         is SDecl.ValDecl -> {
             if (declNames.contains(name)) parserError(E.duplicatedDecl(name), span)
@@ -105,10 +115,20 @@ class Desugar(private val smod: SModule) {
 
             // if the declaration has a type annotation, annotate it
             expr = if (type != null) {
-                Expr.Ann(expr, type.desugar(), span)
+                Expr.Ann(expr, type.desugar(), expr.span)
             } else expr
             if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
-            Decl.ValDecl(name, expr, name in declVars, span, type?.desugar(), visibility, isInstance, isOperator)
+            Decl.ValDecl(
+                binder.desugar(),
+                expr,
+                name in declVars,
+                span,
+                type?.desugar(),
+                visibility,
+                isInstance,
+                isOperator,
+                comment
+            )
         }
         else -> null
     }
@@ -196,7 +216,7 @@ class Desugar(private val smod: SModule) {
                 if (!it.implicit && !it.instance) unusedVars[it.name] = it.span
                 checkShadow(it.name, it.span)
             }
-            nestLets(letDef, body.desugar(locals + vars.map { it.name }), locals)
+            nestLets(letDef, body.desugar(locals + vars.map { it.name }), span, locals)
         }
         is SExpr.Match -> {
             val args = exps.map {
@@ -272,7 +292,7 @@ class Desugar(private val smod: SModule) {
                     Binder(v, it.span) to Expr.Var(v, it.span)
                 } else null to it.desugar(locals)
             }
-            val inner = Expr.App(op.desugar(locals), args[0].second, Span.new(op.span, left.span))
+            val inner = Expr.App(op.desugar(locals), args[0].second, Span.new(left.span, op.span))
             val app = Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
             nestLambdas(args.mapNotNull { it.first }, app)
         }
@@ -373,7 +393,7 @@ class Desugar(private val smod: SModule) {
                         }
                     } else TConst(name).span(span)
                 } else {
-                    val varName = smod.foreignTypes[name] ?: (imports[fullname()] ?: moduleName) + ".$name"
+                    val varName = smod.foreignTypes[name] ?: ((imports[fullname()] ?: moduleName) + ".$name")
                     TConst(varName, kind).span(span)
                 }
             }
@@ -433,14 +453,14 @@ class Desugar(private val smod: SModule) {
                 is SPattern.Var -> Expr.Lambda(
                     Binder(pat.name, pat.span, false),
                     nestLambdaPatterns(pats.drop(1), exp, locals),
-                    exp.span
+                    Span.new(pat.span, exp.span)
                 )
                 is SPattern.ImplicitPattern -> {
                     if (pat.pat is SPattern.Var) {
                         Expr.Lambda(
                             Binder(pat.pat.name, pat.span, true),
                             nestLambdaPatterns(pats.drop(1), exp, locals),
-                            exp.span
+                            Span.new(pat.span, exp.span)
                         )
                     } else {
                         val v = newVar()
@@ -449,26 +469,27 @@ class Desugar(private val smod: SModule) {
                         Expr.Lambda(
                             Binder(v, pat.span, true),
                             nestLambdaPatterns(pats.drop(1), expr, locals),
-                            exp.span
+                            Span.new(pat.span, exp.span)
                         )
                     }
                 }
                 else -> {
                     val vars = pats.map { Expr.Var(newVar(), it.span) }
-                    val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals) }, exp)), exp.span)
+                    val span = Span.new(pat.span, exp.span)
+                    val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals) }, exp)), span)
                     nestLambdas(vars.map { Binder(it.name, it.span) }, expr)
                 }
             }
         }
     }
 
-    private fun nestLets(ld: SLetDef, exp: Expr, locals: List<String>): Expr = when (ld) {
+    private fun nestLets(ld: SLetDef, exp: Expr, span: Span, locals: List<String>): Expr = when (ld) {
         is SLetDef.DefBind -> {
-            Expr.Let(ld.desugar(locals), exp, exp.span)
+            Expr.Let(ld.desugar(locals), exp, span)
         }
         is SLetDef.DefPattern -> {
             val case = Case(listOf(ld.pat.desugar(locals)), exp)
-            Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), Span.new(ld.pat.span, exp.span))
+            Expr.Match(listOf(ld.expr.desugar(locals)), listOf(case), span)
         }
     }
 
@@ -551,14 +572,14 @@ class Desugar(private val smod: SModule) {
      */
     private fun resolveAliases(ty: SType): SType {
         return when (ty) {
-            is SType.TConst -> synonyms[ty.name]?.expanded ?: ty
+            is SType.TConst -> synonyms[ty.name]?.expanded?.withSpan(ty.span) ?: ty
             is SType.TParens -> ty.copy(type = resolveAliases(ty.type))
             is SType.TFun -> ty.copy(arg = resolveAliases(ty.arg), ret = resolveAliases(ty.ret))
             is SType.TApp -> {
                 val typ = ty.type as SType.TConst
                 val syn = synonyms[typ.name]
                 if (syn != null) {
-                    val synTy = syn.expanded ?: internalError("Got unexpanded typealias: $syn")
+                    val synTy = syn.expanded?.withSpan(ty.type.span) ?: internalError("Got unexpanded typealias: $syn")
                     syn.tyVars.zip(ty.types).fold(synTy) { oty, (tvar, type) ->
                         oty.substVar(tvar, resolveAliases(type))
                     }
@@ -613,10 +634,10 @@ class Desugar(private val smod: SModule) {
         }
 
         val (decls, types) = desugared.partitionIsInstance<Decl.ValDecl, Decl>()
-        val deps = decls.associate { it.name to collectDependencies(it.exp) }
+        val deps = decls.associate { it.name.name to collectDependencies(it.exp) }
 
         val dag = DAG<String, Decl.ValDecl>()
-        val nodes = decls.associate { it.name to DagNode(it.name, it) }
+        val nodes = decls.associate { it.name.name to DagNode(it.name.name, it) }
         dag.addNodes(nodes.values)
 
         nodes.values.forEach { node ->
@@ -667,14 +688,14 @@ class Desugar(private val smod: SModule) {
             val exp = exprs[0]
             if (exp is SExpr.DoLet) {
                 val body = convertDoLets(exprs.drop(1), builder)
-                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body)
+                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
                 if (exp.isBind && builder != null) {
                     val span = exp.span
                     val select = SExpr.RecordSelect(builder, listOf("bind")).withSpan(span)
                     val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), bodyExp).withSpan(span)
                     listOf(SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span))
                 } else {
-                    listOf(SExpr.Let(exp.letDef, bodyExp))
+                    listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span, bodyExp.span))
                 }
             } else {
                 listOf(exp) + convertDoLets(exprs.drop(1), builder)
@@ -748,7 +769,7 @@ class Desugar(private val smod: SModule) {
         fun findImport(name: String): Span? = smod.imports.find {
             when (it) {
                 is Import.Raw -> false
-                is Import.Exposing -> it.module == name
+                is Import.Exposing -> it.module.value == name
             }
         }?.span()
 
@@ -774,13 +795,13 @@ class Desugar(private val smod: SModule) {
             ProblemContext.DESUGAR,
             unusedVars.values.first(),
             smod.sourceName,
-            smod.name
+            moduleName
         )
         errors += err
     }
-    
+
     private val aliasedImports = smod.imports.mapNotNull { it.alias() }.toSet()
-    
+
     private fun checkAlias(alias: String, span: Span) {
         if (alias !in aliasedImports) {
             val err = CompilerProblem(
@@ -788,12 +809,12 @@ class Desugar(private val smod: SModule) {
                 ProblemContext.DESUGAR,
                 span,
                 smod.sourceName,
-                smod.name
+                moduleName
             )
             errors += err
         }
     }
-    
+
     private fun checkShadow(name: String, span: Span) {
         if (imports.containsKey(name)) {
             val err = CompilerProblem(
@@ -801,7 +822,7 @@ class Desugar(private val smod: SModule) {
                 ProblemContext.DESUGAR,
                 span,
                 smod.sourceName,
-                smod.name
+                moduleName
             )
             errors += err
         }
@@ -814,7 +835,7 @@ class Desugar(private val smod: SModule) {
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
 
     private fun makeError(msg: String, span: Span): CompilerProblem =
-        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, smod.name)
+        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, moduleName)
 
     companion object {
         fun collectVars(exp: Expr): List<String> =

@@ -1,9 +1,9 @@
 module stream
 
-foreign import type java.util.stream.Stream
-
 import novah.stream as Stream
 import novah.test
+
+foreign import type java.util.stream.Stream
 
 vs : List a -> Stream a
 vs = List.stream

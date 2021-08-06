@@ -210,7 +210,7 @@ class PatternMatchingCompiler<R> {
             for (dd in mod.decls.filterIsInstance<Decl.TypeDecl>()) {
                 val span = dd.dataCtors.size
                 for (c in dd.dataCtors) {
-                    val name = "${mod.name}.${c.name}"
+                    val name = "${mod.name.value}.${c.name}"
                     if (ctorCache.containsKey(name)) break
                     ctorCache[name] = Ctor(c.name, c.args.size, span)
                 }
@@ -218,6 +218,10 @@ class PatternMatchingCompiler<R> {
         }
 
         fun getFromCache(name: String): Ctor? = ctorCache[name]
+
+        fun resetCache() {
+            ctorCache.clear()
+        }
 
         fun convert(c: Case, modName: String): MatchRule<Pattern> {
             val pat = if (c.patterns.size == 1) convertPattern(c.patterns[0], modName)
