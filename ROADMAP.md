@@ -4,7 +4,7 @@
 - [ ] Add JSON support to the error reporter
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [X] IDE support (WIP)
-- [ ] LSP implemented in the compiler
+- [X] LSP implemented in the compiler (WIP)
 - [ ] Some compiler help for lenses?
 - [X] Computation expressions
 - [X] Standard library (WIP)
