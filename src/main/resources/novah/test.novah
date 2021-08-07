@@ -171,8 +171,8 @@ check desc fun =
     [1, 0, 0]
   catch
     :? AssertionError as err ->
-      printStackTrace (unsafeCast err)
+      printStackTrace (err as Throwable)
       [0, 1, 0]
     :? Exception as err ->
-      printStackTrace (unsafeCast err)
+      printStackTrace (err as Throwable)
       [0, 0, 1]

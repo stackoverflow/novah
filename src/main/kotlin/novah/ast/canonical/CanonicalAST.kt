@@ -126,6 +126,7 @@ sealed class Expr(open val span: Span) {
 
     data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
     class Null(span: Span) : Expr(span)
+    data class TypeCast(val exp: Expr, val cast: Type, override val span: Span) : Expr(span)
 
     // end of subclasses
 
@@ -252,55 +253,3 @@ fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
 }
 
 fun Expr.resolvedImplicits(): List<Expr> = implicitContext?.resolveds ?: emptyList()
-
-fun Expr.show(): String = when (this) {
-    is Expr.Int32 -> "$v"
-    is Expr.Int64 -> "$v"
-    is Expr.Float32 -> "$v"
-    is Expr.Float64 -> "$v"
-    is Expr.StringE -> "\"$v\""
-    is Expr.CharE -> "'$v'"
-    is Expr.Bool -> "$v"
-    is Expr.Var -> fullname()
-    is Expr.Constructor -> fullname()
-    is Expr.ImplicitVar -> fullname()
-    is Expr.Lambda -> "\\${binder} -> ${body.show()}"
-    is Expr.App -> "(${fn.show()} ${arg.show()})"
-    is Expr.If -> "if ${cond.show()} then ${thenCase.show()} else ${elseCase.show()}"
-    is Expr.Let -> "let ${letDef.binder} = ${letDef.expr.show()} in ${body.show()}"
-    is Expr.Match -> {
-        val cs = cases.joinToString("\n  ") { cs ->
-            val guard = if (cs.guard != null) " if " + cs.guard.show() else ""
-            cs.patterns.joinToString { it.show() } + guard + " -> " + cs.exp.show()
-        }
-        "case ${exps.joinToString { it.show() }} of\n  $cs"
-    }
-    is Expr.Ann -> "${exp.show()} : ${annType.show()}"
-    is Expr.Do -> "\n  " + exps.joinToString("\n  ") { it.show() }
-    is Expr.NativeFieldGet -> name
-    is Expr.NativeFieldSet -> name
-    is Expr.NativeMethod -> name
-    is Expr.NativeConstructor -> name
-    is Expr.Unit -> "()"
-    is Expr.RecordEmpty -> "{}"
-    is Expr.RecordSelect -> "${exp.show()}.$label"
-    is Expr.RecordRestrict -> "{ - $label | ${exp.show()} }"
-    is Expr.RecordUpdate -> "{ .$label = ${value.show()} | ${exp.show()} }"
-    is Expr.RecordExtend -> {
-        val rest = if (exp is Expr.RecordEmpty) "" else " | ${exp.show()} "
-        "{ ${labels.show { s, expr -> "$s: ${expr.show()}" }} $rest}"
-    }
-    is Expr.ListLiteral -> "[${exps.joinToString { it.show() }}]"
-    is Expr.SetLiteral -> "#{${exps.joinToString { it.show() }}}"
-    is Expr.Throw -> "throw ${exp.show()}"
-    is Expr.TryCatch -> {
-        val cs = cases.joinToString("\n  ") { cs ->
-            val guard = if (cs.guard != null) " if " + cs.guard.show() else ""
-            cs.patterns.joinToString { it.show() } + guard + " -> " + cs.exp.show()
-        }
-        val fin = if (finallyExp != null) "\nfinally ${finallyExp.show()}" else ""
-        "try ${tryExp.show()}\ncatch\n  $cs$fin"
-    }
-    is Expr.While -> "while ${cond.show()} do\n  " + exps.joinToString("\n  ") { it.show() }
-    is Expr.Null -> "null"
-}

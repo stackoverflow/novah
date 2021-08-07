@@ -46,14 +46,14 @@ from x = streamOf x
  */
 pub
 forEach : Stream a -> (a -> b) -> Unit
-forEach stream f = sforEach stream (unsafeCast (makeConsumer f))
+forEach stream f = sforEach stream (makeConsumer f as Consumer Object)
 
 /**
  * Collects this Stream into an Array.
  */
 pub
 toArray : Stream a -> Array a
-toArray st = unsafeCast (stoArray st)
+toArray st = stoArray st as Array a
 
 /**
  * Returns the size of this stream.
@@ -67,7 +67,7 @@ size st = scount st
  */
 pub
 filter : (a -> Boolean) -> Stream a -> Stream a
-filter f st = sfilter st (unsafeCast (makePredicate f))
+filter f st = sfilter st (makePredicate f as Predicate Object)
 
 /**
  * Maps function f over all elements of this Stream returning a Stream.
@@ -75,14 +75,14 @@ filter f st = sfilter st (unsafeCast (makePredicate f))
  */
 pub
 map : (a -> b) -> Stream a -> Stream b
-map f st = smap st (unsafeCast f)
+map f st = smap st (f as Object -> b)
 
 /**
  * Like `map` but it will flatten the resulting stream.
  */
 pub
 flatMap : (a -> Stream b) -> Stream a -> Stream b
-flatMap f st = sflatMap st (unsafeCast f)
+flatMap f st = sflatMap st (f as Object -> Object)
 
 /**
  * Returns a new stream with a limited number of elements.
@@ -103,14 +103,14 @@ skip n st = sskip st n
  */
 pub
 takeWhile : (a -> Boolean) -> Stream a -> Stream a
-takeWhile pred st = stakeWhile st (unsafeCast (makePredicate pred))
+takeWhile pred st = stakeWhile st (makePredicate pred as Predicate Object)
 
 /**
  * Drops elements from this stream while the predicates holds.
  */
 pub
 dropWhile : (a -> Boolean) -> Stream a -> Stream a
-dropWhile pred st = sdropWhile st (unsafeCast (makePredicate pred))
+dropWhile pred st = sdropWhile st (makePredicate pred as Predicate Object)
 
 /**
  * Reduces this stream to a single value according to the reducing function.

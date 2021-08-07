@@ -3,6 +3,5 @@ at src/test/resources/failure/variables/shadowed variables - function parameter.
 
   Value x is shadowing another value with the same name.
 
-while checking expression let x = "asd" in x
 in declaration f
 

@@ -3,6 +3,5 @@ at src/test/resources/failure/variables/shadowed variables - inner let.novah:4:1
 
   Value x is shadowing another value with the same name.
 
-while checking expression let x = 4 in x
 in declaration f
 

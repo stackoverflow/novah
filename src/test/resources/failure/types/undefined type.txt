@@ -4,7 +4,5 @@ at src/test/resources/failure/types/undefined type.novah:3:13 - 3:18
   Undefined type Undef.
 
 while checking type Unit -> Undef
-while checking expression \var$0 -> case var$0 of
-  () -> 1
 in declaration f
 

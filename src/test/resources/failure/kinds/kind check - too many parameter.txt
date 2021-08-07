@@ -10,7 +10,5 @@ at src/test/resources/failure/kinds/kind check - too many parameter.novah:6:3 - 
       Day
 
 while checking type Int32 -> Day Int32
-while checking expression \var$0 -> case var$0 of
-  _ -> Week
 in declaration f
 

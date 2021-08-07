@@ -9,9 +9,5 @@ at src/test/resources/failure/pattern_matching/wrong record type.novah:8:14 - 8:
   
       String
 
-while checking expression case rec of
-  { x: x } -> x
-  { s: s } -> s
-  _ -> ...
 in declaration fun
 

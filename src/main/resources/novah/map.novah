@@ -71,7 +71,7 @@ size m = mapSize m
  */
 pub
 put : k -> v -> Map k v -> Map k v
-put key val map = unsafeCast (mapPut (unsafeCast map) key val)
+put key val map = mapPut (map as IMap k v) key val as Map k v
 
 /**
  * Returns the value under key if it exists.
@@ -79,7 +79,7 @@ put key val map = unsafeCast (mapPut (unsafeCast map) key val)
  */
 pub
 get : k -> Map k v -> Option v
-get k map = mapGet (unsafeCast map) k |> Option.fromOptional
+get k map = mapGet (map as IMap k v) k |> Option.fromOptional
 
 /**
  * Applies the function to the value represented by the key, updating it.
@@ -112,7 +112,7 @@ hasKey key map = mapContains map key
  */
 pub
 merge : Map k v -> Map k v -> Map k v
-merge m1 m2 = mapUnion m1 (unsafeCast m2)
+merge m1 m2 = mapUnion m1 (m2 as IMap k v)
 
 /**
  * Returns a set of all keys in this map.
@@ -127,7 +127,7 @@ keys map = mapKeys map
  */
 pub
 values : Map k v -> List v
-values map = listFrom (imapValues (unsafeCast map))
+values map = listFrom (imapValues (map as IMap k v))
 
 /**
  * Executes the function for every key/value pair in this map

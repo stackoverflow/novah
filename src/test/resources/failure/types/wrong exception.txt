@@ -8,6 +8,5 @@ at src/test/resources/failure/types/wrong exception.novah:4:11 - 4:24
   is not a subclass of Throwable and cannot be thrown.
 
 while checking type Unit -> Unit
-while checking expression throw "Error"
 in declaration main
 
