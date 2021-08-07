@@ -117,7 +117,7 @@ pub
 map : (a -> b) -> Array a -> Array b
 map f arr =
   let len = getArrayLength arr
-  let res = unsafeCast (objectArray len)
+  let res = objectArray len as Array b
   forEachRange 0L (int64 len) \idx ->
     let i = int idx
     aset i (f (aget i arr)) res
@@ -138,7 +138,7 @@ pub
 sortBy : (a -> a -> Ordering) -> Array a -> Unit
 sortBy cmp arr =
   let comp = toComparator cmp
-  arraySort arr (unsafeCast comp)
+  arraySort arr (comp as Comparator Object)
 
 /**
  * Sorts this array in place according to the elements Ord instance.
@@ -155,7 +155,7 @@ pub
 reverse : Array a -> Array a
 reverse arr =
   let len = getArrayLength arr |> int64
-  let res = unsafeCast (objectArray (int len))
+  let res = objectArray (int len) as Array a
   forEachRange 0L len \idx ->
     let i = int (len - idx - 1L)
     let elem = aget (int idx) arr

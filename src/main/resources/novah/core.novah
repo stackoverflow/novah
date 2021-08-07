@@ -367,7 +367,7 @@ aupdate index updateFn arr = setArray index (updateFn (getArray index arr)) arr
  */
 pub
 arrayOf : List a -> Array a
-arrayOf vec = unsafeCast (listToArr (unsafeCast vec))
+arrayOf vec = listToArr (vec as IList a) as Array a
 
 /**
  * Returns a formatted string using the specified format string and arguments.
@@ -444,11 +444,11 @@ concatString = Concat { concat: \s s2 -> concat s s2 }
 
 pub instance
 concatList : Concat (List a)
-concatList = Concat { concat: \v v2 -> unsafeCast (listConcat v (unsafeCast v2)) }
+concatList = Concat { concat: \v v2 -> listConcat v (v2 as IList a) as List a }
 
 pub instance
 concatSet : Concat (Set a)
-concatSet = Concat { concat: \s s2 -> union s (unsafeCast s2) }
+concatSet = Concat { concat: \s s2 -> union s (s2 as ISet a) }
 
 concatOption_ : Concat a -> Option a -> Option a -> Option a
 concatOption_ (Concat ap) =
@@ -670,7 +670,7 @@ showNull : Show a -> Nullable a -> String
 showNull (Show s) x =
   if x === null
     then "null"
-    else s.show (unsafeCast x)
+    else s.show (x as a)
 
 pub instance
 showNullable : {{ Show a }} -> Show (Nullable a)
@@ -769,7 +769,7 @@ equalsNullable (Equals eq) x y =
     else
       if x === null || y === null
         then false
-        else eq.equals (unsafeCast x) (unsafeCast y)
+        else eq.equals (x as a) (y as a)
 
 pub instance
 eqNullable : {{ Equals a }} -> Equals (Nullable a)

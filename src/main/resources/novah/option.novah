@@ -71,7 +71,7 @@ toOption : Nullable a -> Option a
 toOption x =
   if x === null
     then None
-    else Some (unsafeCast x)
+    else Some (x as a)
 
 /**
  * Transforms this option into an nullable value.
@@ -81,7 +81,7 @@ pub
 toNullable : Option a -> Nullable a
 toNullable =
   case _ of
-    Some x -> (unsafeCast x)
+    Some x -> (x as Nullable a)
     None -> null
 
 /**

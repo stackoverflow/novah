@@ -107,28 +107,28 @@ unsafeNth index set = setNth set index
  */
 pub
 union : Set a -> Set a -> Set a
-union s1 s2 = sunion s1 (unsafeCast s2)
+union s1 s2 = sunion s1 (s2 as ISet a)
 
 /**
  * Returns all elements in set 1 that are not in set 2.
  */
 pub
 difference : Set a -> Set a -> Set a
-difference s1 s2 = sdifference s1 (unsafeCast s2)
+difference s1 s2 = sdifference s1 (s2 as ISet a)
 
 /**
  * Returns the intersection between these 2 sets.
  */
 pub
 intersection : Set a -> Set a -> Set a
-intersection s1 s2 = sintersection s1 (unsafeCast s2)
+intersection s1 s2 = sintersection s1 (s2 as ISet a)
 
 /**
  * Returns a stream for this set.
  */
 pub
 stream : Set a -> Stream a
-stream set = setStream (unsafeCast set)
+stream set = setStream (set as ISet a)
 
 /**
  * Collects this stream into a set.

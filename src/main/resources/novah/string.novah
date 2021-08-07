@@ -96,7 +96,7 @@ getBytes str = sgetBytes str
  */
 pub
 join : String -> List String -> String
-join delimiter list = sjoin (delimiter as CharSequence) (unsafeCast (arrayOf list))
+join delimiter list = sjoin (delimiter as CharSequence) (arrayOf list as Array CharSequence)
 
 /**
  * Returns this string with all leading and trailing white spaces removed.

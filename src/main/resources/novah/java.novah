@@ -39,7 +39,7 @@ foreign import Core:makeBiFunction(Function)
  */
 pub
 class : a -> Class a
-class obj = unsafeCast (getClass (obj as Object))
+class obj = getClass (obj as Object) as Class a
 
 /**
  * Returns the hash code for this value using
