@@ -261,6 +261,7 @@ sealed class Expr {
     data class Computation(val builder: Var, val exps: List<Expr>) : Expr()
     data class IfBang(val cond: Expr, val thenCase: Expr) : Expr()
     class Null : Expr()
+    data class TypeCast(val exp: Expr, val cast: Type) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null

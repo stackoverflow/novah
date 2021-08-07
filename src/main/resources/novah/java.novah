@@ -39,7 +39,7 @@ foreign import Core:makeBiFunction(Function)
  */
 pub
 class : a -> Class a
-class obj = unsafeCast (getClass (unsafeCast obj))
+class obj = unsafeCast (getClass (obj as Object))
 
 /**
  * Returns the hash code for this value using
@@ -47,7 +47,7 @@ class obj = unsafeCast (getClass (unsafeCast obj))
  */
 pub
 hashCode : a -> Int32
-hashCode x = jHashCode (unsafeCast x)
+hashCode x = jHashCode (x as Object)
 
 /**
  * Returns true if x is equals y using
@@ -55,7 +55,7 @@ hashCode x = jHashCode (unsafeCast x)
  */
 pub
 equals : a -> a -> Boolean
-equals x y = jEquals (unsafeCast x) (unsafeCast y)
+equals x y = jEquals (x as Object) (y as Object)
 
 /**
  * Throws an assetion error if the condition is false.

@@ -409,14 +409,22 @@ class Parser(
 
             val unrolled = Application.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
 
-            // type signatures have the lowest precedence
-            if (iter.peek().value is Colon) {
-                val dc = iter.next()
+            // type signatures and casts have the lowest precedence
+            val typedExpr = if (iter.peek().value is Colon) {
+                iter.next()
                 val pt = parseType()
                 Expr.Ann(unrolled, pt)
-                    .withSpan(dc.span, iter.current().span)
-                    .withComment(dc.comment)
+                    .withSpan(unrolled.span, iter.current().span)
+                    .withComment(unrolled.comment)
             } else unrolled
+            
+            if (iter.peek().value is As) {
+                iter.next()
+                val ty = parseType()
+                Expr.TypeCast(unrolled, ty)
+                    .withSpan(typedExpr.span, iter.current().span)
+                    .withComment(typedExpr.comment)
+            } else typedExpr
         }
     }
 

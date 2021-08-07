@@ -75,14 +75,14 @@ endsWith suffix str = sendsWith str suffix
  */
 pub
 contains : String -> String -> Boolean
-contains another str = scontains str (unsafeCast another)
+contains another str = scontains str (another as CharSequence)
 
 /**
  * Returns true if this string contains the character.
  */
 pub
 containsChar : Char -> String -> Boolean
-containsChar char str = scontains str (unsafeCast (toString char))
+containsChar char str = scontains str (toString char as CharSequence)
 
 /**
  * Encodes this string into an array of bytes using the platform's default charset.
@@ -96,7 +96,7 @@ getBytes str = sgetBytes str
  */
 pub
 join : String -> List String -> String
-join delimiter list = sjoin (unsafeCast delimiter) (unsafeCast (arrayOf list))
+join delimiter list = sjoin (delimiter as CharSequence) (unsafeCast (arrayOf list))
 
 /**
  * Returns this string with all leading and trailing white spaces removed.

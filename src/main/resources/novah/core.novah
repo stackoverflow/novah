@@ -197,7 +197,7 @@ pub
 (<<) f g x = f (g x)
 
 /**
- * Returns true if the 2 objects point to the same object.
+ * Returns true if the 2 references point to the same object.
  * This is the same as Java's ==
  */
 pub
@@ -235,14 +235,14 @@ pub
  */
 pub
 println : a -> Unit
-println x = jprintln out (unsafeCast x)
+println x = jprintln out (x as Object)
 
 /**
  * Prints x to the stdout.
  */
 pub
 print : a -> Unit
-print x = jprint out (unsafeCast x)
+print x = jprint out (x as Object)
 
 /**
  * Converts a value to String using the
@@ -250,7 +250,7 @@ print x = jprint out (unsafeCast x)
  */
 pub
 toString : a -> String
-toString x = jToString (unsafeCast x)
+toString x = jToString (x as Object)
 
 /**
  * Throws an exception stating that this code is still undergoing implementation.
@@ -375,7 +375,7 @@ arrayOf vec = unsafeCast (listToArr (unsafeCast vec))
  */
 pub
 format : String -> List a -> String
-format str list = sformat str (unsafeCast (arrayOf list))
+format str list = sformat str ((arrayOf list) as Array Object)
 
 /**
  * Prints the formated string to stdout.
@@ -1119,7 +1119,9 @@ bitOperatorInt64 =
  * Should be used to represent errors instead of exceptions.
  */
 pub+
-type Result ok err = Ok ok | Err err
+type Result ok err
+  = Ok ok
+  | Err err
 
 equalsResult : Equals ok -> Equals err -> Result ok err -> Result ok err -> Boolean
 equalsResult (Equals eq1) (Equals eq2) =

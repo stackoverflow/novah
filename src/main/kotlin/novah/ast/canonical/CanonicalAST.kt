@@ -126,6 +126,7 @@ sealed class Expr(open val span: Span) {
 
     data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
     class Null(span: Span) : Expr(span)
+    data class TypeCast(val exp: Expr, val cast: Type, override val span: Span) : Expr(span)
 
     // end of subclasses
 
@@ -303,4 +304,5 @@ fun Expr.show(): String = when (this) {
     }
     is Expr.While -> "while ${cond.show()} do\n  " + exps.joinToString("\n  ") { it.show() }
     is Expr.Null -> "null"
+    is Expr.TypeCast -> "${exp.show()} as ${cast.show()}"
 }

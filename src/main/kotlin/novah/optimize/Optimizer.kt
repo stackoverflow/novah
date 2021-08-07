@@ -247,6 +247,7 @@ class Optimizer(private val ast: CModule) {
             }
             is CExpr.While -> Expr.While(cond.convert(locals), exps.map { it.convert(locals) }, typ, span)
             is CExpr.Null -> Expr.Null(typ, span)
+            is CExpr.TypeCast -> Expr.Cast(exp.convert(locals), cast.convert(), span)
         }
     }
 

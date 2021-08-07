@@ -313,6 +313,7 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.IfBang -> internalError("unexpected if-bang in desugaring: $this")
         is SExpr.Null -> Expr.Null(span)
+        is SExpr.TypeCast -> Expr.TypeCast(exp.desugar(locals), cast.desugar(), span)
     }
 
     private fun SCase.desugar(locals: List<String>): Case {

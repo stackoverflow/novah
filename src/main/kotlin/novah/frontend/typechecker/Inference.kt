@@ -371,6 +371,12 @@ object Inference {
                 // while always returns unit
                 exp.withType(tUnit)
             }
+            is Expr.TypeCast -> {
+                // a type cast ignores the type checker and just returns the cast type
+                // very dangerous!
+                infer(env, level, exp.exp)
+                exp.withType(exp.cast)
+            }
         }
         context?.apply { exps.pop() }
         return ty
