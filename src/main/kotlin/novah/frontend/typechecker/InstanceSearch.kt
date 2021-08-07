@@ -30,14 +30,12 @@ object InstanceSearch {
 
     fun instanceSearch(apps: List<Expr>) {
         for (app in apps) {
-            context?.apply { exps.push(app) }
             val impCtx = app.implicitContext!!
             val imps = impCtx.types
 
             val resolved = imps.map { find(impCtx.env, it, 0, app.span) }
             impCtx.resolveds.addAll(resolved)
             //println("resolved ${imps.joinToString { it.show() }} with $resolved at ${app.span}")
-            context?.apply { exps.pop() }
         }
     }
 

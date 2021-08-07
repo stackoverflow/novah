@@ -16,7 +16,6 @@
 package novah.frontend.typechecker
 
 import novah.ast.canonical.Decl
-import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
 import novah.data.*
 import novah.frontend.Span
@@ -25,7 +24,7 @@ import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.main.CompilationError
 import novah.main.ModuleEnv
-import java.util.ArrayDeque
+import java.util.*
 
 object Typechecker {
     private var currentId = 0
@@ -124,7 +123,6 @@ object Typechecker {
 class TypingContext(
     val mod: Module,
     var decl: Decl.ValDecl? = null,
-    val exps: ArrayDeque<Expr> = ArrayDeque(),
     val types: ArrayDeque<Type> = ArrayDeque()
 )
 

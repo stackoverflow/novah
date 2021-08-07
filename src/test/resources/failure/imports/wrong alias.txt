@@ -9,6 +9,5 @@ at src/test/resources/failure/imports/wrong alias.novah:5:7 - 5:20
 
   Undefined variable reverse.
 
-while checking expression reverse
 in declaration foo
 

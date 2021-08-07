@@ -116,270 +116,263 @@ object Inference {
         return ModuleEnv(decls, types)
     }
 
-    private fun infer(env: Env, level: Level, exp: Expr): Type {
-        context?.apply { exps.push(exp) }
-        val ty = when (exp) {
-            is Expr.Int32 -> exp.withType(tInt32)
-            is Expr.Int64 -> exp.withType(tInt64)
-            is Expr.Float32 -> exp.withType(tFloat32)
-            is Expr.Float64 -> exp.withType(tFloat64)
-            is Expr.CharE -> exp.withType(tChar)
-            is Expr.Bool -> exp.withType(tBoolean)
-            is Expr.StringE -> exp.withType(tString)
-            is Expr.Unit -> exp.withType(tUnit)
-            is Expr.Null -> exp.withType(instantiate(level, tNullable))
-            is Expr.Var -> {
-                val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(instantiate(level, ty))
-            }
-            is Expr.Constructor -> {
-                val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(instantiate(level, ty))
-            }
-            is Expr.ImplicitVar -> {
-                val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(TImplicit(instantiate(level, ty)))
-            }
-            is Expr.NativeFieldGet -> {
-                val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(instantiate(level, ty))
-            }
-            is Expr.NativeFieldSet -> {
-                val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(instantiate(level, ty))
-            }
-            is Expr.NativeMethod -> {
-                val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(instantiate(level, ty))
-            }
-            is Expr.NativeConstructor -> {
-                val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-                exp.withType(instantiate(level, ty))
-            }
-            is Expr.Lambda -> {
-                val binder = exp.binder
-                checkShadow(env, binder.name, binder.span)
-                val param = if (binder.isImplicit) TImplicit(newVar(level)) else newVar(level)
-                val newEnv = env.fork().extend(binder.name, param)
-                if (binder.isImplicit) newEnv.extendInstance(binder.name, param, true)
-                val returnTy = infer(newEnv, level, exp.body)
-                val ty = TArrow(listOf(param), returnTy)
-                binder.type = param
-                exp.withType(ty)
-            }
-            is Expr.Let -> {
-                val name = exp.letDef.binder.name
-                checkShadow(env, name, exp.letDef.binder.span)
-                val varTy = if (exp.letDef.recursive) {
-                    inferRecursive(name, exp.letDef.expr, env, level + 1)
-                } else infer(env, level + 1, exp.letDef.expr)
-                val genTy = generalize(level, varTy)
-                val newEnv = env.fork().extend(name, genTy)
-                if (exp.letDef.isInstance) newEnv.extendInstance(name, genTy)
-                val ty = infer(newEnv, level, exp.body)
-                exp.withType(ty)
-            }
-            is Expr.App -> {
-                val params = mutableListOf<Type>()
-                var retTy = infer(env, level, exp.fn)
-                do {
-                    val (paramTypes, ret) = matchFunType(1, retTy, exp.fn.span)
-                    params += paramTypes[0]
-                    retTy = ret
-                } while (paramTypes[0] is TImplicit && exp.arg !is Expr.ImplicitVar)
-                val fullArgTy = infer(env, level, exp.arg)
-                val (argTy, implicits) = peelImplicits(fullArgTy)
-                unify(params.last(), argTy, exp.arg.span)
-
-                if (params.size > 1) {
-                    exp.implicitContext = ImplicitContext(params.dropLast(1), env.fork())
-                    implicitsToCheck += exp
-                }
-                if (implicits.isNotEmpty()) {
-                    exp.arg.implicitContext = ImplicitContext(implicits, env.fork())
-                    implicitsToCheck += exp.arg
-                }
-                exp.withType(retTy)
-            }
-            is Expr.Ann -> {
-                context?.apply { exps.push(exp.exp) }
-                context?.apply { types.push(exp.annType) }
-                val type = exp.annType
-                val expr = exp.exp
-                // this is a little `checking mode` for some base conversions
-                val resTy = when {
-                    expr is Expr.Int32 && type == tByte && validByte(expr.v) -> tByte
-                    expr is Expr.Int32 && type == tInt16 && validShort(expr.v) -> tInt16
-                    expr is Expr.ListLiteral && isListOf(type, tByte)
-                            && expr.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
-                        expr.exps.forEach { it.withType(tByte) }
-                        type
-                    }
-                    expr is Expr.ListLiteral && isListOf(type, tInt16)
-                            && expr.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
-                        expr.exps.forEach { it.withType(tInt16) }
-                        type
-                    }
-                    expr is Expr.SetLiteral && isSetOf(type, tByte)
-                            && expr.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
-                        expr.exps.forEach { it.withType(tByte) }
-                        type
-                    }
-                    expr is Expr.SetLiteral && isSetOf(type, tInt16)
-                            && expr.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
-                        expr.exps.forEach { it.withType(tInt16) }
-                        type
-                    }
-                    else -> {
-                        validateType(type, env, expr.span)
-                        unify(type, infer(env, level, expr), expr.span)
-                        if (expr is Expr.Lambda && type is TArrow)
-                            validateImplicitArgs(expr, type)
-                        type
-                    }
-                }
-                context?.apply { exps.pop() }
-                context?.apply { types.pop() }
-                expr.withType(resTy)
-                exp.withType(resTy)
-            }
-            is Expr.If -> {
-                unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
-                val thenTy = infer(env, level, exp.thenCase)
-                val elseTy = infer(env, level, exp.elseCase)
-                unify(thenTy, elseTy, exp.span)
-                exp.withType(thenTy)
-            }
-            is Expr.Do -> {
-                var ty: Type? = null
-                exp.exps.forEach { e ->
-                    ty = infer(env, level, e)
-                }
-                exp.withType(ty!!)
-            }
-            is Expr.Match -> {
-                val expTys = exp.exps.map { infer(env, level, it) }
-                val resType = newVar(level)
-
-                exp.cases.forEach { case ->
-                    val vars = case.patterns.flatMapIndexed { i, pat ->
-                        inferpattern(env, level, pat, expTys[i])
-                    }
-                    val newEnv = if (vars.isNotEmpty()) {
-                        val theEnv = env.fork()
-                        vars.forEach {
-                            checkShadow(theEnv, it.name, it.span)
-                            theEnv.extend(it.name, it.type)
-                        }
-                        theEnv
-                    } else env
-
-                    if (case.guard != null) {
-                        unify(tBoolean, infer(newEnv, level, case.guard), case.patternSpan())
-                    }
-
-                    val ty = infer(newEnv, level, case.exp)
-                    unify(resType, ty, case.exp.span)
-                }
-                exp.withType(resType)
-            }
-            is Expr.RecordEmpty -> exp.withType(TRecord(TRowEmpty()))
-            is Expr.RecordSelect -> {
-                val rest = newVar(level)
-                val field = newVar(level)
-                val param = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
-                unify(param, infer(env, level, exp.exp), exp.span)
-                exp.withType(field)
-            }
-            is Expr.RecordRestrict -> {
-                val rest = newVar(level)
-                val field = newVar(level)
-                val param = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
-                val returnTy = TRecord(rest)
-                unify(param, infer(env, level, exp.exp), exp.span)
-                exp.withType(returnTy)
-            }
-            is Expr.RecordUpdate -> {
-                val field = infer(env, level, exp.value)
-                val rest = newVar(level)
-                val recTy = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
-                unify(recTy, infer(env, level, exp.exp), exp.span)
-                exp.withType(recTy)
-            }
-            is Expr.RecordExtend -> {
-                val labelTys = exp.labels.mapList { infer(env, level, it) }
-                val rest = newVar(level)
-                unify(TRecord(rest), infer(env, level, exp.exp), exp.span)
-                val ty = TRecord(TRowExtend(labelTys, rest))
-                exp.withType(ty)
-            }
-            is Expr.ListLiteral -> {
-                val ty = newVar(level)
-                exp.exps.forEach { e ->
-                    unify(ty, infer(env, level, e), e.span)
-                }
-                val res = TApp(TConst(primList), listOf(ty))
-                exp.withType(res)
-            }
-            is Expr.SetLiteral -> {
-                val ty = newVar(level)
-                exp.exps.forEach { e ->
-                    unify(ty, infer(env, level, e), e.span)
-                }
-                val res = TApp(TConst(primSet), listOf(ty))
-                exp.withType(res)
-            }
-            is Expr.Throw -> {
-                val ty = infer(env, level, exp.exp)
-                val res = Environment.classLoader().isException(ty.typeNameOrEmpty())
-                if (res.isEmpty || !res.get()) {
-                    inferError(E.notException(ty.show()), exp.span)
-                }
-                // throw returns anything
-                val ret = newVar(level)
-                exp.withType(ret)
-            }
-            is Expr.TryCatch -> {
-                val resTy = infer(env, level, exp.tryExp)
-
-                exp.cases.forEach { case ->
-                    val vars = case.patterns.flatMap { pat ->
-                        // the type parameter is not actually used here
-                        // we just passed resTy as an optimization instead
-                        // of creating a new type var
-                        inferpattern(env, level, pat, resTy)
-                    }
-                    val newEnv = if (vars.isNotEmpty()) {
-                        val theEnv = env.fork()
-                        vars.forEach {
-                            checkShadow(theEnv, it.name, it.span)
-                            theEnv.extend(it.name, it.type)
-                        }
-                        theEnv
-                    } else env
-
-                    val ty = infer(newEnv, level, case.exp)
-                    unify(resTy, ty, case.exp.span)
-                }
-                // the result type of the finally expression is discarded
-                if (exp.finallyExp != null) infer(env, level, exp.finallyExp)
-                exp.withType(resTy)
-            }
-            is Expr.While -> {
-                unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
-                exp.exps.forEach { e -> infer(env, level, e) }
-                // while always returns unit
-                exp.withType(tUnit)
-            }
-            is Expr.TypeCast -> {
-                // a type cast ignores the type checker and just returns the cast type
-                // very dangerous!
-                infer(env, level, exp.exp)
-                exp.withType(exp.cast)
-            }
+    private fun infer(env: Env, level: Level, exp: Expr): Type = when (exp) {
+        is Expr.Int32 -> exp.withType(tInt32)
+        is Expr.Int64 -> exp.withType(tInt64)
+        is Expr.Float32 -> exp.withType(tFloat32)
+        is Expr.Float64 -> exp.withType(tFloat64)
+        is Expr.CharE -> exp.withType(tChar)
+        is Expr.Bool -> exp.withType(tBoolean)
+        is Expr.StringE -> exp.withType(tString)
+        is Expr.Unit -> exp.withType(tUnit)
+        is Expr.Null -> exp.withType(instantiate(level, tNullable))
+        is Expr.Var -> {
+            val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
+            exp.withType(instantiate(level, ty))
         }
-        context?.apply { exps.pop() }
-        return ty
+        is Expr.Constructor -> {
+            val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
+            exp.withType(instantiate(level, ty))
+        }
+        is Expr.ImplicitVar -> {
+            val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
+            exp.withType(TImplicit(instantiate(level, ty)))
+        }
+        is Expr.NativeFieldGet -> {
+            val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+            exp.withType(instantiate(level, ty))
+        }
+        is Expr.NativeFieldSet -> {
+            val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+            exp.withType(instantiate(level, ty))
+        }
+        is Expr.NativeMethod -> {
+            val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+            exp.withType(instantiate(level, ty))
+        }
+        is Expr.NativeConstructor -> {
+            val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
+            exp.withType(instantiate(level, ty))
+        }
+        is Expr.Lambda -> {
+            val binder = exp.binder
+            checkShadow(env, binder.name, binder.span)
+            val param = if (binder.isImplicit) TImplicit(newVar(level)) else newVar(level)
+            val newEnv = env.fork().extend(binder.name, param)
+            if (binder.isImplicit) newEnv.extendInstance(binder.name, param, true)
+            val returnTy = infer(newEnv, level, exp.body)
+            val ty = TArrow(listOf(param), returnTy)
+            binder.type = param
+            exp.withType(ty)
+        }
+        is Expr.Let -> {
+            val name = exp.letDef.binder.name
+            checkShadow(env, name, exp.letDef.binder.span)
+            val varTy = if (exp.letDef.recursive) {
+                inferRecursive(name, exp.letDef.expr, env, level + 1)
+            } else infer(env, level + 1, exp.letDef.expr)
+            val genTy = generalize(level, varTy)
+            val newEnv = env.fork().extend(name, genTy)
+            if (exp.letDef.isInstance) newEnv.extendInstance(name, genTy)
+            val ty = infer(newEnv, level, exp.body)
+            exp.withType(ty)
+        }
+        is Expr.App -> {
+            val params = mutableListOf<Type>()
+            var retTy = infer(env, level, exp.fn)
+            do {
+                val (paramTypes, ret) = matchFunType(1, retTy, exp.fn.span)
+                params += paramTypes[0]
+                retTy = ret
+            } while (paramTypes[0] is TImplicit && exp.arg !is Expr.ImplicitVar)
+            val fullArgTy = infer(env, level, exp.arg)
+            val (argTy, implicits) = peelImplicits(fullArgTy)
+            unify(params.last(), argTy, exp.arg.span)
+
+            if (params.size > 1) {
+                exp.implicitContext = ImplicitContext(params.dropLast(1), env.fork())
+                implicitsToCheck += exp
+            }
+            if (implicits.isNotEmpty()) {
+                exp.arg.implicitContext = ImplicitContext(implicits, env.fork())
+                implicitsToCheck += exp.arg
+            }
+            exp.withType(retTy)
+        }
+        is Expr.Ann -> {
+            context?.apply { types.push(exp.annType) }
+            val type = exp.annType
+            val expr = exp.exp
+            // this is a little `checking mode` for some base conversions
+            val resTy = when {
+                expr is Expr.Int32 && type == tByte && validByte(expr.v) -> tByte
+                expr is Expr.Int32 && type == tInt16 && validShort(expr.v) -> tInt16
+                expr is Expr.ListLiteral && isListOf(type, tByte)
+                        && expr.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
+                    expr.exps.forEach { it.withType(tByte) }
+                    type
+                }
+                expr is Expr.ListLiteral && isListOf(type, tInt16)
+                        && expr.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
+                    expr.exps.forEach { it.withType(tInt16) }
+                    type
+                }
+                expr is Expr.SetLiteral && isSetOf(type, tByte)
+                        && expr.exps.all { it is Expr.Int32 && validByte(it.v) } -> {
+                    expr.exps.forEach { it.withType(tByte) }
+                    type
+                }
+                expr is Expr.SetLiteral && isSetOf(type, tInt16)
+                        && expr.exps.all { it is Expr.Int32 && validShort(it.v) } -> {
+                    expr.exps.forEach { it.withType(tInt16) }
+                    type
+                }
+                else -> {
+                    validateType(type, env, expr.span)
+                    unify(type, infer(env, level, expr), expr.span)
+                    if (expr is Expr.Lambda && type is TArrow)
+                        validateImplicitArgs(expr, type)
+                    type
+                }
+            }
+            context?.apply { types.pop() }
+            expr.withType(resTy)
+            exp.withType(resTy)
+        }
+        is Expr.If -> {
+            unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
+            val thenTy = infer(env, level, exp.thenCase)
+            val elseTy = infer(env, level, exp.elseCase)
+            unify(thenTy, elseTy, exp.span)
+            exp.withType(thenTy)
+        }
+        is Expr.Do -> {
+            var ty: Type? = null
+            exp.exps.forEach { e ->
+                ty = infer(env, level, e)
+            }
+            exp.withType(ty!!)
+        }
+        is Expr.Match -> {
+            val expTys = exp.exps.map { infer(env, level, it) }
+            val resType = newVar(level)
+
+            exp.cases.forEach { case ->
+                val vars = case.patterns.flatMapIndexed { i, pat ->
+                    inferpattern(env, level, pat, expTys[i])
+                }
+                val newEnv = if (vars.isNotEmpty()) {
+                    val theEnv = env.fork()
+                    vars.forEach {
+                        checkShadow(theEnv, it.name, it.span)
+                        theEnv.extend(it.name, it.type)
+                    }
+                    theEnv
+                } else env
+
+                if (case.guard != null) {
+                    unify(tBoolean, infer(newEnv, level, case.guard), case.patternSpan())
+                }
+
+                val ty = infer(newEnv, level, case.exp)
+                unify(resType, ty, case.exp.span)
+            }
+            exp.withType(resType)
+        }
+        is Expr.RecordEmpty -> exp.withType(TRecord(TRowEmpty()))
+        is Expr.RecordSelect -> {
+            val rest = newVar(level)
+            val field = newVar(level)
+            val param = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
+            unify(param, infer(env, level, exp.exp), exp.span)
+            exp.withType(field)
+        }
+        is Expr.RecordRestrict -> {
+            val rest = newVar(level)
+            val field = newVar(level)
+            val param = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
+            val returnTy = TRecord(rest)
+            unify(param, infer(env, level, exp.exp), exp.span)
+            exp.withType(returnTy)
+        }
+        is Expr.RecordUpdate -> {
+            val field = infer(env, level, exp.value)
+            val rest = newVar(level)
+            val recTy = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
+            unify(recTy, infer(env, level, exp.exp), exp.span)
+            exp.withType(recTy)
+        }
+        is Expr.RecordExtend -> {
+            val labelTys = exp.labels.mapList { infer(env, level, it) }
+            val rest = newVar(level)
+            unify(TRecord(rest), infer(env, level, exp.exp), exp.span)
+            val ty = TRecord(TRowExtend(labelTys, rest))
+            exp.withType(ty)
+        }
+        is Expr.ListLiteral -> {
+            val ty = newVar(level)
+            exp.exps.forEach { e ->
+                unify(ty, infer(env, level, e), e.span)
+            }
+            val res = TApp(TConst(primList), listOf(ty))
+            exp.withType(res)
+        }
+        is Expr.SetLiteral -> {
+            val ty = newVar(level)
+            exp.exps.forEach { e ->
+                unify(ty, infer(env, level, e), e.span)
+            }
+            val res = TApp(TConst(primSet), listOf(ty))
+            exp.withType(res)
+        }
+        is Expr.Throw -> {
+            val ty = infer(env, level, exp.exp)
+            val res = Environment.classLoader().isException(ty.typeNameOrEmpty())
+            if (res.isEmpty || !res.get()) {
+                inferError(E.notException(ty.show()), exp.span)
+            }
+            // throw returns anything
+            val ret = newVar(level)
+            exp.withType(ret)
+        }
+        is Expr.TryCatch -> {
+            val resTy = infer(env, level, exp.tryExp)
+
+            exp.cases.forEach { case ->
+                val vars = case.patterns.flatMap { pat ->
+                    // the type parameter is not actually used here
+                    // we just passed resTy as an optimization instead
+                    // of creating a new type var
+                    inferpattern(env, level, pat, resTy)
+                }
+                val newEnv = if (vars.isNotEmpty()) {
+                    val theEnv = env.fork()
+                    vars.forEach {
+                        checkShadow(theEnv, it.name, it.span)
+                        theEnv.extend(it.name, it.type)
+                    }
+                    theEnv
+                } else env
+
+                val ty = infer(newEnv, level, case.exp)
+                unify(resTy, ty, case.exp.span)
+            }
+            // the result type of the finally expression is discarded
+            if (exp.finallyExp != null) infer(env, level, exp.finallyExp)
+            exp.withType(resTy)
+        }
+        is Expr.While -> {
+            unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
+            exp.exps.forEach { e -> infer(env, level, e) }
+            // while always returns unit
+            exp.withType(tUnit)
+        }
+        is Expr.TypeCast -> {
+            // a type cast ignores the type checker and just returns the cast type
+            // very dangerous!
+            infer(env, level, exp.exp)
+            exp.withType(exp.cast)
+        }
     }
 
     private data class PatternVar(val name: String, val type: Type, val span: Span)

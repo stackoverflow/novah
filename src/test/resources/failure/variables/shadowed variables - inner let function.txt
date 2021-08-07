@@ -3,6 +3,5 @@ at src/test/resources/failure/variables/shadowed variables - inner let function.
 
   Value a is shadowing another value with the same name.
 
-while checking expression let a = "asd" in a
 in declaration f
 

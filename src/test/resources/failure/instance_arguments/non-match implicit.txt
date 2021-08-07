@@ -6,6 +6,5 @@ at src/test/resources/failure/instance_arguments/non-match implicit.novah:4:5 - 
       Int32
 
 while checking type Int32 -> Int32
-while checking expression \{{x}} -> x
 in declaration exp
 
