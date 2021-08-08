@@ -298,8 +298,8 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
                 }
             }
             is Expr.Ann -> {
-                f(e)
                 go(e.exp)
+                f(e)
             }
             is Expr.Do -> {
                 f(e)

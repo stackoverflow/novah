@@ -125,6 +125,7 @@ class SemanticTokensFeature(private val server: NovahServer) {
                     }
                     is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64 -> genLine(e.span, NUM)
                     is Expr.TypeCast -> genTypeLine(e.cast)
+                    is Expr.Ann -> genTypeLine(e.annType)
                     is Expr.NativeMethod -> genLine(e.span, METHOD)
                     else -> listOf()
                 }
