@@ -264,7 +264,7 @@ class PatternMatchingCompiler<R> {
             }
             is Pattern.Named -> convertPattern(p.pat, modName)
             is Pattern.Unit -> Pat.PVar("()")
-            is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.type.show()), emptyList())
+            is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.test.show()), emptyList())
         }
     }
 }

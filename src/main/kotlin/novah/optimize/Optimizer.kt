@@ -241,7 +241,7 @@ class Optimizer(private val ast: CModule) {
                 val catches = cases.map {
                     val pat = it.patterns[0] as Pattern.TypeTest
                     val loc = if (pat.alias != null) locals + pat.alias else locals
-                    Catch(pat.type.convert(), pat.alias, it.exp.convert(loc), pat.span)
+                    Catch(pat.test.convert(), pat.alias, it.exp.convert(loc), pat.span)
                 }
                 Expr.TryCatch(tryExp.convert(locals), catches, finallyExp?.convert(locals), typ, span)
             }
@@ -463,7 +463,7 @@ class Optimizer(private val ast: CModule) {
                 PatternResult(cond, vars + VarDef(p.name, exp))
             }
             is Pattern.TypeTest -> {
-                val castType = p.type.convert()
+                val castType = p.test.convert()
                 val cond = Expr.InstanceOf(exp, castType, p.span)
                 val vs = if (p.alias != null) listOf(VarDef(p.alias, Expr.Cast(exp, castType, p.span))) else emptyList()
                 PatternResult(cond, vs)

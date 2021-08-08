@@ -378,7 +378,7 @@ object Inference {
     private data class PatternVar(val name: String, val type: Type, val span: Span)
 
     private fun inferpattern(env: Env, level: Level, pat: Pattern, ty: Type): List<PatternVar> {
-        return when (pat) {
+        val res = when (pat) {
             is Pattern.LiteralP -> {
                 unify(ty, infer(env, level, pat.lit.e), pat.span)
                 emptyList()
@@ -454,19 +454,21 @@ object Inference {
                 vars
             }
             is Pattern.TypeTest -> {
-                validateType(pat.type, env, pat.span)
+                validateType(pat.test, env, pat.span)
                 if (pat.alias != null) {
                     // we need special handling for Lists, Sets and Arrays
                     val type = when {
-                        pat.type is TConst && pat.type.name == primList -> TApp(TConst(primList), listOf(tObject))
-                        pat.type is TConst && pat.type.name == primSet -> TApp(TConst(primSet), listOf(tObject))
-                        pat.type is TConst && pat.type.name == primArray -> TApp(TConst(primArray), listOf(tObject))
-                        else -> pat.type
+                        pat.test is TConst && pat.test.name == primList -> TApp(TConst(primList), listOf(tObject))
+                        pat.test is TConst && pat.test.name == primSet -> TApp(TConst(primSet), listOf(tObject))
+                        pat.test is TConst && pat.test.name == primArray -> TApp(TConst(primArray), listOf(tObject))
+                        else -> pat.test
                     }
                     listOf(PatternVar(pat.alias, type, pat.span))
                 } else emptyList()
             }
         }
+        pat.type = ty
+        return res
     }
 
     private tailrec fun peelArgs(args: List<Type>, t: Type): Pair<List<Type>, Type> = when {

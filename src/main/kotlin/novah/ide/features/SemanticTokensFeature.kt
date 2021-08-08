@@ -108,7 +108,6 @@ class SemanticTokensFeature(private val server: NovahServer) {
             while (exp is Expr.Match && destruct > 0) {
                 destruct--
                 exp.cases[0].patterns[0].everywhereUnit { p ->
-                    server.logger().info("adding param ${p.show()} for ${it.name}")
                     when (p) {
                         is Pattern.Var -> {
                             parNames += p.name

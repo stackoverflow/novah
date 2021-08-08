@@ -6,6 +6,7 @@ foreign import type java.io.File
 foreign import type io.lacuna.bifurcan.Map
 foreign import new File(String) as newFile
 foreign import File.getName() as fileName
+foreign import get File:separator
 
 type MyList a
   = Niu
@@ -23,11 +24,15 @@ nf x =
 
 fname : File -> String
 fname f =
-  fileName f
+  fileName f ++ separator
 
+/**
+ * This is my comment
+ * it should describe the function
+ */
 myfun : Int -> String
 myfun x =
-  let vari = x * x
+  let instance vari = x * x
   let other = vari * x
   x + vari + other |> show
 
@@ -35,6 +40,10 @@ typecast : a -> Map String a
 typecast typ =
   Map.new ["a" <> typ] as Map String a
 
+/**
+ * The badge is a lie.
+ */
+pub
 showBadge : Id -> String
 showBadge (Id id) = format "my id is %s" [id]
 

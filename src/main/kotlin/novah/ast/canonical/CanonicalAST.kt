@@ -178,7 +178,9 @@ sealed class Pattern(open val span: Span) {
     data class ListHeadTail(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
     data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
-    data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
+    data class TypeTest(val test: Type, val alias: String?, override val span: Span) : Pattern(span)
+    
+    var type: Type? = null
 }
 
 sealed class LiteralPattern(open val e: Expr) {
@@ -201,7 +203,7 @@ fun Pattern.show(): String = when (this) {
     is Pattern.ListHeadTail -> "[${head.show()} :: ${tail.show()}]"
     is Pattern.Named -> "${pat.show()} as $name"
     is Pattern.Unit -> "()"
-    is Pattern.TypeTest -> ":? ${type.show()}" + if (alias != null) " $alias" else ""
+    is Pattern.TypeTest -> ":? ${test.show()}" + if (alias != null) " $alias" else ""
 }
 
 fun LiteralPattern.show(): String = when (this) {

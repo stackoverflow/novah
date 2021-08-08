@@ -687,8 +687,7 @@ class Parser(
             val vars = tryParseListOf { tryParsePattern(true) }
             expect<Equals>(withError(E.LET_EQUALS))
             val exp = parseDo()
-            val span = span(ident.span, exp.span)
-            LetDef.DefBind(Binder(ident.value.v, span), vars, exp, isInstance, type)
+            LetDef.DefBind(Binder(ident.value.v, ident.span), vars, exp, isInstance, type)
         }
     }
 
