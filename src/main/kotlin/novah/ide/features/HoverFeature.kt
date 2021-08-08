@@ -56,65 +56,60 @@ class HoverFeature(private val server: NovahServer) {
     private fun contextToHover(ctx: HoverCtx): String {
         return when (ctx) {
             is ModuleCtx -> {
-                val name = escape(ctx.name)
-                val prefix = if (ctx.alias != null) "module **$name** as ${ctx.alias}" else "**$name**"
-                if (ctx.mod.comment != null) "$prefix\n\n${commentToMarkdown(ctx.mod.comment)}" else prefix
+                val name = ctx.name
+                val source = if (ctx.alias != null) "module $name as ${ctx.alias}" else "**$name**"
+                makeHover(source, ctx.mod.comment)
             }
             is ImportDeclCtx -> {
                 val ref = ctx.ref
-                val buf = mutableListOf("module **${ctx.module}**\n\n")
-                if (ref.visibility.isPublic()) buf += "public"
-                if (ref.isInstance) buf += "instance"
-                buf += "**${escape(ctx.name)}**"
-                buf += ":"
-                buf += ref.type.show(qualified = true, pretty = true)
-                buf.joinToString(" ")
+                var source = "module ${ctx.module}\n\n"
+                if (ref.visibility.isPublic()) {
+                    source += if (ref.isInstance) "pub instance\n"
+                    else "pub\n"
+                }
+                source += "${ctx.name} : ${ref.type.show(qualified = true, pretty = true)}"
+                makeHover(source, ref.comment)
             }
             is ImportTypeDeclCtx -> {
                 val ref = ctx.ref
-                val buf = mutableListOf("module **${ctx.module}**\n\n")
-                if (ref.visibility.isPublic()) buf += "public"
-                buf += "**${ctx.name}**"
-                buf += ":"
-                buf += ref.type.show(qualified = true, pretty = true)
-                buf.joinToString(" ")
+                var source = "module ${ctx.module}\n\n"
+                if (ref.visibility.isPublic()) source += "pub\n"
+                source += "${ctx.name} : ${ref.type.show(qualified = true, pretty = true)}"
+                makeHover(source, ref.comment)
             }
             is DeclCtx -> {
                 val d = ctx.decl
-                val buf = mutableListOf<String>()
-                if (d.isPublic()) buf += "public"
-                if (d.isInstance) buf += "instance"
-                val name = escape(d.name.name)
-                buf += if (d.isOperator) "**($name)**" else "**$name**"
-
+                var source = ""
+                if (d.isPublic()) {
+                    source += if (d.isInstance) "pub instance\n"
+                    else "pub\n"
+                }
+                source += if (d.isOperator) "(${d.name.name})" else d.name.name
                 val type = d.type ?: d.exp.type
                 if (type != null) {
-                    buf += ": ${type.show(qualified = true, pretty = true)}"
+                    source += " : ${type.show(qualified = true, pretty = true)}"
                 }
-
-                val desc = buf.joinToString(" ")
-                if (d.comment != null) {
-                    desc + "\n\n*${commentToMarkdown(d.comment)}*"
-                } else desc
+                makeHover(source, d.comment)
             }
             is LetCtx -> {
                 val name = escape(ctx.let.binder.name)
-                val prefix = if (ctx.let.isInstance) "instance **$name**" else "**$name**"
-                "$prefix : ${ctx.type.show(qualified = true, pretty = true)}"
+                var source = if (ctx.let.isInstance) "instance\n$name" else name
+                source += " : ${ctx.type.show(qualified = true, pretty = true)}"
+                novah(source)
             }
-            is LocalRefCtx -> "**${escape(ctx.name)}** : ${ctx.type.show(qualified = true, pretty = true)}"
+            is LocalRefCtx -> novah("${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
             is MethodCtx -> {
-                ctx.method.toString() +
-                        "\n\nas **${ctx.name}** : ${ctx.type.show(qualified = true, pretty = true)}"
+                java(ctx.method.toString()) + "\n\n" +
+                        novah("${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
             }
             is CtorCtx -> {
-                ctx.ctor.toString() +
-                        "\n\nas (constructor) **${ctx.name}** : ${ctx.type.show(qualified = true, pretty = true)}"
+                java(ctx.ctor.toString()) + "\n\n" +
+                        novah("(constructor)\n${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
             }
             is FieldCtx -> {
                 val kind = if (ctx.getter) "getter" else "setter"
-                ctx.field.toString() +
-                        "\n\nas ($kind) **${ctx.name}** : ${ctx.type.show(qualified = true, pretty = true)}"
+                java(ctx.field.toString()) + "\n\n" +
+                        novah("($kind)\n${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
             }
         }
     }
@@ -254,8 +249,17 @@ class HoverFeature(private val server: NovahServer) {
     }
 
     companion object {
-        fun commentToMarkdown(c: Comment) = c.comment.replace("\n", "  \n")
+        private fun commentToMarkdown(c: Comment) = c.comment.replace("\n", "  \n")
 
-        fun escape(name: String) = name.replace("*", "\\*")
+        private fun escape(name: String) = name.replace("*", "\\*")
+
+        private fun novah(src: String) = "```novah\n$src\n```"
+
+        private fun java(src: String) = "```java\n$src\n```"
+
+        private fun makeHover(source: String, comment: Comment?): String {
+            val prefix = novah(source)
+            return if (comment != null) "$prefix\n***\n${commentToMarkdown(comment)}" else prefix
+        }
     }
 }

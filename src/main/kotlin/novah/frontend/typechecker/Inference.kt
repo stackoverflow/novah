@@ -72,9 +72,9 @@ object Inference {
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
                 Environment.cacheConstructorType("${ast.name.value}.${dc.name}", dcty)
-                decls[dc.name] = DeclRef(dcty, dc.visibility, false)
+                decls[dc.name] = DeclRef(dcty, dc.visibility, false, null)
             }
-            types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
+            types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name }, d.comment)
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
@@ -109,7 +109,7 @@ object Inference {
             val genTy = generalize(-1, ty)
             env.extend(name, genTy)
             if (decl.isInstance) env.extendInstance(name, genTy)
-            decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance)
+            decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
             if (!isAnnotated) warner(E.noTypeAnnDecl(name, genTy.show()), decl.span)
         }
 

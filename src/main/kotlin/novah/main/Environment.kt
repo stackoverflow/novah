@@ -24,16 +24,13 @@ import novah.ast.source.Module
 import novah.ast.source.Visibility
 import novah.backend.Codegen
 import novah.data.*
-import novah.frontend.Lexer
-import novah.frontend.Parser
+import novah.frontend.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
-import novah.frontend.resolveForeignImports
-import novah.frontend.resolveImports
 import novah.frontend.typechecker.Inference
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
@@ -260,9 +257,9 @@ class CompilationError(val problems: List<CompilerProblem>) :
 
 data class FullModuleEnv(val env: ModuleEnv, val ast: TypedModule, val aliases: List<Decl.TypealiasDecl>)
 
-data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: Boolean)
+data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: Boolean, val comment: Comment?)
 
-data class TypeDeclRef(val type: Type, val visibility: Visibility, val ctors: List<String>)
+data class TypeDeclRef(val type: Type, val visibility: Visibility, val ctors: List<String>, val comment: Comment?)
 
 data class ModuleEnv(
     val decls: Map<String, DeclRef>,

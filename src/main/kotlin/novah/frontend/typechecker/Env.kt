@@ -184,7 +184,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     }
 }
 
-private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
+private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList(), null)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 
 val primModuleEnv = ModuleEnv(
