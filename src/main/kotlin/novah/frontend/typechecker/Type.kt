@@ -60,6 +60,12 @@ class TVar(var tvar: TypeVar) : Type() {
         if (other == null || other !is TVar) return false
         return tvar == other.tvar
     }
+
+    fun copyTvar(): TVar = when (val tv = tvar) {
+        is TypeVar.Unbound -> TVar(tv.copy())
+        is TypeVar.Link -> TVar(tv.copy(type = tv.type.copy()))
+        is TypeVar.Generic -> TVar(tv.copy())
+    }
 }
 
 sealed class Type {
@@ -70,6 +76,17 @@ sealed class Type {
     fun realType(): Type = when {
         this is TVar && tvar is TypeVar.Link -> (tvar as TypeVar.Link).type.realType()
         else -> this
+    }
+
+    fun copy(): Type = when (this) {
+        is TConst -> copy()
+        is TApp -> copy()
+        is TArrow -> copy()
+        is TImplicit -> copy()
+        is TRecord -> copy()
+        is TRowExtend -> copy()
+        is TRowEmpty -> TRowEmpty()
+        is TVar -> copyTvar()
     }
 
     /**

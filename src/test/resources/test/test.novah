@@ -1,8 +1,9 @@
 module test
 
-import novah.linkedList as LList
+import novah.linkedList (map, filter, LinkedList(Nil, Cons))
 
 foreign import type java.io.File
+foreign import type io.lacuna.bifurcan.Map
 foreign import new File(String) as newFile
 foreign import File.getName() as fileName
 
@@ -10,18 +11,18 @@ type MyList a
   = Niu
   | Kons a (MyList a)
 
-type Maybe a
-  = Just a
-  | Nothing
+type Id = Id String
 
-baz = 1
+baz = map
+
+baz2 = filter
 
 nf : String -> File
 nf x =
   newFile x
 
-name : File -> String
-name f =
+fname : File -> String
+fname f =
   fileName f
 
 myfun : Int -> String
@@ -30,9 +31,16 @@ myfun x =
   let other = vari * x
   x + vari + other |> show
 
-rec : { age : Int, name : String, pet : String }
-rec =
-  { age: 20, name: "Pete", pet: "cat" }
+typecast : a -> Map String a
+typecast typ =
+  Map.new ["a" <> typ] as Map String a
+
+showBadge : Id -> String
+showBadge (Id id) = format "my id is %s" [id]
+
+rec : { age : Int, name : String } -> String
+rec {name, age} =
+  format "age %i name %s" [show age, name]
 
 fullname : { name : String, lastName : String } -> String
 fullname person =

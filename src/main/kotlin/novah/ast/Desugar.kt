@@ -189,7 +189,7 @@ class Desugar(private val smod: SModule) {
             unusedVars.remove(name)
             usedVars += name
             if (alias != null) checkAlias(alias, span)
-            Expr.Var(name, span, imports[fullname()])
+            Expr.Var(name, span, imports[fullname()], isOp = true)
         }
         is SExpr.Constructor -> {
             if (alias != null) checkAlias(alias, span)
@@ -396,7 +396,7 @@ class Desugar(private val smod: SModule) {
                 if (name[0].isLowerCase()) {
                     if (!isCtor) {
                         var v = vars[name]
-                        if (v != null) v
+                        if (v != null) v.copy().span(span)
                         else {
                             v = Typechecker.newGenVar().span(span)
                             vars[name] = v

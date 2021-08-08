@@ -37,8 +37,8 @@ object Errors {
 
     const val UPPER_LOWER_STR = "Expected a string or an identifier."
 
-    const val EXPORT_REFER =
-        "Expected exposing/hiding definitions to be a comma-separated list of upper or lower case identifiers."
+    const val IMPORT_REFER =
+        "Expected exposing definitions to be a comma-separated list of upper or lower case identifiers."
 
     const val DATA_NAME = "Expected new data type name to be a upper case identifier."
 

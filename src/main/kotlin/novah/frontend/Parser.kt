@@ -99,6 +99,7 @@ class Parser(
         return when (sp.value) {
             is Ident -> DeclarationRef.RefVar(sp.value.v, sp.span)
             is UpperIdent -> {
+                val binder = Spanned(sp.span, sp.value.v)
                 if (iter.peek().value is LParen) {
                     expect<LParen>(noErr())
                     val ctors = if (iter.peek().value is Op) {
@@ -106,14 +107,17 @@ class Parser(
                         if (op.value.op != "..") throwError(withError(E.DECLARATION_REF_ALL)(op))
                         listOf()
                     } else {
-                        between<Comma, UpperIdent> { parseUpperIdent() }.map { it.v }
+                        between<Comma, Spanned<String>> {
+                            val ident = expect<UpperIdent>(withError(E.CTOR_NAME))
+                            Spanned(ident.span, ident.value.v)
+                        }
                     }
                     val end = expect<RParen>(withError(E.DECLARATION_REF_ALL))
-                    DeclarationRef.RefType(sp.value.v, span(sp.span, end.span), ctors)
-                } else DeclarationRef.RefType(sp.value.v, sp.span)
+                    DeclarationRef.RefType(binder, span(sp.span, end.span), ctors)
+                } else DeclarationRef.RefType(binder, sp.span)
             }
             is Op -> DeclarationRef.RefVar(sp.value.op, sp.span)
-            else -> throwError(withError(E.EXPORT_REFER)(sp))
+            else -> throwError(withError(E.IMPORT_REFER)(sp))
         }
     }
 

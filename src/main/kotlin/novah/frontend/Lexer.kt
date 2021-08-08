@@ -122,6 +122,10 @@ data class Spanned<out T>(val span: Span, val value: T, val comment: Comment? = 
     override fun toString(): String = "$value($span)"
 
     fun offside() = span.startColumn
+    
+    companion object {
+        fun <T> empty(value: T) = Spanned(Span.empty(), value)
+    }
 }
 
 class LexError(val msg: String, val span: Span) : RuntimeException("$msg at $span")

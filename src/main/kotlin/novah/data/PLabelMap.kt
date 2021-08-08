@@ -68,6 +68,12 @@ fun <V, R> LabelMap<V>.mapList(fn: (V) -> R): LabelMap<R> {
     return mapValues { _, l -> l.map(fn) }
 }
 
+fun <V, R> LabelMap<V>.mapAllValues(fn: (V) -> R): List<R> {
+    val res = List.empty<R>().linear()
+    forEachList { res.addLast(fn(it)) }
+    return res.forked()
+}
+
 fun <V, R> LabelMap<V>.forEachKeyList(fn: (String, V) -> R) {
     forEach { kv ->
         kv.value().forEach { fn(kv.key(), it) }

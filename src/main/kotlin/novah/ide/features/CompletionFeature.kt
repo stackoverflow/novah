@@ -24,12 +24,12 @@ import novah.data.LabelMap
 import novah.formatter.Formatter
 import novah.frontend.Comment
 import novah.frontend.Span
+import novah.frontend.Spanned
 import novah.frontend.typechecker.*
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.Environment
 import novah.main.ModuleEnv
-import novah.main.TypeDeclRef
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.util.concurrent.CompletableFuture
@@ -159,22 +159,24 @@ class CompletionFeature(private val server: NovahServer) {
 
                 // the type is already imported, just add the constructor
                 if (ref != null) {
-                    val defs = expo.defs.map {
-                        if (it.name == type && it is DeclarationRef.RefType) {
+                    val defs = expo.defs.map { d ->
+                        if (d.name == type && d is DeclarationRef.RefType) {
                             val ctors = when {
-                                it.ctors != null && (sym in it.ctors || it.ctors.isEmpty()) -> it.ctors
-                                it.ctors != null -> it.ctors + sym
-                                else -> listOf(sym)
+                                d.ctors != null && (sym in d.ctors.map { it.value } || d.ctors.isEmpty()) -> d.ctors
+                                d.ctors != null -> d.ctors + Spanned.empty(sym)
+                                else -> listOf(Spanned.empty(sym))
                             }
-                            it.copy(ctors = ctors)
-                        } else it
+                            d.copy(ctors = ctors)
+                        } else d
                     }
                     val imp = expo.copy(defs = defs)
                     return TextEdit(range, Formatter().show(imp))
                 }
                 val decl = when {
-                    type != null -> DeclarationRef.RefType(type, Span.empty(), listOf(sym))
-                    sym[0].isUpperCase() -> DeclarationRef.RefType(sym, Span.empty())
+                    type != null -> {
+                        DeclarationRef.RefType(Spanned(Span.empty(), type), Span.empty(), listOf(Spanned.empty(sym)))
+                    }
+                    sym[0].isUpperCase() -> DeclarationRef.RefType(Spanned(Span.empty(), sym), Span.empty())
                     else -> DeclarationRef.RefVar(sym, Span.empty())
                 }
 
@@ -194,7 +196,7 @@ class CompletionFeature(private val server: NovahServer) {
                 if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = if (ref.type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
-                    ci.detail = ref.type.show(true, true)
+                    ci.detail = ref.type.show(qualified = true, pretty = true)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
                     ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, ctorMap[sym]))
                     completions += ci
@@ -204,7 +206,7 @@ class CompletionFeature(private val server: NovahServer) {
                 if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = CompletionItemKind.Class
-                    ci.detail = ref.type.show(true, true)
+                    ci.detail = ref.type.show(qualified = true, pretty = true)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
                     ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, null))
                     completions += ci
@@ -250,7 +252,7 @@ class CompletionFeature(private val server: NovahServer) {
                         val pars = collectParameters(d) { it.startsWith(name) }
                         comps.addAll(pars.map { (binder, type) ->
                             val ci = CompletionItem(binder)
-                            ci.detail = type?.show(true, true)
+                            ci.detail = type?.show(qualified = true, pretty = true)
                             ci.kind = if (type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
                             ci
                         })
@@ -263,7 +265,7 @@ class CompletionFeature(private val server: NovahServer) {
                                     ci.kind = if (let.letDef.expr.type is TArrow) {
                                         CompletionItemKind.Function
                                     } else CompletionItemKind.Value
-                                    ci.detail = let.letDef.expr.type?.show(true, true)
+                                    ci.detail = let.letDef.expr.type?.show(qualified = true, pretty = true)
                                     comps += ci
                                 }
                             }
@@ -287,7 +289,7 @@ class CompletionFeature(private val server: NovahServer) {
                 val ty = kv.value().first()
                 val ci = CompletionItem(kv.key())
                 ci.kind = if (ty is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
-                ci.detail = ty.show(true, true)
+                ci.detail = ty.show(qualified = true, pretty = true)
                 ci
             }
         }
@@ -336,7 +338,7 @@ class CompletionFeature(private val server: NovahServer) {
         return null
     }
 
-    private fun findNamespacedDecl(ast: Module, env: Environment, name: String): List<CompletionItem>? {
+    private fun findNamespacedDecl(ast: Module, env: Environment, name: String): List<CompletionItem> {
         val comps = mutableListOf<CompletionItem>()
 
         val imp = ast.imports.find { it.alias() == name }
@@ -352,14 +354,14 @@ class CompletionFeature(private val server: NovahServer) {
                                 ci.kind = if (decl.type is TArrow) {
                                     CompletionItemKind.Function
                                 } else CompletionItemKind.Value
-                                ci.detail = decl.type.show(true, true)
+                                ci.detail = decl.type.show(qualified = true, pretty = true)
                                 comps += ci
                             }
                             val tdecl = mod.types[d.name]
                             if (tdecl != null) {
                                 val ci = CompletionItem(d.name)
                                 ci.kind = CompletionItemKind.Class
-                                ci.detail = tdecl.type.show(true, true)
+                                ci.detail = tdecl.type.show(qualified = true, pretty = true)
                                 comps += ci
                             }
                         }
@@ -371,14 +373,14 @@ class CompletionFeature(private val server: NovahServer) {
                             ci.kind = if (d.type is TArrow) {
                                 CompletionItemKind.Function
                             } else CompletionItemKind.Value
-                            ci.detail = d.type.show(true, true)
+                            ci.detail = d.type.show(qualified = true, pretty = true)
                             comps += ci
                         }
                         for ((sym, d) in mod.types) {
                             if (!d.visibility.isPublic()) continue
                             val ci = CompletionItem(sym)
                             ci.kind = CompletionItemKind.Class
-                            ci.detail = d.type.show(true, true)
+                            ci.detail = d.type.show(qualified = true, pretty = true)
                             comps += ci
                         }
                     }
@@ -409,12 +411,12 @@ class CompletionFeature(private val server: NovahServer) {
 
         private fun getDetail(d: Decl.ValDecl): String? {
             val typ = d.type ?: d.exp.type ?: return null
-            return typ.show(true, true)
+            return typ.show(qualified = true, pretty = true)
         }
 
         private fun getCtorDetails(dc: DataConstructor, typeName: String): String {
             return if (dc.args.isEmpty()) typeName
-            else (dc.args.map { it.show(true, true) } + typeName).joinToString(" -> ")
+            else (dc.args.map { it.show(qualified = true, pretty = true) } + typeName).joinToString(" -> ")
         }
 
         private fun collectParameters(d: Decl.ValDecl, pred: (String) -> Boolean): List<Pair<String, Type?>> {

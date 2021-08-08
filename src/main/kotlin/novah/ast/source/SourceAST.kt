@@ -61,8 +61,8 @@ sealed class DeclarationRef(open val name: String, open val span: Span) {
      * `null` ctors mean only the type is imported, but no constructors.
      * Empty ctors mean all constructors are imported.
      */
-    data class RefType(override val name: String, override val span: Span, val ctors: List<String>? = null) :
-        DeclarationRef(name, span) {
+    data class RefType(val binder: Spanned<String>, override val span: Span, val ctors: List<Spanned<String>>? = null) :
+        DeclarationRef(binder.value, span) {
         override fun toString(): String = when {
             ctors == null -> name
             ctors.isEmpty() -> "$name(..)"
