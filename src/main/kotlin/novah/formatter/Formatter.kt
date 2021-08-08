@@ -196,7 +196,7 @@ class Formatter {
             is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".")}"
             is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
             is Expr.RecordUpdate -> {
-                "{ .${e.labels.joinToString(".") { showLabel(it) }} = ${show(e.value)} | ${show(e.exp)} }"
+                "{ .${e.labels.joinToString(".") { showLabel(it.value) }} = ${show(e.value)} | ${show(e.exp)} }"
             }
             is Expr.RecordExtend -> {
                 val labels = e.labels.show(::showLabelExpr)

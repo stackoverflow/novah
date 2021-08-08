@@ -99,16 +99,16 @@ class HoverFeature(private val server: NovahServer) {
             }
             is LocalRefCtx -> novah("${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
             is MethodCtx -> {
-                java(ctx.method.toString()) + "\n\n" +
+                java(ctx.method.toString()) + "\n***\n" +
                         novah("${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
             }
             is CtorCtx -> {
-                java(ctx.ctor.toString()) + "\n\n" +
+                java(ctx.ctor.toString()) + "\n***\n" +
                         novah("(constructor)\n${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
             }
             is FieldCtx -> {
                 val kind = if (ctx.getter) "getter" else "setter"
-                java(ctx.field.toString()) + "\n\n" +
+                java(ctx.field.toString()) + "\n***\n" +
                         novah("($kind)\n${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
             }
         }
@@ -185,6 +185,28 @@ class HoverFeature(private val server: NovahServer) {
                                 ctx = LocalRefCtx(e.name, e.type!!)
                             }
                         }
+                        is Expr.ImplicitVar -> {
+                            val ownRef = ownMod.env.decls[e.name]
+                            if (e.moduleName != null) {
+                                val v = mods[e.moduleName]?.env?.decls?.get(e.name)
+                                if (v != null) ctx = ImportDeclCtx(e.name, e.moduleName, v)
+                            } else if (ownRef != null) {
+                                ctx = ImportDeclCtx(e.name, ast.name.value, ownRef)
+                            } else if (!e.name.startsWith("var$")) {
+                                ctx = LocalRefCtx(e.name, e.type!!)
+                            }
+                        }
+                        is Expr.Constructor -> {
+                            val ownRef = ownMod.env.decls[e.name]
+                            if (e.moduleName != null) {
+                                val v = mods[e.moduleName]?.env?.decls?.get(e.name)
+                                if (v != null) ctx = ImportDeclCtx(e.name, e.moduleName, v)
+                            } else if (ownRef != null) {
+                                ctx = ImportDeclCtx(e.name, ast.name.value, ownRef)
+                            } else if (!e.name.startsWith("var$")) {
+                                ctx = LocalRefCtx(e.name, e.type!!)
+                            }
+                        }
                         is Expr.Lambda -> {
                             val bind = e.binder
                             if (bind.span.matches(line, col)
@@ -202,16 +224,17 @@ class HoverFeature(private val server: NovahServer) {
                                             if (p.span.matches(line, col)) {
                                                 when (p) {
                                                     is Pattern.Var -> {
-                                                        if (p.type != null)
-                                                            ctx = LocalRefCtx(p.name, p.type!!)
+                                                        if (p.type != null) ctx = LocalRefCtx(p.name, p.type!!)
                                                     }
                                                     is Pattern.Ctor -> {
                                                         if (p.type != null && p.ctor.span.matches(line, col))
                                                             ctx = LocalRefCtx(p.ctor.name, p.type!!)
                                                     }
                                                     is Pattern.Wildcard -> {
-                                                        if (p.type != null)
-                                                            ctx = LocalRefCtx("_", p.type!!)
+                                                        if (p.type != null) ctx = LocalRefCtx("_", p.type!!)
+                                                    }
+                                                    is Pattern.Named -> {
+                                                        if (p.type != null) ctx = LocalRefCtx(p.name.value, p.type!!)
                                                     }
                                                 }
                                             }
@@ -230,6 +253,10 @@ class HoverFeature(private val server: NovahServer) {
                         is Expr.NativeConstructor -> ctx = CtorCtx(e.name, e.type!!, e.ctor)
                         is Expr.NativeFieldGet -> ctx = FieldCtx(e.name, e.type!!, e.field, getter = true)
                         is Expr.NativeFieldSet -> ctx = FieldCtx(e.name, e.type!!, e.field, getter = false)
+                        is Expr.RecordSelect -> {
+                            if (e.label.span.matches(line, col))
+                                ctx = LocalRefCtx(e.label.value, e.type!!)
+                        }
                     }
                 }
             }

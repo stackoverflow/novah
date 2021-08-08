@@ -421,7 +421,7 @@ class Parser(
                     .withSpan(unrolled.span, iter.current().span)
                     .withComment(unrolled.comment)
             } else unrolled
-            
+
             if (iter.peek().value is As) {
                 iter.next()
                 val ty = parseType()
@@ -526,7 +526,8 @@ class Parser(
         return if (exp != null && iter.peek().value is Dot) {
             iter.next()
             val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
-            Expr.RecordSelect(exp, labels.map { it.first }).withSpan(exp.span, labels.last().second.span)
+            Expr.RecordSelect(exp, labels.map { Spanned(it.second.span, it.first) })
+                .withSpan(exp.span, labels.last().second.span)
         } else exp
     }
 
@@ -915,7 +916,7 @@ class Parser(
         return if (pat != null && iter.peek().value is As) {
             iter.next()
             val name = expect<Ident>(withError(E.VARIABLE))
-            Pattern.Named(pat, name.value.v, span(pat.span, name.span))
+            Pattern.Named(pat, Spanned(name.span, name.value.v), span(pat.span, name.span))
         } else pat
     }
 
@@ -991,7 +992,7 @@ class Parser(
         expect<Pipe>(withError(E.pipeExpected("record update")))
         val record = parseExpression()
         val end = expect<RBracket>(withError(E.rbracketExpected("record update")))
-        return Expr.RecordUpdate(record, labels.map { it.first }, value)
+        return Expr.RecordUpdate(record, labels.map { Spanned(it.second.span, it.first) }, value)
             .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 

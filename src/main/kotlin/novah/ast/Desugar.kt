@@ -24,6 +24,7 @@ import novah.data.*
 import novah.data.Reflection.isStatic
 import novah.frontend.ParserError
 import novah.frontend.Span
+import novah.frontend.Spanned
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
@@ -246,8 +247,8 @@ class Desugar(private val smod: SModule) {
         is SExpr.RecordSelect -> {
             if (exp is SExpr.Underscore) {
                 val v = newVar()
-                Expr.Lambda(Binder(v, span), nestRecordSelects(Expr.Var(v, span), labels), span)
-            } else nestRecordSelects(exp.desugar(locals, tvars), labels)
+                Expr.Lambda(Binder(v, span), nestRecordSelects(Expr.Var(v, span), labels, span), span)
+            } else nestRecordSelects(exp.desugar(locals, tvars), labels, span)
         }
         is SExpr.RecordExtend -> {
             val lvars = mutableListOf<Binder>()
@@ -270,8 +271,8 @@ class Desugar(private val smod: SModule) {
         is SExpr.RecordRestrict -> {
             if (exp is SExpr.Underscore) {
                 val v = newVar()
-                nestLambdas(listOf(Binder(v, span)), nestRecordRestrictions(Expr.Var(v, span), labels))
-            } else nestRecordRestrictions(exp.desugar(locals, tvars), labels)
+                nestLambdas(listOf(Binder(v, span)), nestRecordRestrictions(Expr.Var(v, span), labels, span))
+            } else nestRecordRestrictions(exp.desugar(locals, tvars), labels, span)
         }
         is SExpr.RecordUpdate -> {
             val lvars = mutableListOf<Binder>()
@@ -287,7 +288,7 @@ class Desugar(private val smod: SModule) {
                 Expr.Var(v, span)
             } else exp.desugar(locals, tvars)
 
-            nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue))
+            nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue, span))
         }
         is SExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
@@ -442,7 +443,7 @@ class Desugar(private val smod: SModule) {
         is SPattern.Record -> pat.labels.flatMapList { collectVars(it, implicit) }.toList()
         is SPattern.ListP -> pat.elems.flatMap { collectVars(it, implicit) }
         is SPattern.ListHeadTail -> collectVars(pat.head, implicit) + collectVars(pat.tail, implicit)
-        is SPattern.Named -> collectVars(pat.pat, implicit)
+        is SPattern.Named -> collectVars(pat.pat, implicit) + listOf(CollectedVar(pat.name.value, pat.name.span))
         is SPattern.ImplicitPattern -> collectVars(pat.pat, true)
         is SPattern.Wildcard -> emptyList()
         is SPattern.LiteralP -> emptyList()
@@ -510,22 +511,22 @@ class Desugar(private val smod: SModule) {
             }
         }
 
-    private tailrec fun nestRecordSelects(exp: Expr, labels: List<String>): Expr {
+    private tailrec fun nestRecordSelects(exp: Expr, labels: List<Spanned<String>>, span: Span): Expr {
         return if (labels.isEmpty()) exp
-        else nestRecordSelects(Expr.RecordSelect(exp, labels[0], exp.span), labels.drop(1))
+        else nestRecordSelects(Expr.RecordSelect(exp, labels[0], span), labels.drop(1), span)
     }
 
-    private tailrec fun nestRecordRestrictions(exp: Expr, labels: List<String>): Expr {
+    private tailrec fun nestRecordRestrictions(exp: Expr, labels: List<String>, span: Span): Expr {
         return if (labels.isEmpty()) exp
-        else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], exp.span), labels.drop(1))
+        else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], span), labels.drop(1), span)
     }
 
-    private fun nestRecordUpdates(exp: Expr, labels: List<String>, value: Expr): Expr {
+    private fun nestRecordUpdates(exp: Expr, labels: List<Spanned<String>>, value: Expr, span: Span): Expr {
         return if (labels.isEmpty()) exp
         else {
             val tail = labels.drop(1)
             val select = if (tail.isEmpty()) value else Expr.RecordSelect(exp, labels[0], value.span)
-            Expr.RecordUpdate(exp, labels[0], nestRecordUpdates(select, labels.drop(1), value), exp.span)
+            Expr.RecordUpdate(exp, labels[0], nestRecordUpdates(select, labels.drop(1), value, span), span)
         }
     }
 
@@ -708,7 +709,7 @@ class Desugar(private val smod: SModule) {
                 val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
                 if (exp.isBind && builder != null) {
                     val span = exp.span
-                    val select = SExpr.RecordSelect(builder, listOf("bind")).withSpan(span)
+                    val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
                     val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), bodyExp).withSpan(span)
                     listOf(SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span))
                 } else {
@@ -727,7 +728,7 @@ class Desugar(private val smod: SModule) {
             e is SExpr.App && e.fn is SExpr.App -> SExpr.App(replace(e.fn), e.arg)
             e is SExpr.App && e.fn is SExpr.Var && e.fn.alias == null && e.fn.name in specialComputationFunctions -> {
                 val span = exp.span
-                val select = SExpr.RecordSelect(builder, listOf(e.fn.name)).withSpan(span)
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, e.fn.name))).withSpan(span)
                 SExpr.App(select, e.arg).withSpan(span)
             }
             else -> e
@@ -736,7 +737,7 @@ class Desugar(private val smod: SModule) {
             is SExpr.App -> replace(exp)
             is SExpr.IfBang -> {
                 val span = exp.span
-                val elseCase = SExpr.RecordSelect(builder, listOf("zero"))
+                val elseCase = SExpr.RecordSelect(builder, listOf(Spanned(span, "zero"))).withSpan(span)
                 SExpr.If(exp.cond, replaceSpecialFun(exp.thenCase, builder), elseCase).withSpan(span)
             }
             else -> exp

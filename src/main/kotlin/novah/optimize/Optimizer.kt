@@ -231,9 +231,11 @@ class Optimizer(private val ast: CModule) {
                 labels.mapList { it.convert(locals) },
                 exp.convert(locals), typ, span
             )
-            is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label, typ, span)
+            is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label.value, typ, span)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ, span)
-            is CExpr.RecordUpdate -> Expr.RecordUpdate(exp.convert(locals), label, value.convert(locals), typ, span)
+            is CExpr.RecordUpdate -> {
+                Expr.RecordUpdate(exp.convert(locals), label.value, value.convert(locals), typ, span)
+            }
             is CExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Throw -> Expr.Throw(exp.convert(locals), span)
@@ -460,7 +462,7 @@ class Optimizer(private val ast: CModule) {
             }
             is Pattern.Named -> {
                 val (cond, vars) = desugarPattern(p.pat, exp)
-                PatternResult(cond, vars + VarDef(p.name, exp))
+                PatternResult(cond, vars + VarDef(p.name.value, exp))
             }
             is Pattern.TypeTest -> {
                 val castType = p.test.convert()

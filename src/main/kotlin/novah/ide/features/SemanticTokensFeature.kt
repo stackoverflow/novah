@@ -123,6 +123,10 @@ class SemanticTokensFeature(private val server: NovahServer) {
                         else if (e.isOp) genLine(e.span, OP)
                         else listOf()
                     }
+                    is Expr.ImplicitVar -> {
+                        if (e.name in parNames) genLine(e.span, PARAM)
+                        else listOf()
+                    }
                     is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64 -> genLine(e.span, NUM)
                     is Expr.TypeCast -> genTypeLine(e.cast)
                     is Expr.Ann -> genTypeLine(e.annType)

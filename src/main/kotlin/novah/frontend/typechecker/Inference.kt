@@ -136,7 +136,7 @@ object Inference {
         }
         is Expr.ImplicitVar -> {
             val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(TImplicit(instantiate(level, ty)))
+            exp.withType(instantiate(level, ty))
         }
         is Expr.NativeFieldGet -> {
             val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
@@ -283,7 +283,7 @@ object Inference {
         is Expr.RecordSelect -> {
             val rest = newVar(level)
             val field = newVar(level)
-            val param = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
+            val param = TRecord(TRowExtend(singletonPMap(exp.label.value, field), rest))
             unify(param, infer(env, level, exp.exp), exp.span)
             exp.withType(field)
         }
@@ -298,7 +298,7 @@ object Inference {
         is Expr.RecordUpdate -> {
             val field = infer(env, level, exp.value)
             val rest = newVar(level)
-            val recTy = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
+            val recTy = TRecord(TRowExtend(singletonPMap(exp.label.value, field), rest))
             unify(recTy, infer(env, level, exp.exp), exp.span)
             exp.withType(recTy)
         }
@@ -450,7 +450,7 @@ object Inference {
             is Pattern.Named -> {
                 val vars = mutableListOf<PatternVar>()
                 vars += inferpattern(env, level, pat.pat, ty)
-                vars += PatternVar(pat.name, ty, pat.span)
+                vars += PatternVar(pat.name.value, ty, pat.span)
                 vars
             }
             is Pattern.TypeTest -> {

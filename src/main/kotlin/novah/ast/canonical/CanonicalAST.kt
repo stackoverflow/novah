@@ -118,10 +118,12 @@ sealed class Expr(open val span: Span) {
     data class NativeConstructor(val name: String, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
     class Unit(span: Span) : Expr(span)
     class RecordEmpty(span: Span) : Expr(span)
-    data class RecordSelect(val exp: Expr, val label: String, override val span: Span) : Expr(span)
+    data class RecordSelect(val exp: Expr, val label: Spanned<String>, override val span: Span) : Expr(span)
     data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
-    data class RecordUpdate(val exp: Expr, val label: String, val value: Expr, override val span: Span) : Expr(span)
+    data class RecordUpdate(val exp: Expr, val label: Spanned<String>, val value: Expr, override val span: Span) :
+        Expr(span)
+
     data class ListLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class Throw(val exp: Expr, override val span: Span) : Expr(span)
@@ -176,10 +178,10 @@ sealed class Pattern(open val span: Span) {
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
     data class ListP(val elems: List<Pattern>, override val span: Span) : Pattern(span)
     data class ListHeadTail(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
-    data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
+    data class Named(val pat: Pattern, val name: Spanned<String>, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val test: Type, val alias: String?, override val span: Span) : Pattern(span)
-    
+
     var type: Type? = null
 }
 
