@@ -19,6 +19,7 @@ import novah.ast.canonical.*
 import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
 import novah.frontend.Comment
+import novah.frontend.Lexer
 import novah.frontend.typechecker.Type
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
@@ -57,7 +58,7 @@ class HoverFeature(private val server: NovahServer) {
         return when (ctx) {
             is ModuleCtx -> {
                 val name = ctx.name
-                val source = if (ctx.alias != null) "module $name as ${ctx.alias}" else "**$name**"
+                val source = if (ctx.alias != null) "module $name as ${ctx.alias}" else "module $name"
                 makeHover(source, ctx.mod.comment)
             }
             is ImportDeclCtx -> {
@@ -67,7 +68,8 @@ class HoverFeature(private val server: NovahServer) {
                     source += if (ref.isInstance) "pub instance\n"
                     else "pub\n"
                 }
-                source += "${ctx.name} : ${ref.type.show(qualified = true, pretty = true)}"
+                val name = if (Lexer.isOperator(ctx.name)) "(${ctx.name})" else ctx.name
+                source += "$name : ${ref.type.show(qualified = true, pretty = true)}"
                 makeHover(source, ref.comment)
             }
             is ImportTypeDeclCtx -> {
@@ -92,12 +94,16 @@ class HoverFeature(private val server: NovahServer) {
                 makeHover(source, d.comment)
             }
             is LetCtx -> {
-                val name = escape(ctx.let.binder.name)
+                val name = if (Lexer.isOperator(ctx.let.binder.name)) "(${ctx.let.binder.name})"
+                else ctx.let.binder.name
                 var source = if (ctx.let.isInstance) "instance\n$name" else name
                 source += " : ${ctx.type.show(qualified = true, pretty = true)}"
                 novah(source)
             }
-            is LocalRefCtx -> novah("${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
+            is LocalRefCtx -> {
+                val name = if (Lexer.isOperator(ctx.name)) "(${ctx.name})" else ctx.name
+                novah("$name : ${ctx.type.show(qualified = true, pretty = true)}")
+            }
             is MethodCtx -> {
                 java(ctx.method.toString()) + "\n***\n" +
                         novah("${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
@@ -277,8 +283,6 @@ class HoverFeature(private val server: NovahServer) {
 
     companion object {
         private fun commentToMarkdown(c: Comment) = c.comment.replace("\n", "  \n")
-
-        private fun escape(name: String) = name.replace("*", "\\*")
 
         private fun novah(src: String) = "```novah\n$src\n```"
 

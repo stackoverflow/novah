@@ -174,9 +174,9 @@ const x _ = x
  * Used to minimize parentheses and have a
  * more intuitive order of execution:
  *
- * x |> fun1 |> fun2 |> fun3 y
+ * `x |> fun1 |> fun2 |> fun3 y`
  * instead of
- * fun3 y (fun2 (fun1 x))
+ * `fun3 y (fun2 (fun1 x))`
  */
 pub
 (|>) : a -> (a -> b) -> b

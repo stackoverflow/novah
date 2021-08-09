@@ -40,7 +40,7 @@ class Parser(
         return try {
             Ok(innerParseFullModule())
         } catch (le: LexError) {
-            // for now we just return the first error
+            // for now, we just return the first error
             Err(CompilerProblem(le.msg, ProblemContext.PARSER, le.span, sourceName, moduleName))
         } catch (pe: ParserError) {
             Err(CompilerProblem(pe.msg, ProblemContext.PARSER, pe.span, sourceName, moduleName))
@@ -135,7 +135,7 @@ class Parser(
         if (imports.none { it.module.value == CORE_MODULE } && moduleName != CORE_MODULE) {
             imports += coreImport
         }
-        if (!isStdlib) {
+        if (!isStdlib && moduleName !in stlibModuleNames) {
             // all aliased modules
             val aliased = imports.filter { it.alias() != null }.map { it.module.value }.toSet()
 
