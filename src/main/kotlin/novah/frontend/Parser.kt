@@ -457,8 +457,8 @@ class Parser(
                         Expr.Unit().withSpan(span(tk.span, end.span)).withComment(tk.comment)
                     } else {
                         val exp = parseExpression()
-                        expect<RParen>(withError(E.rparensExpected("expression")))
-                        Expr.Parens(exp)
+                        val end = expect<RParen>(withError(E.rparensExpected("expression")))
+                        Expr.Parens(exp).withSpan(tk.span, end.span).withComment(tk.comment)
                     }
                 }
             }
