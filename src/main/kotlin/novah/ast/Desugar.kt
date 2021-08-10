@@ -399,7 +399,7 @@ class Desugar(private val smod: SModule) {
                         var v = vars[name]
                         if (v != null) v.copy().span(span)
                         else {
-                            v = Typechecker.newGenVar().span(span)
+                            v = Typechecker.newGenVar(name).span(span)
                             vars[name] = v
                             v
                         }

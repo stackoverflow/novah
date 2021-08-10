@@ -137,7 +137,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
             if (errors.isNotEmpty()) throwErrors()
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
-            modules[mod.data.name.value] = FullModuleEnv(menv, canonical, taliases)
+            modules[mod.data.name.value] = FullModuleEnv(menv, canonical, taliases, Typechecker.typeVars())
         }
         return modules
     }
@@ -255,7 +255,12 @@ sealed class Source(val path: Path) {
 class CompilationError(val problems: List<CompilerProblem>) :
     RuntimeException(problems.joinToString("\n") { it.formatToConsole() })
 
-data class FullModuleEnv(val env: ModuleEnv, val ast: TypedModule, val aliases: List<Decl.TypealiasDecl>)
+data class FullModuleEnv(
+    val env: ModuleEnv,
+    val ast: TypedModule,
+    val aliases: List<Decl.TypealiasDecl>,
+    val typeVarsMap: Map<Int, String>
+)
 
 data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: Boolean, val comment: Comment?)
 

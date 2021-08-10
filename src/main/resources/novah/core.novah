@@ -183,14 +183,14 @@ pub
 (|>) x f = f x
 
 /**
- * Forward function composition operator: (f >> g) x = g (f x)
+ * Forward function composition operator: `(f >> g) x = g (f x)`
  */
 pub
 (>>) : (a -> b) -> (b -> c) -> (a -> c)
 (>>) f g x = g (f x)
 
 /**
- * Backward function composition operator: (f << g) x = f (g x)
+ * Backward function composition operator: `(f << g) x = f (g x)`
  */
 pub
 (<<) : (b -> c) -> (a -> b) -> (a -> c)

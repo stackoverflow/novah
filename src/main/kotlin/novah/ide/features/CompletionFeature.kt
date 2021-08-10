@@ -36,6 +36,8 @@ import java.util.concurrent.CompletableFuture
 
 class CompletionFeature(private val server: NovahServer) {
 
+    private val typeVarsMap = mutableMapOf<Int, String>()
+
     @Suppress("WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
     fun onCompletion(params: CompletionParams): CompletableFuture<Either<MutableList<CompletionItem>, CompletionList>> {
         fun run(): Either<MutableList<CompletionItem>, CompletionList>? {
@@ -48,6 +50,7 @@ class CompletionFeature(private val server: NovahServer) {
             server.logger().log("received completion request for ${file.absolutePath} at $line:$col text `$name`")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
+            typeVarsMap.putAll(mod.typeVarsMap)
 
             return when (params.context.triggerKind) {
                 CompletionTriggerKind.Invoked -> {
@@ -196,7 +199,7 @@ class CompletionFeature(private val server: NovahServer) {
                 if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = if (ref.type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
-                    ci.detail = ref.type.show(qualified = true, pretty = true)
+                    ci.detail = ref.type.show(qualified = true, typeVarsMap = typeVarsMap)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
                     ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, ctorMap[sym]))
                     completions += ci
@@ -206,7 +209,7 @@ class CompletionFeature(private val server: NovahServer) {
                 if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = CompletionItemKind.Class
-                    ci.detail = ref.type.show(qualified = true, pretty = true)
+                    ci.detail = ref.type.show(qualified = true, typeVarsMap = typeVarsMap)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
                     ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, null))
                     completions += ci
@@ -252,7 +255,7 @@ class CompletionFeature(private val server: NovahServer) {
                         val pars = collectParameters(d) { it.startsWith(name) }
                         comps.addAll(pars.map { (binder, type) ->
                             val ci = CompletionItem(binder)
-                            ci.detail = type?.show(qualified = true, pretty = true)
+                            ci.detail = type?.show(qualified = true, typeVarsMap = typeVarsMap)
                             ci.kind = if (type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
                             ci
                         })
@@ -265,7 +268,7 @@ class CompletionFeature(private val server: NovahServer) {
                                     ci.kind = if (let.letDef.expr.type is TArrow) {
                                         CompletionItemKind.Function
                                     } else CompletionItemKind.Value
-                                    ci.detail = let.letDef.expr.type?.show(qualified = true, pretty = true)
+                                    ci.detail = let.letDef.expr.type?.show(qualified = true, typeVarsMap = typeVarsMap)
                                     comps += ci
                                 }
                             }
@@ -289,7 +292,7 @@ class CompletionFeature(private val server: NovahServer) {
                 val ty = kv.value().first()
                 val ci = CompletionItem(kv.key())
                 ci.kind = if (ty is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
-                ci.detail = ty.show(qualified = true, pretty = true)
+                ci.detail = ty.show(qualified = true, typeVarsMap = typeVarsMap)
                 ci
             }
         }
@@ -354,14 +357,14 @@ class CompletionFeature(private val server: NovahServer) {
                                 ci.kind = if (decl.type is TArrow) {
                                     CompletionItemKind.Function
                                 } else CompletionItemKind.Value
-                                ci.detail = decl.type.show(qualified = true, pretty = true)
+                                ci.detail = decl.type.show(qualified = true, typeVarsMap = typeVarsMap)
                                 comps += ci
                             }
                             val tdecl = mod.types[d.name]
                             if (tdecl != null) {
                                 val ci = CompletionItem(d.name)
                                 ci.kind = CompletionItemKind.Class
-                                ci.detail = tdecl.type.show(qualified = true, pretty = true)
+                                ci.detail = tdecl.type.show(qualified = true, typeVarsMap = typeVarsMap)
                                 comps += ci
                             }
                         }
@@ -373,14 +376,14 @@ class CompletionFeature(private val server: NovahServer) {
                             ci.kind = if (d.type is TArrow) {
                                 CompletionItemKind.Function
                             } else CompletionItemKind.Value
-                            ci.detail = d.type.show(qualified = true, pretty = true)
+                            ci.detail = d.type.show(qualified = true, typeVarsMap = typeVarsMap)
                             comps += ci
                         }
                         for ((sym, d) in mod.types) {
                             if (!d.visibility.isPublic()) continue
                             val ci = CompletionItem(sym)
                             ci.kind = CompletionItemKind.Class
-                            ci.detail = d.type.show(qualified = true, pretty = true)
+                            ci.detail = d.type.show(qualified = true, typeVarsMap = typeVarsMap)
                             comps += ci
                         }
                     }
@@ -388,6 +391,16 @@ class CompletionFeature(private val server: NovahServer) {
             }
         }
         return comps
+    }
+
+    private fun getDetail(d: Decl.ValDecl): String? {
+        val typ = d.type ?: d.exp.type ?: return null
+        return typ.show(qualified = true, typeVarsMap = typeVarsMap)
+    }
+
+    private fun getCtorDetails(dc: DataConstructor, typeName: String): String {
+        return if (dc.args.isEmpty()) typeName
+        else (dc.args.map { it.show(qualified = true, typeVarsMap = typeVarsMap) } + typeName).joinToString(" -> ")
     }
 
     companion object {
@@ -407,16 +420,6 @@ class CompletionFeature(private val server: NovahServer) {
                 else CompletionItemKind.Value
             }
             return CompletionItemKind.Function
-        }
-
-        private fun getDetail(d: Decl.ValDecl): String? {
-            val typ = d.type ?: d.exp.type ?: return null
-            return typ.show(qualified = true, pretty = true)
-        }
-
-        private fun getCtorDetails(dc: DataConstructor, typeName: String): String {
-            return if (dc.args.isEmpty()) typeName
-            else (dc.args.map { it.show(qualified = true, pretty = true) } + typeName).joinToString(" -> ")
         }
 
         private fun collectParameters(d: Decl.ValDecl, pred: (String) -> Boolean): List<Pair<String, Type?>> {

@@ -36,6 +36,8 @@ import java.util.concurrent.CompletableFuture
 
 class HoverFeature(private val server: NovahServer) {
 
+    private val typeVarsMap = mutableMapOf<Int, String>()
+
     fun onHover(params: HoverParams): CompletableFuture<Hover> {
         fun run(): Hover? {
             val path = IdeUtil.uriToFile(params.textDocument.uri)
@@ -48,6 +50,7 @@ class HoverFeature(private val server: NovahServer) {
             //server.logger().log("hovering on ${mod.ast.name.value} $line:$col")
 
             val ctx = findContext(line, col, mod.ast, env.modules()) ?: return null
+            typeVarsMap.putAll(mod.typeVarsMap)
 
             return Hover(MarkupContent("markdown", contextToHover(ctx)))
         }
@@ -69,14 +72,14 @@ class HoverFeature(private val server: NovahServer) {
                     else "pub\n"
                 }
                 val name = if (Lexer.isOperator(ctx.name)) "(${ctx.name})" else ctx.name
-                source += "$name : ${ref.type.show(qualified = true, pretty = true)}"
+                source += "$name : ${ref.type.show(qualified = true, typeVarsMap = ctx.tvars)}"
                 makeHover(source, ref.comment)
             }
             is ImportTypeDeclCtx -> {
                 val ref = ctx.ref
                 var source = "module ${ctx.module}\n\n"
                 if (ref.visibility.isPublic()) source += "pub\n"
-                source += "${ctx.name} : ${ref.type.show(qualified = true, pretty = true)}"
+                source += "${ctx.name} : ${ref.type.show(qualified = true, typeVarsMap = ctx.tvars)}"
                 makeHover(source, ref.comment)
             }
             is DeclCtx -> {
@@ -89,7 +92,7 @@ class HoverFeature(private val server: NovahServer) {
                 source += if (d.isOperator) "(${d.name.name})" else d.name.name
                 val type = d.type ?: d.exp.type
                 if (type != null) {
-                    source += " : ${type.show(qualified = true, pretty = true)}"
+                    source += " : ${type.show(qualified = true, typeVarsMap = typeVarsMap)}"
                 }
                 makeHover(source, d.comment)
             }
@@ -97,33 +100,41 @@ class HoverFeature(private val server: NovahServer) {
                 val name = if (Lexer.isOperator(ctx.let.binder.name)) "(${ctx.let.binder.name})"
                 else ctx.let.binder.name
                 var source = if (ctx.let.isInstance) "instance\n$name" else name
-                source += " : ${ctx.type.show(qualified = true, pretty = true)}"
+                source += " : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}"
                 novah(source)
             }
             is LocalRefCtx -> {
                 val name = if (Lexer.isOperator(ctx.name)) "(${ctx.name})" else ctx.name
-                novah("$name : ${ctx.type.show(qualified = true, pretty = true)}")
+                novah("$name : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}")
             }
             is MethodCtx -> {
                 java(ctx.method.toString()) + "\n***\n" +
-                        novah("${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
+                        novah("${ctx.name} : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}")
             }
             is CtorCtx -> {
-                java(ctx.ctor.toString()) + "\n***\n" +
-                        novah("(constructor)\n${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
+                val src = "(constructor)\n${ctx.name} : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}"
+                java(ctx.ctor.toString()) + "\n***\n" + novah(src)
             }
             is FieldCtx -> {
                 val kind = if (ctx.getter) "getter" else "setter"
                 java(ctx.field.toString()) + "\n***\n" +
-                        novah("($kind)\n${ctx.name} : ${ctx.type.show(qualified = true, pretty = true)}")
+                        novah("($kind)\n${ctx.name} : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}")
             }
         }
     }
 
     private sealed class HoverCtx
     private class ModuleCtx(val name: String, val alias: String?, val mod: Module) : HoverCtx()
-    private class ImportDeclCtx(val name: String, val module: String, val ref: DeclRef) : HoverCtx()
-    private class ImportTypeDeclCtx(val name: String, val module: String, val ref: TypeDeclRef) : HoverCtx()
+    private class ImportDeclCtx(val name: String, val module: String, val ref: DeclRef, val tvars: Map<Int, String>) :
+        HoverCtx()
+
+    private class ImportTypeDeclCtx(
+        val name: String,
+        val module: String,
+        val ref: TypeDeclRef,
+        val tvars: Map<Int, String>
+    ) : HoverCtx()
+
     private class DeclCtx(val decl: Decl.ValDecl) : HoverCtx()
     private class LocalRefCtx(val name: String, val type: Type) : HoverCtx()
     private class LetCtx(val let: LetDef, val type: Type) : HoverCtx()
@@ -137,13 +148,17 @@ class HoverFeature(private val server: NovahServer) {
             // TODO search aliases
             if (d.binder.span.matches(line, col)) {
                 val ref = mods[moduleName]?.env?.types?.get(d.name)
-                return if (ref != null) ImportTypeDeclCtx(d.name, moduleName, ref) else null
+                return if (ref != null) {
+                    ImportTypeDeclCtx(d.name, moduleName, ref, mods[moduleName]!!.typeVarsMap)
+                } else null
             }
             if (d.ctors == null || d.ctors.isEmpty()) return null
             for (ctor in d.ctors) {
                 if (ctor.span.matches(line, col)) {
                     val ref = mods[moduleName]?.env?.decls?.get(ctor.value)
-                    return if (ref != null) ImportDeclCtx(ctor.value, moduleName, ref) else null
+                    return if (ref != null) {
+                        ImportDeclCtx(ctor.value, moduleName, ref, mods[moduleName]!!.typeVarsMap)
+                    } else null
                 }
             }
             return null
@@ -151,9 +166,9 @@ class HoverFeature(private val server: NovahServer) {
 
         // search imports
         for (imp in ast.imports) {
-            val modName = imp.module.value
             if (imp.span().matches(line, col)) {
                 // context is import
+                val modName = imp.module.value
                 if (imp.module.span.matches(line, col)) return ModuleCtx(modName, imp.alias(), mods[modName]!!.ast)
                 if (imp is Import.Exposing) {
                     for (d in imp.defs) {
@@ -161,8 +176,9 @@ class HoverFeature(private val server: NovahServer) {
                             return when (d) {
                                 is DeclarationRef.RefVar -> {
                                     val ref = mods[modName]?.env?.decls?.get(d.name)
-                                    if (ref != null) ImportDeclCtx(d.name, modName, ref)
-                                    else null
+                                    if (ref != null) {
+                                        ImportDeclCtx(d.name, modName, ref, mods[modName]!!.typeVarsMap)
+                                    } else null
                                 }
                                 is DeclarationRef.RefType -> searchTypeRefs(d, modName)
                             }
@@ -184,9 +200,11 @@ class HoverFeature(private val server: NovahServer) {
                             val ownRef = ownMod.env.decls[e.name]
                             if (e.moduleName != null) {
                                 val v = mods[e.moduleName]?.env?.decls?.get(e.name)
-                                if (v != null) ctx = ImportDeclCtx(e.name, e.moduleName, v)
+                                if (v != null) {
+                                    ctx = ImportDeclCtx(e.name, e.moduleName, v, mods[e.moduleName]!!.typeVarsMap)
+                                }
                             } else if (ownRef != null) {
-                                ctx = ImportDeclCtx(e.name, ast.name.value, ownRef)
+                                ctx = ImportDeclCtx(e.name, ast.name.value, ownRef, ownMod.typeVarsMap)
                             } else if (!e.name.startsWith("var$")) {
                                 ctx = LocalRefCtx(e.name, e.type!!)
                             }
@@ -195,9 +213,11 @@ class HoverFeature(private val server: NovahServer) {
                             val ownRef = ownMod.env.decls[e.name]
                             if (e.moduleName != null) {
                                 val v = mods[e.moduleName]?.env?.decls?.get(e.name)
-                                if (v != null) ctx = ImportDeclCtx(e.name, e.moduleName, v)
+                                if (v != null) {
+                                    ctx = ImportDeclCtx(e.name, e.moduleName, v, mods[e.moduleName]!!.typeVarsMap)
+                                }
                             } else if (ownRef != null) {
-                                ctx = ImportDeclCtx(e.name, ast.name.value, ownRef)
+                                ctx = ImportDeclCtx(e.name, ast.name.value, ownRef, ownMod.typeVarsMap)
                             } else if (!e.name.startsWith("var$")) {
                                 ctx = LocalRefCtx(e.name, e.type!!)
                             }
@@ -206,9 +226,11 @@ class HoverFeature(private val server: NovahServer) {
                             val ownRef = ownMod.env.decls[e.name]
                             if (e.moduleName != null) {
                                 val v = mods[e.moduleName]?.env?.decls?.get(e.name)
-                                if (v != null) ctx = ImportDeclCtx(e.name, e.moduleName, v)
+                                if (v != null) {
+                                    ctx = ImportDeclCtx(e.name, e.moduleName, v, mods[e.moduleName]!!.typeVarsMap)
+                                }
                             } else if (ownRef != null) {
-                                ctx = ImportDeclCtx(e.name, ast.name.value, ownRef)
+                                ctx = ImportDeclCtx(e.name, ast.name.value, ownRef, ownMod.typeVarsMap)
                             } else if (!e.name.startsWith("var$")) {
                                 ctx = LocalRefCtx(e.name, e.type!!)
                             }
