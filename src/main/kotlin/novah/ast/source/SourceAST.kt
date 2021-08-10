@@ -17,6 +17,7 @@ package novah.ast.source
 
 import novah.data.LabelMap
 import novah.data.Labels
+import novah.data.show
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -407,6 +408,39 @@ sealed class Type(open val span: Span) {
         is TRowEmpty -> copy(span = s)
         is TRowExtend -> copy(span = s)
         is TImplicit -> copy(span = s)
+    }
+    
+    fun show(): String = when (this) {
+        is TConst -> name
+        is TApp -> {
+            val sname = type.show()
+            if (types.isEmpty()) sname
+            else sname + " " + types.joinToString(" ") { it.show() }
+        }
+        is TFun -> "${arg.show()} -> ${ret.show()}"
+        is TParens -> "(${type.show()})"
+        is TImplicit -> "{{ ${type.show()} }}"
+        is TRowEmpty -> "{}"
+        is TRowExtend -> {
+            val labels = labels.show { k, v -> "$k : ${v.show()}" }
+            val str = when (row) {
+                is TRowEmpty -> labels
+                !is TRowExtend -> "$labels | ${row.show()}"
+                else -> {
+                    val rows = row.show()
+                    "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                }
+            }
+            "[ $str ]"
+        }
+        is TRecord -> when (row) {
+            is TRowEmpty -> "{}"
+            !is TRowExtend -> "{ | ${row.show()} }"
+            else -> {
+                val rows = row.show()
+                "{" + rows.substring(1, rows.lastIndex) + "}"
+            }
+        }
     }
 }
 

@@ -71,8 +71,7 @@ class SymbolsFeature(private val server: NovahServer) {
                 SymbolKind.Interface,
                 spanToRange(ta.span),
                 spanToRange(ta.span),
-                // TODO: how to show the actual alias
-                //ta.type.toString()
+                ta.type.show()
             )
             val tvars = ta.tyVars.map {
                 DocumentSymbol(
