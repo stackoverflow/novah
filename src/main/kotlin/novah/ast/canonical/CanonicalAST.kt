@@ -49,6 +49,7 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
         val dataCtors: List<DataConstructor>,
         override val span: Span,
         val visibility: Visibility,
+        val isOpaque: Boolean,
         override val comment: Comment? = null
     ) : Decl(span, comment)
 

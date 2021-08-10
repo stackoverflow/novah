@@ -264,7 +264,13 @@ data class FullModuleEnv(
 
 data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: Boolean, val comment: Comment?)
 
-data class TypeDeclRef(val type: Type, val visibility: Visibility, val ctors: List<String>, val comment: Comment?)
+data class TypeDeclRef(
+    val type: Type,
+    val visibility: Visibility,
+    val isOpaque: Boolean,
+    val ctors: List<String>,
+    val comment: Comment?
+)
 
 data class ModuleEnv(
     val decls: Map<String, DeclRef>,

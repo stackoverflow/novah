@@ -98,7 +98,7 @@ class Desugar(private val smod: SModule) {
             if (smod.foreignTypes[name] != null || imports[name] != null) {
                 parserError(E.duplicatedType(name), span)
             }
-            Decl.TypeDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility, comment)
+            Decl.TypeDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility, isOpaque, comment)
         }
         is SDecl.ValDecl -> {
             if (declNames.contains(name)) parserError(E.duplicatedDecl(name), span)

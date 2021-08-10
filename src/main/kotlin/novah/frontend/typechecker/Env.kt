@@ -198,7 +198,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     }
 }
 
-private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList(), null)
+private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, false, emptyList(), null)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 
 val primModuleEnv = ModuleEnv(
@@ -256,4 +256,12 @@ val primModule = Module(
 )
 
 private fun primType(name: String, comment: String) =
-    Decl.TypeDecl(name, emptyList(), emptyList(), Span.empty(), Visibility.PUBLIC, Comment(comment, Span.empty(), true))
+    Decl.TypeDecl(
+        name,
+        emptyList(),
+        emptyList(),
+        Span.empty(),
+        Visibility.PUBLIC,
+        false,
+        Comment(comment, Span.empty(), true)
+    )

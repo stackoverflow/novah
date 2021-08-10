@@ -79,7 +79,8 @@ class HoverFeature(private val server: NovahServer) {
                 val ref = ctx.ref
                 var source = "module ${ctx.module}\n\n"
                 if (ref.visibility.isPublic()) source += "pub\n"
-                source += "${ctx.name} : ${ref.type.show(qualified = true, typeVarsMap = ctx.tvars)}"
+                if (ref.isOpaque) source += "opaque "
+                source += "type ${ctx.name} : ${ref.type.show(qualified = true, typeVarsMap = ctx.tvars)}"
                 makeHover(source, ref.comment)
             }
             is DeclCtx -> {

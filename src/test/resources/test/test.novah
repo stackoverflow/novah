@@ -8,6 +8,8 @@ foreign import new File(String) as newFile
 foreign import File.getName() as fileName
 foreign import get File:separator
 
+typealias Opt a = Option a
+
 type MyList a
   = Niu
   | Kons a (MyList a)

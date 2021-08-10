@@ -74,7 +74,7 @@ object Inference {
                 Environment.cacheConstructorType("${ast.name.value}.${dc.name}", dcty)
                 decls[dc.name] = DeclRef(dcty, dc.visibility, false, null)
             }
-            types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name }, d.comment)
+            types[d.name] = TypeDeclRef(ty, d.visibility, d.isOpaque, d.dataCtors.map { it.name }, d.comment)
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
