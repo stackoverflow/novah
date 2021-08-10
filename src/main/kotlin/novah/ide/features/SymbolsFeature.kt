@@ -57,10 +57,10 @@ class SymbolsFeature(private val server: NovahServer) {
                 is Decl.ValDecl -> {
                     DocumentSymbol(
                         decl.name.name,
-                        if (decl.type is TArrow) SymbolKind.Function else SymbolKind.Variable,
+                        if (decl.signature?.type is TArrow) SymbolKind.Function else SymbolKind.Variable,
                         spanToRange(decl.span),
                         spanToRange(decl.name.span),
-                        decl.type?.show(true, typeVarsMap = mod.typeVarsMap)
+                        decl.signature?.type?.show(true, typeVarsMap = mod.typeVarsMap)
                     )
                 }
             }

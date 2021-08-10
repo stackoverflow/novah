@@ -355,10 +355,10 @@ class Parser(
         }
         val (nameTk, name) = parseName("")
         return withOffside(nameTk.offside() + 1) {
-            var type: Type? = null
+            var sig: Signature? = null
             var nameTk2: Spanned<Token>? = null
             if (iter.peek().value is Colon) {
-                type = parseTypeSignature()
+                sig = Signature(parseTypeSignature(), nameTk.span)
                 withOffside(nameTk.offside()) {
                     val (tk, name2) = parseName(name)
                     nameTk2 = tk
@@ -371,7 +371,7 @@ class Parser(
 
             val exp = parseDo()
             val binder = Binder(name, if (nameTk2 != null) nameTk2!!.span else nameTk.span)
-            Decl.ValDecl(binder, vars, exp, type, vis, isInstance, isOperator)
+            Decl.ValDecl(binder, vars, exp, sig, vis, isInstance, isOperator)
                 .withSpan(nameTk.span, exp.span)
         }
     }

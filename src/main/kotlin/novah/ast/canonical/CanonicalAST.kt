@@ -58,7 +58,7 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
         val exp: Expr,
         val recursive: Boolean,
         override val span: Span,
-        val type: Type?,
+        val signature: Signature?,
         val visibility: Visibility,
         val isInstance: Boolean,
         val isOperator: Boolean,
@@ -70,6 +70,8 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
         is ValDecl -> visibility == Visibility.PUBLIC
     }
 }
+
+data class Signature(val type: Type, val span: Span)
 
 fun Decl.TypeDecl.show(): String {
     return if (tyVars.isEmpty()) name else name + tyVars.joinToString(" ", prefix = " ")

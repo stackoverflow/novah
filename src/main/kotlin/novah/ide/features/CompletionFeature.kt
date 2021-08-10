@@ -394,7 +394,7 @@ class CompletionFeature(private val server: NovahServer) {
     }
 
     private fun getDetail(d: Decl.ValDecl): String? {
-        val typ = d.type ?: d.exp.type ?: return null
+        val typ = d.signature?.type ?: d.exp.type ?: return null
         return typ.show(qualified = true, typeVarsMap = typeVarsMap)
     }
 
@@ -410,8 +410,8 @@ class CompletionFeature(private val server: NovahServer) {
         }
 
         private fun getKind(d: Decl.ValDecl): CompletionItemKind {
-            if (d.type != null) {
-                return if (d.type is TArrow) CompletionItemKind.Function
+            if (d.signature?.type != null) {
+                return if (d.signature.type is TArrow) CompletionItemKind.Function
                 else CompletionItemKind.Value
             }
             val typ = d.exp.type

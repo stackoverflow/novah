@@ -125,7 +125,7 @@ class Formatter {
 
     fun show(d: Decl.ValDecl): String {
         var prefix = ""
-        if (d.type != null) prefix = show(d.name, d.type) + "\n"
+        if (d.signature?.type != null) prefix = show(d.name, d.signature.type) + "\n"
         prefix += d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
         return if (d.exp.isSimpleExpr()) "$prefix ${show(d.exp)}"

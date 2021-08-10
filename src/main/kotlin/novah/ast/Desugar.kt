@@ -18,6 +18,7 @@ package novah.ast
 import novah.Util.internalError
 import novah.Util.partitionIsInstance
 import novah.ast.canonical.*
+import novah.ast.canonical.Signature
 import novah.ast.source.*
 import novah.ast.source.Decl.TypealiasDecl
 import novah.data.*
@@ -114,7 +115,8 @@ class Desugar(private val smod: SModule) {
 
             // hold the type variables as scoped typed variables
             val typeVars = mutableMapOf<String, Type>()
-            val expType = type?.desugar(isCtor = false, vars = typeVars)
+            val expType = signature?.type?.desugar(isCtor = false, vars = typeVars)
+            val sig = if (expType != null) Signature(expType, signature!!.span) else null
 
             var expr = nestLambdaPatterns(patterns, exp.desugar(tvars = typeVars), emptyList(), typeVars)
 
@@ -126,7 +128,7 @@ class Desugar(private val smod: SModule) {
                 expr,
                 name in declVars,
                 span,
-                expType,
+                sig,
                 visibility,
                 isInstance,
                 isOperator,
@@ -669,7 +671,7 @@ class Desugar(private val smod: SModule) {
                         d1.name == d2.name -> {
                         }
                         // functions can only be mutually recursive if they have type annotations
-                        d1.type == null || d2.type == null -> dep.link(node)
+                        d1.signature?.type == null || d2.signature?.type == null -> dep.link(node)
                     }
                 }
             }

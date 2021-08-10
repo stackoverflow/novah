@@ -91,7 +91,7 @@ class HoverFeature(private val server: NovahServer) {
                     else "pub\n"
                 }
                 source += if (d.isOperator) "(${d.name.name})" else d.name.name
-                val type = d.type ?: d.exp.type
+                val type = d.signature?.type ?: d.exp.type
                 if (type != null) {
                     source += " : ${type.show(qualified = true, typeVarsMap = typeVarsMap)}"
                 }
@@ -297,6 +297,7 @@ class HoverFeature(private val server: NovahServer) {
             if (d.span.matches(line, col)) {
                 // context is value declaration
                 if (d.name.span.matches(line, col)) return DeclCtx(d)
+                if (d.signature != null && d.signature.span.matches(line, col)) return DeclCtx(d)
                 if (d.exp.span.matches(line, col)) return searchExpression(d)
             }
         }

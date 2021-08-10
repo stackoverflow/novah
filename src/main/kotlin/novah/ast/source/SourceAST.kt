@@ -156,7 +156,7 @@ sealed class Decl(val name: String, val visibility: Visibility) {
         val binder: Binder,
         val patterns: List<Pattern>,
         val exp: Expr,
-        val type: Type?,
+        val signature: Signature?,
         visibility: Visibility,
         val isInstance: Boolean,
         val isOperator: Boolean
@@ -173,6 +173,8 @@ sealed class Decl(val name: String, val visibility: Visibility) {
 
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.startLine, s.startColumn, e.endLine, e.endColumn) }
 }
+
+data class Signature(val type: Type, val span: Span)
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
     override fun toString(): String {
