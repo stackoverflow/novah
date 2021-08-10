@@ -28,7 +28,8 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     private val symbols = SymbolsFeature(server)
     private val folding = FoldingFeature(server)
     private val semanticTokens = SemanticTokensFeature(server)
-    private val completionFeature = CompletionFeature(server)
+    private val completion = CompletionFeature(server)
+    private val gotoDefinition = GotoDefinitionFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val uri = params.textDocument.uri
@@ -79,6 +80,10 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     }
 
     override fun completion(params: CompletionParams): CompletableFuture<Either<MutableList<CompletionItem>, CompletionList>> {
-        return completionFeature.onCompletion(params)
+        return completion.onCompletion(params)
+    }
+
+    override fun definition(params: DefinitionParams): CompletableFuture<Either<MutableList<out Location>, MutableList<out LocationLink>>> {
+        return gotoDefinition.onDefinition(params)
     }
 }

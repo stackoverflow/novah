@@ -110,7 +110,8 @@ val stlibModuleNames = setOf(
     STRING_MODULE,
     MAP_MODULE,
     RESULT_MODULE,
-    "novah.stream"
+    "novah.stream",
+    "novah.linkedList"
 )
 
 const val primByte = "$PRIM.Byte"

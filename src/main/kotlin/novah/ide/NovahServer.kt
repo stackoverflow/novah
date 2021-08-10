@@ -27,11 +27,14 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.io.path.exists
 import kotlin.system.exitProcess
 
 class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClientAware {
@@ -76,12 +79,17 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val semOpts =
             SemanticTokensWithRegistrationOptions(SemanticTokensFeature.legend, SemanticTokensServerFull(false))
         initializeResult.capabilities.semanticTokensProvider = semOpts
+        // Go to definition capability
+        initializeResult.capabilities.definitionProvider = Either.forLeft(true)
 
         // initial build
         build()
 
         // start build thread
         buildThread.scheduleWithFixedDelay(::buildRun, 0, 500, TimeUnit.MILLISECONDS)
+
+        // unpack stdlib
+        unpackStdlib()
 
         return CompletableFuture.supplyAsync { initializeResult }
     }
@@ -196,6 +204,35 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             build()
             // publish diagnostics
             publishDiagnostics(File(change.path).toURI().toString())
+        }
+    }
+
+    val stdlibFiles = mutableMapOf<String, String>()
+
+    /**
+     * Unpack the stdlib to a temp folder, so we can open it in
+     * the client in the "go to definition" feature.
+     */
+    private fun unpackStdlib() {
+        val tmp = Paths.get(System.getProperty("java.io.tmpdir"), "novah")
+        if (tmp.exists()) {
+            Files.walk(tmp)
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete)
+        } else tmp.toFile().mkdir()
+
+        Environment.stdlibStream().forEach { (path, stream) ->
+            try {
+                val fqp = Paths.get(tmp.toString(), path)
+                val file = fqp.toFile()
+                stdlibFiles[path] = fqp.toString()
+                file.parentFile?.mkdirs()
+                Files.copy(stream, fqp)
+                file.setReadOnly()
+            } catch (e: Exception) {
+                logger().info(e.stackTraceToString())
+            }
         }
     }
 }

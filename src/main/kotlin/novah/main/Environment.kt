@@ -40,6 +40,7 @@ import org.reflections.scanners.ResourcesScanner
 import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 import java.io.File
+import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Pattern
@@ -219,6 +220,18 @@ class Environment(classPath: String, private val verbose: Boolean) {
         fun findConstructor(name: String): Type? = constructorTypes[name]
 
         private val stdlibCompiled = mutableMapOf<String, FullModuleEnv>()
+
+        fun stdlibStream(): List<Pair<String, InputStream>> {
+            val ref = Reflections(
+                ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("novah"))
+                    .setScanners(ResourcesScanner())
+            )
+            val res = ref.getResources(Pattern.compile(".*\\.novah"))
+            return res.map { path ->
+                path to (Environment::class.java.classLoader.getResourceAsStream(path)
+                    ?: internalError("Could not find stdlib module $path"))
+            }
+        }
     }
 }
 
@@ -227,14 +240,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
  * Read from the jar itself.
  */
 private val stdlib by lazy {
-    val ref = Reflections(
-        ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("novah"))
-            .setScanners(ResourcesScanner())
-    )
-    val res = ref.getResources(Pattern.compile(".*\\.novah"))
-    res.map { path ->
-        val stream = Environment::class.java.classLoader.getResourceAsStream(path)
-            ?: internalError("Could not find stdlib module $path")
+    Environment.stdlibStream().map { (path, stream) ->
         val contents = stream.bufferedReader().use { it.readText() }
         Source.SString(Path.of(path), contents)
     }.asSequence()

@@ -25,6 +25,8 @@ object IdeUtil {
 
     fun uriToFile(uri: String) = File(URI(uri).path)
 
+    fun fileToUri(file: String) = File(file).toURI().toString()
+
     fun spanToRange(s: Span): Range {
         val start = Position(s.startLine - 1, s.startColumn - 1)
         val end = Position(s.endLine - 1, s.endColumn - 1)
