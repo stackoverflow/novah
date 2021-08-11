@@ -16,6 +16,7 @@ type MyList a
 
 type Id = Id String
 
+pub
 baz = map
 
 baz2 = filter

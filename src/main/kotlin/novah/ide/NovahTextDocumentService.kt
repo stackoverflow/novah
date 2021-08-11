@@ -30,6 +30,7 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     private val semanticTokens = SemanticTokensFeature(server)
     private val completion = CompletionFeature(server)
     private val gotoDefinition = GotoDefinitionFeature(server)
+    val codeAction = CodeActionFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val uri = params.textDocument.uri
@@ -85,5 +86,9 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
 
     override fun definition(params: DefinitionParams): CompletableFuture<Either<MutableList<out Location>, MutableList<out LocationLink>>> {
         return gotoDefinition.onDefinition(params)
+    }
+
+    override fun codeAction(params: CodeActionParams): CompletableFuture<MutableList<Either<Command, CodeAction>>> {
+        return codeAction.onCodeAction(params)
     }
 }

@@ -22,6 +22,11 @@ enum class Severity {
     WARN, ERROR;
 }
 
+sealed class Action {
+    object None : Action()
+    data class NoType(val inferedTty: String) : Action()
+}
+
 /**
  * Some problem returned by the compilation process.
  */
@@ -32,7 +37,8 @@ data class CompilerProblem(
     val fileName: String,
     val module: String? = null,
     val typingContext: TypingContext? = null,
-    val severity: Severity = Severity.ERROR
+    val severity: Severity = Severity.ERROR,
+    val action: Action = Action.None
 ) {
     fun formatToConsole(): String {
         val mod = if (module != null) "module $YELLOW$module$RESET\n" else ""
@@ -60,8 +66,6 @@ data class CompilerProblem(
         const val RED = "\u001b[31m"
         const val YELLOW = "\u001b[33m"
         const val RESET = "\u001b[0m"
-
-        const val MAX_EXPR_SIZE = 50
     }
 }
 

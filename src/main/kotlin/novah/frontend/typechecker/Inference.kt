@@ -24,6 +24,7 @@ import novah.data.isEmpty
 import novah.data.mapList
 import novah.data.singletonPMap
 import novah.frontend.Span
+import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
@@ -110,7 +111,11 @@ object Inference {
             env.extend(name, genTy)
             if (decl.isInstance) env.extendInstance(name, genTy)
             decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
-            if (!isAnnotated) warner(E.noTypeAnnDecl(name, genTy.show()), decl.span)
+
+            if (!isAnnotated) {
+                val fix = "$name : ${genTy.show(false)}"
+                warner(E.noTypeAnnDecl(name, genTy.show()), decl.span, Action.NoType(fix))
+            }
         }
 
         return ModuleEnv(decls, types)
@@ -608,14 +613,15 @@ object Inference {
         }
     }
 
-    private fun makeWarner(ast: Module) = { msg: String, span: Span ->
+    private fun makeWarner(ast: Module) = { msg: String, span: Span, action: Action ->
         val warn = CompilerProblem(
             msg,
             ProblemContext.TYPECHECK,
             span,
             ast.sourceName,
             ast.name.value,
-            severity = Severity.WARN
+            severity = Severity.WARN,
+            action = action
         )
         warnings += warn
     }

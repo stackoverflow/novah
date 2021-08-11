@@ -81,6 +81,9 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         initializeResult.capabilities.semanticTokensProvider = semOpts
         // Go to definition capability
         initializeResult.capabilities.definitionProvider = Either.forLeft(true)
+        // Code actions capability
+        val caOpts = CodeActionOptions(mutableListOf("quickfix"))
+        initializeResult.capabilities.codeActionProvider = Either.forRight(caOpts)
 
         // initial build
         build()
@@ -157,11 +160,15 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     private fun saveDiagnostics(errors: List<CompilerProblem>) {
         if (errors.isEmpty()) return
 
+        val actions = textService.codeAction
+        actions.resetCache()
         diags = errors.map { err ->
             val sev = if (err.severity == Severity.ERROR) DiagnosticSeverity.Error else DiagnosticSeverity.Warning
             val diag = Diagnostic(spanToRange(err.span), err.msg + "\n\n")
             diag.severity = sev
             diag.source = "Novah compiler"
+            val data = actions.storeError(err)
+            if (data != null) diag.data = data
             val uri = File(err.fileName).toURI().toString()
             logger().log("error on $uri span ${err.span}")
             uri to diag
@@ -202,7 +209,6 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val change = changes.get()
         if (change != null && !change.built) {
             build()
-            // publish diagnostics
             publishDiagnostics(File(change.path).toURI().toString())
         }
     }
