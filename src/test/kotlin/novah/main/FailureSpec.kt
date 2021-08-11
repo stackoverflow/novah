@@ -171,7 +171,7 @@ class FailureSpec : StringSpec({
 
         val error = """
             module [33mmod2[0m
-            at src/test/resources/multimodulefail/unusedimport/mod2.novah:3:1 - 3:27
+            at src/test/resources/multimodulefail/unusedimport/mod2.novah:3:14 - 3:21
             
               Import notUsed is unused in module.
             

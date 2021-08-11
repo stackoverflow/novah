@@ -3,7 +3,6 @@
 - [ ] Implement a kind checker for types
 - [ ] Report that an imported type is private instead of not found
 - [ ] Add primitive types to code generation when JEP 401/402 is done
-- [ ] Add spans to individual imports with error reporting
 - [ ] 0-cost opaque types
 - [ ] Disallow duplicate labels in pattern matching
 - [ ] Rename operators and java keywords to be more java-friendly (WIP)

@@ -786,19 +786,25 @@ class Desugar(private val smod: SModule) {
 
     private fun reportUnusedImports() {
         // only explicit imports should throw errors
-        fun findImport(name: String): Span? = smod.imports.find {
-            when (it) {
-                is Import.Raw -> false
-                is Import.Exposing -> it.module.value == name
+        fun findImport(mod: String, import: String): Span? {
+            for (imp in smod.imports) {
+                if (imp is Import.Exposing && imp.module.value == mod) {
+                    imp.defs.forEach { def ->
+                        if (def.name == import) {
+                            return def.span
+                        }
+                    }
+                }
             }
-        }?.span()
+            return null
+        }
 
         fun findForeignImport(name: String): Span? =
             smod.foreigns.filter { it !is ForeignImport.Type }.find { it.name() == name }?.span
 
         smod.resolvedImports.forEach { (importName, modName) ->
             if (modName != PRIM && modName != CORE_MODULE && importName[0].isLowerCase() && importName !in usedVars) {
-                val span = findImport(modName)
+                val span = findImport(modName, importName)
                 if (span != null)
                     unusedImports[importName] = span
             }
