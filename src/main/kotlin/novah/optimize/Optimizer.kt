@@ -587,7 +587,7 @@ class Optimizer(private val ast: CModule) {
                 span,
                 ast.sourceName,
                 ast.name.value,
-                action = Action.UnusedImport
+                action = Action.UnusedImport(vvar)
             )
         }
         throw CompilationError(errs)

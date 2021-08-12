@@ -67,7 +67,7 @@ sealed class DeclarationRef(open val name: String, open val span: Span) {
         override fun toString(): String = when {
             ctors == null -> name
             ctors.isEmpty() -> "$name(..)"
-            else -> name + ctors.joinToString(prefix = "(", postfix = ")")
+            else -> name + ctors.joinToString(prefix = "(", postfix = ")") { it.value }
         }
     }
 }

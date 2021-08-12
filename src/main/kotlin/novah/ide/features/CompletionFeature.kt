@@ -53,7 +53,6 @@ class CompletionFeature(private val server: NovahServer) {
             val mod = env.modules()[moduleName] ?: return null
             typeVarsMap = mod.typeVarsMap
             val ctx = findContext(change.txt, line + 1, col + 1)
-            server.logger().info("completion context $ctx")
 
             return when (params.context.triggerKind) {
                 CompletionTriggerKind.Invoked -> {
@@ -489,8 +488,7 @@ class CompletionFeature(private val server: NovahServer) {
     }
 
     private fun findContext(code: String, line: Int, col: Int): Context {
-        val lexer = Lexer(code.iterator())
-        return Parser(lexer, false).parseFullModule().mapBoth({ mod ->
+        return IdeUtil.parseCode(code).mapBoth({ mod ->
             for (imp in mod.imports) {
                 if (imp.span().matches(line, col)) {
                     return if (imp.module.span.matches(line, col)) Context.ModuleCtx
@@ -592,6 +590,7 @@ class CompletionFeature(private val server: NovahServer) {
 
         private fun name(alias: String?, name: String) = if (alias != null) "$alias.$name" else name
 
+        @Suppress("SameParameterValue")
         private fun range(sLine: Int, sCol: Int, eLine: Int, eCol: Int) =
             Range(Position(sLine, sCol), Position(eLine, eCol))
     }

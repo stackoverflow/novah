@@ -25,7 +25,7 @@ enum class Severity {
 sealed class Action {
     object None : Action()
     data class NoType(val inferedTty: String) : Action()
-    object UnusedImport : Action()
+    data class UnusedImport(val vvar: String) : Action()
 }
 
 /**

@@ -1,6 +1,11 @@
 package novah.ide.features
 
 import com.google.gson.JsonPrimitive
+import novah.ast.source.DeclarationRef
+import novah.ast.source.Import
+import novah.data.mapBoth
+import novah.formatter.Formatter
+import novah.frontend.Span
 import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
 import novah.ide.IdeUtil
@@ -23,11 +28,9 @@ class CodeActionFeature(private val server: NovahServer) {
             if (!key.isString) return null
             val err = errCache[key.asString] ?: return null
 
-            //val env = server.env()
-            //val moduleName = env.sourceMap()[file.toPath()] ?: return null
-            //val mod = env.modules()[moduleName] ?: return null
-            
-            val action = actionFor(err, params.textDocument.uri) ?: return null
+            val change = server.change()?.txt
+
+            val action = actionFor(err, params.textDocument.uri, change) ?: return null
 
             return mutableListOf(Either.forRight(action))
         }
@@ -35,20 +38,22 @@ class CodeActionFeature(private val server: NovahServer) {
         return CompletableFuture.supplyAsync(::run)
     }
 
-    private fun actionFor(err: CompilerProblem, uri: String): CodeAction? = when (err.action) {
+    private fun actionFor(err: CompilerProblem, uri: String, code: String?): CodeAction? = when (err.action) {
         is Action.NoType -> {
-            val action = CodeAction("Add type annotation")
-            action.kind = "quickfix"
             val range = IdeUtil.spanToRange(err.span)
             range.end = range.start
-            val tedit = TextEdit(range, err.action.inferedTty + "\n")
-            val docid = VersionedTextDocumentIdentifier(uri, 1)
-            val tdedit = TextDocumentEdit(docid, mutableListOf(tedit))
-            action.edit = WorkspaceEdit(mutableListOf(Either.forLeft(tdedit)))
-            action
+            makeAction("Add type annotation", range, err.action.inferedTty + "\n", uri)
         }
         is Action.UnusedImport -> {
-            null
+            if (code != null) {
+                IdeUtil.parseCode(code).mapBoth({ mod ->
+                    mod.imports.find { it.span().matches(err.span.startLine, err.span.startColumn) }?.let {
+                        val range = IdeUtil.spanToRange(it.span())
+                        val imp = removeImport(it, err.action.vvar, err.span)
+                        makeAction("Remove unused import", range, Formatter().show(imp), uri)
+                    }
+                }) { null }
+            } else null
         }
         is Action.None -> null
     }
@@ -63,4 +68,42 @@ class CodeActionFeature(private val server: NovahServer) {
     }
 
     fun resetCache() = errCache.clear()
+
+    private fun removeImport(imp: Import, name: String, span: Span): Import {
+        return when (imp) {
+            is Import.Raw -> imp
+            is Import.Exposing -> {
+                var defs = if (name[0].isUpperCase()) {
+                    imp.defs.map { d ->
+                        when (d)  {
+                            is DeclarationRef.RefVar -> d
+                            is DeclarationRef.RefType -> {
+                                if (d.ctors != null) {
+                                    val cs = d.ctors.filter { it.value != name && it.span != span }
+                                    d.copy(ctors = cs)
+                                } else d
+                            }
+                        }
+                    }
+                } else imp.defs
+                defs = defs.filter {
+                    when (it) {
+                        is DeclarationRef.RefVar -> it.name != name && it.span != span
+                        is DeclarationRef.RefType -> it.name != name && it.span != span
+                    }
+                }
+                imp.copy(defs = defs)
+            }
+        }
+    }
+
+    private fun makeAction(title: String, range: Range, text: String, uri: String): CodeAction {
+        val action = CodeAction(title)
+        action.kind = "quickfix"
+        val tedit = TextEdit(range, text)
+        val docid = VersionedTextDocumentIdentifier(uri, 1)
+        val tdedit = TextDocumentEdit(docid, mutableListOf(tedit))
+        action.edit = WorkspaceEdit(mutableListOf(Either.forLeft(tdedit)))
+        return action
+    }
 }

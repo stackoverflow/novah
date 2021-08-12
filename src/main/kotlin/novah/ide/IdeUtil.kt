@@ -15,7 +15,12 @@
  */
 package novah.ide
 
+import novah.ast.source.Module
+import novah.data.Result
+import novah.frontend.Lexer
+import novah.frontend.Parser
 import novah.frontend.Span
+import novah.frontend.error.CompilerProblem
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
 import java.io.File
@@ -31,5 +36,10 @@ object IdeUtil {
         val start = Position(s.startLine - 1, s.startColumn - 1)
         val end = Position(s.endLine - 1, s.endColumn - 1)
         return Range(start, end)
+    }
+
+    fun parseCode(code: String): Result<Module, CompilerProblem> {
+        val lexer = Lexer(code.iterator())
+        return Parser(lexer, false).parseFullModule()
     }
 }
