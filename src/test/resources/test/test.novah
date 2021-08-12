@@ -10,10 +10,12 @@ foreign import get File:separator
 
 typealias Opt a = Option a
 
+pub+
 type MyList a
   = Niu
   | Kons a (MyList a)
 
+pub
 type Id = Id String
 
 pub

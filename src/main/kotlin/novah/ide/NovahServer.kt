@@ -138,12 +138,8 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     fun logger(): IdeLogger = logger!!
 
-    fun addChange(uri: String, text: String) {
+    fun addChange(uri: String, text: String? = null) {
         changes.set(FileChange(uri, text))
-    }
-
-    fun resetChange() {
-        changes.set(null)
     }
 
     fun change() = changes.get()
@@ -183,7 +179,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val sources = rootPath.walkTopDown().filter { it.isFile && it.extension == "novah" }
             .map {
                 val path = Path.of(it.absolutePath)
-                if (change != null && change.path == it.absolutePath) Source.SString(path, change.txt)
+                if (change?.txt != null && change.path == it.absolutePath) Source.SString(path, change.txt)
                 else Source.SPath(path)
             }
         logger().info("compiling project")
@@ -243,4 +239,4 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     }
 }
 
-data class FileChange(val path: String, val txt: String, val built: Boolean = false)
+data class FileChange(val path: String, val txt: String? = null, val built: Boolean = false)

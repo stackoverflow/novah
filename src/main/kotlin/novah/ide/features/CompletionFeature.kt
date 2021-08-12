@@ -21,22 +21,22 @@ import novah.ast.source.ForeignImport
 import novah.ast.source.Import
 import novah.ast.source.name
 import novah.data.LabelMap
+import novah.data.mapBoth
 import novah.formatter.Formatter
-import novah.frontend.Comment
-import novah.frontend.Span
-import novah.frontend.Spanned
+import novah.frontend.*
 import novah.frontend.typechecker.*
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.Environment
 import novah.main.ModuleEnv
 import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.util.concurrent.CompletableFuture
 
 class CompletionFeature(private val server: NovahServer) {
 
-    private val typeVarsMap = mutableMapOf<Int, String>()
+    private var typeVarsMap = mapOf<Int, String>()
 
     @Suppress("WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
     fun onCompletion(params: CompletionParams): CompletableFuture<Either<MutableList<CompletionItem>, CompletionList>> {
@@ -44,27 +44,30 @@ class CompletionFeature(private val server: NovahServer) {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
             val change = server.change() ?: return null
+            if (change.txt == null) return null
             val env = server.lastSuccessfulEnv() ?: return null
             val (line, col) = params.position.line to params.position.character
             val name = getPartialName(change.txt, line, col) ?: return null
             server.logger().log("received completion request for ${file.absolutePath} at $line:$col text `$name`")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
-            typeVarsMap.putAll(mod.typeVarsMap)
+            typeVarsMap = mod.typeVarsMap
+            val ctx = findContext(change.txt, line + 1, col + 1)
+            server.logger().info("completion context $ctx")
 
             return when (params.context.triggerKind) {
                 CompletionTriggerKind.Invoked -> {
-                    val comps = findCompletion(mod.ast, env, name, line + 1, incomplete = true)
+                    val comps = complete(mod.ast, env, name, line + 1, ctx, incomplete = true)
                     Either.forRight(CompletionList(true, comps))
                 }
                 CompletionTriggerKind.TriggerForIncompleteCompletions -> {
-                    Either.forLeft(findCompletion(mod.ast, env, name, line + 1, incomplete = false))
+                    Either.forLeft(complete(mod.ast, env, name, line + 1, ctx, incomplete = false))
                 }
                 CompletionTriggerKind.TriggerCharacter -> {
                     if (name == "do") null
                     else {
                         val comps = if (name[0].isUpperCase()) {
-                            findNamespacedDecl(mod.ast, env, name)
+                            findNamespacedDecl(mod.ast, env, name, false)
                         } else findRecord(mod.ast, env, name, line + 1)
                         comps?.let { Either.forLeft(it.toMutableList()) }
                     }
@@ -75,11 +78,35 @@ class CompletionFeature(private val server: NovahServer) {
         return CompletableFuture.supplyAsync(::run)
     }
 
+    private fun complete(
+        ast: Module,
+        env: Environment,
+        name: String,
+        line: Int,
+        context: Context,
+        incomplete: Boolean
+    ): MutableList<CompletionItem> = when (context) {
+        is Context.NoCompletion -> mutableListOf()
+        is Context.ModuleCtx -> findModule(name, env)
+        is Context.ImportCtx -> findImport(name, context.mod, env)
+        is Context.TypeCtx -> {
+            val split = name.split(".")
+            if (split.size < 2) findCompletion(ast, env, name, line, true, incomplete)
+            else findNamespacedDecl(ast, env, split[0], true, split[1])
+        }
+        is Context.OtherCtx -> {
+            val split = name.split(".")
+            if (split.size < 2) findCompletion(ast, env, name, line, false, incomplete)
+            else findNamespacedDecl(ast, env, split[0], false, split[1])
+        }
+    }
+
     private fun findCompletion(
         ast: Module,
         env: Environment,
         name: String,
         line: Int,
+        typesOnly: Boolean,
         incomplete: Boolean
     ): MutableList<CompletionItem> {
         val completions = mutableListOf<CompletionItem>()
@@ -87,7 +114,7 @@ class CompletionFeature(private val server: NovahServer) {
         val exposed = mutableMapOf<String, Import.Exposing>()
 
         // find completions in own module
-        completions.addAll(findCompletionInModule(ast, name, null, line, true))
+        completions.addAll(findCompletionInModule(ast, name, null, line, typesOnly, true))
 
         // find all imported names
         ast.imports.forEach { imp ->
@@ -105,18 +132,18 @@ class CompletionFeature(private val server: NovahServer) {
                 is Import.Exposing -> {
                     exposed[imp.module.value] = imp
                     val exposes = imp.defs.map { it.name }.toSet()
-                    val comps = findCompletionInModule(mod, name, imp.alias, line, pred = { it in exposes })
+                    val comps = findCompletionInModule(mod, name, imp.alias, line, typesOnly, pred = { it in exposes })
                     completions.addAll(comps)
                 }
                 is Import.Raw -> {
                     imported += imp.module.value
-                    completions.addAll(findCompletionInModule(mod, name, imp.alias, line))
+                    completions.addAll(findCompletionInModule(mod, name, imp.alias, line, typesOnly))
                 }
             }
         }
 
         // find all imported foreign names
-        ast.foreigns.forEach { imp ->
+        for (imp in ast.foreigns) {
             when (imp) {
                 is ForeignImport.Type -> {
                     val type = imp.name()
@@ -126,6 +153,7 @@ class CompletionFeature(private val server: NovahServer) {
                         ci.kind = CompletionItemKind.Class
                         completions += ci
                     }
+                    if (typesOnly) continue
                 }
                 is ForeignImport.Ctor -> {
                     if (imp.alias.startsWith(name)) {
@@ -192,26 +220,27 @@ class CompletionFeature(private val server: NovahServer) {
         }
 
         // lastly, add non-imported symbols
-        env.modules().filter { (k, _) -> k !in imported }.forEach { (mod, env) ->
-            val ctorMap = makeCtorMap(env.env)
+        for ((mod, envv) in env.modules().filter { (k, _) -> k !in imported }) {
+            val ctorMap = makeCtorMap(envv.env)
 
-            env.env.decls.forEach { (sym, ref) ->
-                if (ref.visibility.isPublic() && sym.startsWith(name)) {
-                    val ci = CompletionItem(sym)
-                    ci.kind = if (ref.type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
-                    ci.detail = ref.type.show(qualified = true, typeVarsMap = typeVarsMap)
-                    ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
-                    ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, ctorMap[sym]))
-                    completions += ci
-                }
-            }
-            env.env.types.forEach { (sym, ref) ->
+            envv.env.types.forEach { (sym, ref) ->
                 if (ref.visibility.isPublic() && sym.startsWith(name)) {
                     val ci = CompletionItem(sym)
                     ci.kind = CompletionItemKind.Class
                     ci.detail = ref.type.show(qualified = true, typeVarsMap = typeVarsMap)
                     ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
                     ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, null))
+                    completions += ci
+                }
+            }
+            if (typesOnly) continue
+            envv.env.decls.forEach { (sym, ref) ->
+                if (ref.visibility.isPublic() && sym.startsWith(name)) {
+                    val ci = CompletionItem(sym)
+                    ci.kind = if (ref.type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
+                    ci.detail = ref.type.show(qualified = true, typeVarsMap = typeVarsMap)
+                    ci.documentation = Either.forRight(MarkupContent("markdown", "### $mod"))
+                    ci.additionalTextEdits = listOf(makeImportEdit(mod, sym, ctorMap[sym]))
                     completions += ci
                 }
             }
@@ -224,12 +253,13 @@ class CompletionFeature(private val server: NovahServer) {
         name: String,
         alias: String?,
         line: Int,
+        typesOnly: Boolean,
         ownModule: Boolean = false,
         pred: (String) -> Boolean = { true }
     ): MutableList<CompletionItem> {
         val comps = mutableListOf<CompletionItem>()
         val module = ast.name.value
-        ast.decls.forEach { d ->
+        for (d in ast.decls) {
             when (d) {
                 is Decl.TypeDecl -> {
                     if ((ownModule || d.isPublic()) && d.name.startsWith(name) && pred(d.name)) {
@@ -239,6 +269,7 @@ class CompletionFeature(private val server: NovahServer) {
                         ci.detail = d.show()
                         comps += ci
                     }
+                    if (typesOnly) continue
                     d.dataCtors.forEach { dc ->
                         if ((ownModule || dc.isPublic()) && dc.name.startsWith(name) && pred(dc.name)) {
                             val ci = CompletionItem(name(alias, dc.name))
@@ -276,8 +307,8 @@ class CompletionFeature(private val server: NovahServer) {
                     if ((ownModule || d.isPublic()) && d.name.name.startsWith(name) && pred(d.name.name)) {
                         val ci = CompletionItem(name(alias, d.name.name))
                         ci.kind = getKind(d)
-                        ci.documentation = getDoc(d.comment, module)
                         ci.detail = getDetail(d)
+                        ci.documentation = getDoc(d.comment, module)
                         comps += ci
                     }
                 }
@@ -341,56 +372,145 @@ class CompletionFeature(private val server: NovahServer) {
         return null
     }
 
-    private fun findNamespacedDecl(ast: Module, env: Environment, name: String): List<CompletionItem> {
+    private fun findNamespacedDecl(
+        ast: Module,
+        env: Environment,
+        alias: String,
+        typesOnly: Boolean,
+        toFind: String = ""
+    ): MutableList<CompletionItem> {
         val comps = mutableListOf<CompletionItem>()
 
-        val imp = ast.imports.find { it.alias() == name }
-        if (imp != null) {
-            val mod = env.modules()[imp.module.value]?.env
-            if (mod != null) {
-                when (imp) {
-                    is Import.Exposing -> {
-                        for (d in imp.defs) {
-                            val decl = mod.decls[d.name]
-                            if (decl != null) {
-                                val ci = CompletionItem(d.name)
-                                ci.kind = if (decl.type is TArrow) {
-                                    CompletionItemKind.Function
-                                } else CompletionItemKind.Value
-                                ci.detail = decl.type.show(qualified = true, typeVarsMap = typeVarsMap)
-                                comps += ci
-                            }
-                            val tdecl = mod.types[d.name]
-                            if (tdecl != null) {
-                                val ci = CompletionItem(d.name)
-                                ci.kind = CompletionItemKind.Class
-                                ci.detail = tdecl.type.show(qualified = true, typeVarsMap = typeVarsMap)
-                                comps += ci
-                            }
-                        }
+        val imp = ast.imports.find { it.alias() == alias } ?: return comps
+        val modName = imp.module.value
+        val mod = env.modules()[modName]?.env ?: return comps
+        when (imp) {
+            is Import.Exposing -> {
+                for (d in imp.defs) {
+                    if (!d.name.startsWith(toFind)) continue
+                    val tdecl = mod.types[d.name]
+                    if (tdecl != null) {
+                        val ci = CompletionItem(d.name)
+                        ci.kind = CompletionItemKind.Class
+                        ci.detail = tdecl.type.show(qualified = true, typeVarsMap = typeVarsMap)
+                        ci.documentation = getDoc(tdecl.comment, modName)
+                        comps += ci
                     }
-                    is Import.Raw -> {
-                        for ((sym, d) in mod.decls) {
-                            if (!d.visibility.isPublic()) continue
-                            val ci = CompletionItem(sym)
-                            ci.kind = if (d.type is TArrow) {
-                                CompletionItemKind.Function
-                            } else CompletionItemKind.Value
-                            ci.detail = d.type.show(qualified = true, typeVarsMap = typeVarsMap)
-                            comps += ci
-                        }
-                        for ((sym, d) in mod.types) {
-                            if (!d.visibility.isPublic()) continue
-                            val ci = CompletionItem(sym)
-                            ci.kind = CompletionItemKind.Class
-                            ci.detail = d.type.show(qualified = true, typeVarsMap = typeVarsMap)
-                            comps += ci
-                        }
+                    if (typesOnly) continue
+
+                    val decl = mod.decls[d.name]
+                    if (decl != null) {
+                        val ci = CompletionItem(d.name)
+                        ci.kind = if (decl.type is TArrow) {
+                            CompletionItemKind.Function
+                        } else CompletionItemKind.Value
+                        ci.detail = decl.type.show(qualified = true, typeVarsMap = typeVarsMap)
+                        ci.documentation = getDoc(decl.comment, modName)
+                        comps += ci
+                    }
+                }
+            }
+            is Import.Raw -> {
+                for ((sym, d) in mod.types) {
+                    if (!d.visibility.isPublic() || !sym.startsWith(toFind)) continue
+                    val ci = CompletionItem(sym)
+                    ci.kind = CompletionItemKind.Class
+                    ci.detail = d.type.show(qualified = true, typeVarsMap = typeVarsMap)
+                    ci.documentation = getDoc(d.comment, modName)
+                    comps += ci
+                }
+                if (!typesOnly) {
+                    for ((sym, d) in mod.decls) {
+                        if (!d.visibility.isPublic() || !sym.startsWith(toFind)) continue
+                        val ci = CompletionItem(sym)
+                        ci.kind = if (d.type is TArrow) {
+                            CompletionItemKind.Function
+                        } else CompletionItemKind.Value
+                        ci.detail = d.type.show(qualified = true, typeVarsMap = typeVarsMap)
+                        ci.documentation = getDoc(d.comment, modName)
+                        comps += ci
                     }
                 }
             }
         }
         return comps
+    }
+
+    private fun findImport(toFind: String, mod: String, env: Environment): MutableList<CompletionItem> {
+        val completions = mutableListOf<CompletionItem>()
+
+        val fmenv = env.modules()[mod] ?: return completions
+        for ((name, decl) in fmenv.env.decls) {
+            if (!decl.visibility.isPublic()) break
+            if (name.startsWith(toFind)) {
+                val ci = CompletionItem(name)
+                ci.kind = if (decl.type is TArrow) CompletionItemKind.Function else CompletionItemKind.Value
+                ci.detail = decl.type.show(qualified = true, typeVarsMap = fmenv.typeVarsMap)
+                ci.documentation = getDoc(decl.comment, mod)
+                completions += ci
+            }
+        }
+
+        for ((name, tdecl) in fmenv.env.types) {
+            if (!tdecl.visibility.isPublic()) break
+            if (name.startsWith(toFind)) {
+                val ci = CompletionItem(name)
+                ci.kind = CompletionItemKind.Class
+                ci.detail = tdecl.type.show(qualified = true, typeVarsMap = fmenv.typeVarsMap)
+                ci.documentation = getDoc(tdecl.comment, mod)
+                completions += ci
+            }
+        }
+
+        for (alias in fmenv.aliases) {
+            if (!alias.visibility.isPublic()) break
+            if (alias.name.startsWith(toFind)) {
+                val ci = CompletionItem(alias.name)
+                ci.kind = CompletionItemKind.Class
+                ci.detail = alias.type.show()
+                ci.documentation = getDoc(alias.comment, mod)
+                completions += ci
+            }
+        }
+
+        return completions
+    }
+
+    private fun findModule(name: String, env: Environment): MutableList<CompletionItem> {
+        return env.modules().filter { (k, _) -> k.startsWith(name) }.map { (k, v) ->
+            val prefix = name.lastIndexOf('.')
+            val comp = if (prefix != -1) k.substring(prefix + 1) else k
+            val ci = CompletionItem(comp)
+            ci.kind = CompletionItemKind.Module
+            ci.detail = "module $k"
+            ci.documentation = getDoc(v.comment, k)
+            ci
+        }.toMutableList()
+    }
+
+    private fun findContext(code: String, line: Int, col: Int): Context {
+        val lexer = Lexer(code.iterator())
+        return Parser(lexer, false).parseFullModule().mapBoth({ mod ->
+            for (imp in mod.imports) {
+                if (imp.span().matches(line, col)) {
+                    return if (imp.module.span.matches(line, col)) Context.ModuleCtx
+                    else if (imp.module.span.after(line, col)) Context.ImportCtx(imp.module.value)
+                    else Context.NoCompletion
+                }
+            }
+
+            for (d in mod.decls) {
+                if (d.span.matches(line, col)) {
+                    return when (d) {
+                        is novah.ast.source.Decl.TypeDecl -> Context.TypeCtx
+                        is novah.ast.source.Decl.TypealiasDecl -> Context.TypeCtx
+                        is novah.ast.source.Decl.ValDecl -> Context.OtherCtx
+                    }
+                }
+            }
+
+            Context.NoCompletion
+        }) { Context.OtherCtx }
     }
 
     private fun getDetail(d: Decl.ValDecl): String? {
@@ -401,6 +521,14 @@ class CompletionFeature(private val server: NovahServer) {
     private fun getCtorDetails(dc: DataConstructor, typeName: String): String {
         return if (dc.args.isEmpty()) typeName
         else (dc.args.map { it.show(qualified = true, typeVarsMap = typeVarsMap) } + typeName).joinToString(" -> ")
+    }
+
+    sealed class Context {
+        data class ImportCtx(val mod: String) : Context()
+        object ModuleCtx : Context()
+        object TypeCtx : Context()
+        object OtherCtx : Context()
+        object NoCompletion : Context()
     }
 
     companion object {
@@ -445,7 +573,7 @@ class CompletionFeature(private val server: NovahServer) {
             val b = StringBuilder()
             var i = col - 1
             if (col > 0 && l[i] == '.') i--
-            while (i >= 0 && l[i].isLetterOrDigit()) {
+            while (i >= 0 && (l[i].isLetterOrDigit() || l[i] == '.')) {
                 b.append(l[i])
                 i--
             }

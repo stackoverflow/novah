@@ -104,7 +104,7 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
     private fun before(line: Int, col: Int) =
         line < startLine || (line == startLine && col < startColumn)
 
-    private fun after(line: Int, col: Int) =
+    fun after(line: Int, col: Int) =
         line > endLine || (line == endLine && col > endColumn)
 
     companion object {
