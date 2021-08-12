@@ -24,6 +24,7 @@ import novah.ast.optimized.*
 import novah.ast.optimized.Decl
 import novah.data.*
 import novah.frontend.Span
+import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
@@ -580,8 +581,14 @@ class Optimizer(private val ast: CModule) {
     private fun reportUnusedImports() {
         if (unusedImports.isEmpty()) return
         val errs = unusedImports.map { (vvar, span) ->
-            val msg = E.unusedImport(vvar)
-            CompilerProblem(msg, ProblemContext.DESUGAR, span, ast.sourceName, ast.name.value)
+            CompilerProblem(
+                E.unusedImport(vvar),
+                ProblemContext.DESUGAR,
+                span,
+                ast.sourceName,
+                ast.name.value,
+                action = Action.UnusedImport
+            )
         }
         throw CompilationError(errs)
     }

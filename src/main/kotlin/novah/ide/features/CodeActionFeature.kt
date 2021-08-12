@@ -16,14 +16,19 @@ class CodeActionFeature(private val server: NovahServer) {
 
     fun onCodeAction(params: CodeActionParams): CompletableFuture<MutableList<Either<Command, CodeAction>>> {
         fun run(): MutableList<Either<Command, CodeAction>>? {
-            server.logger().log("received code action request for ${params.textDocument.uri}")
+            val file = IdeUtil.uriToFile(params.textDocument.uri)
+            server.logger().log("received code action request for ${file.absolutePath}")
 
             val key = params.context.diagnostics.getOrNull(0)?.data as? JsonPrimitive ?: return null
             if (!key.isString) return null
             val err = errCache[key.asString] ?: return null
+
+            //val env = server.env()
+            //val moduleName = env.sourceMap()[file.toPath()] ?: return null
+            //val mod = env.modules()[moduleName] ?: return null
             
             val action = actionFor(err, params.textDocument.uri) ?: return null
-            
+
             return mutableListOf(Either.forRight(action))
         }
 
@@ -42,9 +47,12 @@ class CodeActionFeature(private val server: NovahServer) {
             action.edit = WorkspaceEdit(mutableListOf(Either.forLeft(tdedit)))
             action
         }
+        is Action.UnusedImport -> {
+            null
+        }
         is Action.None -> null
     }
-    
+
     fun storeError(err: CompilerProblem): String? = when (err.action) {
         is Action.None -> null
         else -> {
