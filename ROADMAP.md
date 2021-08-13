@@ -1,11 +1,11 @@
 # Roadmap
 
 - [ ] Rewrite the compiler in novah itself
+- [ ] REPL
 - [ ] Add JSON support to the error reporter
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [X] IDE support (WIP)
 - [X] LSP implemented in the compiler (WIP)
-- [ ] Some compiler help for lenses?
 - [ ] Auto derive Show and maybe some other type classes
 - [X] Computation expressions
 - [X] Standard library (WIP)

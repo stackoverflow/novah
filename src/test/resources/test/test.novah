@@ -1,6 +1,6 @@
 module test
 
-import novah.linkedList (map, filter, LinkedList(Nil, Cons))
+import novah.linkedList (map, LinkedList(Nil))
 
 foreign import type java.io.File
 foreign import type io.lacuna.bifurcan.Map
@@ -21,7 +21,7 @@ type Id = Id String
 pub
 baz = map
 
-baz2 = filter
+baz2 = Nil
 
 nf : String -> File
 nf x =

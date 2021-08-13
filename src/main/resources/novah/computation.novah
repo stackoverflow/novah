@@ -1,7 +1,5 @@
 module novah.computation
 
-foreign import type java.util.stream.Stream
-
 import novah.linkedList (LinkedList(..))
 import novah.linkedList as LinkedList
 import novah.set as Set

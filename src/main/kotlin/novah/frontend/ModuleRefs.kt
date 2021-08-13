@@ -136,17 +136,18 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
                                 }
                                 else -> {
                                     for (ctor in ref.ctors) {
+                                        val name = ctor.value
                                         val ctorDecl = m.decls[ctor.value]
                                         if (ctorDecl == null) {
-                                            errors += mkError(Errors.cannotFindInModule("constructor $ctor", mname))
+                                            errors += mkError(Errors.cannotFindInModule("constructor $name", mname))
                                             continue
                                         }
                                         if (ctorDecl.visibility == Visibility.PRIVATE) {
-                                            errors += mkError(Errors.cannotImportInModule("constructor $ctor", mname))
+                                            errors += mkError(Errors.cannotImportInModule("constructor $name", mname))
                                             continue
                                         }
-                                        env.extend("$mname.$ctor", ctorDecl.type)
-                                        resolved["$alias$ctor"] = mname
+                                        env.extend("$mname.$name", ctorDecl.type)
+                                        resolved["$alias$name"] = mname
                                     }
                                 }
                             }
@@ -187,7 +188,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
             errors += makeError(type.span)(Errors.classNotFound(fqType))
             continue
         }
-        
+
         env.extendType(fqType, collectType(clazz))
         if (type.alias != null) {
             if (mod.resolvedImports.containsKey(type.alias))
@@ -336,7 +337,7 @@ private fun methodTofunction(m: Method, static: Boolean, novahPars: List<String>
         val givenArgs = novahPars.map { javaToNovah(Reflection.novahToJava(it)) }
         pars.addAll(m.genericParameterTypes.zip(givenArgs).map { (ty, nty) -> matchTypes(ty, nty) })
     }
-    
+
     pars += if (m.returnType.canonicalName == "void") tUnit else collectType(m.genericReturnType)
 
     return pars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
@@ -372,7 +373,7 @@ private fun setterToFunction(f: Field, static: Boolean): Type {
 
 private fun matchTypes(jTy: java.lang.reflect.Type, nTy: String): Type {
     if (jTy.typeName == "java.lang.Object" && nTy != primObject) return toNovahType(nTy)
-    
+
     return collectType(jTy)
 }
 

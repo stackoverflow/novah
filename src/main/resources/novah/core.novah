@@ -7,7 +7,6 @@ module novah.core
 foreign import type io.lacuna.bifurcan.IList
 foreign import type io.lacuna.bifurcan.ISet
 foreign import type novah.Core
-foreign import type novah.collections.Record
 foreign import type java.util.concurrent.atomic.AtomicReference
 foreign import type java.lang.Math
 
