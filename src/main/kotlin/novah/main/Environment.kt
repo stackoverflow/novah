@@ -24,16 +24,13 @@ import novah.ast.source.Module
 import novah.ast.source.Visibility
 import novah.backend.Codegen
 import novah.data.*
-import novah.frontend.Lexer
-import novah.frontend.Parser
+import novah.frontend.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
-import novah.frontend.resolveForeignImports
-import novah.frontend.resolveImports
 import novah.frontend.typechecker.Inference
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
@@ -43,6 +40,7 @@ import org.reflections.scanners.ResourcesScanner
 import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 import java.io.File
+import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Pattern
@@ -140,7 +138,8 @@ class Environment(classPath: String, private val verbose: Boolean) {
             if (errors.isNotEmpty()) throwErrors()
 
             val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
-            modules[mod.data.name.value] = FullModuleEnv(menv, canonical, taliases)
+            modules[mod.data.name.value] =
+                FullModuleEnv(menv, canonical, taliases, Typechecker.typeVars(), mod.data.comment)
         }
         return modules
     }
@@ -222,6 +221,18 @@ class Environment(classPath: String, private val verbose: Boolean) {
         fun findConstructor(name: String): Type? = constructorTypes[name]
 
         private val stdlibCompiled = mutableMapOf<String, FullModuleEnv>()
+
+        fun stdlibStream(): List<Pair<String, InputStream>> {
+            val ref = Reflections(
+                ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("novah"))
+                    .setScanners(ResourcesScanner())
+            )
+            val res = ref.getResources(Pattern.compile(".*\\.novah"))
+            return res.map { path ->
+                path to (Environment::class.java.classLoader.getResourceAsStream(path)
+                    ?: internalError("Could not find stdlib module $path"))
+            }
+        }
     }
 }
 
@@ -230,14 +241,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
  * Read from the jar itself.
  */
 private val stdlib by lazy {
-    val ref = Reflections(
-        ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("novah"))
-            .setScanners(ResourcesScanner())
-    )
-    val res = ref.getResources(Pattern.compile(".*\\.novah"))
-    res.map { path ->
-        val stream = Environment::class.java.classLoader.getResourceAsStream(path)
-            ?: internalError("Could not find stdlib module $path")
+    Environment.stdlibStream().map { (path, stream) ->
         val contents = stream.bufferedReader().use { it.readText() }
         Source.SString(Path.of(path), contents)
     }.asSequence()
@@ -258,11 +262,23 @@ sealed class Source(val path: Path) {
 class CompilationError(val problems: List<CompilerProblem>) :
     RuntimeException(problems.joinToString("\n") { it.formatToConsole() })
 
-data class FullModuleEnv(val env: ModuleEnv, val ast: TypedModule, val aliases: List<Decl.TypealiasDecl>)
+data class FullModuleEnv(
+    val env: ModuleEnv,
+    val ast: TypedModule,
+    val aliases: List<Decl.TypealiasDecl>,
+    val typeVarsMap: Map<Int, String>,
+    val comment: Comment?
+)
 
-data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: Boolean)
+data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: Boolean, val comment: Comment?)
 
-data class TypeDeclRef(val type: Type, val visibility: Visibility, val ctors: List<String>)
+data class TypeDeclRef(
+    val type: Type,
+    val visibility: Visibility,
+    val isOpaque: Boolean,
+    val ctors: List<String>,
+    val comment: Comment?
+)
 
 data class ModuleEnv(
     val decls: Map<String, DeclRef>,

@@ -18,9 +18,7 @@ package novah.ast.canonical
 import novah.ast.source.ForeignImport
 import novah.ast.source.Import
 import novah.ast.source.Visibility
-import novah.data.LabelMap
-import novah.data.mapList
-import novah.data.show
+import novah.data.*
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -51,6 +49,7 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
         val dataCtors: List<DataConstructor>,
         override val span: Span,
         val visibility: Visibility,
+        val isOpaque: Boolean,
         override val comment: Comment? = null
     ) : Decl(span, comment)
 
@@ -59,7 +58,7 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
         val exp: Expr,
         val recursive: Boolean,
         override val span: Span,
-        val type: Type?,
+        val signature: Signature?,
         val visibility: Visibility,
         val isInstance: Boolean,
         val isOperator: Boolean,
@@ -72,6 +71,8 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
     }
 }
 
+data class Signature(val type: Type, val span: Span)
+
 fun Decl.TypeDecl.show(): String {
     return if (tyVars.isEmpty()) name else name + tyVars.joinToString(" ", prefix = " ")
 }
@@ -80,7 +81,7 @@ data class DataConstructor(val name: String, val args: List<Type>, val visibilit
     override fun toString(): String {
         return name + args.joinToString(" ", prefix = " ")
     }
-    
+
     fun isPublic() = visibility == Visibility.PUBLIC
 }
 
@@ -92,7 +93,13 @@ sealed class Expr(open val span: Span) {
     data class StringE(val v: String, override val span: Span) : Expr(span)
     data class CharE(val v: Char, override val span: Span) : Expr(span)
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
-    data class Var(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
+    data class Var(
+        val name: String,
+        override val span: Span,
+        val moduleName: String? = null,
+        val isOp: Boolean = false
+    ) : Expr(span)
+
     data class Constructor(val name: String, override val span: Span, val moduleName: String? = null) : Expr(span)
     data class ImplicitVar(val name: String, override val span: Span, val moduleName: String?) : Expr(span)
     data class Lambda(val binder: Binder, val body: Expr, override val span: Span) : Expr(span)
@@ -114,10 +121,12 @@ sealed class Expr(open val span: Span) {
     data class NativeConstructor(val name: String, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
     class Unit(span: Span) : Expr(span)
     class RecordEmpty(span: Span) : Expr(span)
-    data class RecordSelect(val exp: Expr, val label: String, override val span: Span) : Expr(span)
+    data class RecordSelect(val exp: Expr, val label: Spanned<String>, override val span: Span) : Expr(span)
     data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
-    data class RecordUpdate(val exp: Expr, val label: String, val value: Expr, override val span: Span) : Expr(span)
+    data class RecordUpdate(val exp: Expr, val label: Spanned<String>, val value: Expr, override val span: Span) :
+        Expr(span)
+
     data class ListLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class Throw(val exp: Expr, override val span: Span) : Expr(span)
@@ -172,9 +181,11 @@ sealed class Pattern(open val span: Span) {
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
     data class ListP(val elems: List<Pattern>, override val span: Span) : Pattern(span)
     data class ListHeadTail(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
-    data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
+    data class Named(val pat: Pattern, val name: Spanned<String>, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
-    data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
+    data class TypeTest(val test: Type, val alias: String?, override val span: Span) : Pattern(span)
+
+    var type: Type? = null
 }
 
 sealed class LiteralPattern(open val e: Expr) {
@@ -197,7 +208,7 @@ fun Pattern.show(): String = when (this) {
     is Pattern.ListHeadTail -> "[${head.show()} :: ${tail.show()}]"
     is Pattern.Named -> "${pat.show()} as $name"
     is Pattern.Unit -> "()"
-    is Pattern.TypeTest -> ":? ${type.show()}" + if (alias != null) " $alias" else ""
+    is Pattern.TypeTest -> ":? ${test.show()}" + if (alias != null) " $alias" else ""
 }
 
 fun LiteralPattern.show(): String = when (this) {
@@ -238,6 +249,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
             f(e.copy(tryExp = go(e.tryExp), finallyExp = e.finallyExp?.let { go(it) }, cases = cases))
         }
         is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
+        is Expr.TypeCast -> f(e.copy(exp = go(e.exp)))
         else -> f(e)
     }
     return go(this)
@@ -250,6 +262,160 @@ fun <T> Expr.everywhereAccumulating(f: (Expr) -> List<T>): List<T> {
         exp
     }
     return acc
+}
+
+// goes in the same order as the actual text
+// so top -> bottom, left -> right
+fun Expr.everywhereUnit(f: (Expr) -> Unit) {
+    fun go(e: Expr) {
+        when (e) {
+            is Expr.Lambda -> {
+                f(e)
+                go(e.body)
+            }
+            is Expr.App -> {
+                f(e)
+                if (e.fn is Expr.Var && e.fn.isOp) {
+                    go(e.arg)
+                    go(e.fn)
+                } else {
+                    go(e.fn)
+                    go(e.arg)
+                }
+            }
+            is Expr.If -> {
+                f(e)
+                go(e.cond)
+                go(e.thenCase)
+                go(e.elseCase)
+            }
+            is Expr.Let -> {
+                f(e)
+                go(e.letDef.expr)
+                go(e.body)
+            }
+            is Expr.Match -> {
+                f(e)
+                e.exps.forEach { go(it) }
+                e.cases.forEach {
+                    if (it.guard != null) go(it.guard)
+                    go(it.exp)
+                }
+            }
+            is Expr.Ann -> {
+                go(e.exp)
+                f(e)
+            }
+            is Expr.Do -> {
+                f(e)
+                e.exps.forEach { go(it) }
+            }
+            is Expr.RecordSelect -> {
+                f(e)
+                go(e.exp)
+            }
+            is Expr.RecordRestrict -> {
+                f(e)
+                go(e.exp)
+            }
+            is Expr.RecordUpdate -> {
+                f(e)
+                go(e.value)
+                go(e.exp)
+            }
+            is Expr.RecordExtend -> {
+                f(e)
+                e.labels.forEachList { go(it) }
+                go(e.exp)
+            }
+            is Expr.ListLiteral -> {
+                f(e)
+                e.exps.forEach { go(it) }
+            }
+            is Expr.SetLiteral -> {
+                f(e)
+                e.exps.forEach { go(it) }
+            }
+            is Expr.Throw -> {
+                f(e)
+                go(e.exp)
+            }
+            is Expr.TryCatch -> {
+                f(e)
+                go(e.tryExp)
+                e.cases.forEach {
+                    if (it.guard != null) go(it.guard)
+                    go(it.exp)
+                }
+                if (e.finallyExp != null) go(e.finallyExp)
+            }
+            is Expr.While -> {
+                f(e)
+                go(e.cond)
+                e.exps.forEach { go(it) }
+            }
+            is Expr.TypeCast -> {
+                go(e.exp)
+                f(e)
+            }
+            is Expr.Bool -> f(e)
+            is Expr.Int32 -> f(e)
+            is Expr.Int64 -> f(e)
+            is Expr.Float32 -> f(e)
+            is Expr.Float64 -> f(e)
+            is Expr.CharE -> f(e)
+            is Expr.StringE -> f(e)
+            is Expr.Var -> f(e)
+            is Expr.Constructor -> f(e)
+            is Expr.ImplicitVar -> f(e)
+            is Expr.NativeConstructor -> f(e)
+            is Expr.NativeMethod -> f(e)
+            is Expr.NativeFieldGet -> f(e)
+            is Expr.NativeFieldSet -> f(e)
+            is Expr.RecordEmpty -> f(e)
+            is Expr.Null -> f(e)
+            is Expr.Unit -> f(e)
+        }
+    }
+    go(this)
+}
+
+fun Pattern.everywhereUnit(f: (Pattern) -> Unit) {
+    fun go(p: Pattern) {
+        when (p) {
+            is Pattern.Ctor -> {
+                f(p)
+                p.fields.forEach { go(it) }
+            }
+            is Pattern.ListP -> {
+                f(p)
+                p.elems.forEach { go(it) }
+            }
+            is Pattern.ListHeadTail -> {
+                f(p)
+                go(p.head)
+                go(p.tail)
+            }
+            is Pattern.Named -> {
+                f(p)
+                go(p.pat)
+            }
+            is Pattern.Record -> {
+                f(p)
+                p.labels.mapAllValues { it }.sortedWith { a, b ->
+                    if (a.span.startLine != b.span.startLine)
+                        a.span.startLine.compareTo(b.span.startLine)
+                    else a.span.startColumn.compareTo(b.span.startColumn)
+                }.forEach { go(it) }
+            }
+            is Pattern.Unit -> f(p)
+            is Pattern.Wildcard -> f(p)
+            is Pattern.Var -> f(p)
+            is Pattern.LiteralP -> f(p)
+            is Pattern.TypeTest -> f(p)
+        }
+    }
+    go(this)
 }
 
 fun Expr.resolvedImplicits(): List<Expr> = implicitContext?.resolveds ?: emptyList()

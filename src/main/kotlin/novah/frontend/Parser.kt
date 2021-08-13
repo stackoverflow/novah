@@ -40,7 +40,7 @@ class Parser(
         return try {
             Ok(innerParseFullModule())
         } catch (le: LexError) {
-            // for now we just return the first error
+            // for now, we just return the first error
             Err(CompilerProblem(le.msg, ProblemContext.PARSER, le.span, sourceName, moduleName))
         } catch (pe: ParserError) {
             Err(CompilerProblem(pe.msg, ProblemContext.PARSER, pe.span, sourceName, moduleName))
@@ -99,6 +99,7 @@ class Parser(
         return when (sp.value) {
             is Ident -> DeclarationRef.RefVar(sp.value.v, sp.span)
             is UpperIdent -> {
+                val binder = Spanned(sp.span, sp.value.v)
                 if (iter.peek().value is LParen) {
                     expect<LParen>(noErr())
                     val ctors = if (iter.peek().value is Op) {
@@ -106,14 +107,17 @@ class Parser(
                         if (op.value.op != "..") throwError(withError(E.DECLARATION_REF_ALL)(op))
                         listOf()
                     } else {
-                        between<Comma, UpperIdent> { parseUpperIdent() }.map { it.v }
+                        between<Comma, Spanned<String>> {
+                            val ident = expect<UpperIdent>(withError(E.CTOR_NAME))
+                            Spanned(ident.span, ident.value.v)
+                        }
                     }
                     val end = expect<RParen>(withError(E.DECLARATION_REF_ALL))
-                    DeclarationRef.RefType(sp.value.v, span(sp.span, end.span), ctors)
-                } else DeclarationRef.RefType(sp.value.v, sp.span)
+                    DeclarationRef.RefType(binder, span(sp.span, end.span), ctors)
+                } else DeclarationRef.RefType(binder, sp.span)
             }
             is Op -> DeclarationRef.RefVar(sp.value.op, sp.span)
-            else -> throwError(withError(E.EXPORT_REFER)(sp))
+            else -> throwError(withError(E.IMPORT_REFER)(sp))
         }
     }
 
@@ -131,7 +135,7 @@ class Parser(
         if (imports.none { it.module.value == CORE_MODULE } && moduleName != CORE_MODULE) {
             imports += coreImport
         }
-        if (!isStdlib) {
+        if (!isStdlib && moduleName !in stlibModuleNames) {
             // all aliased modules
             val aliased = imports.filter { it.alias() != null }.map { it.module.value }.toSet()
 
@@ -351,10 +355,10 @@ class Parser(
         }
         val (nameTk, name) = parseName("")
         return withOffside(nameTk.offside() + 1) {
-            var type: Type? = null
+            var sig: Signature? = null
             var nameTk2: Spanned<Token>? = null
             if (iter.peek().value is Colon) {
-                type = parseTypeSignature()
+                sig = Signature(parseTypeSignature(), nameTk.span)
                 withOffside(nameTk.offside()) {
                     val (tk, name2) = parseName(name)
                     nameTk2 = tk
@@ -367,7 +371,7 @@ class Parser(
 
             val exp = parseDo()
             val binder = Binder(name, if (nameTk2 != null) nameTk2!!.span else nameTk.span)
-            Decl.ValDecl(binder, vars, exp, type, vis, isInstance, isOperator)
+            Decl.ValDecl(binder, vars, exp, sig, vis, isInstance, isOperator)
                 .withSpan(nameTk.span, exp.span)
         }
     }
@@ -417,7 +421,7 @@ class Parser(
                     .withSpan(unrolled.span, iter.current().span)
                     .withComment(unrolled.comment)
             } else unrolled
-            
+
             if (iter.peek().value is As) {
                 iter.next()
                 val ty = parseType()
@@ -453,8 +457,8 @@ class Parser(
                         Expr.Unit().withSpan(span(tk.span, end.span)).withComment(tk.comment)
                     } else {
                         val exp = parseExpression()
-                        expect<RParen>(withError(E.rparensExpected("expression")))
-                        Expr.Parens(exp)
+                        val end = expect<RParen>(withError(E.rparensExpected("expression")))
+                        Expr.Parens(exp).withSpan(tk.span, end.span).withComment(tk.comment)
                     }
                 }
             }
@@ -522,7 +526,8 @@ class Parser(
         return if (exp != null && iter.peek().value is Dot) {
             iter.next()
             val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
-            Expr.RecordSelect(exp, labels.map { it.first }).withSpan(exp.span, labels.last().second.span)
+            Expr.RecordSelect(exp, labels.map { Spanned(it.second.span, it.first) })
+                .withSpan(exp.span, labels.last().second.span)
         } else exp
     }
 
@@ -683,8 +688,7 @@ class Parser(
             val vars = tryParseListOf { tryParsePattern(true) }
             expect<Equals>(withError(E.LET_EQUALS))
             val exp = parseDo()
-            val span = span(ident.span, exp.span)
-            LetDef.DefBind(Binder(ident.value.v, span), vars, exp, isInstance, type)
+            LetDef.DefBind(Binder(ident.value.v, ident.span), vars, exp, isInstance, type)
         }
     }
 
@@ -912,7 +916,7 @@ class Parser(
         return if (pat != null && iter.peek().value is As) {
             iter.next()
             val name = expect<Ident>(withError(E.VARIABLE))
-            Pattern.Named(pat, name.value.v, span(pat.span, name.span))
+            Pattern.Named(pat, Spanned(name.span, name.value.v), span(pat.span, name.span))
         } else pat
     }
 
@@ -988,7 +992,7 @@ class Parser(
         expect<Pipe>(withError(E.pipeExpected("record update")))
         val record = parseExpression()
         val end = expect<RBracket>(withError(E.rbracketExpected("record update")))
-        return Expr.RecordUpdate(record, labels.map { it.first }, value)
+        return Expr.RecordUpdate(record, labels.map { Spanned(it.second.span, it.first) }, value)
             .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 

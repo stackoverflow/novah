@@ -27,11 +27,14 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.io.path.exists
 import kotlin.system.exitProcess
 
 class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClientAware {
@@ -76,12 +79,20 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val semOpts =
             SemanticTokensWithRegistrationOptions(SemanticTokensFeature.legend, SemanticTokensServerFull(false))
         initializeResult.capabilities.semanticTokensProvider = semOpts
+        // Go to definition capability
+        initializeResult.capabilities.definitionProvider = Either.forLeft(true)
+        // Code actions capability
+        val caOpts = CodeActionOptions(mutableListOf("quickfix"))
+        initializeResult.capabilities.codeActionProvider = Either.forRight(caOpts)
 
         // initial build
         build()
 
         // start build thread
         buildThread.scheduleWithFixedDelay(::buildRun, 0, 500, TimeUnit.MILLISECONDS)
+
+        // unpack stdlib
+        unpackStdlib()
 
         return CompletableFuture.supplyAsync { initializeResult }
     }
@@ -127,12 +138,8 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     fun logger(): IdeLogger = logger!!
 
-    fun addChange(uri: String, text: String) {
+    fun addChange(uri: String, text: String? = null) {
         changes.set(FileChange(uri, text))
-    }
-
-    fun resetChange() {
-        changes.set(null)
     }
 
     fun change() = changes.get()
@@ -149,11 +156,15 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     private fun saveDiagnostics(errors: List<CompilerProblem>) {
         if (errors.isEmpty()) return
 
+        val actions = textService.codeAction
+        actions.resetCache()
         diags = errors.map { err ->
             val sev = if (err.severity == Severity.ERROR) DiagnosticSeverity.Error else DiagnosticSeverity.Warning
             val diag = Diagnostic(spanToRange(err.span), err.msg + "\n\n")
             diag.severity = sev
             diag.source = "Novah compiler"
+            val data = actions.storeError(err)
+            if (data != null) diag.data = data
             val uri = File(err.fileName).toURI().toString()
             logger().log("error on $uri span ${err.span}")
             uri to diag
@@ -168,7 +179,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val sources = rootPath.walkTopDown().filter { it.isFile && it.extension == "novah" }
             .map {
                 val path = Path.of(it.absolutePath)
-                if (change != null && change.path == it.absolutePath) Source.SString(path, change.txt)
+                if (change?.txt != null && change.path == it.absolutePath) Source.SString(path, change.txt)
                 else Source.SPath(path)
             }
         logger().info("compiling project")
@@ -194,10 +205,38 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val change = changes.get()
         if (change != null && !change.built) {
             build()
-            // publish diagnostics
             publishDiagnostics(File(change.path).toURI().toString())
+        }
+    }
+
+    val stdlibFiles = mutableMapOf<String, String>()
+
+    /**
+     * Unpack the stdlib to a temp folder, so we can open it in
+     * the client in the "go to definition" feature.
+     */
+    private fun unpackStdlib() {
+        val tmp = Paths.get(System.getProperty("java.io.tmpdir"), "novah")
+        if (tmp.exists()) {
+            Files.walk(tmp)
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete)
+        } else tmp.toFile().mkdir()
+
+        Environment.stdlibStream().forEach { (path, stream) ->
+            try {
+                val fqp = Paths.get(tmp.toString(), path)
+                val file = fqp.toFile()
+                stdlibFiles[path] = fqp.toString()
+                file.parentFile?.mkdirs()
+                Files.copy(stream, fqp)
+                file.setReadOnly()
+            } catch (e: Exception) {
+                logger().info(e.stackTraceToString())
+            }
         }
     }
 }
 
-data class FileChange(val path: String, val txt: String, val built: Boolean = false)
+data class FileChange(val path: String, val txt: String? = null, val built: Boolean = false)

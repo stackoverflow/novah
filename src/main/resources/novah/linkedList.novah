@@ -1,3 +1,7 @@
+/**
+ * This module defines an immutable linked list.
+ * A List should almost always be prefered as lists make for good linked lists.
+ */
 module novah.linkedList
 
 /**

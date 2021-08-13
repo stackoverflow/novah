@@ -136,7 +136,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
                                 }
                                 else -> {
                                     for (ctor in ref.ctors) {
-                                        val ctorDecl = m.decls[ctor]
+                                        val ctorDecl = m.decls[ctor.value]
                                         if (ctorDecl == null) {
                                             errors += mkError(Errors.cannotFindInModule("constructor $ctor", mname))
                                             continue

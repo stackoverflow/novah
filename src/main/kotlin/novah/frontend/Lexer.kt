@@ -104,7 +104,7 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
     private fun before(line: Int, col: Int) =
         line < startLine || (line == startLine && col < startColumn)
 
-    private fun after(line: Int, col: Int) =
+    fun after(line: Int, col: Int) =
         line > endLine || (line == endLine && col > endColumn)
 
     companion object {
@@ -122,6 +122,10 @@ data class Spanned<out T>(val span: Span, val value: T, val comment: Comment? = 
     override fun toString(): String = "$value($span)"
 
     fun offside() = span.startColumn
+
+    companion object {
+        fun <T> empty(value: T) = Spanned(Span.empty(), value)
+    }
 }
 
 class LexError(val msg: String, val span: Span) : RuntimeException("$msg at $span")
@@ -171,8 +175,6 @@ class CharPositionIterator(private val chars: Iterator<Char>) : Iterator<Char> {
 class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
     private val iter = CharPositionIterator(input)
-
-    private val operators = "$=<>|&+-:*/%^.?!"
 
     override fun hasNext(): Boolean = iter.hasNext()
 
@@ -493,7 +495,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         while (iter.hasNext() && iter.peek() != '\n') {
             builder.append(iter.next())
         }
-        return builder.toString().trim()
+        return builder.toString().trimStart()
     }
 
     private fun multiLineComment(): String {
@@ -602,6 +604,11 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     companion object {
+
+        private const val operators = "$=<>|&+-:*/%^.?!"
+
+        fun isOperator(str: String) = str.toCharArray().all { it in operators }
+
         /**
          * Reads a Java UTF-16 basic multilingual plane escape (\uxxxx)
          */

@@ -125,7 +125,7 @@ class Formatter {
 
     fun show(d: Decl.ValDecl): String {
         var prefix = ""
-        if (d.type != null) prefix = show(d.name, d.type) + "\n"
+        if (d.signature?.type != null) prefix = show(d.name, d.signature.type) + "\n"
         prefix += d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
         return if (d.exp.isSimpleExpr()) "$prefix ${show(d.exp)}"
@@ -196,7 +196,7 @@ class Formatter {
             is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".")}"
             is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
             is Expr.RecordUpdate -> {
-                "{ .${e.labels.joinToString(".") { showLabel(it) }} = ${show(e.value)} | ${show(e.exp)} }"
+                "{ .${e.labels.joinToString(".") { showLabel(it.value) }} = ${show(e.value)} | ${show(e.exp)} }"
             }
             is Expr.RecordExtend -> {
                 val labels = e.labels.show(::showLabelExpr)

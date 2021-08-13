@@ -35,15 +35,28 @@ object Typechecker {
     var context: TypingContext? = null
         private set
 
+    /**
+     * A map of the internal type variable ids to
+     * user given type variable names.
+     */
+    private val typeVarMap = mutableMapOf<Int, String>()
+
     private fun nextId(): Int = ++currentId
 
     fun reset() {
         env = Env.new()
         currentId = 0
+        typeVarMap.clear()
     }
 
     fun newVar(level: Level) = TVar(TypeVar.Unbound(nextId(), level))
-    fun newGenVar() = TVar(TypeVar.Generic(nextId()))
+    fun newGenVar(name: String? = null): TVar {
+        val id = nextId()
+        if (name != null) typeVarMap[id] = name
+        return TVar(TypeVar.Generic(id))
+    }
+
+    fun typeVars() = typeVarMap.toMap()
 
     fun infer(mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
         context = TypingContext(mod)

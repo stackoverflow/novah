@@ -60,6 +60,12 @@ class TVar(var tvar: TypeVar) : Type() {
         if (other == null || other !is TVar) return false
         return tvar == other.tvar
     }
+
+    fun copyTvar(): TVar = when (val tv = tvar) {
+        is TypeVar.Unbound -> TVar(tv.copy())
+        is TypeVar.Link -> TVar(tv.copy(type = tv.type.copy()))
+        is TypeVar.Generic -> TVar(tv.copy())
+    }
 }
 
 sealed class Type {
@@ -67,9 +73,20 @@ sealed class Type {
     var span: Span? = null
     fun span(s: Span?): Type = apply { span = s }
 
-    fun realType(): Type = when {
+    private fun realType(): Type = when {
         this is TVar && tvar is TypeVar.Link -> (tvar as TypeVar.Link).type.realType()
         else -> this
+    }
+
+    fun copy(): Type = when (this) {
+        is TConst -> copy()
+        is TApp -> copy()
+        is TArrow -> copy()
+        is TImplicit -> copy()
+        is TRecord -> copy()
+        is TRowExtend -> copy()
+        is TRowEmpty -> TRowEmpty()
+        is TVar -> copyTvar()
     }
 
     /**
@@ -226,19 +243,10 @@ sealed class Type {
     /**
      * Pretty print version of [toString]
      */
-    fun show(qualified: Boolean = true, pretty: Boolean = false): String {
-        var idCount = -1
-        val varMap = mutableMapOf<Int, Int>()
+    fun show(qualified: Boolean = true, typeVarsMap: Map<Int, String>? = null): String {
         fun showId(id: Id): String {
-            return if (pretty) {
-                val index = varMap[id]
-                if (index != null) letters[index]
-                else {
-                    idCount = (idCount + 1) % letters.size
-                    varMap[id] = idCount
-                    letters[idCount]
-                }
-            } else if (id >= 0) "t$id" else "u${-id}"
+            return if (typeVarsMap != null && typeVarsMap.containsKey(id)) typeVarsMap[id]!!
+            else if (id >= 0) "t$id" else "u${-id}"
         }
 
         fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
@@ -298,8 +306,6 @@ sealed class Type {
     }
 
     companion object {
-        private val letters = "abcdefghijklmnopqrstuvwxyz".toList().map { it.toString() }
-
         fun nestArrows(args: List<Type>, ret: Type): Type = when {
             args.isEmpty() -> ret
             else -> TArrow(listOf(args[0]), nestArrows(args.drop(1), ret))

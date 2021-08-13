@@ -99,6 +99,21 @@ val stringImport = Import.Raw(spanned(STRING_MODULE), espan, "String", auto = tr
 val mapImport = Import.Raw(spanned(MAP_MODULE), espan, "Map", auto = true)
 val resultImport = Import.Raw(spanned(RESULT_MODULE), espan, "Result", auto = true)
 
+val stlibModuleNames = setOf(
+    CORE_MODULE,
+    ARRAY_MODULE,
+    JAVA_MODULE,
+    LIST_MODULE,
+    MATH_MODULE,
+    OPTION_MODULE,
+    SET_MODULE,
+    STRING_MODULE,
+    MAP_MODULE,
+    RESULT_MODULE,
+    "novah.stream",
+    "novah.linkedList"
+)
+
 const val primByte = "$PRIM.Byte"
 const val primInt16 = "$PRIM.Int16"
 const val primInt32 = "$PRIM.Int32"
@@ -184,7 +199,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     }
 }
 
-private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList())
+private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, false, emptyList(), null)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 
 val primModuleEnv = ModuleEnv(
@@ -242,4 +257,12 @@ val primModule = Module(
 )
 
 private fun primType(name: String, comment: String) =
-    Decl.TypeDecl(name, emptyList(), emptyList(), Span.empty(), Visibility.PUBLIC, Comment(comment, Span.empty(), true))
+    Decl.TypeDecl(
+        name,
+        emptyList(),
+        emptyList(),
+        Span.empty(),
+        Visibility.PUBLIC,
+        false,
+        Comment(comment, Span.empty(), true)
+    )

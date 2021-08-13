@@ -24,6 +24,7 @@ import novah.data.isEmpty
 import novah.data.mapList
 import novah.data.singletonPMap
 import novah.frontend.Span
+import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
@@ -72,9 +73,9 @@ object Inference {
                 checkShadow(env, dc.name, dc.span)
                 env.extend(dc.name, dcty)
                 Environment.cacheConstructorType("${ast.name.value}.${dc.name}", dcty)
-                decls[dc.name] = DeclRef(dcty, dc.visibility, false)
+                decls[dc.name] = DeclRef(dcty, dc.visibility, false, null)
             }
-            types[d.name] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name })
+            types[d.name] = TypeDeclRef(ty, d.visibility, d.isOpaque, d.dataCtors.map { it.name }, d.comment)
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
@@ -109,8 +110,12 @@ object Inference {
             val genTy = generalize(-1, ty)
             env.extend(name, genTy)
             if (decl.isInstance) env.extendInstance(name, genTy)
-            decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance)
-            if (!isAnnotated) warner(E.noTypeAnnDecl(name, genTy.show()), decl.span)
+            decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
+
+            if (!isAnnotated) {
+                val fix = "$name : ${genTy.show(false)}"
+                warner(E.noTypeAnnDecl(name, genTy.show()), decl.span, Action.NoType(fix))
+            }
         }
 
         return ModuleEnv(decls, types)
@@ -136,7 +141,7 @@ object Inference {
         }
         is Expr.ImplicitVar -> {
             val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(TImplicit(instantiate(level, ty)))
+            exp.withType(instantiate(level, ty))
         }
         is Expr.NativeFieldGet -> {
             val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
@@ -283,7 +288,7 @@ object Inference {
         is Expr.RecordSelect -> {
             val rest = newVar(level)
             val field = newVar(level)
-            val param = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
+            val param = TRecord(TRowExtend(singletonPMap(exp.label.value, field), rest))
             unify(param, infer(env, level, exp.exp), exp.span)
             exp.withType(field)
         }
@@ -298,7 +303,7 @@ object Inference {
         is Expr.RecordUpdate -> {
             val field = infer(env, level, exp.value)
             val rest = newVar(level)
-            val recTy = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
+            val recTy = TRecord(TRowExtend(singletonPMap(exp.label.value, field), rest))
             unify(recTy, infer(env, level, exp.exp), exp.span)
             exp.withType(recTy)
         }
@@ -378,7 +383,7 @@ object Inference {
     private data class PatternVar(val name: String, val type: Type, val span: Span)
 
     private fun inferpattern(env: Env, level: Level, pat: Pattern, ty: Type): List<PatternVar> {
-        return when (pat) {
+        val res = when (pat) {
             is Pattern.LiteralP -> {
                 unify(ty, infer(env, level, pat.lit.e), pat.span)
                 emptyList()
@@ -450,23 +455,25 @@ object Inference {
             is Pattern.Named -> {
                 val vars = mutableListOf<PatternVar>()
                 vars += inferpattern(env, level, pat.pat, ty)
-                vars += PatternVar(pat.name, ty, pat.span)
+                vars += PatternVar(pat.name.value, ty, pat.span)
                 vars
             }
             is Pattern.TypeTest -> {
-                validateType(pat.type, env, pat.span)
+                validateType(pat.test, env, pat.span)
                 if (pat.alias != null) {
                     // we need special handling for Lists, Sets and Arrays
                     val type = when {
-                        pat.type is TConst && pat.type.name == primList -> TApp(TConst(primList), listOf(tObject))
-                        pat.type is TConst && pat.type.name == primSet -> TApp(TConst(primSet), listOf(tObject))
-                        pat.type is TConst && pat.type.name == primArray -> TApp(TConst(primArray), listOf(tObject))
-                        else -> pat.type
+                        pat.test is TConst && pat.test.name == primList -> TApp(TConst(primList), listOf(tObject))
+                        pat.test is TConst && pat.test.name == primSet -> TApp(TConst(primSet), listOf(tObject))
+                        pat.test is TConst && pat.test.name == primArray -> TApp(TConst(primArray), listOf(tObject))
+                        else -> pat.test
                     }
                     listOf(PatternVar(pat.alias, type, pat.span))
                 } else emptyList()
             }
         }
+        pat.type = ty
+        return res
     }
 
     private tailrec fun peelArgs(args: List<Type>, t: Type): Pair<List<Type>, Type> = when {
@@ -606,14 +613,15 @@ object Inference {
         }
     }
 
-    private fun makeWarner(ast: Module) = { msg: String, span: Span ->
+    private fun makeWarner(ast: Module) = { msg: String, span: Span, action: Action ->
         val warn = CompilerProblem(
             msg,
             ProblemContext.TYPECHECK,
             span,
             ast.sourceName,
             ast.name.value,
-            severity = Severity.WARN
+            severity = Severity.WARN,
+            action = action
         )
         warnings += warn
     }

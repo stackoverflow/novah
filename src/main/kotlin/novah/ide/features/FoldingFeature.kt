@@ -56,20 +56,12 @@ class FoldingFeature(private val server: NovahServer) {
             folds += fold
         }
 
-        // function/let folding
+        // function folding
         ast.decls.forEach { d ->
             val span = d.span
+
             if (span.isMultiline()) {
                 folds += spanToFold(span)
-            }
-            
-            if (d is Decl.ValDecl) {
-                d.exp.everywhere { e ->
-                    if (e is Expr.Let && e.span.isMultiline()) {
-                        folds += spanToFold(e.span)
-                    }
-                    e
-                }
             }
         }
 

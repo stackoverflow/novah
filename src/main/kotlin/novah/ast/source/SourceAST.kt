@@ -17,6 +17,7 @@ package novah.ast.source
 
 import novah.data.LabelMap
 import novah.data.Labels
+import novah.data.show
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -61,12 +62,12 @@ sealed class DeclarationRef(open val name: String, open val span: Span) {
      * `null` ctors mean only the type is imported, but no constructors.
      * Empty ctors mean all constructors are imported.
      */
-    data class RefType(override val name: String, override val span: Span, val ctors: List<String>? = null) :
-        DeclarationRef(name, span) {
+    data class RefType(val binder: Spanned<String>, override val span: Span, val ctors: List<Spanned<String>>? = null) :
+        DeclarationRef(binder.value, span) {
         override fun toString(): String = when {
             ctors == null -> name
             ctors.isEmpty() -> "$name(..)"
-            else -> name + ctors.joinToString(prefix = "(", postfix = ")")
+            else -> name + ctors.joinToString(prefix = "(", postfix = ")") { it.value }
         }
     }
 }
@@ -155,7 +156,7 @@ sealed class Decl(val name: String, val visibility: Visibility) {
         val binder: Binder,
         val patterns: List<Pattern>,
         val exp: Expr,
-        val type: Type?,
+        val signature: Signature?,
         visibility: Visibility,
         val isInstance: Boolean,
         val isOperator: Boolean
@@ -172,6 +173,8 @@ sealed class Decl(val name: String, val visibility: Visibility) {
 
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.startLine, s.startColumn, e.endLine, e.endColumn) }
 }
+
+data class Signature(val type: Type, val span: Span)
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
     override fun toString(): String {
@@ -248,10 +251,10 @@ sealed class Expr {
 
     class Unit : Expr()
     class RecordEmpty : Expr()
-    data class RecordSelect(val exp: Expr, val labels: List<String>) : Expr()
+    data class RecordSelect(val exp: Expr, val labels: List<Spanned<String>>) : Expr()
     data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val labels: List<String>) : Expr()
-    data class RecordUpdate(val exp: Expr, val labels: List<String>, val value: Expr) : Expr()
+    data class RecordUpdate(val exp: Expr, val labels: List<Spanned<String>>, val value: Expr) : Expr()
     data class ListLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
     class Underscore : Expr()
@@ -317,7 +320,7 @@ sealed class Pattern(open val span: Span) {
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
     data class ListP(val elems: List<Pattern>, override val span: Span) : Pattern(span)
     data class ListHeadTail(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
-    data class Named(val pat: Pattern, val name: String, override val span: Span) : Pattern(span)
+    data class Named(val pat: Pattern, val name: Spanned<String>, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
     data class ImplicitPattern(val pat: Pattern, override val span: Span) : Pattern(span)
@@ -407,6 +410,39 @@ sealed class Type(open val span: Span) {
         is TRowEmpty -> copy(span = s)
         is TRowExtend -> copy(span = s)
         is TImplicit -> copy(span = s)
+    }
+    
+    fun show(): String = when (this) {
+        is TConst -> name
+        is TApp -> {
+            val sname = type.show()
+            if (types.isEmpty()) sname
+            else sname + " " + types.joinToString(" ") { it.show() }
+        }
+        is TFun -> "${arg.show()} -> ${ret.show()}"
+        is TParens -> "(${type.show()})"
+        is TImplicit -> "{{ ${type.show()} }}"
+        is TRowEmpty -> "{}"
+        is TRowExtend -> {
+            val labels = labels.show { k, v -> "$k : ${v.show()}" }
+            val str = when (row) {
+                is TRowEmpty -> labels
+                !is TRowExtend -> "$labels | ${row.show()}"
+                else -> {
+                    val rows = row.show()
+                    "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                }
+            }
+            "[ $str ]"
+        }
+        is TRecord -> when (row) {
+            is TRowEmpty -> "{}"
+            !is TRowExtend -> "{ | ${row.show()} }"
+            else -> {
+                val rows = row.show()
+                "{" + rows.substring(1, rows.lastIndex) + "}"
+            }
+        }
     }
 }
 
