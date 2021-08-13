@@ -23,6 +23,7 @@ import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
+import novah.main.Environment
 import novah.frontend.error.Errors as E
 
 class Parser(
@@ -135,7 +136,7 @@ class Parser(
         if (imports.none { it.module.value == CORE_MODULE } && moduleName != CORE_MODULE) {
             imports += coreImport
         }
-        if (!isStdlib && moduleName !in stlibModuleNames) {
+        if (!isStdlib && moduleName !in Environment.stdlibModuleNames()) {
             // all aliased modules
             val aliased = imports.filter { it.alias() != null }.map { it.module.value }.toSet()
 

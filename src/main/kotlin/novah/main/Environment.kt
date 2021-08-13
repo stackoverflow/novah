@@ -90,7 +90,9 @@ class Environment(classPath: String, private val verbose: Boolean) {
                 parser.parseFullModule().mapBoth(
                     { mod ->
                         val module = mod.name.value
-                        if (!isStdlib) sourceMap[path] = module
+                        if (isStdlib) stdlibModuleNames += module
+                        else sourceMap[path] = module
+
                         val node = DagNode(module, mod)
                         if (modMap.containsKey(module)) {
                             errors += duplicateError(mod, path)
@@ -211,6 +213,10 @@ class Environment(classPath: String, private val verbose: Boolean) {
             return if (classLoader == null) internalError("Novah class loader is null")
             else classLoader!!
         }
+
+        private val stdlibModuleNames = mutableSetOf<String>()
+
+        fun stdlibModuleNames(): Set<String> = stdlibModuleNames
 
         private val constructorTypes = mutableMapOf<String, Type>()
 

@@ -99,21 +99,6 @@ val stringImport = Import.Raw(spanned(STRING_MODULE), espan, "String", auto = tr
 val mapImport = Import.Raw(spanned(MAP_MODULE), espan, "Map", auto = true)
 val resultImport = Import.Raw(spanned(RESULT_MODULE), espan, "Result", auto = true)
 
-val stlibModuleNames = setOf(
-    CORE_MODULE,
-    ARRAY_MODULE,
-    JAVA_MODULE,
-    LIST_MODULE,
-    MATH_MODULE,
-    OPTION_MODULE,
-    SET_MODULE,
-    STRING_MODULE,
-    MAP_MODULE,
-    RESULT_MODULE,
-    "novah.stream",
-    "novah.linkedList"
-)
-
 const val primByte = "$PRIM.Byte"
 const val primInt16 = "$PRIM.Int16"
 const val primInt32 = "$PRIM.Int32"

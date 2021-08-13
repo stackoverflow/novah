@@ -7,9 +7,9 @@ import novah.ast.canonical.everywhereUnit
 import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
 import novah.frontend.Span
-import novah.frontend.typechecker.stlibModuleNames
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
+import novah.main.Environment
 import novah.main.FullModuleEnv
 import org.eclipse.lsp4j.DefinitionParams
 import org.eclipse.lsp4j.Location
@@ -110,7 +110,7 @@ class GotoDefinitionFeature(private val server: NovahServer) {
         Location(locationUri(mod.name.value, mod.sourceName), IdeUtil.spanToRange(span))
 
     private fun locationUri(moduleName: String, sourceName: String): String {
-        return if (moduleName in stlibModuleNames) {
+        return if (moduleName in Environment.stdlibModuleNames()) {
             val path = server.stdlibFiles[sourceName]!!
             "novah:${Paths.get(path).invariantSeparatorsPathString}"
         } else IdeUtil.fileToUri(sourceName)

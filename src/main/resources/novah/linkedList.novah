@@ -14,7 +14,7 @@ type LinkedList a = Nil | Cons a (LinkedList a)
 
 /**
  * Appends the element as the new head of the linked list.
- * An alias to the Cons constructor of a linked list.
+ * An alias to `Cons`.
  */
 pub
 (::) : a -> LinkedList a -> LinkedList a
