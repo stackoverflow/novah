@@ -93,7 +93,7 @@ class CompletionFeature(private val server: NovahServer) {
             if (split.size < 2) findCompletion(ast, env, name, line, true, incomplete)
             else findNamespacedDecl(ast, env, split[0], true, split[1])
         }
-        is Context.OtherCtx -> {
+        is Context.AnyCtx -> {
             val split = name.split(".")
             if (split.size < 2) findCompletion(ast, env, name, line, false, incomplete)
             else findNamespacedDecl(ast, env, split[0], false, split[1])
@@ -502,13 +502,13 @@ class CompletionFeature(private val server: NovahServer) {
                     return when (d) {
                         is novah.ast.source.Decl.TypeDecl -> Context.TypeCtx
                         is novah.ast.source.Decl.TypealiasDecl -> Context.TypeCtx
-                        is novah.ast.source.Decl.ValDecl -> Context.OtherCtx
+                        is novah.ast.source.Decl.ValDecl -> Context.AnyCtx
                     }
                 }
             }
 
             Context.NoCompletion
-        }) { Context.OtherCtx }
+        }) { Context.AnyCtx }
     }
 
     private fun getDetail(d: Decl.ValDecl): String? {
@@ -525,7 +525,7 @@ class CompletionFeature(private val server: NovahServer) {
         data class ImportCtx(val mod: String) : Context()
         object ModuleCtx : Context()
         object TypeCtx : Context()
-        object OtherCtx : Context()
+        object AnyCtx : Context()
         object NoCompletion : Context()
     }
 
