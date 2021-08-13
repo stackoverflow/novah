@@ -6,6 +6,7 @@ import novah.ast.canonical.Module
 import novah.ast.canonical.everywhereUnit
 import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
+import novah.frontend.Span
 import novah.frontend.typechecker.stlibModuleNames
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
@@ -41,26 +42,18 @@ class GotoDefinitionFeature(private val server: NovahServer) {
         var location: Location? = null
         fun goto(name: String, moduleName: String): Location? {
             val mod = mods[moduleName]?.ast ?: return null
-            return mod.decls.find { it is Decl.ValDecl && it.name.name == name }
-                ?.let {
-                    Location(locationUri(mod.name.value, mod.sourceName), IdeUtil.spanToRange(it.span))
-                }
+            return mod.decls.find { it is Decl.ValDecl && it.name.name == name }?.let { newLocation(mod, it.span) }
         }
 
         fun gotoType(name: String, moduleName: String): Location? {
             val mod = mods[moduleName]?.ast ?: return null
-            return mod.decls.find { it is Decl.TypeDecl && it.name == name }
-                ?.let {
-                    Location(locationUri(mod.name.value, mod.sourceName), IdeUtil.spanToRange(it.span))
-                }
+            return mod.decls.find { it is Decl.TypeDecl && it.name == name }?.let { newLocation(mod, it.span) }
         }
 
         fun gotoCtor(name: String, moduleName: String): Location? {
             val mod = mods[moduleName]?.ast ?: return null
             return mod.decls.filterIsInstance<Decl.TypeDecl>().flatMap { it.dataCtors }.find { it.name == name }
-                ?.let {
-                    Location(locationUri(mod.name.value, mod.sourceName), IdeUtil.spanToRange(it.span))
-                }
+                ?.let { newLocation(mod, it.span) }
         }
 
         // look into imports
@@ -112,6 +105,9 @@ class GotoDefinitionFeature(private val server: NovahServer) {
         }
         return location
     }
+
+    private fun newLocation(mod: Module, span: Span) =
+        Location(locationUri(mod.name.value, mod.sourceName), IdeUtil.spanToRange(span))
 
     private fun locationUri(moduleName: String, sourceName: String): String {
         return if (moduleName in stlibModuleNames) {
