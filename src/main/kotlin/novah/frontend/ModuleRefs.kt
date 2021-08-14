@@ -18,6 +18,7 @@ package novah.frontend
 import novah.Core
 import novah.Util.internalError
 import novah.ast.source.*
+import novah.data.LabelMap
 import novah.data.Reflection
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
@@ -373,6 +374,9 @@ private fun setterToFunction(f: Field, static: Boolean): Type {
 
 private fun matchTypes(jTy: java.lang.reflect.Type, nTy: String): Type {
     if (jTy.typeName == "java.lang.Object" && nTy != primObject) return toNovahType(nTy)
+    if (jTy.typeName == "novah.collections.Record") {
+        return TRecord(TRowExtend(LabelMap.empty(), Typechecker.newGenVar()))
+    }
 
     return collectType(jTy)
 }

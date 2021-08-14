@@ -465,6 +465,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_forked", "()$RECORD_DESC", false)
                 }
             }
+            is Expr.RecordMerge -> {
+                genExpr(e.exp1, mv, ctx)
+                genExpr(e.exp2, mv, ctx)
+                val descriptor = "($RECORD_DESC)$RECORD_DESC"
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "merge", descriptor, false)
+            }
             is Expr.ListLiteral -> {
                 if (e.exps.isEmpty()) {
                     mv.visitMethodInsn(INVOKESTATIC, LIST_CLASS, "empty", "()$LIST_DESC", false)

@@ -62,10 +62,14 @@ object Unification {
             t1 is TRecord && t2 is TRecord -> unify(t1.row, t2.row, span)
             t1 is TRowExtend && t2 is TRowExtend -> unifyRows(t1, t2, span)
             t1 is TRowEmpty && t2 is TRowExtend -> {
-                unificationError(Errors.recordMissingLabels(t2.labels.keys().toList()), span)
+                val (labels, _) = matchRowType(t2)
+                val ls = labels.show { key, type -> "$key : ${type.show()}" }
+                unificationError(Errors.recordMissingLabels(ls), span)
             }
             t1 is TRowExtend && t2 is TRowEmpty -> {
-                unificationError(Errors.recordMissingLabels(t1.labels.keys().toList()), span)
+                val (labels, _) = matchRowType(t1)
+                val ls = labels.show { key, type -> "$key : ${type.show()}" }
+                unificationError(Errors.recordMissingLabels(ls), span)
             }
             t1 is TImplicit -> unify(t1.type, t2, span)
             t2 is TImplicit -> unify(t1, t2.type, span)
@@ -178,7 +182,7 @@ object Unification {
         go(type)
     }
 
-    private fun matchRowType(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
+    fun matchRowType(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
         is TRowEmpty -> LabelMap<Type>() to TRowEmpty().span(ty.span)
         is TVar -> {
             when (val tv = ty.tvar) {

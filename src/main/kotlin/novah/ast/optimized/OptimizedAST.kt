@@ -176,6 +176,9 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
         override val span: Span
     ) : Expr(type, span)
 
+    data class RecordMerge(val exp1: Expr, val exp2: Expr, override val type: Clazz, override val span: Span) :
+        Expr(type, span)
+
     data class ListLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class SetLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ArrayLiteral(val exps: List<Expr>, override val type: Clazz, override val span: Span) : Expr(type, span)
@@ -189,7 +192,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
 
     data class While(val cond: Expr, val exps: List<Expr>, override val type: Clazz, override val span: Span) :
         Expr(type, span)
-    
+
     data class Null(override val type: Clazz, override val span: Span) : Expr(type, span)
 }
 
@@ -222,6 +225,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
         is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
         is Expr.RecordUpdate -> f(e.copy(expr = go(e.expr), value = go(e.value)))
+        is Expr.RecordMerge -> f(e.copy(exp1 = go(e.exp1), exp2 = go(e.exp2)))
         is Expr.ListLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.ArrayLiteral -> f(e.copy(exps = e.exps.map(::go)))

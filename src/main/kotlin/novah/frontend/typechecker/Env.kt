@@ -126,12 +126,12 @@ val tChar = TConst(primChar)
 val tString = TConst(primString)
 val tObject = TConst(primObject)
 val tUnit = TConst(primUnit)
-val tList = TApp(TConst(primList, Kind.Constructor(1)), listOf(tbound(-1)))
-val tSet = TApp(TConst(primSet, Kind.Constructor(1)), listOf(tbound(-2)))
-val tArray = TApp(TConst(primArray, Kind.Constructor(1)), listOf(tbound(-3)))
-val tNullable = TApp(TConst(primNullable, Kind.Constructor(1)), listOf(tbound(-4)))
+val tList = tapp(primList, -1)
+val tSet = tapp(primSet, -2)
+val tArray = tapp(primArray, -3)
+val tNullable = tapp(primNullable, -4)
 
-val tUnsafeCoerce = TArrow(listOf(tbound(-4)), tbound(-5))
+val tUnsafeCoerce = TArrow(listOf(tbound(-5)), tbound(-6))
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -186,6 +186,10 @@ fun javaToNovah(jname: String): String = when (jname) {
 
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, false, emptyList(), null)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
+private fun tapp(name: String, vararg ids: Id): TApp {
+    val kind = if (ids.isEmpty()) Kind.Star else Kind.Constructor(ids.size)
+    return TApp(TConst(name, kind), ids.toList().map { tbound(it) })
+}
 
 val primModuleEnv = ModuleEnv(
     mapOf(),

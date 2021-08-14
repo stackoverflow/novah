@@ -44,7 +44,7 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
         server.logger().info("changed $uri")
         val file = IdeUtil.uriToFile(uri)
         if (file.extension == "novah") {
-            //server.resetEnv()
+            server.resetEnv()
             server.addChange(file.absolutePath, params.contentChanges[0].text)
         }
     }
@@ -59,7 +59,7 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
         server.logger().info("saved $uri")
         val file = IdeUtil.uriToFile(uri)
         if (file.extension == "novah") {
-            //server.resetEnv()
+            server.resetEnv()
             server.addChange(file.absolutePath)
         }
     }

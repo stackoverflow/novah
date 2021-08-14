@@ -966,6 +966,9 @@ class Parser(
             } else if (nex is Op && nex.op == "-") {
                 iter.next()
                 parseRecordRestriction(begin)
+            } else if (nex is Op && nex.op == "+") {
+                iter.next()
+                parseRecordMerge(begin)
             } else {
                 val rows = between<Comma, Pair<String, Expr>>(::parseRecordRow)
                 val exp = if (iter.peek().value is Pipe) {
@@ -1003,6 +1006,15 @@ class Parser(
         val record = parseExpression()
         val end = expect<RBracket>(withError(E.rbracketExpected("record restriction")))
         return Expr.RecordRestrict(record, labels.map { it.first })
+            .withSpan(begin.span, end.span).withComment(begin.comment)
+    }
+
+    private fun parseRecordMerge(begin: Spanned<Token>): Expr {
+        val exp1 = parseExpression()
+        expect<Comma>(withError(E.commaExpected("expression in record merge")))
+        val exp2 = parseExpression()
+        val end = expect<RBracket>(withError(E.rbracketExpected("record merge")))
+        return Expr.RecordMerge(exp1, exp2)
             .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 

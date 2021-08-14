@@ -15,10 +15,12 @@
  */
 package novah.collections;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Objects;
 
 /**
- * Because novah allows duplicate keys we need
+ * Because novah allows duplicate keys in records we need
  * some way to store many values in a key.
  * This is a bare-minimum immutable linked list
  * that allows us to store multiple values without
@@ -41,6 +43,31 @@ public class ListValue {
         return new ListValue(val, next);
     }
 
+    /**
+     * Append [other] to the end of this list
+     */
+    public ListValue append(ListValue other) {
+        var res = new ArrayList<>();
+        res.add(value);
+        var nex = next;
+        while (nex != null) {
+            res.add(nex.value);
+            nex = nex.next;
+        }
+        res.add(other.value);
+        nex = other.next;
+        while (nex != null) {
+            res.add(nex.value);
+            nex = nex.next;
+        }
+        Collections.reverse(res);
+        ListValue list = ListValue.of(res.remove(0));
+        for (var e : res) {
+            list = ListValue.of(e, list);
+        }
+        return list;
+    }
+    
     @Override
     public String toString() {
         if (next == null) return value.toString();

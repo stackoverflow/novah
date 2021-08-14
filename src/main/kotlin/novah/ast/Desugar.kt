@@ -294,6 +294,9 @@ class Desugar(private val smod: SModule) {
 
             nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue, span))
         }
+        is SExpr.RecordMerge -> {
+            Expr.RecordMerge(exp1.desugar(locals, tvars), exp2.desugar(locals, tvars), span)
+        }
         is SExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
         is SExpr.BinApp -> {
