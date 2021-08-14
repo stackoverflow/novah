@@ -425,6 +425,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordSelect -> {
                 genExpr(e.expr, mv, ctx)
+                if (e.expr.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 mv.visitLdcInsn(e.label)
                 val desc = "($STRING_DESC)$OBJECT_DESC"
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "unsafeGet", desc, false)
@@ -434,11 +436,15 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordRestrict -> {
                 genExpr(e.expr, mv, ctx)
+                if (e.expr.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 mv.visitLdcInsn(e.label)
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "dissoc", "($STRING_DESC)$RECORD_DESC", false)
             }
             is Expr.RecordUpdate -> {
                 genExpr(e.expr, mv, ctx)
+                if (e.expr.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 mv.visitLdcInsn(e.label)
                 genExpr(e.value, mv, ctx)
                 val descriptor = "(${STRING_DESC}$OBJECT_DESC)$RECORD_DESC"
@@ -447,6 +453,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.RecordExtend -> {
                 val shouldLinearize = e.labels.size() > MAP_LINEAR_THRESHOLD
                 genExpr(e.expr, mv, ctx)
+                if (e.expr.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 // make the map linear before adding the labels then fork it
                 if (shouldLinearize) {
                     mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_linear", "()$RECORD_DESC", false)
@@ -467,7 +475,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordMerge -> {
                 genExpr(e.exp1, mv, ctx)
+                if (e.exp1.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 genExpr(e.exp2, mv, ctx)
+                if (e.exp2.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 val descriptor = "($RECORD_DESC)$RECORD_DESC"
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "merge", descriptor, false)
             }
