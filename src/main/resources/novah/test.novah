@@ -92,6 +92,26 @@ shouldNotBe {{eq}} x y =
     else throw newAssert (format "%s is equals %s" [x, y])
 
 /**
+ * Fails the test if the record r1 is not equals r2.
+ */
+pub
+recordShouldBe : { | r } -> { | r } -> Unit
+recordShouldBe r1 r2 =
+  if recordEquals r1 r2
+    then ()
+    else throw newAssert (format "%s is not equals %s" [r1, r2])
+
+/**
+ * Fails the test if the record r1 is equals r2.
+ */
+pub
+recordShouldNotBe : { | r } -> { | r } -> Unit
+recordShouldNotBe r1 r2 =
+  if not (recordEquals r1 r2)
+    then ()
+    else throw newAssert (format "%s is equals %s" [r1, r2])
+
+/**
  * Fails the test if the element is not inside the set.
  */
 pub

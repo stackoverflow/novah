@@ -8,6 +8,7 @@ import list (listTests)
 import map (mapTests)
 import math (mathTests)
 import option (optionTests)
+import record (recordTests)
 import result (resultTests)
 import set (setTests)
 import stream (streamTests)
@@ -25,6 +26,7 @@ main _ =
       , mapTests
       , mathTests
       , optionTests
+      , recordTests
       , resultTests
       , setTests
       , streamTests
