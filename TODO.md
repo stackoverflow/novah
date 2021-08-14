@@ -16,4 +16,3 @@
 - [ ] Hover over types
 - [ ] Better error reporting in case of record missing labels
 - [ ] Better error reporting for types: List Int <-> List String will complain that String != Int
-- [ ] Add anonymous function support for record merge

@@ -295,7 +295,20 @@ class Desugar(private val smod: SModule) {
             nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue, span))
         }
         is SExpr.RecordMerge -> {
-            Expr.RecordMerge(exp1.desugar(locals, tvars), exp2.desugar(locals, tvars), span)
+            val lvars = mutableListOf<Binder>()
+            val lexpr = if (exp1 is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp1.desugar(locals, tvars)
+
+            val rexpr = if (exp2 is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp2.desugar(locals, tvars)
+
+            nestLambdas(lvars, Expr.RecordMerge(lexpr, rexpr, span))
         }
         is SExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
