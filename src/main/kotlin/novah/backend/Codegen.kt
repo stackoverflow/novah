@@ -598,7 +598,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
         }
     }
-    
+
     private fun genUnit(mv: MethodVisitor) {
         mv.visitFieldInsn(GETSTATIC, "novah/Unit", INSTANCE, "Lnovah/Unit;")
     }
@@ -857,6 +857,14 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordSelect -> go(exp.expr)
             is Expr.RecordRestrict -> go(exp.expr)
+            is Expr.RecordUpdate -> {
+                go(exp.expr)
+                go(exp.value)
+            }
+            is Expr.RecordMerge -> {
+                go(exp.exp1)
+                go(exp.exp2)
+            }
             is Expr.ListLiteral -> for (e in exp.exps) go(e)
             is Expr.SetLiteral -> for (e in exp.exps) go(e)
             is Expr.ArrayLiteral -> for (e in exp.exps) go(e)
@@ -876,7 +884,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 go(exp.cond)
                 for (e in exp.exps) go(e)
             }
-            else -> {
+            is Expr.ConstructorAccess -> {
+                go(exp.ctor)
+            }
+            is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
+            is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor, is Expr.Null, is Expr.Var,
+            is Expr.RecordEmpty, is Expr.Unit, is Expr.NativeStaticFieldGet -> {
             }
         }
 
