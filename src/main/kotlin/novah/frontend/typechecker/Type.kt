@@ -292,7 +292,10 @@ sealed class Type {
                 val labels = t.labels.show { k, v -> "$k : ${go(v, topLevel = true)}" }
                 val str = when (val ty = t.row.realType()) {
                     is TRowEmpty -> labels
-                    !is TRowExtend -> "$labels | ${go(ty, topLevel = true)}"
+                    !is TRowExtend -> {
+                        if (labels.isEmpty()) "| ${go(ty, topLevel = true)}"
+                        else "$labels | ${go(ty, topLevel = true)}"
+                    }
                     else -> {
                         val rows = go(ty, topLevel = true)
                         "$labels, ${rows.substring(2, rows.lastIndex - 1)}"

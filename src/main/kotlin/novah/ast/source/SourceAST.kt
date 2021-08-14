@@ -428,7 +428,10 @@ sealed class Type(open val span: Span) {
             val labels = labels.show { k, v -> "$k : ${v.show()}" }
             val str = when (row) {
                 is TRowEmpty -> labels
-                !is TRowExtend -> "$labels | ${row.show()}"
+                !is TRowExtend -> {
+                    if (labels.isEmpty()) "| ${row.show()}"
+                    else "$labels | ${row.show()}"
+                }
                 else -> {
                     val rows = row.show()
                     "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
