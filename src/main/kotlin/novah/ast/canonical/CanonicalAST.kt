@@ -44,7 +44,7 @@ data class Module(
 
 sealed class Decl(open val span: Span, open val comment: Comment?) {
     data class TypeDecl(
-        val name: String,
+        val name: Spanned<String>,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
         override val span: Span,
@@ -74,7 +74,7 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
 data class Signature(val type: Type, val span: Span)
 
 fun Decl.TypeDecl.show(): String {
-    return if (tyVars.isEmpty()) name else name + tyVars.joinToString(" ", prefix = " ")
+    return if (tyVars.isEmpty()) name.value else name.value + tyVars.joinToString(" ", prefix = " ")
 }
 
 data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {

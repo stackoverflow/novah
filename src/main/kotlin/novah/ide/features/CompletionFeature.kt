@@ -261,8 +261,9 @@ class CompletionFeature(private val server: NovahServer) {
         for (d in ast.decls) {
             when (d) {
                 is Decl.TypeDecl -> {
-                    if ((ownModule || d.isPublic()) && d.name.startsWith(name) && pred(d.name)) {
-                        val ci = CompletionItem(name(alias, d.name))
+                    val tname = d.name.value
+                    if ((ownModule || d.isPublic()) && tname.startsWith(name) && pred(tname)) {
+                        val ci = CompletionItem(name(alias, tname))
                         ci.kind = CompletionItemKind.Class
                         ci.documentation = getDoc(d.comment, module)
                         ci.detail = d.show()

@@ -91,7 +91,7 @@ class SymbolsFeature(private val server: NovahServer) {
 
     private fun typeDeclToSymbol(d: Decl.TypeDecl): DocumentSymbol {
         val tySym = DocumentSymbol(
-            d.name,
+            d.name.value,
             SymbolKind.Class,
             spanToRange(d.span),
             spanToRange(d.span),

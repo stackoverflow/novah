@@ -300,7 +300,8 @@ class Parser(
         val typ = expect<TypeT>(noErr())
         return withOffside(typ.offside() + 1) {
 
-            val name = expect<UpperIdent>(withError(E.DATA_NAME)).value.v
+            val nameTk = expect<UpperIdent>(withError(E.DATA_NAME))
+            val name = Spanned(nameTk.span, nameTk.value.v)
 
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
 
@@ -322,7 +323,8 @@ class Parser(
         val tk = expect<Opaque>(noErr())
         expect<TypeT>(withError(E.INVALID_OPAQUE))
         return withOffside(tk.offside() + 1) {
-            val name = expect<UpperIdent>(withError(E.DATA_NAME)).value.v
+            val nameTk = expect<UpperIdent>(withError(E.DATA_NAME))
+            val name = Spanned(nameTk.span, nameTk.value.v)
 
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
             expect<Equals>(withError(E.DATA_EQUALS))
@@ -330,7 +332,7 @@ class Parser(
             val ctorvis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
             val innerType = parseType()
 
-            val ctors = listOf(DataConstructor(name, listOf(innerType), ctorvis, innerType.span))
+            val ctors = listOf(DataConstructor(name.value, listOf(innerType), ctorvis, innerType.span))
             Decl.TypeDecl(name, tyVars, ctors, vis, true)
                 .withSpan(tk.span, iter.current().span)
         }

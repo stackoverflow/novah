@@ -62,8 +62,8 @@ object Inference {
         val datas = ast.decls.filterIsInstance<Decl.TypeDecl>()
         datas.forEach { d ->
             val (ty, map) = getDataType(d, ast.name.value)
-            checkShadowType(env, d.name, d.span)
-            env.extendType("${ast.name.value}.${d.name}", ty)
+            checkShadowType(env, d.name.value, d.span)
+            env.extendType("${ast.name.value}.${d.name.value}", ty)
 
             d.dataCtors.forEach { dc ->
                 val dcty = getCtorType(dc, ty, map)
@@ -72,7 +72,7 @@ object Inference {
                 Environment.cacheConstructorType("${ast.name.value}.${dc.name}", dcty)
                 decls[dc.name] = DeclRef(dcty, dc.visibility, false, null)
             }
-            types[d.name] = TypeDeclRef(ty, d.visibility, d.isOpaque, d.dataCtors.map { it.name }, d.comment)
+            types[d.name.value] = TypeDeclRef(ty, d.visibility, d.isOpaque, d.dataCtors.map { it.name }, d.comment)
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
@@ -603,7 +603,7 @@ object Inference {
 
     private fun getDataType(d: Decl.TypeDecl, moduleName: String): Pair<Type, Map<String, TVar>> {
         val kind = if (d.tyVars.isEmpty()) Kind.Star else Kind.Constructor(d.tyVars.size)
-        val raw = TConst("$moduleName.${d.name}", kind).span(d.span)
+        val raw = TConst("$moduleName.${d.name.value}", kind).span(d.span)
 
         return if (d.tyVars.isEmpty()) raw to emptyMap()
         else {

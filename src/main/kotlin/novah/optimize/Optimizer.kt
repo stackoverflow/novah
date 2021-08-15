@@ -89,7 +89,7 @@ class Optimizer(private val ast: CModule) {
         Decl.ValDecl(Names.convert(name.name), exp.convert(), visibility, span)
 
     private fun CDataDecl.convert(): Decl.TypeDecl =
-        Decl.TypeDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span)
+        Decl.TypeDecl(name.value, tyVars, dataCtors.map { it.convert() }, visibility, span)
 
     private fun CDataConstructor.convert(): DataConstructor =
         DataConstructor(name, args.map { it.convert() }, visibility)

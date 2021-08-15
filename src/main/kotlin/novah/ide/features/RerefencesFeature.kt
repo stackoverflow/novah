@@ -17,6 +17,8 @@ package novah.ide.features
 
 import novah.ast.canonical.*
 import novah.frontend.Span
+import novah.frontend.typechecker.TConst
+import novah.frontend.typechecker.Type
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.FullModuleEnv
@@ -70,6 +72,32 @@ class RerefencesFeature(private val server: NovahServer) {
                     }
                 }
             }
+            is TypeCtx -> {
+                mods.forEach { (module, fmv) ->
+                    fmv.ast.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->
+                        if (decl.signature != null) {
+                            decl.signature.type.everywhereUnit { t ->
+                                if (t is TConst && t.name == ctx.name)
+                                    refs += location(t.span ?: decl.signature.span, module, fmv.ast.sourceName)
+                            }
+                        }
+                        when (val e = decl.exp) {
+                            is Expr.Ann -> {
+                                e.annType.everywhereUnit { t ->
+                                    if (t is TConst && t.name == ctx.name)
+                                        refs += location(t.span ?: e.span, module, fmv.ast.sourceName)
+                                }
+                            }
+                            is Expr.TypeCast -> {
+                                e.cast.everywhereUnit { t ->
+                                    if (t is TConst && t.name == ctx.name)
+                                        refs += location(t.span ?: e.span, module, fmv.ast.sourceName)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         return refs
     }
@@ -77,27 +105,45 @@ class RerefencesFeature(private val server: NovahServer) {
     sealed class RefCtx()
     data class LocalCtx(val name: String, val decl: Decl.ValDecl) : RefCtx()
     data class DeclCtx(val name: String, val module: String?) : RefCtx()
+    data class TypeCtx(val name: String) : RefCtx()
 
     private fun findContext(line: Int, col: Int, mod: Module): RefCtx? {
         var ctx: RefCtx? = null
-        val decls = mod.decls.filterIsInstance<Decl.ValDecl>()
+        val decls = mutableListOf<Decl.ValDecl>()
+        val tdecls = mutableListOf<Decl.TypeDecl>()
+        mod.decls.forEach { d ->
+            if (d is Decl.ValDecl) decls += d
+            else if (d is Decl.TypeDecl) tdecls += d
+        }
         val names = decls.map { it.name.name }.toSet()
-        
-        for (tdecl in mod.decls.filterIsInstance<Decl.TypeDecl>()) {
-            if (!tdecl.span.matches(line, col)) continue
-            
-            for (ctor in tdecl.dataCtors) { 
-                if (ctor.span.matches(line, col)) {
-                    return DeclCtx(ctor.name, mod.name.value) 
-                }
+
+        fun findType(ty: Type) {
+            ty.everywhereUnit {
+                if (it.span?.matches(line, col) == true && it is TConst)
+                    ctx = TypeCtx(it.name)
             }
         }
         
+        for (tdecl in tdecls) {
+            if (!tdecl.span.matches(line, col)) continue
+
+            if (tdecl.name.span.matches(line, col)) return TypeCtx("${mod.name.value}.${tdecl.name.value}")
+            for (ctor in tdecl.dataCtors) {
+                if (ctor.span.matches(line, col)) {
+                    return DeclCtx(ctor.name, mod.name.value)
+                }
+            }
+        }
+
         for (decl in decls) {
             if (ctx != null) break
             if (!decl.span.matches(line, col)) continue
 
             if (decl.name.span.matches(line, col)) return DeclCtx(decl.name.name, mod.name.value)
+            if (decl.signature != null && decl.signature.type.span?.matches(line, col) == true) {
+                findType(decl.signature.type)
+                return ctx
+            }
             decl.exp.everywhereUnit { e ->
                 if (e.span.matches(line, col)) {
                     when (e) {
@@ -117,6 +163,16 @@ class RerefencesFeature(private val server: NovahServer) {
                         is Expr.Let -> {
                             if (e.letDef.binder.span.matches(line, col)) {
                                 ctx = LocalCtx(e.letDef.binder.name, decl)
+                            }
+                        }
+                        is Expr.Ann -> {
+                            if (e.annType.span?.matches(line, col) == true) {
+                                findType(e.annType)
+                            }
+                        }
+                        is Expr.TypeCast -> {
+                            if (e.cast.span?.matches(line, col) == true) {
+                                findType(e.cast)
                             }
                         }
                     }

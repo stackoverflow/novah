@@ -145,12 +145,12 @@ fun ForeignImport.name(): String = when (this) {
 
 sealed class Decl(val name: String, val visibility: Visibility) {
     class TypeDecl(
-        name: String,
+        val binder: Spanned<String>,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
         visibility: Visibility,
         val isOpaque: Boolean
-    ) : Decl(name, visibility)
+    ) : Decl(binder.value, visibility)
 
     class ValDecl(
         val binder: Binder,
