@@ -423,18 +423,19 @@ sealed class Type(open val span: Span) {
         is TFun -> "${arg.show()} -> ${ret.show()}"
         is TParens -> "(${type.show()})"
         is TImplicit -> "{{ ${type.show()} }}"
-        is TRowEmpty -> "{}"
+        is TRowEmpty -> "[]"
         is TRowExtend -> {
             val labels = labels.show { k, v -> "$k : ${v.show()}" }
             val str = when (row) {
                 is TRowEmpty -> labels
                 !is TRowExtend -> {
-                    if (labels.isEmpty()) "| ${row.show()}"
+                    if (labels.isBlank()) "| ${row.show()}"
                     else "$labels | ${row.show()}"
                 }
                 else -> {
                     val rows = row.show()
-                    "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                    if (labels.isBlank()) rows.substring(2, rows.lastIndex - 1)
+                    else "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
                 }
             }
             "[ $str ]"

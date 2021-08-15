@@ -73,7 +73,7 @@ sealed class Type {
     var span: Span? = null
     fun span(s: Span?): Type = apply { span = s }
 
-    private fun realType(): Type = when {
+    fun realType(): Type = when {
         this is TVar && tvar is TypeVar.Link -> (tvar as TypeVar.Link).type.realType()
         else -> this
     }
@@ -277,7 +277,7 @@ sealed class Type {
                     is TypeVar.Generic -> showId(tv.id)
                 }
             }
-            is TRowEmpty -> "{}"
+            is TRowEmpty -> "[]"
             is TRecord -> {
                 when (val ty = t.row.realType()) {
                     is TRowEmpty -> "{}"
@@ -293,12 +293,13 @@ sealed class Type {
                 val str = when (val ty = t.row.realType()) {
                     is TRowEmpty -> labels
                     !is TRowExtend -> {
-                        if (labels.isEmpty()) "| ${go(ty, topLevel = true)}"
+                        if (labels.isBlank()) "| ${go(ty, topLevel = true)}"
                         else "$labels | ${go(ty, topLevel = true)}"
                     }
                     else -> {
                         val rows = go(ty, topLevel = true)
-                        "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                        if (labels.isBlank()) rows.substring(2, rows.lastIndex - 1)
+                        else "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
                     }
                 }
                 "[ $str ]"
