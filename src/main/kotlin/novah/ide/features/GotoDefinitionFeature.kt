@@ -109,7 +109,7 @@ class GotoDefinitionFeature(private val server: NovahServer) {
                         when (e) {
                             is Expr.Var -> location = goto(e.name, e.moduleName ?: ast.name.value)
                             is Expr.ImplicitVar -> location = goto(e.name, e.moduleName ?: ast.name.value)
-                            is Expr.Constructor -> location = goto(e.name, e.moduleName ?: ast.name.value)
+                            is Expr.Constructor -> location = gotoCtor(e.name, e.moduleName ?: ast.name.value)
                         }
                     }
                 }
