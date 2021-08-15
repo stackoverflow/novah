@@ -576,7 +576,7 @@ class CompletionFeature(private val server: NovahServer) {
                 i--
             }
             val res = b.toString().reversed()
-            return if (res.trim().isEmpty()) null else res
+            return res.ifBlank { null }
         }
 
         private fun makeCtorMap(menv: ModuleEnv): Map<String, String> {
