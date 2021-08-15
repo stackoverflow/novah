@@ -299,9 +299,15 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
             is Expr.Match -> {
                 f(e)
                 e.exps.forEach { go(it) }
-                e.cases.forEach {
-                    if (it.guard != null) go(it.guard)
-                    go(it.exp)
+                e.cases.forEach { case ->
+                    case.patterns.forEach { p ->
+                        p.everywhereUnit {
+                            if (p is Pattern.Ctor) go(p.ctor)
+                            else if (p is Pattern.LiteralP) go(p.lit.e)
+                        }
+                    }
+                    if (case.guard != null) go(case.guard)
+                    go(case.exp)
                 }
             }
             is Expr.Ann -> {

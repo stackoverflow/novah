@@ -659,15 +659,12 @@ class Desugar(private val smod: SModule) {
 
         fun collectDependencies(exp: Expr): Set<String> {
             val deps = mutableSetOf<String>()
-            exp.everywhere { e ->
+            exp.everywhereUnit { e ->
                 when (e) {
                     is Expr.Var -> deps += e.fullname()
                     is Expr.ImplicitVar -> deps += e.fullname()
                     is Expr.Constructor -> deps += e.fullname()
-                    else -> {
-                    }
                 }
-                e
             }
             return deps
         }

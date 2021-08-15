@@ -31,6 +31,9 @@ fname : File -> String
 fname f =
   fileName f ++ separator
 
+value : Id
+value = Id "asd"
+
 /**
  * This is my comment
  * it should describe the function

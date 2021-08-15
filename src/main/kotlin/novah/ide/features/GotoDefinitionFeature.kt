@@ -1,3 +1,18 @@
+/**
+ * Copyright 2021 Islon Scherer
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package novah.ide.features
 
 import novah.ast.canonical.Decl
@@ -9,15 +24,12 @@ import novah.ast.source.Import
 import novah.frontend.Span
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
-import novah.main.Environment
 import novah.main.FullModuleEnv
 import org.eclipse.lsp4j.DefinitionParams
 import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.LocationLink
 import org.eclipse.lsp4j.jsonrpc.messages.Either
-import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
-import kotlin.io.path.invariantSeparatorsPathString
 
 class GotoDefinitionFeature(private val server: NovahServer) {
 
@@ -61,7 +73,7 @@ class GotoDefinitionFeature(private val server: NovahServer) {
             if (imp.span().matches(line, col)) {
                 if (imp.module.span.matches(line, col)) {
                     val mod = mods[imp.module.value] ?: break
-                    val loc = locationUri(imp.module.value, mod.ast.sourceName)
+                    val loc = server.locationUri(imp.module.value, mod.ast.sourceName)
                     return Location(loc, IdeUtil.spanToRange(mod.ast.name.span))
                 }
                 if (imp is Import.Exposing) {
@@ -107,12 +119,5 @@ class GotoDefinitionFeature(private val server: NovahServer) {
     }
 
     private fun newLocation(mod: Module, span: Span) =
-        Location(locationUri(mod.name.value, mod.sourceName), IdeUtil.spanToRange(span))
-
-    private fun locationUri(moduleName: String, sourceName: String): String {
-        return if (moduleName in Environment.stdlibModuleNames()) {
-            val path = server.stdlibFiles[sourceName]!!
-            "novah:${Paths.get(path).invariantSeparatorsPathString}"
-        } else IdeUtil.fileToUri(sourceName)
-    }
+        Location(server.locationUri(mod.name.value, mod.sourceName), IdeUtil.spanToRange(span))
 }
