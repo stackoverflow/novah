@@ -12,5 +12,3 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
 - [ ] Auto complete java method, constructors, etc
-- [ ] Have the record label in the context for better error report in case of unify failure
-- [ ] Hover over types
