@@ -308,15 +308,21 @@ object Errors {
 
     fun infiniteType(name: String) = "Occurs check failed: infinite type $name."
 
-    fun typesDontMatch(a: String, b: String) = """
-        Cannot match type
-        
-            $a
-        
-        with type
-        
-            $b
-    """.trimIndent()
+    fun typesDontMatch(a: String, b: String, reason: String?): String {
+        val fmt = """
+            Cannot match type
+            
+                $a
+            
+            with type
+            
+                $b
+        """.trimIndent()
+
+        return if (reason == null) fmt else fmt + "\n\n$reason"
+    }
+    
+    fun incompatibleTypes(t1: String, t2: String) = "Incompatible types $t1 and $t2."
 
     fun implicitTypesDontMatch(vari: String, type: String) = """
         Cannot match instance variable $vari with non-instance type
@@ -377,7 +383,11 @@ object Errors {
 
     fun unusedImport(imp: String): String = "Import $imp is unused in module."
 
-    fun recordMissingLabels(labels: String): String = "Record is missing labels: $labels."
+    fun recordMissingLabels(labels: String): String = """
+        Record is missing labels:
+        
+            $labels
+    """.trimIndent()
 
     fun notARow(type: String) = """
         Type

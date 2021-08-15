@@ -3,11 +3,13 @@ at src/test/resources/failure/kinds/kind check - too many parameter.novah:6:3 - 
 
   Cannot match type
   
-      Day Int32
+      Int32 -> Day Int32
   
   with type
   
-      Day
+      Int32 -> Day
+  
+  Incompatible types Day Int32 and Day.
 
 while checking type Int32 -> Day Int32
 in declaration f
