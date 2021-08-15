@@ -3,11 +3,13 @@ at src/test/resources/failure/kinds/kind check - too few parameters.novah:7:3 - 
 
   Cannot match type
   
-      novah.core.Option
+      Int32 -> novah.core.Option
   
   with type
   
-      novah.core.Option Int32
+      Int32 -> novah.core.Option Int32
+  
+  Incompatible types novah.core.Option and novah.core.Option Int32.
 
 while checking type Int32 -> novah.core.Option
 in declaration f

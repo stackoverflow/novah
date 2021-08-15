@@ -108,6 +108,8 @@ class DesugarSpec : StringSpec({
             f11 = { - name, age, id | _ }
             
             f12 = { .user.name = _ | _ }
+            
+            f13 = { + _, { age: 10 } }            
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
@@ -123,6 +125,7 @@ class DesugarSpec : StringSpec({
         ds["f10"]?.type?.simpleName() shouldBe "Int32 -> Int32 -> Int32"
         ds["f11"]?.type?.simpleName() shouldBe "{ name : t4, age : t3, id : t2 | t1 } -> { | t1 }"
         ds["f12"]?.type?.simpleName() shouldBe "t1 -> { user : { name : t1 | t3 } | t2 } -> { user : { name : t1 | t3 } | t2 }"
+        ds["f13"]?.type?.simpleName() shouldBe "{ | t1 } -> { age : Int32 | t1 }"
     }
     
     "computation expressions" {

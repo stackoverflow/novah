@@ -1,7 +1,17 @@
 module [33mtest[0m
 at src/test/resources/failure/records/missing row in annotation.novah:4:7 - 4:34
 
-  Record is missing label notfun.
+  Cannot match type
+  
+      { fun : String -> String }
+  
+  with type
+  
+      { fun : String -> String, notfun : Int32 }
+  
+  Record is missing labels:
+  
+      notfun : Int32
 
 while checking type { fun : String -> String }
 in declaration rec

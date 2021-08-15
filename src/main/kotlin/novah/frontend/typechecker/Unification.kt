@@ -24,52 +24,72 @@ import novah.frontend.error.ProblemContext
 object Unification {
 
     fun unify(t1: Type, t2: Type, span: Span) {
+        try {
+            innerUnify(t1, t2, span)
+        } catch (ie: UnifyException) {
+            val reason = when (val err = ie.err) {
+                is UnifyError.NoMatch -> {
+                    if (t1.realType() == err.t1.realType() && t2.realType() == err.t2.realType()) null
+                    else Errors.incompatibleTypes(err.t1.show(), err.t2.show())
+                }
+                is UnifyError.MissingLabels -> Errors.recordMissingLabels(err.msg)
+                is UnifyError.InfiniteType -> Errors.infiniteType(err.type.show())
+            }
+            unificationError(Errors.typesDontMatch(t1.show(), t2.show(), reason), span)
+        }
+    }
+
+    private fun innerUnify(t1: Type, t2: Type, span: Span) {
         when {
             t1 == t2 -> {
             }
             t1 is TConst && t2 is TConst && t1.name == t2.name -> {
             }
             t1 is TApp && t2 is TApp -> {
-                unify(t1.type, t2.type, span)
+                innerUnify(t1.type, t2.type, span)
                 if (t1.types.size != t2.types.size)
-                    unificationError(Errors.typesDontMatch(t1.show(), t2.show()), span)
-                t1.types.zip(t2.types).forEach { (tt1, tt2) -> unify(tt1, tt2, span) }
+                    innerError(UnifyError.NoMatch(t1, t2))
+                t1.types.zip(t2.types).forEach { (tt1, tt2) -> innerUnify(tt1, tt2, span) }
             }
             t1 is TArrow && t2 is TArrow -> {
                 if (t1.args.size != t2.args.size)
-                    unificationError(Errors.typesDontMatch(t1.show(), t2.show()), span)
-                t1.args.zip(t2.args).forEach { (t1arg, t2arg) -> unify(t1arg, t2arg, span) }
-                unify(t1.ret, t2.ret, span)
+                    innerError(UnifyError.NoMatch(t1, t2))
+                t1.args.zip(t2.args).forEach { (t1arg, t2arg) -> innerUnify(t1arg, t2arg, span) }
+                innerUnify(t1.ret, t2.ret, span)
             }
-            t1 is TVar && t1.tvar is TypeVar.Link -> unify((t1.tvar as TypeVar.Link).type, t2, span)
-            t2 is TVar && t2.tvar is TypeVar.Link -> unify(t1, (t2.tvar as TypeVar.Link).type, span)
+            t1 is TVar && t1.tvar is TypeVar.Link -> innerUnify((t1.tvar as TypeVar.Link).type, t2, span)
+            t2 is TVar && t2.tvar is TypeVar.Link -> innerUnify(t1, (t2.tvar as TypeVar.Link).type, span)
             t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Unbound && t2.tvar is TypeVar.Unbound
                     && (t1.tvar as TypeVar.Unbound).id == (t2.tvar as TypeVar.Unbound).id -> {
                 internalError("Error in unification: ${t1.show()} with ${t2.show()}")
             }
             t1 is TVar && t1.tvar is TypeVar.Unbound -> {
                 val tvar = t1.tvar as TypeVar.Unbound
-                occursCheckAndAdjustLevels(tvar.id, tvar.level, t2, span)
+                occursCheckAndAdjustLevels(tvar.id, tvar.level, t2)
                 t1.tvar = TypeVar.Link(t2)
             }
             t2 is TVar && t2.tvar is TypeVar.Unbound -> {
                 val tvar = t2.tvar as TypeVar.Unbound
-                occursCheckAndAdjustLevels(tvar.id, tvar.level, t1, span)
+                occursCheckAndAdjustLevels(tvar.id, tvar.level, t1)
                 t2.tvar = TypeVar.Link(t1)
             }
             t1 is TRowEmpty && t2 is TRowEmpty -> {
             }
-            t1 is TRecord && t2 is TRecord -> unify(t1.row, t2.row, span)
+            t1 is TRecord && t2 is TRecord -> innerUnify(t1.row, t2.row, span)
             t1 is TRowExtend && t2 is TRowExtend -> unifyRows(t1, t2, span)
             t1 is TRowEmpty && t2 is TRowExtend -> {
-                unificationError(Errors.recordMissingLabels(t2.labels.keys().toList()), span)
+                val (labels, _) = matchRowType(t2)
+                val ls = labels.show { key, type -> "$key : ${type.show()}" }
+                innerError(UnifyError.MissingLabels(ls))
             }
             t1 is TRowExtend && t2 is TRowEmpty -> {
-                unificationError(Errors.recordMissingLabels(t1.labels.keys().toList()), span)
+                val (labels, _) = matchRowType(t1)
+                val ls = labels.show { key, type -> "$key : ${type.show()}" }
+                innerError(UnifyError.MissingLabels(ls))
             }
-            t1 is TImplicit -> unify(t1.type, t2, span)
-            t2 is TImplicit -> unify(t1, t2.type, span)
-            else -> unificationError(Errors.typesDontMatch(t1.show(), t2.show()), span)
+            t1 is TImplicit -> innerUnify(t1.type, t2, span)
+            t2 is TImplicit -> innerUnify(t1, t2.type, span)
+            else -> innerError(UnifyError.NoMatch(t1, t2))
         }
     }
 
@@ -81,7 +101,7 @@ object Unification {
         tailrec fun unifyTypes(t1s: PList<Type>, t2s: PList<Type>): Pair<PList<Type>, PList<Type>> = when {
             t1s.isEmpty() || t2s.isEmpty() -> t1s to t2s
             else -> {
-                unify(t1s.first(), t2s.first(), span)
+                innerUnify(t1s.first(), t2s.first(), span)
                 unifyTypes(t1s.removeFirst(), t2s.removeFirst())
             }
         }
@@ -121,26 +141,26 @@ object Unification {
 
         val (empty1, empty2) = missing1.isEmpty() to missing2.isEmpty()
         when {
-            empty1 && empty2 -> unify(restTy1, restTy2, span)
-            empty1 && !empty2 -> unify(restTy2, TRowExtend(missing2, restTy1), span)
-            !empty1 && empty2 -> unify(restTy1, TRowExtend(missing1, restTy2), span)
+            empty1 && empty2 -> innerUnify(restTy1, restTy2, span)
+            empty1 && !empty2 -> innerUnify(restTy2, TRowExtend(missing2, restTy1), span)
+            !empty1 && empty2 -> innerUnify(restTy1, TRowExtend(missing1, restTy2), span)
             !empty1 && !empty2 -> {
                 when {
-                    restTy1 is TRowEmpty -> unify(restTy1, TRowExtend(missing1, Typechecker.newVar(0)), span)
+                    restTy1 is TRowEmpty -> innerUnify(restTy1, TRowExtend(missing1, Typechecker.newVar(0)), span)
                     restTy1 is TVar && restTy1.tvar is TypeVar.Unbound -> {
                         val tv = restTy1.tvar as TypeVar.Unbound
                         val restRow = Typechecker.newVar(tv.level)
-                        unify(restTy2, TRowExtend(missing2, restRow), span)
+                        innerUnify(restTy2, TRowExtend(missing2, restRow), span)
                         if (restTy1.tvar is TypeVar.Link) unificationError(Errors.RECURSIVE_ROWS, span)
-                        unify(restTy1, TRowExtend(missing1, restRow), span)
+                        innerUnify(restTy1, TRowExtend(missing1, restRow), span)
                     }
-                    else -> unificationError(Errors.typesDontMatch(row1.show(), row2.show()), span)
+                    else -> innerError(UnifyError.NoMatch(row1, row2))
                 }
             }
         }
     }
 
-    private fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type, span: Span) {
+    private fun occursCheckAndAdjustLevels(id: Id, level: Level, type: Type) {
         fun go(t: Type) {
             when (t) {
                 is TVar -> {
@@ -150,7 +170,7 @@ object Unification {
                         }
                         is TypeVar.Unbound -> {
                             if (id == tv.id) {
-                                inferError(Errors.infiniteType(type.show()), span, ProblemContext.UNIFICATION)
+                                innerError(UnifyError.InfiniteType(type))
                             } else if (tv.level > level) {
                                 t.tvar = TypeVar.Unbound(tv.id, level)
                             }
@@ -178,7 +198,7 @@ object Unification {
         go(type)
     }
 
-    private fun matchRowType(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
+    fun matchRowType(ty: Type): Pair<LabelMap<Type>, Type> = when (ty) {
         is TRowEmpty -> LabelMap<Type>() to TRowEmpty().span(ty.span)
         is TVar -> {
             when (val tv = ty.tvar) {
@@ -200,7 +220,19 @@ object Unification {
             acc.assocat(s, l)
         }
     }
+
+    private sealed class UnifyError {
+        data class NoMatch(val t1: Type, val t2: Type) : UnifyError()
+        data class MissingLabels(val msg: String) : UnifyError()
+        data class InfiniteType(val type: Type) : UnifyError()
+    }
+
+    private class UnifyException(val err: UnifyError) : RuntimeException()
+
+    private fun innerError(err: UnifyError): Nothing =
+        throw UnifyException(err)
+
+    private fun unificationError(msg: String, span: Span): Nothing =
+        inferError(msg, span, ProblemContext.UNIFICATION)
 }
 
-private fun unificationError(msg: String, span: Span): Nothing =
-    inferError(msg, span, ProblemContext.UNIFICATION)

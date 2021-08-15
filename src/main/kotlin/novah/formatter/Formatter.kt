@@ -193,7 +193,7 @@ class Formatter {
             is Expr.Parens -> "(${show(e.exp)})"
             is Expr.Unit -> "()"
             is Expr.RecordEmpty -> "{}"
-            is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".")}"
+            is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".") { it.value }}"
             is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
             is Expr.RecordUpdate -> {
                 "{ .${e.labels.joinToString(".") { showLabel(it.value) }} = ${show(e.value)} | ${show(e.exp)} }"
@@ -202,6 +202,7 @@ class Formatter {
                 val labels = e.labels.show(::showLabelExpr)
                 if (e.exp is Expr.RecordEmpty) "{ $labels }" else "{ $labels | ${show(e.exp)} }"
             }
+            is Expr.RecordMerge -> "{ + ${show(e.exp1)}, ${show(e.exp2)} }"
             is Expr.ListLiteral -> e.exps.joinToString(prefix = "[", postfix = "]") { show(it) }
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}") { show(it) }
             is Expr.Underscore -> "_"

@@ -118,6 +118,7 @@ foreign import Core:intRemainder(Int32, Int32)
 foreign import Core:longRemainder(Int64, Int64)
 foreign import Core:floatRemainder(Float32, Float32)
 foreign import Core:doubleRemainder(Float64, Float64)
+foreign import Record.equals(Record) as equalsRecord
 
 /**
  * A 32-bits Integer
@@ -402,7 +403,7 @@ when cond action =
  * Should only be used for Java interoperability
  * when a foreign imported value can be null
  * or a method can return null.
- * Ex.: let possibleNullResult = foreignFunction x y z |> nullable
+ * `let possibleNullResult = foreignFunction x y z |> nullable`
  */
 pub
 nullable : a -> Nullable a
@@ -415,7 +416,7 @@ pub+
 type Option a = Some a | None
 
 /**
- * Returns the value contained in this Option
+ * Returns the value contained in this option
  * or the default value.
  */
 pub
@@ -774,6 +775,14 @@ equalsNullable (Equals eq) x y =
 pub instance
 eqNullable : {{ Equals a }} -> Equals (Nullable a)
 eqNullable {{eq}} = Equals { equals: equalsNullable eq }
+
+/**
+ * Compare if the two records are equals
+ * according to Java's equality.
+ */
+pub
+recordEquals : { | r } -> { | r } -> Boolean
+recordEquals r1 r2 = equalsRecord (r1 as Record) (r2 as Record)
 
 /**
  * The ordering type represents the outcome

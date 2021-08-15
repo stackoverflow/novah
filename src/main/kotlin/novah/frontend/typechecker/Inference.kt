@@ -19,10 +19,7 @@ import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
 import novah.ast.canonical.*
-import novah.data.LabelMap
-import novah.data.isEmpty
-import novah.data.mapList
-import novah.data.singletonPMap
+import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
@@ -312,6 +309,23 @@ object Inference {
             val rest = newVar(level)
             unify(TRecord(rest), infer(env, level, exp.exp), exp.span)
             val ty = TRecord(TRowExtend(labelTys, rest))
+            exp.withType(ty)
+        }
+        is Expr.RecordMerge -> {
+            val rest1 = newVar(level)
+            val rest2 = newVar(level)
+            val param1 = TRecord(TRowExtend(LabelMap.empty(), rest1))
+            val param2 = TRecord(TRowExtend(LabelMap.empty(), rest2))
+            unify(param1, infer(env, level, exp.exp1), exp.span)
+            unify(param2, infer(env, level, exp.exp2), exp.span)
+            val (labels1, row1) = Unification.matchRowType(rest1)
+            val (labels2, row2) = Unification.matchRowType(rest2)
+            val row = when {
+                row1 is TRowEmpty -> row2
+                row2 is TRowEmpty -> row1
+                else -> inferError(E.RECORD_MERGE, exp.span)
+            }
+            val ty = TRecord(TRowExtend(labels2.merge(labels1), row))
             exp.withType(ty)
         }
         is Expr.ListLiteral -> {

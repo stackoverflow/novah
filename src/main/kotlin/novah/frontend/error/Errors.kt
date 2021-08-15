@@ -50,6 +50,8 @@ object Errors {
 
     const val RECORD_EQUALS = "Expected `=` after record labels in update expression."
 
+    const val RECORD_MERGE = "Cannot merge records with unknown labels."
+
     const val TYPE_VAR = "Expected type variable (lower case identifier)."
 
     const val TYPE_DEF = "Expected a type definition."
@@ -62,11 +64,11 @@ object Errors {
         |Patterns can be one of:
         |
         |Wildcard pattern: _
-        |Literal pattern: 3, 'a', "a string", false etc
+        |Literal pattern: 3, 'a', "a string", false, etc
         |Variable pattern: x, y, myVar, etc
         |Constructor pattern: Some "ok", Result res, None, etc
         |Record pattern: { x, y: 3 }
-        |List pattern: [x, y, _], [x :: xs]
+        |List pattern: [], [x, y, _], [x :: xs]
         |Named pattern: 10 as number
         |Type test: :? Int as i
     """.trimMargin()
@@ -306,15 +308,21 @@ object Errors {
 
     fun infiniteType(name: String) = "Occurs check failed: infinite type $name."
 
-    fun typesDontMatch(a: String, b: String) = """
-        Cannot match type
-        
-            $a
-        
-        with type
-        
-            $b
-    """.trimIndent()
+    fun typesDontMatch(a: String, b: String, reason: String?): String {
+        val fmt = """
+            Cannot match type
+            
+                $a
+            
+            with type
+            
+                $b
+        """.trimIndent()
+
+        return if (reason == null) fmt else fmt + "\n\n$reason"
+    }
+    
+    fun incompatibleTypes(t1: String, t2: String) = "Incompatible types $t1 and $t2."
 
     fun implicitTypesDontMatch(vari: String, type: String) = """
         Cannot match instance variable $vari with non-instance type
@@ -375,10 +383,11 @@ object Errors {
 
     fun unusedImport(imp: String): String = "Import $imp is unused in module."
 
-    fun recordMissingLabels(labels: List<String>): String {
-        return if (labels.size == 1) "Record is missing label ${labels.joinToString()}."
-        else "Record is missing labels: ${labels.joinToString()}."
-    }
+    fun recordMissingLabels(labels: String): String = """
+        Record is missing labels:
+        
+            $labels
+    """.trimIndent()
 
     fun notARow(type: String) = """
         Type
@@ -424,4 +433,6 @@ object Errors {
     fun rsbracketExpected(ctx: String) = "Expected `]` after $ctx."
 
     fun pipeExpected(ctx: String) = "Expected `|` after $ctx."
+
+    fun commaExpected(ctx: String) = "Expected `,` after $ctx."
 }

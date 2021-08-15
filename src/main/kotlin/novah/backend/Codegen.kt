@@ -425,6 +425,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordSelect -> {
                 genExpr(e.expr, mv, ctx)
+                if (e.expr.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 mv.visitLdcInsn(e.label)
                 val desc = "($STRING_DESC)$OBJECT_DESC"
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "unsafeGet", desc, false)
@@ -434,11 +436,15 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordRestrict -> {
                 genExpr(e.expr, mv, ctx)
+                if (e.expr.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 mv.visitLdcInsn(e.label)
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "dissoc", "($STRING_DESC)$RECORD_DESC", false)
             }
             is Expr.RecordUpdate -> {
                 genExpr(e.expr, mv, ctx)
+                if (e.expr.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 mv.visitLdcInsn(e.label)
                 genExpr(e.value, mv, ctx)
                 val descriptor = "(${STRING_DESC}$OBJECT_DESC)$RECORD_DESC"
@@ -447,6 +453,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.RecordExtend -> {
                 val shouldLinearize = e.labels.size() > MAP_LINEAR_THRESHOLD
                 genExpr(e.expr, mv, ctx)
+                if (e.expr.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 // make the map linear before adding the labels then fork it
                 if (shouldLinearize) {
                     mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_linear", "()$RECORD_DESC", false)
@@ -464,6 +472,16 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 if (shouldLinearize) {
                     mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "_forked", "()$RECORD_DESC", false)
                 }
+            }
+            is Expr.RecordMerge -> {
+                genExpr(e.exp1, mv, ctx)
+                if (e.exp1.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
+                genExpr(e.exp2, mv, ctx)
+                if (e.exp2.type.type.internalName != RECORD_CLASS)
+                    mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
+                val descriptor = "($RECORD_DESC)$RECORD_DESC"
+                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "merge", descriptor, false)
             }
             is Expr.ListLiteral -> {
                 if (e.exps.isEmpty()) {
@@ -580,7 +598,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
         }
     }
-    
+
     private fun genUnit(mv: MethodVisitor) {
         mv.visitFieldInsn(GETSTATIC, "novah/Unit", INSTANCE, "Lnovah/Unit;")
     }
@@ -839,6 +857,14 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordSelect -> go(exp.expr)
             is Expr.RecordRestrict -> go(exp.expr)
+            is Expr.RecordUpdate -> {
+                go(exp.expr)
+                go(exp.value)
+            }
+            is Expr.RecordMerge -> {
+                go(exp.exp1)
+                go(exp.exp2)
+            }
             is Expr.ListLiteral -> for (e in exp.exps) go(e)
             is Expr.SetLiteral -> for (e in exp.exps) go(e)
             is Expr.ArrayLiteral -> for (e in exp.exps) go(e)
@@ -858,7 +884,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 go(exp.cond)
                 for (e in exp.exps) go(e)
             }
-            else -> {
+            is Expr.ConstructorAccess -> {
+                go(exp.ctor)
+            }
+            is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
+            is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor, is Expr.Null, is Expr.Var,
+            is Expr.RecordEmpty, is Expr.Unit, is Expr.NativeStaticFieldGet -> {
             }
         }
 

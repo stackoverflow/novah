@@ -148,6 +148,32 @@ class RecordSpec : StringSpec({
                 "{ address : { country : { number : Int32 | t3 } | t2 } | t1 } -> Int32 -> { address : { country : { number : Int32 | t3 } | t2 } | t1 }"
     }
 
+    "record merge" {
+        val code = """
+            rec = { name: "Bill", age: 10 }
+            
+            rec2 = { lastName: "Snuffles", weight: 3 }
+            
+            merge = { + rec, rec2 }
+            
+            merge2 : Int -> { | r } -> { age : Int | r }
+            merge2 age r = { + r, { age: age } }
+            
+            merged2 = merge2 12 { name: "Snuffles", weight: 3 }
+            
+            merge3 =
+              let r1 = { a: 1, a: 4.0, b: 1 }
+              let r2 = { a: 'a', a: false, c: true }
+              { + r1, r2 }
+        """.module()
+
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["merge"]?.type?.simpleName() shouldBe "{ age : Int32, lastName : String, name : String, weight : Int32 }"
+        ds["merged2"]?.type?.simpleName() shouldBe "{ age : Int32, name : String, weight : Int32 }"
+        ds["merge3"]?.type?.simpleName() shouldBe
+                "{ a : Boolean, a : Char, a : Float64, a : Int32, b : Int32, c : Boolean }"
+    }
+
     "1st class modules" {
         val code = """
             typealias Prelude a b =

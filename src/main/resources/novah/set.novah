@@ -1,7 +1,6 @@
 module novah.set
 
 foreign import type java.util.stream.Stream
-foreign import type java.util.OptionalLong
 foreign import type java.util.function.BiPredicate
 foreign import type java.util.function.ToLongFunction
 foreign import type io.lacuna.bifurcan.ISet

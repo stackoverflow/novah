@@ -255,6 +255,7 @@ sealed class Expr {
     data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val labels: List<String>) : Expr()
     data class RecordUpdate(val exp: Expr, val labels: List<Spanned<String>>, val value: Expr) : Expr()
+    data class RecordMerge(val exp1: Expr, val exp2: Expr) : Expr()
     data class ListLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
     class Underscore : Expr()
@@ -422,15 +423,19 @@ sealed class Type(open val span: Span) {
         is TFun -> "${arg.show()} -> ${ret.show()}"
         is TParens -> "(${type.show()})"
         is TImplicit -> "{{ ${type.show()} }}"
-        is TRowEmpty -> "{}"
+        is TRowEmpty -> "[]"
         is TRowExtend -> {
             val labels = labels.show { k, v -> "$k : ${v.show()}" }
             val str = when (row) {
                 is TRowEmpty -> labels
-                !is TRowExtend -> "$labels | ${row.show()}"
+                !is TRowExtend -> {
+                    if (labels.isBlank()) "| ${row.show()}"
+                    else "$labels | ${row.show()}"
+                }
                 else -> {
                     val rows = row.show()
-                    "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
+                    if (labels.isBlank()) rows.substring(2, rows.lastIndex - 1)
+                    else "$labels, ${rows.substring(2, rows.lastIndex - 1)}"
                 }
             }
             "[ $str ]"

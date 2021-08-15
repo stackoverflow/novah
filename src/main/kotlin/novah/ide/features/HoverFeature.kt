@@ -20,6 +20,7 @@ import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
 import novah.frontend.Comment
 import novah.frontend.Lexer
+import novah.frontend.typechecker.TConst
 import novah.frontend.typechecker.Type
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
@@ -121,6 +122,9 @@ class HoverFeature(private val server: NovahServer) {
                 java(ctx.field.toString()) + "\n***\n" +
                         novah("($kind)\n${ctx.name} : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}")
             }
+            is TypeCtx -> {
+                novah("type ${ctx.name}")
+            }
         }
     }
 
@@ -142,23 +146,24 @@ class HoverFeature(private val server: NovahServer) {
     private class MethodCtx(val name: String, val type: Type, val method: Method) : HoverCtx()
     private class CtorCtx(val name: String, val type: Type, val ctor: Constructor<*>) : HoverCtx()
     private class FieldCtx(val name: String, val type: Type, val field: Field, val getter: Boolean) : HoverCtx()
+    private class TypeCtx(val name: String) : HoverCtx()
 
     private fun findContext(line: Int, col: Int, ast: Module, mods: Map<String, FullModuleEnv>): HoverCtx? {
 
-        fun searchTypeRefs(d: DeclarationRef.RefType, moduleName: String): HoverCtx? {
+        fun searchTypeRefs(d: DeclarationRef.RefType, moduleName: String, fmv: FullModuleEnv): HoverCtx? {
             // TODO search aliases
             if (d.binder.span.matches(line, col)) {
-                val ref = mods[moduleName]?.env?.types?.get(d.name)
+                val ref = fmv.env.types[d.name]
                 return if (ref != null) {
-                    ImportTypeDeclCtx(d.name, moduleName, ref, mods[moduleName]!!.typeVarsMap)
+                    ImportTypeDeclCtx(d.name, moduleName, ref, fmv.typeVarsMap)
                 } else null
             }
             if (d.ctors == null || d.ctors.isEmpty()) return null
             for (ctor in d.ctors) {
                 if (ctor.span.matches(line, col)) {
-                    val ref = mods[moduleName]?.env?.decls?.get(ctor.value)
+                    val ref = fmv.env.decls[ctor.value]
                     return if (ref != null) {
-                        ImportDeclCtx(ctor.value, moduleName, ref, mods[moduleName]!!.typeVarsMap)
+                        ImportDeclCtx(ctor.value, moduleName, ref, fmv.typeVarsMap)
                     } else null
                 }
             }
@@ -170,18 +175,19 @@ class HoverFeature(private val server: NovahServer) {
             if (imp.span().matches(line, col)) {
                 // context is import
                 val modName = imp.module.value
-                if (imp.module.span.matches(line, col)) return ModuleCtx(modName, imp.alias(), mods[modName]!!.ast)
+                val fmv = mods[modName]!!
+                if (imp.module.span.matches(line, col)) return ModuleCtx(modName, imp.alias(), fmv.ast)
                 if (imp is Import.Exposing) {
                     for (d in imp.defs) {
                         if (d.span.matches(line, col)) {
                             return when (d) {
                                 is DeclarationRef.RefVar -> {
-                                    val ref = mods[modName]?.env?.decls?.get(d.name)
+                                    val ref = fmv.env.decls[d.name]
                                     if (ref != null) {
-                                        ImportDeclCtx(d.name, modName, ref, mods[modName]!!.typeVarsMap)
+                                        ImportDeclCtx(d.name, modName, ref, fmv.typeVarsMap)
                                     } else null
                                 }
-                                is DeclarationRef.RefType -> searchTypeRefs(d, modName)
+                                is DeclarationRef.RefType -> searchTypeRefs(d, modName, fmv)
                             }
                         }
                     }
@@ -292,12 +298,27 @@ class HoverFeature(private val server: NovahServer) {
             return ctx
         }
 
+        fun searchType(ty: Type): HoverCtx? {
+            var ctx: HoverCtx? = null
+            ty.everywhereUnit { t ->
+                if (ctx == null && t.span?.matches(line, col) == true) {
+                    when (t) {
+                        is TConst -> ctx = TypeCtx(t.name)
+                    }
+                }
+            }
+            return ctx
+        }
+
         // search value declarations
         for (d in ast.decls.filterIsInstance<Decl.ValDecl>()) {
             if (d.span.matches(line, col)) {
                 // context is value declaration
                 if (d.name.span.matches(line, col)) return DeclCtx(d)
-                if (d.signature != null && d.signature.span.matches(line, col)) return DeclCtx(d)
+                if (d.signature != null) {
+                    if (d.signature.span.matches(line, col)) return DeclCtx(d)
+                    if (d.signature.type.span?.matches(line, col) == true) return searchType(d.signature.type)
+                }
                 if (d.exp.span.matches(line, col)) return searchExpression(d)
             }
         }

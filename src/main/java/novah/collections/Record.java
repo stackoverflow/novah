@@ -17,6 +17,7 @@ package novah.collections;
 
 import io.lacuna.bifurcan.*;
 
+import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.function.*;
 
@@ -125,6 +126,18 @@ public class Record implements IMap<String, ListValue> {
 
     public Record union(Record m) {
         return new Record(inner.union(m.inner));
+    }
+
+    /**
+     * Merges the two records respecting duplicate labels.
+     * Labels in `r` will come first then labels in `this`.
+     */
+    public Record merge(Record r) {
+        return merge(r.inner, (l1, l2) -> {
+            if (l1 == null) return l2;
+            if (l2 == null) return l1;
+            return l2.append(l1);
+        });
     }
 
     @Override
@@ -267,5 +280,13 @@ public class Record implements IMap<String, ListValue> {
     @Override
     public IMap<String, ListValue> clone() {
         return new Record(inner.clone());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof Record) {
+            return inner.equals(((Record) o).inner, Objects::equals);
+        }
+        return false;
     }
 }

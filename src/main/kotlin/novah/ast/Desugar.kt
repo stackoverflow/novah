@@ -57,6 +57,7 @@ class Desugar(private val smod: SModule) {
     private val errors = mutableListOf<CompilerProblem>()
     private val usedVars = mutableSetOf<String>()
     private val unusedImports = mutableMapOf<String, Span>()
+    private val usedTypes = mutableSetOf<String>()
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
@@ -195,6 +196,7 @@ class Desugar(private val smod: SModule) {
             Expr.Var(name, span, imports[fullname()], isOp = true)
         }
         is SExpr.Constructor -> {
+            usedVars += name
             if (alias != null) checkAlias(alias, span)
             Expr.Constructor(name, span, imports[fullname()])
         }
@@ -291,6 +293,22 @@ class Desugar(private val smod: SModule) {
             } else exp.desugar(locals, tvars)
 
             nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue, span))
+        }
+        is SExpr.RecordMerge -> {
+            val lvars = mutableListOf<Binder>()
+            val lexpr = if (exp1 is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp1.desugar(locals, tvars)
+
+            val rexpr = if (exp2 is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp2.desugar(locals, tvars)
+
+            nestLambdas(lvars, Expr.RecordMerge(lexpr, rexpr, span))
         }
         is SExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
@@ -395,6 +413,7 @@ class Desugar(private val smod: SModule) {
     private fun SType.goDesugar(isCtor: Boolean, vars: MutableMap<String, Type>, kindArity: Int = 0): Type =
         when (this) {
             is SType.TConst -> {
+                usedTypes += name
                 val kind = if (kindArity == 0) Kind.Star else Kind.Constructor(kindArity)
                 if (name[0].isLowerCase()) {
                     if (!isCtor) {
@@ -785,33 +804,49 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun reportUnusedImports() {
-        // only explicit imports should throw errors
-        fun findImport(mod: String, import: String): Span? {
-            for (imp in smod.imports) {
-                if (imp is Import.Exposing && imp.module.value == mod) {
-                    imp.defs.forEach { def ->
-                        if (def.name == import) {
-                            return def.span
+        // normal imports
+        for (imp in smod.imports.filterIsInstance<Import.Exposing>()) {
+            if (imp.isAuto()) continue
+            for (def in imp.defs) {
+                when (def) {
+                    is DeclarationRef.RefVar -> {
+                        if (def.name !in usedVars) unusedImports[def.name] = def.span
+                    }
+                    is DeclarationRef.RefType -> {
+                        if (def.ctors == null && def.name !in usedTypes)
+                            unusedImports[def.name] = def.span
+                        if (def.ctors != null) {
+                            for (ct in def.ctors) {
+                                if (ct.value !in usedVars)
+                                    unusedImports[ct.value] = ct.span
+                            }
                         }
                     }
                 }
             }
-            return null
         }
 
-        fun findForeignImport(name: String): Span? =
-            smod.foreigns.filter { it !is ForeignImport.Type }.find { it.name() == name }?.span
-
-        smod.resolvedImports.forEach { (importName, modName) ->
-            if (modName != PRIM && modName != CORE_MODULE && importName[0].isLowerCase() && importName !in usedVars) {
-                val span = findImport(modName, importName)
-                if (span != null)
-                    unusedImports[importName] = span
+        // foreign imports
+        for (imp in smod.foreigns) {
+            if (!imp.type.contains(".")) usedTypes += imp.type
+            usedTypes += when (imp) {
+                is ForeignImport.Ctor -> imp.pars.filter { !it.contains(".") }
+                is ForeignImport.Method -> imp.pars.filter { !it.contains(".") }
+                else -> emptyList()
             }
         }
-        smod.foreignVars.forEach { (key, _) ->
-            if (key !in usedVars && key != "unsafeCoerce")
-                unusedImports[key] = findForeignImport(key) ?: smod.span
+
+        for (imp in smod.foreigns) {
+            val name = imp.name()
+            when (imp) {
+                is ForeignImport.Type -> {
+                    if (name !in usedTypes) unusedImports[name] = imp.span
+                }
+                else -> {
+                    if (name !in usedVars && name != "unsafeCoerce")
+                        unusedImports[name] = imp.span
+                }
+            }
         }
     }
 

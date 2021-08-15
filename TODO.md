@@ -9,8 +9,6 @@
 - [ ] Fix pattern matching warnings (records)
 - [ ] Implement the novah class loader to load external files
 - [ ] TCO
-- [ ] Report on unused imports/foreign import types
 - [ ] Fix double CHECKCAST on native function calls
-- [ ] Use ropes instead of char arrays to process strings
-- [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return
-- [ ] Fix error report span for unused foreign import
+- [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
+- [ ] Auto complete java method, constructors, etc

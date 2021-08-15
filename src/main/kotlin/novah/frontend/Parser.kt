@@ -23,6 +23,7 @@ import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
+import novah.main.Environment
 import novah.frontend.error.Errors as E
 
 class Parser(
@@ -135,7 +136,7 @@ class Parser(
         if (imports.none { it.module.value == CORE_MODULE } && moduleName != CORE_MODULE) {
             imports += coreImport
         }
-        if (!isStdlib && moduleName !in stlibModuleNames) {
+        if (!isStdlib && moduleName !in Environment.stdlibModuleNames()) {
             // all aliased modules
             val aliased = imports.filter { it.alias() != null }.map { it.module.value }.toSet()
 
@@ -965,6 +966,9 @@ class Parser(
             } else if (nex is Op && nex.op == "-") {
                 iter.next()
                 parseRecordRestriction(begin)
+            } else if (nex is Op && nex.op == "+") {
+                iter.next()
+                parseRecordMerge(begin)
             } else {
                 val rows = between<Comma, Pair<String, Expr>>(::parseRecordRow)
                 val exp = if (iter.peek().value is Pipe) {
@@ -1002,6 +1006,15 @@ class Parser(
         val record = parseExpression()
         val end = expect<RBracket>(withError(E.rbracketExpected("record restriction")))
         return Expr.RecordRestrict(record, labels.map { it.first })
+            .withSpan(begin.span, end.span).withComment(begin.comment)
+    }
+
+    private fun parseRecordMerge(begin: Spanned<Token>): Expr {
+        val exp1 = parseExpression()
+        expect<Comma>(withError(E.commaExpected("expression in record merge")))
+        val exp2 = parseExpression()
+        val end = expect<RBracket>(withError(E.rbracketExpected("record merge")))
+        return Expr.RecordMerge(exp1, exp2)
             .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 
