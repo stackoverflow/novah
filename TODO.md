@@ -12,3 +12,4 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
 - [ ] Auto complete java method, constructors, etc
+- [ ] Change Var patterns to contains a var expression, like constructors

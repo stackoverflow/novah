@@ -100,4 +100,12 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     override fun references(params: ReferenceParams): CompletableFuture<MutableList<out Location>> {
         return references.onReferences(params)
     }
+
+    override fun prepareRename(params: PrepareRenameParams): CompletableFuture<Either<Range, PrepareRenameResult>> {
+        return references.onPrepareRename(params)
+    }
+
+    override fun rename(params: RenameParams): CompletableFuture<WorkspaceEdit> {
+        return references.onRename(params)
+    }
 }

@@ -44,9 +44,9 @@ myfun x =
   let other = vari * x
   x + vari + other |> show
 
-typecast : a -> Map String a
+typecast : String -> Map String Id
 typecast typ =
-  Map.new ["a" <> typ] as Map String a
+  Map.new ["a" <> Id typ] as Map String Id
 
 /**
  * The badge is a lie.

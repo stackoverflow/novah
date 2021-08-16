@@ -42,4 +42,15 @@ object IdeUtil {
         val lexer = Lexer(code.iterator())
         return Parser(lexer, false).parseFullModule()
     }
+
+    /**
+     * Get the module out of a fully qualified name.
+     * Ex: some.module.Name
+     * -> some.module
+     */
+    fun getModule(fqn: String): String? {
+        val idx = fqn.lastIndexOf(".")
+        return if (idx == -1) null
+        else fqn.substring(0, idx)
+    }
 }

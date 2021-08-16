@@ -87,6 +87,9 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         initializeResult.capabilities.codeActionProvider = Either.forRight(caOpts)
         // Find references capability
         initializeResult.capabilities.referencesProvider = Either.forLeft(true)
+        // Rename capability
+        val renOpt = RenameOptions(true)
+        initializeResult.capabilities.renameProvider = Either.forRight(renOpt)
 
         // initial build
         build()

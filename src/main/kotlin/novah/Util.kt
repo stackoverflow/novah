@@ -51,8 +51,6 @@ object Util {
 
     fun <E> List<E>.prepend(e: E): List<E> = listOf(e) + this
 
-    fun <E> List<E>.hasDuplicates(): Boolean = toSet().size != size
-
     fun String.splitAt(index: Int): Pair<String, String> {
         return substring(0, index) to substring(index + 1)
     }
@@ -97,14 +95,14 @@ object Util {
      * Unzips this input stream to the outputDir.
      */
     fun unzip(input: InputStream, outputDir: File) {
-        val root = outputDir.normalize();
+        val root = outputDir.normalize()
         input.use { inputSteam ->
             ZipInputStream(inputSteam).use { zis ->
-                var entry = zis.nextEntry;
+                var entry = zis.nextEntry
                 while (entry != null) {
-                    val path = root.resolve(entry.name).normalize();
+                    val path = root.resolve(entry.name).normalize()
                     if (!path.startsWith(root)) {
-                        throw IOException("Invalid ZIP");
+                        throw IOException("Invalid ZIP")
                     }
                     if (entry.isDirectory) {
                         path.mkdirs()
@@ -118,9 +116,9 @@ object Util {
                             }
                         }
                     }
-                    entry = zis.nextEntry;
+                    entry = zis.nextEntry
                 }
-                zis.closeEntry();
+                zis.closeEntry()
             }
         }
     }
