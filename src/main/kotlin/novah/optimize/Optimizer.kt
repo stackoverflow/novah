@@ -376,7 +376,7 @@ class Optimizer(private val ast: CModule) {
 
         fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
             is Pattern.Wildcard -> PatternResult(tru)
-            is Pattern.Var -> PatternResult(tru, listOf(VarDef(Names.convert(p.name), exp)))
+            is Pattern.Var -> PatternResult(tru, listOf(VarDef(Names.convert(p.v.name), exp)))
             is Pattern.Unit -> PatternResult(tru)
             is Pattern.LiteralP -> {
                 val method = when (p.lit) {

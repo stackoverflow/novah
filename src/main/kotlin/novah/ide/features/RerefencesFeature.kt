@@ -340,7 +340,7 @@ class RerefencesFeature(private val server: NovahServer) {
             c.patterns.forEach { p ->
                 p.everywhereUnit {
                     when (it) {
-                        is Pattern.Var -> if (it.name == name) found = it.span
+                        is Pattern.Var -> if (it.v.name == name) found = it.span
                         is Pattern.Named -> if (it.name.value == name) found = it.name.span
                     }
                 }

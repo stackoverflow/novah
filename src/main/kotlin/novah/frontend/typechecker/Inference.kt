@@ -407,7 +407,7 @@ object Inference {
                 unify(ty, tUnit, pat.span)
                 emptyList()
             }
-            is Pattern.Var -> listOf(PatternVar(pat.name, ty, pat.span))
+            is Pattern.Var -> listOf(PatternVar(pat.v.name, ty, pat.span))
             is Pattern.Ctor -> {
                 val cty = infer(env, level, pat.ctor)
 

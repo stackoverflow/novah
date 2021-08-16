@@ -808,7 +808,8 @@ class Parser(
             }
             is Ident -> {
                 iter.next()
-                Pattern.Var(tk.value.v, tk.span)
+                val v = Expr.Var(tk.value.v).withSpan(tk.span) as Expr.Var
+                Pattern.Var(v)
             }
             is BoolT -> {
                 iter.next()
@@ -926,7 +927,8 @@ class Parser(
     private fun parsePatternRow(): Pair<String, Pattern> {
         val (label, tk) = parseLabel()
         if (iter.peek().value !is Colon && tk.value is Ident) {
-            return label to Pattern.Var(label, tk.span)
+            val v = Expr.Var(label).withSpan(tk.span) as Expr.Var
+            return label to Pattern.Var(v)
         }
         expect<Colon>(withError(E.RECORD_COLON))
         val pat = parsePattern()

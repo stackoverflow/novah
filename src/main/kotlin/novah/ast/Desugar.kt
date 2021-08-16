@@ -359,7 +359,7 @@ class Desugar(private val smod: SModule) {
     private fun SPattern.desugar(locals: List<String>, tvars: Map<String, Type>): Pattern = when (this) {
         is SPattern.Wildcard -> Pattern.Wildcard(span)
         is SPattern.LiteralP -> Pattern.LiteralP(lit.desugar(locals), span)
-        is SPattern.Var -> Pattern.Var(name, span)
+        is SPattern.Var -> Pattern.Var(Expr.Var(v.name, v.span))
         is SPattern.Ctor -> Pattern.Ctor(
             ctor.desugar(locals, tvars) as Expr.Constructor,
             fields.map { it.desugar(locals, tvars) },
@@ -458,7 +458,7 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun collectVars(pat: SPattern, implicit: Boolean = false): List<CollectedVar> = when (pat) {
-        is SPattern.Var -> listOf(CollectedVar(pat.name, pat.span, implicit = implicit))
+        is SPattern.Var -> listOf(CollectedVar(pat.v.name, pat.span, implicit = implicit))
         is SPattern.Parens -> collectVars(pat.pattern, implicit)
         is SPattern.Ctor -> pat.fields.flatMap { collectVars(it, implicit) }
         is SPattern.Record -> pat.labels.flatMapList { collectVars(it, implicit) }.toList()
@@ -489,14 +489,14 @@ class Desugar(private val smod: SModule) {
         else {
             when (val pat = pats[0]) {
                 is SPattern.Var -> Expr.Lambda(
-                    Binder(pat.name, pat.span, false),
+                    Binder(pat.v.name, pat.span, false),
                     nestLambdaPatterns(pats.drop(1), exp, locals, tvars),
                     Span.new(pat.span, exp.span)
                 )
                 is SPattern.ImplicitPattern -> {
                     if (pat.pat is SPattern.Var) {
                         Expr.Lambda(
-                            Binder(pat.pat.name, pat.span, true),
+                            Binder(pat.pat.v.name, pat.span, true),
                             nestLambdaPatterns(pats.drop(1), exp, locals, tvars),
                             Span.new(pat.span, exp.span)
                         )

@@ -259,7 +259,7 @@ class HoverFeature(private val server: NovahServer) {
                                             if (p.span.matches(line, col)) {
                                                 when (p) {
                                                     is Pattern.Var -> {
-                                                        if (p.type != null) ctx = LocalRefCtx(p.name, p.type!!)
+                                                        if (p.type != null) ctx = LocalRefCtx(p.v.name, p.type!!)
                                                     }
                                                     is Pattern.Ctor -> {
                                                         if (p.type != null && p.ctor.span.matches(line, col))

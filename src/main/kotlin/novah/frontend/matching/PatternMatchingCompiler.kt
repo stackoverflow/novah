@@ -234,7 +234,7 @@ class PatternMatchingCompiler<R> {
 
         private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {
             is Pattern.Wildcard -> Pat.PVar("_")
-            is Pattern.Var -> Pat.PVar(p.name)
+            is Pattern.Var -> Pat.PVar(p.v.name)
             is Pattern.Ctor -> {
                 val name = p.ctor.fullname(p.ctor.moduleName ?: modName)
                 Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })

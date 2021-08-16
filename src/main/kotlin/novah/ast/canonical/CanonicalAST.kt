@@ -177,7 +177,7 @@ data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = n
 sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
     data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
-    data class Var(val name: String, override val span: Span) : Pattern(span)
+    data class Var(val v: Expr.Var) : Pattern(v.span)
     data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
     data class ListP(val elems: List<Pattern>, override val span: Span) : Pattern(span)
@@ -201,7 +201,7 @@ sealed class LiteralPattern(open val e: Expr) {
 
 fun Pattern.show(): String = when (this) {
     is Pattern.Wildcard -> "_"
-    is Pattern.Var -> name
+    is Pattern.Var -> v.name
     is Pattern.Ctor -> if (fields.isEmpty()) ctor.name else "${ctor.name} " + fields.joinToString(" ") { it.show() }
     is Pattern.LiteralP -> lit.show()
     is Pattern.Record -> "{ " + labels.show { l, e -> "$l: ${e.show()}" } + " }"
@@ -302,8 +302,11 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
                 e.cases.forEach { case ->
                     case.patterns.forEach { p ->
                         p.everywhereUnit {
-                            if (p is Pattern.Ctor) go(p.ctor)
-                            else if (p is Pattern.LiteralP) go(p.lit.e)
+                            when (it) {
+                                is Pattern.Ctor -> go(it.ctor)
+                                is Pattern.LiteralP -> go(it.lit.e)
+                                is Pattern.Var -> go(it.v)
+                            }
                         }
                     }
                     if (case.guard != null) go(case.guard)
