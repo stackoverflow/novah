@@ -176,9 +176,14 @@ sealed class Decl(val name: String, val visibility: Visibility) {
 
 data class Signature(val type: Type, val span: Span)
 
-data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
+data class DataConstructor(
+    val name: Spanned<String>,
+    val args: List<Type>,
+    val visibility: Visibility,
+    val span: Span
+) {
     override fun toString(): String {
-        return name + args.joinToString(" ", prefix = " ")
+        return name.value + args.joinToString(" ", prefix = " ")
     }
 }
 
@@ -412,7 +417,7 @@ sealed class Type(open val span: Span) {
         is TRowExtend -> copy(span = s)
         is TImplicit -> copy(span = s)
     }
-    
+
     fun show(): String = when (this) {
         is TConst -> name
         is TApp -> {

@@ -99,7 +99,7 @@ class SymbolsFeature(private val server: NovahServer) {
         )
         val ctors = d.dataCtors.map {
             DocumentSymbol(
-                it.name,
+                it.name.value,
                 SymbolKind.Constructor,
                 spanToRange(it.span),
                 spanToRange(it.span)

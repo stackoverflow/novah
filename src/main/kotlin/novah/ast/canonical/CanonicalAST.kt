@@ -77,9 +77,14 @@ fun Decl.TypeDecl.show(): String {
     return if (tyVars.isEmpty()) name.value else name.value + tyVars.joinToString(" ", prefix = " ")
 }
 
-data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
+data class DataConstructor(
+    val name: Spanned<String>,
+    val args: List<Type>,
+    val visibility: Visibility,
+    val span: Span
+) {
     override fun toString(): String {
-        return name + args.joinToString(" ", prefix = " ")
+        return name.value + args.joinToString(" ", prefix = " ")
     }
 
     fun isPublic() = visibility == Visibility.PUBLIC

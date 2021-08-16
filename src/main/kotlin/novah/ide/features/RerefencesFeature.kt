@@ -233,7 +233,7 @@ class RerefencesFeature(private val server: NovahServer) {
             }
             for (ctor in tdecl.dataCtors) {
                 if (ctor.span.matches(line, col)) {
-                    return DeclCtx(ctor.name, mod.name.value, ctor.span)
+                    return DeclCtx(ctor.name.value, mod.name.value, ctor.span)
                 }
             }
         }

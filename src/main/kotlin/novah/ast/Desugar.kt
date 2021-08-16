@@ -707,7 +707,7 @@ class Desugar(private val smod: SModule) {
         if (dd.dataCtors.size > 1) {
             val typeName = dd.name
             dd.dataCtors.forEach { dc ->
-                if (dc.name == typeName)
+                if (dc.name.value == typeName)
                     parserError(E.wrongConstructorName(typeName), dd.span)
             }
         }

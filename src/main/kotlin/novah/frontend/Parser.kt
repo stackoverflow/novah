@@ -332,7 +332,7 @@ class Parser(
             val ctorvis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
             val innerType = parseType()
 
-            val ctors = listOf(DataConstructor(name.value, listOf(innerType), ctorvis, innerType.span))
+            val ctors = listOf(DataConstructor(name, listOf(innerType), ctorvis, innerType.span))
             Decl.TypeDecl(name, tyVars, ctors, vis, true)
                 .withSpan(tk.span, iter.current().span)
         }
@@ -1037,7 +1037,8 @@ class Parser(
     }
 
     private fun parseDataConstructor(typeVars: List<String>, visibility: Token?): DataConstructor {
-        val ctor = expect<UpperIdent>(withError(E.CTOR_NAME))
+        val ctorTk = expect<UpperIdent>(withError(E.CTOR_NAME))
+        val ctor = Spanned(ctorTk.span, ctorTk.value.v)
 
         val vis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
 
@@ -1045,9 +1046,9 @@ class Parser(
 
         val freeVars = pars.flatMap { it.findFreeVars(typeVars) }
         if (freeVars.isNotEmpty()) {
-            throwError(E.undefinedVarInCtor(ctor.value.v, freeVars) to span(ctor.span, iter.current().span))
+            throwError(E.undefinedVarInCtor(ctor.value, freeVars) to span(ctor.span, iter.current().span))
         }
-        return DataConstructor(ctor.value.v, pars, vis, span(ctor.span, iter.current().span))
+        return DataConstructor(ctor, pars, vis, span(ctor.span, iter.current().span))
     }
 
     private fun parseDo(): Expr {

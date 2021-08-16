@@ -92,7 +92,7 @@ class Optimizer(private val ast: CModule) {
         Decl.TypeDecl(name.value, tyVars, dataCtors.map { it.convert() }, visibility, span)
 
     private fun CDataConstructor.convert(): DataConstructor =
-        DataConstructor(name, args.map { it.convert() }, visibility)
+        DataConstructor(name.value, args.map { it.convert() }, visibility)
 
     private fun CExpr.convert(locals: List<String> = listOf()): Expr {
         val typ = if (type != null) {

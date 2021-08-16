@@ -271,8 +271,9 @@ class CompletionFeature(private val server: NovahServer) {
                     }
                     if (typesOnly) continue
                     d.dataCtors.forEach { dc ->
-                        if ((ownModule || dc.isPublic()) && dc.name.startsWith(name) && pred(dc.name)) {
-                            val ci = CompletionItem(name(alias, dc.name))
+                        val dcname = dc.name.value
+                        if ((ownModule || dc.isPublic()) && dcname.startsWith(name) && pred(dcname)) {
+                            val ci = CompletionItem(name(alias, dcname))
                             ci.kind = CompletionItemKind.Constructor
                             ci.documentation = getDoc(d.comment, module)
                             ci.detail = getCtorDetails(dc, d.show())

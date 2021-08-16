@@ -133,7 +133,7 @@ class Formatter {
     }
 
     fun show(d: DataConstructor): String {
-        return d.name + d.args.joinToStr(" ", prefix = " ") { show(it) }
+        return d.name.value + d.args.joinToStr(" ", prefix = " ") { show(it) }
     }
 
     fun show(e: Expr): String {

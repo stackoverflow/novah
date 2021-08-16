@@ -64,7 +64,7 @@ class GotoDefinitionFeature(private val server: NovahServer) {
 
         fun gotoCtor(name: String, moduleName: String): Location? {
             val mod = mods[moduleName]?.ast ?: return null
-            return mod.decls.filterIsInstance<Decl.TypeDecl>().flatMap { it.dataCtors }.find { it.name == name }
+            return mod.decls.filterIsInstance<Decl.TypeDecl>().flatMap { it.dataCtors }.find { it.name.value == name }
                 ?.let { newLocation(mod, it.span) }
         }
 
