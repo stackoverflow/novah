@@ -45,7 +45,7 @@ class RerefencesFeature(private val server: NovahServer) {
 
             val ctx = findContext(line, col, mod.ast) ?: return null
 
-            return findReferences(ctx, mod, env.modules()).second
+            return findReferences(ctx, mod, env.modules())
         }
 
         return CompletableFuture.supplyAsync(::run)
@@ -69,8 +69,8 @@ class RerefencesFeature(private val server: NovahServer) {
             val ctx = findContext(line, col, mod.ast) ?: return null
             if (!isValidRename(ctx, env)) return null
 
-            val (origin, _) = findReferences(ctx, mod, env.modules())
-            if (origin == null) return null
+            val locations = findReferences(ctx, mod, env.modules())
+            if (locations.isEmpty()) return null
             return Either.forLeft(IdeUtil.spanToRange(ctx.span))
         }
 
@@ -95,9 +95,9 @@ class RerefencesFeature(private val server: NovahServer) {
             val ctx = findContext(line, col, mod.ast) ?: return null
             if (!isValidRename(ctx, env)) return null
 
-            val (origin, locations) = findReferences(ctx, mod, env.modules())
-            if (origin == null) return null
-            return makeRename(params.newName, origin, locations)
+            val locations = findReferences(ctx, mod, env.modules())
+            if (locations.isEmpty()) return null
+            return makeRename(params.newName, locations)
         }
 
         return CompletableFuture.supplyAsync(::run)
@@ -112,35 +112,35 @@ class RerefencesFeature(private val server: NovahServer) {
         ctx: RefCtx,
         mod: FullModuleEnv,
         mods: Map<String, FullModuleEnv>
-    ): Pair<Origin?, MutableList<Location>> {
+    ): MutableList<Location> {
         val refs = mutableListOf<Location>()
-        var origin: Origin? = null
         when (ctx) {
             is LocalCtx -> {
                 var exp: Expr? = null
                 ctx.decl.exp.everywhereUnit {
                     if (it is Expr.Let && it.letDef.binder.name == ctx.name) {
                         exp = it
-                        origin = Origin(SrcLocal(it.letDef.binder.span), mod.ast)
+                        refs += location(it.letDef.binder.span, mod.ast.name.value, mod.ast.sourceName)
                     } else if (it is Expr.Match) {
                         val span = caseContainsVar(ctx.name, it)
                         if (span != null) {
                             exp = it
-                            origin = Origin(SrcLocal(span), mod.ast)
+                            //refs += location(span, mod.ast.name.value, mod.ast.sourceName)
                         }
                     } else if (it is Expr.Lambda && it.binder.name == ctx.name) {
                         exp = it
-                        origin = Origin(SrcLocal(it.binder.span), mod.ast)
+                        refs += location(it.binder.span, mod.ast.name.value, mod.ast.sourceName)
                     }
                 }
                 exp?.everywhereUnit { e ->
-                    if (isVar(e, ctx.name, null))
+                    if (isVar(e, ctx.name, null)) {
                         refs += location(e.span, mod.ast.name.value, mod.ast.sourceName)
+                    }
                 }
             }
             is LambdaCtx -> {
                 val lam = ctx.lambda
-                origin = Origin(SrcLocal(lam.binder.span), mod.ast)
+                refs += location(lam.binder.span, mod.ast.name.value, mod.ast.sourceName)
 
                 lam.body.everywhereUnit { e ->
                     if (isVar(e, lam.binder.name, null))
@@ -151,7 +151,12 @@ class RerefencesFeature(private val server: NovahServer) {
                 for ((module, fmv) in mods) {
                     val modName = if (ctx.module == module) null else ctx.module
                     fmv.ast.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->
-                        if (decl.name.name == ctx.name) origin = Origin(SrcDecl(decl), fmv.ast)
+                        if (decl.name.name == ctx.name) {
+                            refs += location(decl.name.span, module, fmv.ast.sourceName)
+                            if (decl.signature != null) {
+                                refs += location(decl.signature.span, module, fmv.ast.sourceName)
+                            }
+                        }
                         decl.exp.everywhereUnit { e ->
                             if (isVar(e, ctx.name, modName))
                                 refs += location(e.span, module, fmv.ast.sourceName)
@@ -163,7 +168,9 @@ class RerefencesFeature(private val server: NovahServer) {
                 for ((module, fmv) in mods) {
                     fmv.ast.decls.filterIsInstance<Decl.TypeDecl>().forEach { decl ->
                         val fqn = "$module.${decl.name.value}"
-                        if (fqn == ctx.name) origin = Origin(SrcDecl(decl), fmv.ast)
+                        if (fqn == ctx.name) {
+                            refs += location(decl.name.span, module, fmv.ast.sourceName)
+                        }
                     }
                     fmv.ast.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->
                         decl.exp.everywhereUnit { e ->
@@ -188,7 +195,7 @@ class RerefencesFeature(private val server: NovahServer) {
                 }
             }
         }
-        return origin to refs
+        return refs
     }
 
     private sealed class RefCtx(open val span: Span)
@@ -196,12 +203,6 @@ class RerefencesFeature(private val server: NovahServer) {
     private data class DeclCtx(val name: String, val module: String?, override val span: Span) : RefCtx(span)
     private data class TypeCtx(val name: String, override val span: Span) : RefCtx(span)
     private data class LambdaCtx(val lambda: Expr.Lambda) : RefCtx(lambda.binder.span)
-
-    private sealed class OriginSource
-    private class SrcDecl(val decl: Decl) : OriginSource()
-    private class SrcLocal(val span: Span) : OriginSource()
-
-    private data class Origin(val src: OriginSource, val module: Module)
 
     /**
      * Finds the symbol at line and col and returns contextual information
@@ -301,35 +302,12 @@ class RerefencesFeature(private val server: NovahServer) {
         }
     }
 
-    private fun makeRename(newName: String, origin: Origin, locations: List<Location>): WorkspaceEdit {
+    private fun makeRename(newName: String, locations: List<Location>): WorkspaceEdit {
         val edits = locations.groupBy { it.uri }
             .map<String?, List<Location>, Either<TextDocumentEdit, ResourceOperation>?> { (uri, ls) ->
                 val edits = ls.map { l -> TextEdit(l.range, newName) }
                 Either.forLeft(TextDocumentEdit(VersionedTextDocumentIdentifier(uri, null), edits))
-            }.toMutableList()
-
-        val uri = server.locationUri(origin.module.name.value, origin.module.sourceName)
-        val tedit = when (origin.src) {
-            is SrcDecl -> {
-                when (val d = origin.src.decl) {
-                    is Decl.ValDecl -> {
-                        val ed = TextEdit(IdeUtil.spanToRange(d.name.span), newName)
-                        if (d.signature != null) {
-                            val ed2 = TextEdit(IdeUtil.spanToRange(d.signature.span), newName)
-                            listOf(ed, ed2)
-                        } else listOf(ed)
-                    }
-                    is Decl.TypeDecl -> {
-                        listOf(TextEdit(IdeUtil.spanToRange(d.name.span), newName))
-                    }
-                }
             }
-            is SrcLocal -> {
-                listOf(TextEdit(IdeUtil.spanToRange(origin.src.span), newName))
-            }
-        }
-        val tdedit = TextDocumentEdit(VersionedTextDocumentIdentifier(uri, null), tedit)
-        edits += Either.forLeft(tdedit)
 
         return WorkspaceEdit(edits)
     }

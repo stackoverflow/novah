@@ -37,6 +37,9 @@ object IdeUtil {
         val end = Position(s.endLine - 1, s.endColumn - 1)
         return Range(start, end)
     }
+    
+    fun rangeToSpan(r: Range) =
+        Span(r.start.line + 1, r.start.character + 1, r.end.line + 1, r.end.character + 1)
 
     fun parseCode(code: String): Result<Module, CompilerProblem> {
         val lexer = Lexer(code.iterator())
