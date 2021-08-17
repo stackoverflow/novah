@@ -37,7 +37,7 @@ object IdeUtil {
         val end = Position(s.endLine - 1, s.endColumn - 1)
         return Range(start, end)
     }
-    
+
     fun rangeToSpan(r: Range) =
         Span(r.start.line + 1, r.start.character + 1, r.end.line + 1, r.end.character + 1)
 
@@ -56,4 +56,18 @@ object IdeUtil {
         return if (idx == -1) null
         else fqn.substring(0, idx)
     }
+
+    /**
+     * The oposite of `getModule`.
+     * Returns the simple name of this fully qualified identifier
+     */
+    fun getName(fqn: String): String {
+        val idx = fqn.lastIndexOf(".")
+        return if (idx == -1) fqn
+        else fqn.substring(idx + 1)
+    }
+
+    private val symbolRegex = Regex("""[\w_][\w\d_]*""")
+
+    fun isValidIdentifier(ident: String) = symbolRegex.matches(ident)
 }

@@ -94,6 +94,7 @@ class RerefencesFeature(private val server: NovahServer) {
 
             val ctx = findContext(line, col, mod.ast) ?: return null
             if (!isValidRename(ctx, env)) return null
+            if (!checkValidName(params.newName, ctx)) return null
 
             val locations = findReferences(ctx, mod, env.modules())
             if (locations.isEmpty()) return null
@@ -105,8 +106,6 @@ class RerefencesFeature(private val server: NovahServer) {
 
     /**
      * Find all references (locations) represented by the context.
-     * The origin is just used by rename, as we need to rename not only the references
-     * but also the original definition.
      */
     private fun findReferences(
         ctx: RefCtx,
@@ -121,12 +120,8 @@ class RerefencesFeature(private val server: NovahServer) {
                     if (it is Expr.Let && it.letDef.binder.name == ctx.name) {
                         exp = it
                         refs += location(it.letDef.binder.span, mod.ast.name.value, mod.ast.sourceName)
-                    } else if (it is Expr.Match) {
-                        val span = caseContainsVar(ctx.name, it)
-                        if (span != null) {
-                            exp = it
-                            //refs += location(span, mod.ast.name.value, mod.ast.sourceName)
-                        }
+                    } else if (it is Expr.Match && caseContainsVar(ctx.name, it)) {
+                        exp = it
                     } else if (it is Expr.Lambda && it.binder.name == ctx.name) {
                         exp = it
                         refs += location(it.binder.span, mod.ast.name.value, mod.ast.sourceName)
@@ -150,16 +145,26 @@ class RerefencesFeature(private val server: NovahServer) {
             is DeclCtx -> {
                 for ((module, fmv) in mods) {
                     val modName = if (ctx.module == module) null else ctx.module
-                    fmv.ast.decls.filterIsInstance<Decl.ValDecl>().forEach { decl ->
-                        if (decl.name.name == ctx.name) {
-                            refs += location(decl.name.span, module, fmv.ast.sourceName)
-                            if (decl.signature != null) {
-                                refs += location(decl.signature.span, module, fmv.ast.sourceName)
+                    fmv.ast.decls.forEach { decl ->
+                        when (decl) {
+                            is Decl.TypeDecl -> {
+                                decl.dataCtors.forEach { dc ->
+                                    if (dc.name.value == ctx.name)
+                                        refs += location(dc.name.span, module, fmv.ast.sourceName)
+                                }
                             }
-                        }
-                        decl.exp.everywhereUnit { e ->
-                            if (isVar(e, ctx.name, modName))
-                                refs += location(e.span, module, fmv.ast.sourceName)
+                            is Decl.ValDecl -> {
+                                if (decl.name.name == ctx.name) {
+                                    refs += location(decl.name.span, module, fmv.ast.sourceName)
+                                    if (decl.signature != null) {
+                                        refs += location(decl.signature.span, module, fmv.ast.sourceName)
+                                    }
+                                }
+                                decl.exp.everywhereUnit { e ->
+                                    if (isVar(e, ctx.name, modName))
+                                        refs += location(e.span, module, fmv.ast.sourceName)
+                                }
+                            }
                         }
                     }
                 }
@@ -221,7 +226,7 @@ class RerefencesFeature(private val server: NovahServer) {
         fun findType(ty: Type) {
             ty.everywhereUnit {
                 if (it.span?.matches(line, col) == true && it is TConst)
-                    ctx = TypeCtx(it.name, ty.span!!)
+                    ctx = TypeCtx(it.name, it.span!!)
             }
         }
 
@@ -232,8 +237,8 @@ class RerefencesFeature(private val server: NovahServer) {
                 return TypeCtx("${mod.name.value}.${tdecl.name.value}", tdecl.name.span)
             }
             for (ctor in tdecl.dataCtors) {
-                if (ctor.span.matches(line, col)) {
-                    return DeclCtx(ctor.name.value, mod.name.value, ctor.span)
+                if (ctor.name.span.matches(line, col)) {
+                    return DeclCtx(ctor.name.value, mod.name.value, ctor.name.span)
                 }
             }
         }
@@ -293,6 +298,10 @@ class RerefencesFeature(private val server: NovahServer) {
         return ctx
     }
 
+    /**
+     * The renaming is only valid if the module where it happens is part of the
+     * environment and not in the stdlib or some imported library.
+     */
     private fun isValidRename(ctx: RefCtx, env: Environment): Boolean = when (ctx) {
         is LocalCtx, is LambdaCtx -> true
         is DeclCtx -> ctx.module == null || env.modules().containsKey(ctx.module)
@@ -312,19 +321,36 @@ class RerefencesFeature(private val server: NovahServer) {
         return WorkspaceEdit(edits)
     }
 
-    private fun caseContainsVar(name: String, exp: Expr.Match): Span? {
-        var found: Span? = null
-        exp.cases.forEach { c ->
-            c.patterns.forEach { p ->
+    private fun caseContainsVar(name: String, exp: Expr.Match): Boolean {
+        return exp.cases.any { c ->
+            c.patterns.any { p ->
+                var found = false
                 p.everywhereUnit {
                     when (it) {
-                        is Pattern.Var -> if (it.v.name == name) found = it.span
-                        is Pattern.Named -> if (it.name.value == name) found = it.name.span
+                        is Pattern.Var -> if (it.v.name == name) found = true
+                        is Pattern.Named -> if (it.name.value == name) found = true
                     }
                 }
+                found
             }
         }
-        return found
+    }
+
+    /**
+     * Checks if the new name is valid:
+     * - types/constructors have to start with an uppper case letter
+     * - variables/declarations have to be lower case
+     */
+    private fun checkValidName(newName: String, ctx: RefCtx): Boolean {
+        if (newName.isBlank() || !IdeUtil.isValidIdentifier(newName)) return false
+        val name = when (ctx) {
+            is LocalCtx -> ctx.name
+            is DeclCtx -> ctx.name
+            is TypeCtx -> IdeUtil.getName(ctx.name)
+            is LambdaCtx -> ctx.lambda.binder.name
+        }
+        return if (name[0].isUpperCase()) newName[0].isUpperCase()
+        else newName[0].isLowerCase()
     }
 
     private fun isVar(e: Expr, name: String, moduleName: String?): Boolean = when (e) {
