@@ -154,7 +154,7 @@ class RerefencesFeature(private val server: NovahServer) {
                                 }
                             }
                             is Decl.ValDecl -> {
-                                if (decl.name.name == ctx.name) {
+                                if (decl.name.value == ctx.name) {
                                     refs += location(decl.name.span, module, fmv.ast.sourceName)
                                     if (decl.signature != null) {
                                         refs += location(decl.signature.span, module, fmv.ast.sourceName)
@@ -221,7 +221,7 @@ class RerefencesFeature(private val server: NovahServer) {
             if (d is Decl.ValDecl) decls += d
             else if (d is Decl.TypeDecl) tdecls += d
         }
-        val names = decls.map { it.name.name }.toSet()
+        val names = decls.map { it.name.value }.toSet()
 
         fun findType(ty: Type) {
             ty.everywhereUnit {
@@ -247,7 +247,7 @@ class RerefencesFeature(private val server: NovahServer) {
             if (ctx != null) break
             if (!decl.span.matches(line, col)) continue
 
-            if (decl.name.span.matches(line, col)) return DeclCtx(decl.name.name, mod.name.value, decl.name.span)
+            if (decl.name.span.matches(line, col)) return DeclCtx(decl.name.value, mod.name.value, decl.name.span)
             if (decl.signature != null && decl.signature.type.span?.matches(line, col) == true) {
                 findType(decl.signature.type)
                 return ctx

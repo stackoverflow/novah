@@ -91,7 +91,7 @@ class HoverFeature(private val server: NovahServer) {
                     source += if (d.isInstance) "pub instance\n"
                     else "pub\n"
                 }
-                source += if (d.isOperator) "(${d.name.name})" else d.name.name
+                source += if (d.isOperator) "(${d.name.value})" else d.name.value
                 val type = d.signature?.type ?: d.exp.type
                 if (type != null) {
                     source += " : ${type.show(qualified = true, typeVarsMap = typeVarsMap)}"

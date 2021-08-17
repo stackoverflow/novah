@@ -305,8 +305,8 @@ class CompletionFeature(private val server: NovahServer) {
                                 }
                             }
                     }
-                    if ((ownModule || d.isPublic()) && d.name.name.startsWith(name) && pred(d.name.name)) {
-                        val ci = CompletionItem(name(alias, d.name.name))
+                    if ((ownModule || d.isPublic()) && d.name.value.startsWith(name) && pred(d.name.value)) {
+                        val ci = CompletionItem(name(alias, d.name.value))
                         ci.kind = getKind(d)
                         ci.detail = getDetail(d)
                         ci.documentation = getDoc(d.comment, module)

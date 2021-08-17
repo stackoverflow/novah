@@ -85,7 +85,7 @@ object Inference {
         val vals = ast.decls.filterIsInstance<Decl.ValDecl>()
         vals.filter { it.exp is Expr.Ann }.forEach { decl ->
             val expr = decl.exp as Expr.Ann
-            val name = decl.name.name
+            val name = decl.name.value
             checkShadow(env, name, decl.span)
             env.extend(name, expr.annType)
             if (decl.isInstance) env.extendInstance(name, expr.annType)
@@ -94,7 +94,7 @@ object Inference {
         vals.forEach { decl ->
             implicitsToCheck.clear()
             context?.apply { this.decl = decl }
-            val name = decl.name.name
+            val name = decl.name.value
             val isAnnotated = decl.exp is Expr.Ann
             if (!isAnnotated) checkShadow(env, name, decl.span)
 

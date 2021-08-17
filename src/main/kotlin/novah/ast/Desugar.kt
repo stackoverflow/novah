@@ -125,7 +125,7 @@ class Desugar(private val smod: SModule) {
             expr = if (expType != null) Expr.Ann(expr, expType, expr.span) else expr
             if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
             Decl.ValDecl(
-                binder.desugar(),
+                binder,
                 expr,
                 name in declVars,
                 span,
@@ -670,10 +670,10 @@ class Desugar(private val smod: SModule) {
         }
 
         val (decls, types) = desugared.partitionIsInstance<Decl.ValDecl, Decl>()
-        val deps = decls.associate { it.name.name to collectDependencies(it.exp) }
+        val deps = decls.associate { it.name.value to collectDependencies(it.exp) }
 
         val dag = DAG<String, Decl.ValDecl>()
-        val nodes = decls.associate { it.name.name to DagNode(it.name.name, it) }
+        val nodes = decls.associate { it.name.value to DagNode(it.name.value, it) }
         dag.addNodes(nodes.values)
 
         nodes.values.forEach { node ->

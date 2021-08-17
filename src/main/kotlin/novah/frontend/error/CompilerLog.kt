@@ -58,7 +58,7 @@ data class CompilerProblem(
 
         val decl = ctx.decl
         if (decl != null) {
-            str += "in declaration ${decl.name}"
+            str += "in declaration ${decl.name.value}"
         }
         return if (str.isEmpty()) str else "$str\n\n"
     }

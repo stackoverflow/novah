@@ -54,7 +54,7 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
     ) : Decl(span, comment)
 
     data class ValDecl(
-        val name: Binder,
+        val name: Spanned<String>,
         val exp: Expr,
         val recursive: Boolean,
         override val span: Span,

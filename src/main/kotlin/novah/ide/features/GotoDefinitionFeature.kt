@@ -54,7 +54,7 @@ class GotoDefinitionFeature(private val server: NovahServer) {
         var location: Location? = null
         fun goto(name: String, moduleName: String): Location? {
             val mod = mods[moduleName]?.ast ?: return null
-            return mod.decls.find { it is Decl.ValDecl && it.name.name == name }?.let { newLocation(mod, it.span) }
+            return mod.decls.find { it is Decl.ValDecl && it.name.value == name }?.let { newLocation(mod, it.span) }
         }
 
         fun gotoType(name: String, moduleName: String): Location? {

@@ -373,7 +373,7 @@ class Parser(
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
             val exp = parseDo()
-            val binder = Binder(name, if (nameTk2 != null) nameTk2!!.span else nameTk.span)
+            val binder = Spanned(if (nameTk2 != null) nameTk2!!.span else nameTk.span, name)
             Decl.ValDecl(binder, vars, exp, sig, vis, isInstance, isOperator)
                 .withSpan(nameTk.span, exp.span)
         }
