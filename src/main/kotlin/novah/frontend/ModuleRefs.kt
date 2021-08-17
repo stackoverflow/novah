@@ -184,7 +184,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
     for (type in (types as List<ForeignImport.Type>)) {
         val fqType = type.type
-        val clazz = cl.safeLoadClass(fqType)
+        val clazz = cl.safeFindClass(fqType)
         if (clazz == null) {
             errors += makeError(type.span)(Errors.classNotFound(fqType))
             continue
@@ -207,7 +207,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     for (imp in foreigns) {
         val error = makeError(imp.span)
         val type = typealiases[imp.type] ?: Reflection.novahToJava(imp.type)
-        val clazz = cl.safeLoadClass(type)
+        val clazz = cl.safeFindClass(type)
         if (clazz == null) {
             errors += error(Errors.classNotFound(type))
             continue

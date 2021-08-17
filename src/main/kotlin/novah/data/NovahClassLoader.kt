@@ -17,29 +17,36 @@ package novah.data
 
 import novah.Core
 import novah.collections.Record
+import java.net.URL
+import java.net.URLClassLoader
 import java.util.*
 
-// TODO: implement this class
-class NovahClassLoader(private val classPath: String) : ClassLoader() {
+class NovahClassLoader(classPath: String) : ClassLoader() {
 
-    private val clparent = getPlatformClassLoader()
+    private val classLoader: URLClassLoader
 
-    override fun findClass(name: String?): Class<*> {
-        return super.findClass(name)
+    init {
+        val sep = System.getProperty("path.separator")
+        val urls = classPath.split(sep).map(::pathToUrl).toTypedArray()
+        classLoader = URLClassLoader("Novah class loader", urls, getPlatformClassLoader())
     }
 
-    override fun loadClass(name: String): Class<*> {
+    override fun findClass(name: String): Class<*> {
         if (name == "novah.Core") return Core::class.java
         if (name == "novah.collections.Record") return Record::class.java
         if (name.startsWith("io.lacuna.bifurcan")) return Class.forName(name)
-        return clparent.loadClass(name)
+        return classLoader.loadClass(name)
+    }
+
+    override fun loadClass(name: String, resolve: Boolean): Class<*> {
+        return super.loadClass(name, resolve)
     }
 
     /**
-     * Attempts to load a class.
+     * Attempts to find a class.
      * Returns null if didn't succeed.
      */
-    fun safeLoadClass(name: String): Class<*>? {
+    fun safeFindClass(name: String): Class<*>? {
         when (name) {
             "byte[]" -> return ByteArray::class.java
             "short[]" -> return ShortArray::class.java
@@ -51,7 +58,7 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
             "boolean[]" -> return BooleanArray::class.java
         }
         return try {
-            loadClass(name)
+            findClass(name)
         } catch (_: ClassNotFoundException) {
             null
         }
@@ -59,11 +66,18 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
 
     /**
      * Checks if class `name` is a Throwable.
-     * The optional will be empty if cannot load class.
+     * The optional will be empty if it cannot load the class.
      */
     fun isException(name: String): Optional<Boolean> {
-        return safeLoadClass(name)?.let {
+        return safeFindClass(name)?.let {
             Optional.of(Throwable::class.java.isAssignableFrom(it))
         } ?: Optional.empty()
+    }
+
+    companion object {
+        fun pathToUrl(path: String): URL {
+            return if (path.endsWith(".jar")) URL("jar:file:$path!")
+            else URL("file:$path")
+        }
     }
 }
