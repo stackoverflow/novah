@@ -44,7 +44,7 @@ data class Module(
 
 sealed class Decl(open val span: Span, open val comment: Comment?) {
     data class TypeDecl(
-        val name: String,
+        val name: Spanned<String>,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
         override val span: Span,
@@ -54,7 +54,7 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
     ) : Decl(span, comment)
 
     data class ValDecl(
-        val name: Binder,
+        val name: Spanned<String>,
         val exp: Expr,
         val recursive: Boolean,
         override val span: Span,
@@ -74,12 +74,17 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
 data class Signature(val type: Type, val span: Span)
 
 fun Decl.TypeDecl.show(): String {
-    return if (tyVars.isEmpty()) name else name + tyVars.joinToString(" ", prefix = " ")
+    return if (tyVars.isEmpty()) name.value else name.value + tyVars.joinToString(" ", prefix = " ")
 }
 
-data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
+data class DataConstructor(
+    val name: Spanned<String>,
+    val args: List<Type>,
+    val visibility: Visibility,
+    val span: Span
+) {
     override fun toString(): String {
-        return name + args.joinToString(" ", prefix = " ")
+        return name.value + args.joinToString(" ", prefix = " ")
     }
 
     fun isPublic() = visibility == Visibility.PUBLIC
@@ -177,7 +182,7 @@ data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = n
 sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
     data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
-    data class Var(val name: String, override val span: Span) : Pattern(span)
+    data class Var(val v: Expr.Var) : Pattern(v.span)
     data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
     data class ListP(val elems: List<Pattern>, override val span: Span) : Pattern(span)
@@ -201,7 +206,7 @@ sealed class LiteralPattern(open val e: Expr) {
 
 fun Pattern.show(): String = when (this) {
     is Pattern.Wildcard -> "_"
-    is Pattern.Var -> name
+    is Pattern.Var -> v.name
     is Pattern.Ctor -> if (fields.isEmpty()) ctor.name else "${ctor.name} " + fields.joinToString(" ") { it.show() }
     is Pattern.LiteralP -> lit.show()
     is Pattern.Record -> "{ " + labels.show { l, e -> "$l: ${e.show()}" } + " }"
@@ -299,9 +304,18 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
             is Expr.Match -> {
                 f(e)
                 e.exps.forEach { go(it) }
-                e.cases.forEach {
-                    if (it.guard != null) go(it.guard)
-                    go(it.exp)
+                e.cases.forEach { case ->
+                    case.patterns.forEach { p ->
+                        p.everywhereUnit {
+                            when (it) {
+                                is Pattern.Ctor -> go(it.ctor)
+                                is Pattern.LiteralP -> go(it.lit.e)
+                                is Pattern.Var -> go(it.v)
+                            }
+                        }
+                    }
+                    if (case.guard != null) go(case.guard)
+                    go(case.exp)
                 }
             }
             is Expr.Ann -> {

@@ -210,9 +210,9 @@ class PatternMatchingCompiler<R> {
             for (dd in mod.decls.filterIsInstance<Decl.TypeDecl>()) {
                 val span = dd.dataCtors.size
                 for (c in dd.dataCtors) {
-                    val name = "${mod.name.value}.${c.name}"
+                    val name = "${mod.name.value}.${c.name.value}"
                     if (ctorCache.containsKey(name)) break
-                    ctorCache[name] = Ctor(c.name, c.args.size, span)
+                    ctorCache[name] = Ctor(c.name.value, c.args.size, span)
                 }
             }
         }
@@ -234,7 +234,7 @@ class PatternMatchingCompiler<R> {
 
         private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {
             is Pattern.Wildcard -> Pat.PVar("_")
-            is Pattern.Var -> Pat.PVar(p.name)
+            is Pattern.Var -> Pat.PVar(p.v.name)
             is Pattern.Ctor -> {
                 val name = p.ctor.fullname(p.ctor.moduleName ?: modName)
                 Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })

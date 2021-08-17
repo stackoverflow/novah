@@ -300,7 +300,8 @@ class Parser(
         val typ = expect<TypeT>(noErr())
         return withOffside(typ.offside() + 1) {
 
-            val name = expect<UpperIdent>(withError(E.DATA_NAME)).value.v
+            val nameTk = expect<UpperIdent>(withError(E.DATA_NAME))
+            val name = Spanned(nameTk.span, nameTk.value.v)
 
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
 
@@ -322,7 +323,8 @@ class Parser(
         val tk = expect<Opaque>(noErr())
         expect<TypeT>(withError(E.INVALID_OPAQUE))
         return withOffside(tk.offside() + 1) {
-            val name = expect<UpperIdent>(withError(E.DATA_NAME)).value.v
+            val nameTk = expect<UpperIdent>(withError(E.DATA_NAME))
+            val name = Spanned(nameTk.span, nameTk.value.v)
 
             val tyVars = parseListOf(::parseTypeVar) { it is Ident }
             expect<Equals>(withError(E.DATA_EQUALS))
@@ -371,7 +373,7 @@ class Parser(
             expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
             val exp = parseDo()
-            val binder = Binder(name, if (nameTk2 != null) nameTk2!!.span else nameTk.span)
+            val binder = Spanned(if (nameTk2 != null) nameTk2!!.span else nameTk.span, name)
             Decl.ValDecl(binder, vars, exp, sig, vis, isInstance, isOperator)
                 .withSpan(nameTk.span, exp.span)
         }
@@ -806,7 +808,8 @@ class Parser(
             }
             is Ident -> {
                 iter.next()
-                Pattern.Var(tk.value.v, tk.span)
+                val v = Expr.Var(tk.value.v).withSpan(tk.span) as Expr.Var
+                Pattern.Var(v)
             }
             is BoolT -> {
                 iter.next()
@@ -924,7 +927,8 @@ class Parser(
     private fun parsePatternRow(): Pair<String, Pattern> {
         val (label, tk) = parseLabel()
         if (iter.peek().value !is Colon && tk.value is Ident) {
-            return label to Pattern.Var(label, tk.span)
+            val v = Expr.Var(label).withSpan(tk.span) as Expr.Var
+            return label to Pattern.Var(v)
         }
         expect<Colon>(withError(E.RECORD_COLON))
         val pat = parsePattern()
@@ -1033,7 +1037,8 @@ class Parser(
     }
 
     private fun parseDataConstructor(typeVars: List<String>, visibility: Token?): DataConstructor {
-        val ctor = expect<UpperIdent>(withError(E.CTOR_NAME))
+        val ctorTk = expect<UpperIdent>(withError(E.CTOR_NAME))
+        val ctor = Spanned(ctorTk.span, ctorTk.value.v)
 
         val vis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
 
@@ -1041,9 +1046,9 @@ class Parser(
 
         val freeVars = pars.flatMap { it.findFreeVars(typeVars) }
         if (freeVars.isNotEmpty()) {
-            throwError(E.undefinedVarInCtor(ctor.value.v, freeVars) to span(ctor.span, iter.current().span))
+            throwError(E.undefinedVarInCtor(ctor.value, freeVars) to span(ctor.span, iter.current().span))
         }
-        return DataConstructor(ctor.value.v, pars, vis, span(ctor.span, iter.current().span))
+        return DataConstructor(ctor, pars, vis, span(ctor.span, iter.current().span))
     }
 
     private fun parseDo(): Expr {

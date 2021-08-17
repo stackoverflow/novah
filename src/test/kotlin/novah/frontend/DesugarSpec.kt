@@ -27,9 +27,9 @@ import novah.frontend.TestUtil.simpleName
 
 class DesugarSpec : StringSpec({
 
-    fun List<Decl.TypeDecl>.byName(n: String) = find { it.name == n }!!
-    fun List<Decl.ValDecl>.byName(n: String) = find { it.name.name == n }!!
-    fun List<DataConstructor>.byName(n: String) = find { it.name == n }!!
+    fun List<Decl.TypeDecl>.byName(n: String) = find { it.name.value == n }!!
+    fun List<Decl.ValDecl>.byName(n: String) = find { it.name.value == n }!!
+    fun List<DataConstructor>.byName(n: String) = find { it.name.value == n }!!
 
     "visibility is correctly set" {
         val code = """

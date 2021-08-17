@@ -31,6 +31,9 @@ fname : File -> String
 fname f =
   fileName f ++ separator
 
+value : Id
+value = Id "asd"
+
 /**
  * This is my comment
  * it should describe the function
@@ -41,9 +44,9 @@ myfun x =
   let other = vari * x
   x + vari + other |> show
 
-typecast : a -> Map String a
+typecast : String -> Map String Id
 typecast typ =
-  Map.new ["a" <> typ] as Map String a
+  Map.new ["a" <> Id typ] as Map String Id
 
 /**
  * The badge is a lie.

@@ -15,10 +15,7 @@
  */
 package novah.ide.features
 
-import novah.ast.canonical.Decl
-import novah.ast.canonical.Expr
 import novah.ast.canonical.Module
-import novah.ast.canonical.everywhere
 import novah.frontend.Span
 import novah.ide.IdeUtil
 import novah.ide.NovahServer

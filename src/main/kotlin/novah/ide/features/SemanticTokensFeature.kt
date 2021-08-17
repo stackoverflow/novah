@@ -110,7 +110,7 @@ class SemanticTokensFeature(private val server: NovahServer) {
                 exp.cases[0].patterns[0].everywhereUnit { p ->
                     when (p) {
                         is Pattern.Var -> {
-                            parNames += p.name
+                            parNames += p.v.name
                             tokens += genLine(p.span, PARAM)
                         }
                     }

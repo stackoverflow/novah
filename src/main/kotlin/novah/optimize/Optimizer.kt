@@ -86,13 +86,13 @@ class Optimizer(private val ast: CModule) {
     }
 
     private fun CValDecl.convert(): Decl.ValDecl =
-        Decl.ValDecl(Names.convert(name.name), exp.convert(), visibility, span)
+        Decl.ValDecl(Names.convert(name.value), exp.convert(), visibility, span)
 
     private fun CDataDecl.convert(): Decl.TypeDecl =
-        Decl.TypeDecl(name, tyVars, dataCtors.map { it.convert() }, visibility, span)
+        Decl.TypeDecl(name.value, tyVars, dataCtors.map { it.convert() }, visibility, span)
 
     private fun CDataConstructor.convert(): DataConstructor =
-        DataConstructor(name, args.map { it.convert() }, visibility)
+        DataConstructor(name.value, args.map { it.convert() }, visibility)
 
     private fun CExpr.convert(locals: List<String> = listOf()): Expr {
         val typ = if (type != null) {
@@ -376,7 +376,7 @@ class Optimizer(private val ast: CModule) {
 
         fun desugarPattern(p: Pattern, exp: Expr): PatternResult = when (p) {
             is Pattern.Wildcard -> PatternResult(tru)
-            is Pattern.Var -> PatternResult(tru, listOf(VarDef(Names.convert(p.name), exp)))
+            is Pattern.Var -> PatternResult(tru, listOf(VarDef(Names.convert(p.v.name), exp)))
             is Pattern.Unit -> PatternResult(tru)
             is Pattern.LiteralP -> {
                 val method = when (p.lit) {

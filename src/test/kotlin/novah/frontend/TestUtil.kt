@@ -16,7 +16,6 @@
 package novah.frontend
 
 import novah.ast.source.*
-import novah.data.flatMapList
 import novah.data.map
 import novah.data.mapList
 import novah.data.unwrapOrElse
@@ -107,8 +106,8 @@ object TestUtil {
 
     fun _i(i: Int) = Expr.Int32(i, "$i")
     fun _v(n: String) = Expr.Var(n)
-    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { Pattern.Var(it, Span.empty()) }, e)
-    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(Pattern.Var(n, Span.empty())), e)
+    fun abs(ns: List<String>, e: Expr) = Expr.Lambda(ns.map { Pattern.Var(Expr.Var(it)) }, e)
+    fun abs(n: String, e: Expr) = Expr.Lambda(listOf(Pattern.Var(Expr.Var(n))), e)
 
     fun String.module() = "module test\n\n${this.trimIndent()}"
 

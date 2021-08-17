@@ -27,7 +27,7 @@ class TypedASTSpec : StringSpec({
 
     fun toMap(m: Module): Map<String, Expr> {
         val map = mutableMapOf<String, Expr>()
-        m.decls.filterIsInstance<Decl.ValDecl>().forEach { map[it.name.name] = it.exp }
+        m.decls.filterIsInstance<Decl.ValDecl>().forEach { map[it.name.value] = it.exp }
         return map
     }
 

@@ -43,7 +43,7 @@ class ParserSpec : StringSpec({
         decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp!!
 
     fun comparePattern(p1: Pattern, p2: Pattern): Boolean = when {
-        p1 is Pattern.Var && p2 is Pattern.Var -> p1.name == p2.name
+        p1 is Pattern.Var && p2 is Pattern.Var -> p1.v.name == p2.v.name
         p1 is Pattern.ImplicitPattern && p2 is Pattern.ImplicitPattern -> p1.pat == p2.pat
         else -> false
     }

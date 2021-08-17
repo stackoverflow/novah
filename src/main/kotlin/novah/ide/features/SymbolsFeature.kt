@@ -56,7 +56,7 @@ class SymbolsFeature(private val server: NovahServer) {
                 is Decl.TypeDecl -> typeDeclToSymbol(decl)
                 is Decl.ValDecl -> {
                     DocumentSymbol(
-                        decl.name.name,
+                        decl.name.value,
                         if (decl.signature?.type is TArrow) SymbolKind.Function else SymbolKind.Variable,
                         spanToRange(decl.span),
                         spanToRange(decl.name.span),
@@ -91,7 +91,7 @@ class SymbolsFeature(private val server: NovahServer) {
 
     private fun typeDeclToSymbol(d: Decl.TypeDecl): DocumentSymbol {
         val tySym = DocumentSymbol(
-            d.name,
+            d.name.value,
             SymbolKind.Class,
             spanToRange(d.span),
             spanToRange(d.span),
@@ -99,7 +99,7 @@ class SymbolsFeature(private val server: NovahServer) {
         )
         val ctors = d.dataCtors.map {
             DocumentSymbol(
-                it.name,
+                it.name.value,
                 SymbolKind.Constructor,
                 spanToRange(it.span),
                 spanToRange(it.span)

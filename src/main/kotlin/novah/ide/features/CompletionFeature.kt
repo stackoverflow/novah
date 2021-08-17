@@ -261,8 +261,9 @@ class CompletionFeature(private val server: NovahServer) {
         for (d in ast.decls) {
             when (d) {
                 is Decl.TypeDecl -> {
-                    if ((ownModule || d.isPublic()) && d.name.startsWith(name) && pred(d.name)) {
-                        val ci = CompletionItem(name(alias, d.name))
+                    val tname = d.name.value
+                    if ((ownModule || d.isPublic()) && tname.startsWith(name) && pred(tname)) {
+                        val ci = CompletionItem(name(alias, tname))
                         ci.kind = CompletionItemKind.Class
                         ci.documentation = getDoc(d.comment, module)
                         ci.detail = d.show()
@@ -270,8 +271,9 @@ class CompletionFeature(private val server: NovahServer) {
                     }
                     if (typesOnly) continue
                     d.dataCtors.forEach { dc ->
-                        if ((ownModule || dc.isPublic()) && dc.name.startsWith(name) && pred(dc.name)) {
-                            val ci = CompletionItem(name(alias, dc.name))
+                        val dcname = dc.name.value
+                        if ((ownModule || dc.isPublic()) && dcname.startsWith(name) && pred(dcname)) {
+                            val ci = CompletionItem(name(alias, dcname))
                             ci.kind = CompletionItemKind.Constructor
                             ci.documentation = getDoc(d.comment, module)
                             ci.detail = getCtorDetails(dc, d.show())
@@ -303,8 +305,8 @@ class CompletionFeature(private val server: NovahServer) {
                                 }
                             }
                     }
-                    if ((ownModule || d.isPublic()) && d.name.name.startsWith(name) && pred(d.name.name)) {
-                        val ci = CompletionItem(name(alias, d.name.name))
+                    if ((ownModule || d.isPublic()) && d.name.value.startsWith(name) && pred(d.name.value)) {
+                        val ci = CompletionItem(name(alias, d.name.value))
                         ci.kind = getKind(d)
                         ci.detail = getDetail(d)
                         ci.documentation = getDoc(d.comment, module)

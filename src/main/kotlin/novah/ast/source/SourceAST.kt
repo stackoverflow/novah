@@ -145,22 +145,22 @@ fun ForeignImport.name(): String = when (this) {
 
 sealed class Decl(val name: String, val visibility: Visibility) {
     class TypeDecl(
-        name: String,
+        val binder: Spanned<String>,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
         visibility: Visibility,
         val isOpaque: Boolean
-    ) : Decl(name, visibility)
+    ) : Decl(binder.value, visibility)
 
     class ValDecl(
-        val binder: Binder,
+        val binder: Spanned<String>,
         val patterns: List<Pattern>,
         val exp: Expr,
         val signature: Signature?,
         visibility: Visibility,
         val isInstance: Boolean,
         val isOperator: Boolean
-    ) : Decl(binder.name, visibility)
+    ) : Decl(binder.value, visibility)
 
     class TypealiasDecl(name: String, val tyVars: List<String>, val type: Type, visibility: Visibility) :
         Decl(name, visibility) {
@@ -176,9 +176,14 @@ sealed class Decl(val name: String, val visibility: Visibility) {
 
 data class Signature(val type: Type, val span: Span)
 
-data class DataConstructor(val name: String, val args: List<Type>, val visibility: Visibility, val span: Span) {
+data class DataConstructor(
+    val name: Spanned<String>,
+    val args: List<Type>,
+    val visibility: Visibility,
+    val span: Span
+) {
     override fun toString(): String {
-        return name + args.joinToString(" ", prefix = " ")
+        return name.value + args.joinToString(" ", prefix = " ")
     }
 }
 
@@ -315,7 +320,7 @@ data class Case(val patterns: List<Pattern>, val exp: Expr, val guard: Expr? = n
 sealed class Pattern(open val span: Span) {
     data class Wildcard(override val span: Span) : Pattern(span)
     data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
-    data class Var(val name: String, override val span: Span) : Pattern(span)
+    data class Var(val v: Expr.Var) : Pattern(v.span)
     data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
     data class Parens(val pattern: Pattern, override val span: Span) : Pattern(span)
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
@@ -412,7 +417,7 @@ sealed class Type(open val span: Span) {
         is TRowExtend -> copy(span = s)
         is TImplicit -> copy(span = s)
     }
-    
+
     fun show(): String = when (this) {
         is TConst -> name
         is TApp -> {

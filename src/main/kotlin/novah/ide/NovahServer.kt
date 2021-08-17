@@ -35,6 +35,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.exists
+import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.system.exitProcess
 
 class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClientAware {
@@ -84,6 +85,11 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         // Code actions capability
         val caOpts = CodeActionOptions(mutableListOf("quickfix"))
         initializeResult.capabilities.codeActionProvider = Either.forRight(caOpts)
+        // Find references capability
+        initializeResult.capabilities.referencesProvider = Either.forLeft(true)
+        // Rename capability
+        val renOpt = RenameOptions(true)
+        initializeResult.capabilities.renameProvider = Either.forRight(renOpt)
 
         // initial build
         build()
@@ -209,7 +215,14 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         }
     }
 
-    val stdlibFiles = mutableMapOf<String, String>()
+    private val stdlibFiles = mutableMapOf<String, String>()
+
+    fun locationUri(moduleName: String, sourceName: String): String {
+        return if (moduleName in Environment.stdlibModuleNames()) {
+            val path = stdlibFiles[sourceName]!!
+            "novah:${Paths.get(path).invariantSeparatorsPathString}"
+        } else IdeUtil.fileToUri(sourceName)
+    }
 
     /**
      * Unpack the stdlib to a temp folder, so we can open it in

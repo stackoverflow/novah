@@ -62,28 +62,30 @@ object Inference {
         val datas = ast.decls.filterIsInstance<Decl.TypeDecl>()
         datas.forEach { d ->
             val (ty, map) = getDataType(d, ast.name.value)
-            checkShadowType(env, d.name, d.span)
-            env.extendType("${ast.name.value}.${d.name}", ty)
+            checkShadowType(env, d.name.value, d.span)
+            env.extendType("${ast.name.value}.${d.name.value}", ty)
 
             d.dataCtors.forEach { dc ->
+                val dcname = dc.name.value
                 val dcty = getCtorType(dc, ty, map)
-                checkShadow(env, dc.name, dc.span)
-                env.extend(dc.name, dcty)
-                Environment.cacheConstructorType("${ast.name.value}.${dc.name}", dcty)
-                decls[dc.name] = DeclRef(dcty, dc.visibility, false, null)
+                checkShadow(env, dcname, dc.span)
+                env.extend(dcname, dcty)
+                Environment.cacheConstructorType("${ast.name.value}.$dcname", dcty)
+                decls[dcname] = DeclRef(dcty, dc.visibility, false, null)
             }
-            types[d.name] = TypeDeclRef(ty, d.visibility, d.isOpaque, d.dataCtors.map { it.name }, d.comment)
+            types[d.name.value] =
+                TypeDeclRef(ty, d.visibility, d.isOpaque, d.dataCtors.map { it.name.value }, d.comment)
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
-                Typechecker.checkWellFormed(env.lookup(dc.name)!!, dc.span)
+                Typechecker.checkWellFormed(env.lookup(dc.name.value)!!, dc.span)
             }
         }
 
         val vals = ast.decls.filterIsInstance<Decl.ValDecl>()
         vals.filter { it.exp is Expr.Ann }.forEach { decl ->
             val expr = decl.exp as Expr.Ann
-            val name = decl.name.name
+            val name = decl.name.value
             checkShadow(env, name, decl.span)
             env.extend(name, expr.annType)
             if (decl.isInstance) env.extendInstance(name, expr.annType)
@@ -92,7 +94,7 @@ object Inference {
         vals.forEach { decl ->
             implicitsToCheck.clear()
             context?.apply { this.decl = decl }
-            val name = decl.name.name
+            val name = decl.name.value
             val isAnnotated = decl.exp is Expr.Ann
             if (!isAnnotated) checkShadow(env, name, decl.span)
 
@@ -407,7 +409,7 @@ object Inference {
                 unify(ty, tUnit, pat.span)
                 emptyList()
             }
-            is Pattern.Var -> listOf(PatternVar(pat.name, ty, pat.span))
+            is Pattern.Var -> listOf(PatternVar(pat.v.name, ty, pat.span))
             is Pattern.Ctor -> {
                 val cty = infer(env, level, pat.ctor)
 
@@ -603,7 +605,7 @@ object Inference {
 
     private fun getDataType(d: Decl.TypeDecl, moduleName: String): Pair<Type, Map<String, TVar>> {
         val kind = if (d.tyVars.isEmpty()) Kind.Star else Kind.Constructor(d.tyVars.size)
-        val raw = TConst("$moduleName.${d.name}", kind).span(d.span)
+        val raw = TConst("$moduleName.${d.name.value}", kind).span(d.span)
 
         return if (d.tyVars.isEmpty()) raw to emptyMap()
         else {

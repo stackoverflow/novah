@@ -100,7 +100,7 @@ class Desugar(private val smod: SModule) {
             if (smod.foreignTypes[name] != null || imports[name] != null) {
                 parserError(E.duplicatedType(name), span)
             }
-            Decl.TypeDecl(name, tyVars, dataCtors.map { it.desugar() }, span, visibility, isOpaque, comment)
+            Decl.TypeDecl(binder, tyVars, dataCtors.map { it.desugar() }, span, visibility, isOpaque, comment)
         }
         is SDecl.ValDecl -> {
             if (declNames.contains(name)) parserError(E.duplicatedDecl(name), span)
@@ -125,7 +125,7 @@ class Desugar(private val smod: SModule) {
             expr = if (expType != null) Expr.Ann(expr, expType, expr.span) else expr
             if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
             Decl.ValDecl(
-                binder.desugar(),
+                binder,
                 expr,
                 name in declVars,
                 span,
@@ -359,7 +359,7 @@ class Desugar(private val smod: SModule) {
     private fun SPattern.desugar(locals: List<String>, tvars: Map<String, Type>): Pattern = when (this) {
         is SPattern.Wildcard -> Pattern.Wildcard(span)
         is SPattern.LiteralP -> Pattern.LiteralP(lit.desugar(locals), span)
-        is SPattern.Var -> Pattern.Var(name, span)
+        is SPattern.Var -> Pattern.Var(Expr.Var(v.name, v.span))
         is SPattern.Ctor -> Pattern.Ctor(
             ctor.desugar(locals, tvars) as Expr.Constructor,
             fields.map { it.desugar(locals, tvars) },
@@ -458,7 +458,7 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun collectVars(pat: SPattern, implicit: Boolean = false): List<CollectedVar> = when (pat) {
-        is SPattern.Var -> listOf(CollectedVar(pat.name, pat.span, implicit = implicit))
+        is SPattern.Var -> listOf(CollectedVar(pat.v.name, pat.span, implicit = implicit))
         is SPattern.Parens -> collectVars(pat.pattern, implicit)
         is SPattern.Ctor -> pat.fields.flatMap { collectVars(it, implicit) }
         is SPattern.Record -> pat.labels.flatMapList { collectVars(it, implicit) }.toList()
@@ -489,14 +489,14 @@ class Desugar(private val smod: SModule) {
         else {
             when (val pat = pats[0]) {
                 is SPattern.Var -> Expr.Lambda(
-                    Binder(pat.name, pat.span, false),
+                    Binder(pat.v.name, pat.span, false),
                     nestLambdaPatterns(pats.drop(1), exp, locals, tvars),
                     Span.new(pat.span, exp.span)
                 )
                 is SPattern.ImplicitPattern -> {
                     if (pat.pat is SPattern.Var) {
                         Expr.Lambda(
-                            Binder(pat.pat.name, pat.span, true),
+                            Binder(pat.pat.v.name, pat.span, true),
                             nestLambdaPatterns(pats.drop(1), exp, locals, tvars),
                             Span.new(pat.span, exp.span)
                         )
@@ -659,24 +659,21 @@ class Desugar(private val smod: SModule) {
 
         fun collectDependencies(exp: Expr): Set<String> {
             val deps = mutableSetOf<String>()
-            exp.everywhere { e ->
+            exp.everywhereUnit { e ->
                 when (e) {
                     is Expr.Var -> deps += e.fullname()
                     is Expr.ImplicitVar -> deps += e.fullname()
                     is Expr.Constructor -> deps += e.fullname()
-                    else -> {
-                    }
                 }
-                e
             }
             return deps
         }
 
         val (decls, types) = desugared.partitionIsInstance<Decl.ValDecl, Decl>()
-        val deps = decls.associate { it.name.name to collectDependencies(it.exp) }
+        val deps = decls.associate { it.name.value to collectDependencies(it.exp) }
 
         val dag = DAG<String, Decl.ValDecl>()
-        val nodes = decls.associate { it.name.name to DagNode(it.name.name, it) }
+        val nodes = decls.associate { it.name.value to DagNode(it.name.value, it) }
         dag.addNodes(nodes.values)
 
         nodes.values.forEach { node ->
@@ -710,7 +707,7 @@ class Desugar(private val smod: SModule) {
         if (dd.dataCtors.size > 1) {
             val typeName = dd.name
             dd.dataCtors.forEach { dc ->
-                if (dc.name == typeName)
+                if (dc.name.value == typeName)
                     parserError(E.wrongConstructorName(typeName), dd.span)
             }
         }

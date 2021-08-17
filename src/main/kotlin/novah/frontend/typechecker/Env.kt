@@ -247,7 +247,7 @@ val primModule = Module(
 
 private fun primType(name: String, comment: String) =
     Decl.TypeDecl(
-        name,
+        Spanned.empty(name),
         emptyList(),
         emptyList(),
         Span.empty(),

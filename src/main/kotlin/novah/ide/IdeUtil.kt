@@ -38,8 +38,36 @@ object IdeUtil {
         return Range(start, end)
     }
 
+    fun rangeToSpan(r: Range) =
+        Span(r.start.line + 1, r.start.character + 1, r.end.line + 1, r.end.character + 1)
+
     fun parseCode(code: String): Result<Module, CompilerProblem> {
         val lexer = Lexer(code.iterator())
         return Parser(lexer, false).parseFullModule()
     }
+
+    /**
+     * Get the module out of a fully qualified name.
+     * Ex: some.module.Name
+     * -> some.module
+     */
+    fun getModule(fqn: String): String? {
+        val idx = fqn.lastIndexOf(".")
+        return if (idx == -1) null
+        else fqn.substring(0, idx)
+    }
+
+    /**
+     * The oposite of `getModule`.
+     * Returns the simple name of this fully qualified identifier
+     */
+    fun getName(fqn: String): String {
+        val idx = fqn.lastIndexOf(".")
+        return if (idx == -1) fqn
+        else fqn.substring(idx + 1)
+    }
+
+    private val symbolRegex = Regex("""[\w_][\w\d_]*""")
+
+    fun isValidIdentifier(ident: String) = symbolRegex.matches(ident)
 }
