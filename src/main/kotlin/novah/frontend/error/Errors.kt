@@ -265,10 +265,14 @@ object Errors {
 
     fun literalExpected(name: String) = "Expected $name literal."
 
-    fun duplicateModule(name: String) = "Found duplicate module $name."
+    fun duplicateModule(name: String) = """
+        Found duplicate module
+        
+            $name
+    """.trimIndent()
 
     fun cycleFound(nodes: List<String>) =
-        nodes.joinToString(prefix = "Found cycle between modules ", postfix = ".")
+        nodes.joinToString("\n\n", prefix = "Found cycle between modules\n\n") { "    $it" }
 
     fun cycleInValues(nodes: List<String>) =
         nodes.joinToString(prefix = "Found cycle between values ", postfix = ".")

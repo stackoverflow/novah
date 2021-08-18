@@ -190,7 +190,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             }
         logger().info("compiling project")
 
-        val lenv = Environment(root!!, verbose = false)
+        val lenv = Environment(null, verbose = false)
         PatternMatchingCompiler.resetCache()
         try {
             lenv.parseSources(sources.asSequence())

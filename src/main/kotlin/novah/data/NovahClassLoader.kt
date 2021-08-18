@@ -15,20 +15,26 @@
  */
 package novah.data
 
+import com.github.ajalt.clikt.output.TermUi
 import novah.Core
 import novah.collections.Record
+import java.io.File
+import java.net.MalformedURLException
 import java.net.URL
 import java.net.URLClassLoader
-import java.util.*
 
-class NovahClassLoader(classPath: String) : ClassLoader() {
+class NovahClassLoader(classpath: String?) : ClassLoader() {
 
-    private val classLoader: URLClassLoader
+    private val classLoader: ClassLoader
 
     init {
-        val sep = System.getProperty("path.separator")
-        val urls = classPath.split(sep).map(::pathToUrl).toTypedArray()
-        classLoader = URLClassLoader("Novah class loader", urls, getPlatformClassLoader())
+        classLoader = if (classpath != null) {
+            val sep = System.getProperty("path.separator")
+            val urls = classpath.split(sep).map(::pathToUrl).toTypedArray()
+            URLClassLoader("Novah class loader", urls, getPlatformClassLoader())
+        } else {
+            getPlatformClassLoader()
+        }
     }
 
     override fun findClass(name: String): Class<*> {
@@ -66,18 +72,25 @@ class NovahClassLoader(classPath: String) : ClassLoader() {
 
     /**
      * Checks if class `name` is a Throwable.
-     * The optional will be empty if it cannot load the class.
+     * Returns false if the class is not found.
      */
-    fun isException(name: String): Optional<Boolean> {
+    fun isException(name: String): Boolean {
         return safeFindClass(name)?.let {
-            Optional.of(Throwable::class.java.isAssignableFrom(it))
-        } ?: Optional.empty()
+            Throwable::class.java.isAssignableFrom(it)
+        } ?: false
     }
 
     companion object {
         fun pathToUrl(path: String): URL {
-            return if (path.endsWith(".jar")) URL("jar:file:$path!")
-            else URL("file:$path")
+            val f = File(path)
+
+            try {
+                return if (path.endsWith(".jar")) URL("jar:file:${f.absolutePath}!/")
+                else URL("file:${f.absolutePath}")
+            } catch (m: MalformedURLException) {
+                TermUi.echo("Error while parsing classpath item `$path`", err = true)
+                throw m
+            }
         }
     }
 }

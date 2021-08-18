@@ -19,6 +19,7 @@ import novah.Core
 import novah.Util.internalError
 import novah.ast.source.*
 import novah.data.LabelMap
+import novah.data.NovahClassLoader
 import novah.data.Reflection
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
@@ -27,7 +28,6 @@ import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.main.DeclRef
-import novah.main.Environment
 import novah.main.FullModuleEnv
 import novah.main.TypeDeclRef
 import java.lang.reflect.*
@@ -167,8 +167,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
  * Resolves all java imports in this module.
  */
 @Suppress("UNCHECKED_CAST")
-fun resolveForeignImports(mod: Module): List<CompilerProblem> {
-    val cl = Environment.classLoader()
+fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProblem> {
     val errors = mutableListOf<CompilerProblem>()
 
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
