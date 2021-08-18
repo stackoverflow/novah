@@ -16,6 +16,7 @@
 package novah.main
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.default
@@ -31,7 +32,7 @@ import novah.ide.NovahIde
 import java.io.File
 import kotlin.system.exitProcess
 
-class CompileCommand : CliktCommand() {
+class CompileCommand : CliktCommand(name = "compile", help = "compile source files") {
 
     private val out by option("-o", "--out", help = "Output directory for the generated classes").file(
         mustExist = false,
@@ -44,12 +45,8 @@ class CompileCommand : CliktCommand() {
         "--verbose",
         help = "Prints information about the compilation process to stdout"
     ).flag(default = false)
-    
-    private val classPath by option("-cp", "--classpath", help = "").file(
-        mustExist = true,
-        canBeDir = true,
-        canBeFile = false
-    )
+
+    private val classPath by option("-cp", "--classpath", help = "Where to find user class files and sources")
 
     private val srcs by argument(help = "Source files").path(mustExist = true, canBeDir = false).multiple()
 
@@ -65,13 +62,9 @@ class CompileCommand : CliktCommand() {
                 return
             }
         }
-        if (classPath == null) {
-            echo("classpath was not specified. Specify it with -cp <classpath>", err = true)
-            exitProcess(1)
-        }
         if (verbose) echo("Compiling files to $out")
 
-        val compiler = Compiler.new(srcs.asSequence(), classPath!!.canonicalPath, verbose)
+        val compiler = Compiler.new(srcs.asSequence(), classPath, verbose)
         try {
             val warns = compiler.run(out)
             if (warns.isNotEmpty()) {
@@ -99,26 +92,27 @@ class CompileCommand : CliktCommand() {
     }
 }
 
-class IdeCommand : CliktCommand() {
+class IdeCommand : CliktCommand(name = "ide", help = "runs the Novah language server") {
 
     private val verbose by option(
         "-v",
         "--verbose",
         help = "Sends debug messages to the client"
     ).flag(default = false)
-    
+
     override fun run() {
         NovahIde.run(verbose)
+    }
+}
+
+class MainCommand : CliktCommand(name = "") {
+    override fun run() {
     }
 }
 
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
-        if (args.isNotEmpty() && args[0] == "ide") {
-            IdeCommand().main(args.drop(1))
-        } else {
-            CompileCommand().main(args)
-        }
+        MainCommand().subcommands(CompileCommand(), IdeCommand()).main(args)
     }
 }

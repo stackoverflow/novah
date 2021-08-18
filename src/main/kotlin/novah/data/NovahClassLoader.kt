@@ -15,31 +15,44 @@
  */
 package novah.data
 
+import com.github.ajalt.clikt.output.TermUi
 import novah.Core
 import novah.collections.Record
-import java.util.*
+import java.io.File
+import java.net.MalformedURLException
+import java.net.URL
+import java.net.URLClassLoader
 
-// TODO: implement this class
-class NovahClassLoader(private val classPath: String) : ClassLoader() {
+class NovahClassLoader(classpath: String?) : ClassLoader() {
 
-    private val clparent = getPlatformClassLoader()
+    private val classLoader: ClassLoader
 
-    override fun findClass(name: String?): Class<*> {
-        return super.findClass(name)
+    init {
+        classLoader = if (classpath != null) {
+            val sep = System.getProperty("path.separator")
+            val urls = classpath.split(sep).map(::pathToUrl).toTypedArray()
+            URLClassLoader("Novah class loader", urls, getPlatformClassLoader())
+        } else {
+            getPlatformClassLoader()
+        }
     }
 
-    override fun loadClass(name: String): Class<*> {
+    override fun findClass(name: String): Class<*> {
         if (name == "novah.Core") return Core::class.java
         if (name == "novah.collections.Record") return Record::class.java
         if (name.startsWith("io.lacuna.bifurcan")) return Class.forName(name)
-        return clparent.loadClass(name)
+        return classLoader.loadClass(name)
+    }
+
+    override fun loadClass(name: String, resolve: Boolean): Class<*> {
+        return super.loadClass(name, resolve)
     }
 
     /**
-     * Attempts to load a class.
+     * Attempts to find a class.
      * Returns null if didn't succeed.
      */
-    fun safeLoadClass(name: String): Class<*>? {
+    fun safeFindClass(name: String): Class<*>? {
         when (name) {
             "byte[]" -> return ByteArray::class.java
             "short[]" -> return ShortArray::class.java
@@ -51,7 +64,7 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
             "boolean[]" -> return BooleanArray::class.java
         }
         return try {
-            loadClass(name)
+            findClass(name)
         } catch (_: ClassNotFoundException) {
             null
         }
@@ -59,11 +72,25 @@ class NovahClassLoader(private val classPath: String) : ClassLoader() {
 
     /**
      * Checks if class `name` is a Throwable.
-     * The optional will be empty if cannot load class.
+     * Returns false if the class is not found.
      */
-    fun isException(name: String): Optional<Boolean> {
-        return safeLoadClass(name)?.let {
-            Optional.of(Throwable::class.java.isAssignableFrom(it))
-        } ?: Optional.empty()
+    fun isException(name: String): Boolean {
+        return safeFindClass(name)?.let {
+            Throwable::class.java.isAssignableFrom(it)
+        } ?: false
+    }
+
+    companion object {
+        fun pathToUrl(path: String): URL {
+            val f = File(path)
+
+            try {
+                return if (path.endsWith(".jar")) URL("jar:file:${f.absolutePath}!/")
+                else URL("file:${f.absolutePath}")
+            } catch (m: MalformedURLException) {
+                TermUi.echo("Error while parsing classpath item `$path`", err = true)
+                throw m
+            }
+        }
     }
 }

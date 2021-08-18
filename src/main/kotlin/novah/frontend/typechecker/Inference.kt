@@ -43,6 +43,8 @@ object Inference {
     private val implicitsToCheck = mutableListOf<Expr>()
     private val warnings = mutableListOf<CompilerProblem>()
 
+    var classLoader: NovahClassLoader? = null
+
     fun getWarnings(): List<CompilerProblem> = warnings
 
     /**
@@ -348,8 +350,8 @@ object Inference {
         }
         is Expr.Throw -> {
             val ty = infer(env, level, exp.exp)
-            val res = Environment.classLoader().isException(ty.typeNameOrEmpty())
-            if (res.isEmpty || !res.get()) {
+            val res = classLoader!!.isException(ty.typeNameOrEmpty())
+            if (!res) {
                 inferError(E.notException(ty.show()), exp.span)
             }
             // throw returns anything

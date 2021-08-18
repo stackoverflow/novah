@@ -29,9 +29,9 @@ import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
+import novah.frontend.typechecker.Inference
 import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
-import novah.frontend.typechecker.Inference
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import novah.util.BufferedCharIterator
@@ -41,6 +41,7 @@ import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 import java.io.File
 import java.io.InputStream
+import java.io.Reader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Pattern
@@ -50,15 +51,20 @@ import novah.ast.canonical.Module as TypedModule
  * The environment where a full compilation
  * process takes place.
  */
-class Environment(classPath: String, private val verbose: Boolean) {
+class Environment(classPath: String?, private val verbose: Boolean) {
     private val modules = mutableMapOf<String, FullModuleEnv>()
     private val sourceMap = mutableMapOf<Path, String>()
 
     private val errors = mutableListOf<CompilerProblem>()
     private val warnings = mutableListOf<CompilerProblem>()
 
+    private val classLoader: NovahClassLoader
+    private val sourceLoader: SourceCodeLoader
+
     init {
         classLoader = NovahClassLoader(classPath)
+        sourceLoader = SourceCodeLoader(classPath)
+        Inference.classLoader = classLoader
     }
 
     fun getWarnings(): List<CompilerProblem> = warnings
@@ -73,7 +79,8 @@ class Environment(classPath: String, private val verbose: Boolean) {
             innerParseSources(stdlib, isStdlib = true)
             stdlibCompiled.putAll(modules)
         }
-        return innerParseSources(sources, isStdlib = false)
+        val allSources = sourceLoader.loadSources().plus(sources)
+        return innerParseSources(allSources, isStdlib = false)
     }
 
     private fun innerParseSources(sources: Sequence<Source>, isStdlib: Boolean): Map<String, FullModuleEnv> {
@@ -124,7 +131,7 @@ class Environment(classPath: String, private val verbose: Boolean) {
         orderedMods.forEach { mod ->
             Typechecker.reset()
             val importErrs = resolveImports(mod.data, modules)
-            val foreignErrs = resolveForeignImports(mod.data)
+            val foreignErrs = resolveForeignImports(mod.data, classLoader)
             val (warns, errs) = (importErrs + foreignErrs).partition { it.severity == Severity.WARN }
             if (errs.isNotEmpty()) throwErrors(errs)
             warnings.addAll(warns)
@@ -207,13 +214,6 @@ class Environment(classPath: String, private val verbose: Boolean) {
     private fun throwError(err: CompilerProblem): Nothing = throw CompilationError(listOf(err))
 
     companion object {
-        private var classLoader: NovahClassLoader? = null
-
-        fun classLoader(): NovahClassLoader {
-            return if (classLoader == null) internalError("Novah class loader is null")
-            else classLoader!!
-        }
-
         private val stdlibModuleNames = mutableSetOf<String>()
 
         fun stdlibModuleNames(): Set<String> = stdlibModuleNames
@@ -256,12 +256,14 @@ private val stdlib by lazy {
 sealed class Source(val path: Path) {
     class SPath(path: Path) : Source(path)
     class SString(path: Path, val str: String) : Source(path)
+    class SReader(path: Path, val reader: Reader) : Source(path)
 
     fun withIterator(action: (Iterator<Char>) -> Unit): Unit = when (this) {
         is SPath -> Files.newBufferedReader(path, Charsets.UTF_8).use {
             action(BufferedCharIterator(it))
         }
         is SString -> action(str.iterator())
+        is SReader -> reader.use { action(BufferedCharIterator(it)) }
     }
 }
 

@@ -19,6 +19,7 @@ import novah.Core
 import novah.Util.internalError
 import novah.ast.source.*
 import novah.data.LabelMap
+import novah.data.NovahClassLoader
 import novah.data.Reflection
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
@@ -27,7 +28,6 @@ import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.main.DeclRef
-import novah.main.Environment
 import novah.main.FullModuleEnv
 import novah.main.TypeDeclRef
 import java.lang.reflect.*
@@ -167,8 +167,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
  * Resolves all java imports in this module.
  */
 @Suppress("UNCHECKED_CAST")
-fun resolveForeignImports(mod: Module): List<CompilerProblem> {
-    val cl = Environment.classLoader()
+fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProblem> {
     val errors = mutableListOf<CompilerProblem>()
 
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
@@ -184,7 +183,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
     for (type in (types as List<ForeignImport.Type>)) {
         val fqType = type.type
-        val clazz = cl.safeLoadClass(fqType)
+        val clazz = cl.safeFindClass(fqType)
         if (clazz == null) {
             errors += makeError(type.span)(Errors.classNotFound(fqType))
             continue
@@ -207,7 +206,7 @@ fun resolveForeignImports(mod: Module): List<CompilerProblem> {
     for (imp in foreigns) {
         val error = makeError(imp.span)
         val type = typealiases[imp.type] ?: Reflection.novahToJava(imp.type)
-        val clazz = cl.safeLoadClass(type)
+        val clazz = cl.safeFindClass(type)
         if (clazz == null) {
             errors += error(Errors.classNotFound(type))
             continue

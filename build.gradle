@@ -50,5 +50,6 @@ license {
     header = file('HEADER')
 
     exclude "**/*.txt"
+    exclude "**/gradlew"
     exclude "src/test/**/*.novah"
 }

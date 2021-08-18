@@ -67,7 +67,9 @@ class FailureSpec : StringSpec({
             module [33mmod1[0m
             at src/test/resources/multimodulefail/duplicatedmodules/same.novah:1:1 - 1:12
             
-              Found duplicate module mod1.
+              Found duplicate module
+              
+                  mod1
             
 
         """.trimIndent()
@@ -84,13 +86,21 @@ class FailureSpec : StringSpec({
             module [33mmod2[0m
             at src/test/resources/multimodulefail/cycle/mod2.novah:1:1 - 1:12
             
-              Found cycle between modules mod2, mod1.
+              Found cycle between modules
+              
+                  mod2
+              
+                  mod1
             
             
             module [33mmod1[0m
             at src/test/resources/multimodulefail/cycle/mod1.novah:1:1 - 1:12
             
-              Found cycle between modules mod2, mod1.
+              Found cycle between modules
+              
+                  mod2
+              
+                  mod1
             
 
         """.trimIndent()
