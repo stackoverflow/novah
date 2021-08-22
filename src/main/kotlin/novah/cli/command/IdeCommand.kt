@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah.main
+package novah.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.subcommands
-import novah.cli.command.*
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
+import novah.ide.NovahIde
 
-class MainCommand : CliktCommand(name = "") {
+class IdeCommand : CliktCommand(name = "ide", help = "Run the Novah language server") {
+
+    private val verbose by option(
+        "-v",
+        "--verbose",
+        help = "Send debug messages to the client"
+    ).flag(default = false)
+
     override fun run() {
-    }
-}
-
-object Main {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val depsCommand = DepsCommand().subcommands(BuildCommand())
-        val comms = arrayOf(CompileCommand(), depsCommand, NewCommand(), IdeCommand())
-        MainCommand().subcommands(*comms).main(args)
+        NovahIde.run(verbose)
     }
 }

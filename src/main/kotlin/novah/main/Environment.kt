@@ -23,7 +23,10 @@ import novah.ast.source.Decl
 import novah.ast.source.Module
 import novah.ast.source.Visibility
 import novah.backend.Codegen
-import novah.data.*
+import novah.data.DAG
+import novah.data.DagNode
+import novah.data.mapBoth
+import novah.data.unwrapOrElse
 import novah.frontend.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
@@ -34,15 +37,12 @@ import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
-import novah.data.BufferedCharIterator
 import org.reflections.Reflections
 import org.reflections.scanners.ResourcesScanner
 import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 import java.io.File
 import java.io.InputStream
-import java.io.Reader
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Pattern
 import novah.ast.canonical.Module as TypedModule
@@ -51,7 +51,7 @@ import novah.ast.canonical.Module as TypedModule
  * The environment where a full compilation
  * process takes place.
  */
-class Environment(classPath: String?, private val verbose: Boolean) {
+class Environment(classpath: String?, sourcepath: String?, private val verbose: Boolean) {
     private val modules = mutableMapOf<String, FullModuleEnv>()
     private val sourceMap = mutableMapOf<Path, String>()
 
@@ -62,8 +62,8 @@ class Environment(classPath: String?, private val verbose: Boolean) {
     private val sourceLoader: SourceCodeLoader
 
     init {
-        classLoader = NovahClassLoader(classPath)
-        sourceLoader = SourceCodeLoader(classPath)
+        classLoader = NovahClassLoader(classpath)
+        sourceLoader = SourceCodeLoader(sourcepath)
         Inference.classLoader = classLoader
     }
 
@@ -243,7 +243,7 @@ class Environment(classPath: String?, private val verbose: Boolean) {
 }
 
 /**
- * The (compiled) standard library.
+ * The standard library.
  * Read from the jar itself.
  */
 private val stdlib by lazy {
@@ -251,20 +251,6 @@ private val stdlib by lazy {
         val contents = stream.bufferedReader().use { it.readText() }
         Source.SString(Path.of(path), contents)
     }.asSequence()
-}
-
-sealed class Source(val path: Path) {
-    class SPath(path: Path) : Source(path)
-    class SString(path: Path, val str: String) : Source(path)
-    class SReader(path: Path, val reader: Reader) : Source(path)
-
-    fun withIterator(action: (Iterator<Char>) -> Unit): Unit = when (this) {
-        is SPath -> Files.newBufferedReader(path, Charsets.UTF_8).use {
-            action(BufferedCharIterator(it))
-        }
-        is SString -> action(str.iterator())
-        is SReader -> reader.use { action(BufferedCharIterator(it)) }
-    }
 }
 
 class CompilationError(val problems: List<CompilerProblem>) :

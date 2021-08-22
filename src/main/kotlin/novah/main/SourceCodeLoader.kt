@@ -24,28 +24,24 @@ import java.util.jar.JarFile
 /**
  * Class responsible for finding novah source files
  * in the class path (jars, and directories).
- * Jars are not considered at the moment
  */
-class SourceCodeLoader(private val classpath: String?) {
+class SourceCodeLoader(private val sourcepath: String?) {
 
     fun loadSources(): Sequence<Source> {
-        if (classpath == null) return emptySequence()
+        if (sourcepath == null) return emptySequence()
 
-        val sep = System.getProperty("path.separator")
-        return classpath.split(sep).asSequence().flatMap(::processEntry)
+        return sourcepath.split(File.pathSeparator).asSequence().flatMap(::processEntry)
     }
 
     private fun processEntry(path: String): Sequence<Source> {
         return if (path.endsWith(".jar")) {
-            //loadSourcesFromJar(path)
-            emptySequence()
+            loadSourcesFromJar(path)
         } else {
             loadSourcesFromDir(path)
         }
     }
 
     private fun loadSourcesFromJar(jar: String): Sequence<Source> {
-        // check if there's a deps file at the top level
         val file = JarFile(jar)
         return file.entries().asSequence().filter { it.name.endsWith(".novah") }.map {
             val input = file.getInputStream(it)
@@ -57,7 +53,7 @@ class SourceCodeLoader(private val classpath: String?) {
         val dir = File(path)
         if (!dir.isDirectory) return emptySequence()
 
-        return dir.walkTopDown().filter { it.isFile && it.extension == "novah" }.map {
+        return dir.walkTopDown().filter { it.extension == "novah" && it.isFile }.map {
             Source.SPath(it.toPath())
         }
     }
