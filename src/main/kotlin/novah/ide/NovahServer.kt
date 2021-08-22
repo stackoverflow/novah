@@ -99,7 +99,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         // see if there's a project created and save the class/sourcepaths
         val hasProject = checkNovahProject(root!!)
         if (hasProject) fileWatcher.submit { watchClasspathChanges(root!!) }
-        
+
         // initial build
         build()
 
@@ -247,7 +247,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
                 false
             }
         }
-        
+
         val root = IdeUtil.uriToFile(rootPath)
         val testpath = root.resolve(".cpcache").resolve("test.classpath")
         if (testpath.exists()) {
@@ -266,13 +266,13 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         }
         return false
     }
-    
+
     private fun watchClasspathChanges(rootPath: String) {
         val root = IdeUtil.uriToFile(rootPath)
         val path = root.resolve(".cpcache").toPath()
         val watcher = path.fileSystem.newWatchService()
         path.register(watcher, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
-        
+
         var poll = true
         while (poll) {
             val key = watcher.take()
@@ -283,7 +283,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             poll = key.reset()
         }
     }
-    
+
     /**
      * Unpack the stdlib to a temp folder, so we can open it in
      * the client in the "go to definition" feature.
