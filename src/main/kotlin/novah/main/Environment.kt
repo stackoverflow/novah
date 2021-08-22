@@ -79,7 +79,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
             innerParseSources(stdlib, isStdlib = true)
             stdlibCompiled.putAll(modules)
         }
-        val allSources = sourceLoader.loadSources().plus(sources)
+        val allSources = sources.plus(sourceLoader.loadSources())
         return innerParseSources(allSources, isStdlib = false)
     }
 
@@ -87,8 +87,13 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
         val modMap = mutableMapOf<String, DagNode<String, Module>>()
         val modGraph = DAG<String, Module>()
 
-        sources.forEach { source ->
+        val alreadySeenPaths = mutableSetOf<String>()
+        for (source in sources) {
             val path = source.path
+            // don't parse the same path
+            if (path.toString() in alreadySeenPaths) continue
+            alreadySeenPaths += path.toString()
+
             if (verbose) echo("Parsing $path")
 
             source.withIterator { iter ->

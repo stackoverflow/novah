@@ -27,10 +27,13 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardWatchEventKinds.*
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
@@ -45,7 +48,9 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     private val changes: AtomicReference<FileChange?> = AtomicReference(null)
     private var env: AtomicReference<Environment?> = AtomicReference(null)
     private var lastSuccessfulEnv: Environment? = null
-    private val buildThread = Executors.newSingleThreadScheduledExecutor()
+    private val buildExecutor = Executors.newSingleThreadScheduledExecutor()
+    private val fileWatcher = Executors.newSingleThreadExecutor()
+    private val paths = ConcurrentHashMap<String, String>()
 
     private var client: LanguageClient? = null
     private var errorCode = 1
@@ -91,11 +96,15 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val renOpt = RenameOptions(true)
         initializeResult.capabilities.renameProvider = Either.forRight(renOpt)
 
+        // see if there's a project created and save the class/sourcepaths
+        val hasProject = checkNovahProject(root!!)
+        if (hasProject) fileWatcher.submit { watchClasspathChanges(root!!) }
+        
         // initial build
         build()
 
         // start build thread
-        buildThread.scheduleWithFixedDelay(::buildRun, 0, 500, TimeUnit.MILLISECONDS)
+        buildExecutor.scheduleWithFixedDelay(::buildRun, 0, 500, TimeUnit.MILLISECONDS)
 
         // unpack stdlib
         unpackStdlib()
@@ -105,11 +114,11 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     override fun shutdown(): CompletableFuture<Any> {
         errorCode = 0
-        buildThread.shutdown()
+        buildExecutor.shutdown()
         try {
-            buildThread.awaitTermination(10, TimeUnit.SECONDS)
+            buildExecutor.awaitTermination(10, TimeUnit.SECONDS)
         } catch (_: InterruptedException) {
-            buildThread.shutdownNow()
+            buildExecutor.shutdownNow()
         }
         return CompletableFuture.supplyAsync(::Object)
     }
@@ -190,20 +199,20 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             }
         logger().info("compiling project")
 
-        val lenv = Environment(null, null, verbose = false)
+        val theEnv = Environment(paths["classpath"], paths["sourcepath"], verbose = false)
         PatternMatchingCompiler.resetCache()
         try {
-            lenv.parseSources(sources.asSequence())
-            lenv.generateCode(File("."), dryRun = true)
+            theEnv.parseSources(sources.asSequence())
+            theEnv.generateCode(File("."), dryRun = true)
             diags.clear()
-            saveDiagnostics(lenv.getWarnings())
-            lastSuccessfulEnv = lenv
+            saveDiagnostics(theEnv.getWarnings())
+            lastSuccessfulEnv = theEnv
         } catch (ce: CompilationError) {
-            saveDiagnostics(ce.problems + lenv.getWarnings())
+            saveDiagnostics(ce.problems + theEnv.getWarnings())
         } catch (e: Exception) {
             logger().error(e.stackTraceToString())
         } finally {
-            env.set(lenv)
+            env.set(theEnv)
         }
     }
 
@@ -224,6 +233,57 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         } else IdeUtil.fileToUri(sourceName)
     }
 
+    private fun checkNovahProject(rootPath: String): Boolean {
+        fun storeSources(cpfile: File, spfile: File): Boolean {
+            return try {
+                logger!!.info("storing class and source paths")
+                val cp = cpfile.readText(Charsets.UTF_8)
+                val sp = spfile.readText(Charsets.UTF_8)
+                paths["classpath"] = cp
+                paths["sourcepath"] = sp
+                true
+            } catch (_: IOException) {
+                logger!!.error("error reading test classpath")
+                false
+            }
+        }
+        
+        val root = IdeUtil.uriToFile(rootPath)
+        val testpath = root.resolve(".cpcache").resolve("test.classpath")
+        if (testpath.exists()) {
+            val sourcepath = root.resolve(".cpcache").resolve("test.sourcepath")
+            if (sourcepath.exists()) {
+                return storeSources(testpath, sourcepath)
+            }
+            return false
+        }
+        val defpath = root.resolve(".cpcache").resolve("\$default.classpath")
+        if (defpath.exists()) {
+            val sourcepath = root.resolve(".cpcache").resolve("\$default.sourcepath")
+            if (sourcepath.exists()) {
+                return storeSources(testpath, sourcepath)
+            }
+        }
+        return false
+    }
+    
+    private fun watchClasspathChanges(rootPath: String) {
+        val root = IdeUtil.uriToFile(rootPath)
+        val path = root.resolve(".cpcache").toPath()
+        val watcher = path.fileSystem.newWatchService()
+        path.register(watcher, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+        
+        var poll = true
+        while (poll) {
+            val key = watcher.take()
+            // we don't care what actually changed, just re-read the file
+            key.pollEvents()
+            logger!!.info("change detected in class path cache")
+            checkNovahProject(rootPath)
+            poll = key.reset()
+        }
+    }
+    
     /**
      * Unpack the stdlib to a temp folder, so we can open it in
      * the client in the "go to definition" feature.
