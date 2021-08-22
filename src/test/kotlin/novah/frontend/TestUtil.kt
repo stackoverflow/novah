@@ -76,12 +76,12 @@ object TestUtil {
     fun compilerFor(path: String, verbose: Boolean = false): Compiler {
         val sources = File("src/test/resources/$path").walkBottomUp().filter { it.extension == "novah" }
             .map { it.toPath() }
-        return Compiler.new(sources, "", verbose)
+        return Compiler.new(sources, null, null, verbose)
     }
 
     private fun compilerForCode(code: String, verbose: Boolean = false): Compiler {
         val sources = listOf(Source.SString(Path.of("namespace"), code)).asSequence()
-        return Compiler(sources, "", verbose)
+        return Compiler(sources, null, null, verbose)
     }
     
     fun compileCode(code: String, verbose: Boolean = false): FullModuleEnv {

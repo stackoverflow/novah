@@ -31,7 +31,7 @@ class FailureSpec : StringSpec({
             val testName = file.nameWithoutExtension
             val output = File("${file.parent}/$testName.txt")
 
-            val compiler = Compiler.new(sequenceOf(path), "",false)
+            val compiler = Compiler.new(sequenceOf(path), null, null,false)
             try {
                 compiler.run(File("."), true)
                 throw failure("Expected test `$testName` to fail with a CompilationError.")
@@ -51,7 +51,7 @@ class FailureSpec : StringSpec({
             val testName = file.nameWithoutExtension
             val output = File("${file.parent}/$testName.txt")
 
-            val compiler = Compiler.new(sequenceOf(path), "", false)
+            val compiler = Compiler.new(sequenceOf(path), null, null, false)
             val warns = compiler.run(File("."), true)
             if (warns.isEmpty()) throw failure("Expected test `$testName` to return warnings.")
 

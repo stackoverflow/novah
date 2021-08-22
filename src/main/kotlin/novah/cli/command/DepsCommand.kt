@@ -13,22 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah.main
+package novah.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.subcommands
-import novah.cli.command.*
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
+import novah.cli.DepsProcessor
 
-class MainCommand : CliktCommand(name = "") {
+class DepsCommand : CliktCommand(
+    name = "deps",
+    help = "Fetch and store all dependencies for this project",
+    invokeWithoutSubcommand = true
+) {
+
+    private val verbose by option(
+        "-v",
+        "--verbose",
+        help = "Print information about the process"
+    ).flag(default = false)
+
     override fun run() {
+        val processor = DepsProcessor(::log) { echo(it, err = true) }
+        processor.run()
     }
-}
 
-object Main {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val depsCommand = DepsCommand().subcommands(BuildCommand())
-        val comms = arrayOf(CompileCommand(), depsCommand, NewCommand(), IdeCommand())
-        MainCommand().subcommands(*comms).main(args)
+    private fun log(msg: String) {
+        if (verbose) echo(msg)
     }
 }
