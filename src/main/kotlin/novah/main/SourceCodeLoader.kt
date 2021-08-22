@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah.data
+package novah.main
 
-import novah.main.Source
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -46,6 +45,7 @@ class SourceCodeLoader(private val classpath: String?) {
     }
 
     private fun loadSourcesFromJar(jar: String): Sequence<Source> {
+        // check if there's a deps file at the top level
         val file = JarFile(jar)
         return file.entries().asSequence().filter { it.name.endsWith(".novah") }.map {
             val input = file.getInputStream(it)

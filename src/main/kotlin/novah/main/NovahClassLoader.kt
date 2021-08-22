@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah.data
+package novah.main
 
 import com.github.ajalt.clikt.output.TermUi
 import novah.Core
@@ -30,7 +30,7 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
     init {
         classLoader = if (classpath != null) {
             val sep = System.getProperty("path.separator")
-            val urls = classpath.split(sep).map(::pathToUrl).toTypedArray()
+            val urls = classpath.split(sep).map(Companion::pathToUrl).toTypedArray()
             URLClassLoader("Novah class loader", urls, getPlatformClassLoader())
         } else {
             getPlatformClassLoader()
