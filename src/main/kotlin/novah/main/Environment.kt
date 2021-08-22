@@ -34,7 +34,7 @@ import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
-import novah.util.BufferedCharIterator
+import novah.data.BufferedCharIterator
 import org.reflections.Reflections
 import org.reflections.scanners.ResourcesScanner
 import org.reflections.util.ClasspathHelper

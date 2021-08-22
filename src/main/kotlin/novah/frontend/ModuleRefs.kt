@@ -19,7 +19,7 @@ import novah.Core
 import novah.Util.internalError
 import novah.ast.source.*
 import novah.data.LabelMap
-import novah.data.NovahClassLoader
+import novah.main.NovahClassLoader
 import novah.data.Reflection
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors

@@ -32,10 +32,7 @@ import novah.frontend.typechecker.Typechecker.instantiate
 import novah.frontend.typechecker.Typechecker.newGenVar
 import novah.frontend.typechecker.Typechecker.newVar
 import novah.frontend.typechecker.Unification.unify
-import novah.main.DeclRef
-import novah.main.Environment
-import novah.main.ModuleEnv
-import novah.main.TypeDeclRef
+import novah.main.*
 import novah.frontend.error.Errors as E
 
 object Inference {

@@ -24,6 +24,8 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.path
+import novah.cli.DepsCommand
+import novah.cli.NewCommand
 import novah.frontend.error.CompilerProblem.Companion.RED
 import novah.frontend.error.CompilerProblem.Companion.RESET
 import novah.frontend.error.CompilerProblem.Companion.YELLOW
@@ -43,7 +45,7 @@ class CompileCommand : CliktCommand(name = "compile", help = "compile source fil
     private val verbose by option(
         "-v",
         "--verbose",
-        help = "Prints information about the compilation process to stdout"
+        help = "Print information about the compilation process to stdout"
     ).flag(default = false)
 
     private val classPath by option("-cp", "--classpath", help = "Where to find user class files and sources")
@@ -92,12 +94,12 @@ class CompileCommand : CliktCommand(name = "compile", help = "compile source fil
     }
 }
 
-class IdeCommand : CliktCommand(name = "ide", help = "runs the Novah language server") {
+class IdeCommand : CliktCommand(name = "ide", help = "run the Novah language server") {
 
     private val verbose by option(
         "-v",
         "--verbose",
-        help = "Sends debug messages to the client"
+        help = "Send debug messages to the client"
     ).flag(default = false)
 
     override fun run() {
@@ -113,6 +115,7 @@ class MainCommand : CliktCommand(name = "") {
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
-        MainCommand().subcommands(CompileCommand(), IdeCommand()).main(args)
+        val comms = arrayOf(CompileCommand(), DepsCommand(), NewCommand(), IdeCommand())
+        MainCommand().subcommands(*comms).main(args)
     }
 }
