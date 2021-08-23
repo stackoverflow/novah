@@ -173,7 +173,7 @@ class DepsProcessor(private val echo: (String) -> Unit, private val err: (String
     companion object {
 
         const val defaultAlias = "\$default"
-        private const val defaultOutput = "output"
+        const val defaultOutput = "output"
 
         fun readNovahFile(mapper: ObjectMapper): Result<Deps, String> {
             val file = File("./novah.json")
