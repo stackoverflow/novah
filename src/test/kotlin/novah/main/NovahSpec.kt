@@ -38,7 +38,7 @@ class NovahSpec : StringSpec({
                 .redirectError(ProcessBuilder.Redirect.INHERIT)
                 .start()
 
-            process.waitFor(180, TimeUnit.MINUTES)
+            process.waitFor(10, TimeUnit.MINUTES)
             process.exitValue()
         } catch(e: IOException) {
             e.printStackTrace()

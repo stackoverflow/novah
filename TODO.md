@@ -11,4 +11,4 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
 - [ ] Auto complete java method, constructors, etc
-- [ ] Load sources for imported namespaces from jars
+- [ ] Some way to package novah source for distribution
