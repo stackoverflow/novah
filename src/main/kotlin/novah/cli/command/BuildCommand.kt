@@ -16,10 +16,11 @@
 package novah.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.core.requireObject
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.types.file
+import novah.cli.Deps
+import novah.cli.DepsProcessor
 import novah.main.CompilationError
 import novah.main.Compiler
 import java.io.File
@@ -28,19 +29,9 @@ import kotlin.system.exitProcess
 class BuildCommand : CliktCommand(name = "build", help = "Compile the project described by the `novah.json` file") {
 
     private val alias by option(
-        "-a",
-        "--alias",
+        "-a", "--alias",
         help = "Alias to turn on"
     )
-
-    private val out by option(
-        "-o", "--out",
-        help = "Output directory for the generated classes (default output)"
-    ).file(
-        mustExist = false,
-        canBeDir = true,
-        canBeFile = false
-    ).default(File("output"))
 
     private val check by option(
         "-c", "--check",
@@ -48,19 +39,23 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
     ).flag(default = false)
 
     private val verbose by option(
-        "-v",
-        "--verbose",
+        "-v", "--verbose",
         help = "Print information about the process"
     ).flag(default = false)
+
+    private val config by requireObject<Map<String, Deps>>()
 
     override fun run() {
         val al = alias ?: "\$default"
         val classpath = getClasspath(al, "classpath") ?: return
         val sourcepath = getClasspath(al, "sourcepath") ?: return
 
+        val deps = config["deps"] ?: return
+        val out = deps.output ?: DepsProcessor.defaultOutput
+
         val compiler = Compiler.new(emptySequence(), classpath, sourcepath, verbose)
         try {
-            val warns = compiler.run(out, check)
+            val warns = compiler.run(File(out), check)
             Compiler.printWarnings(warns, ::echo)
             echo("Success")
         } catch (ce: CompilationError) {
@@ -76,7 +71,7 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
         if (!cp.exists()) {
             if (alias == "\$default") {
                 echo("No classpath found. Run the `deps` command first to generate a classpath")
-            } else echo("Alias not found: $alias")
+            } else echo("No classpath found for alias $alias. Run the `deps` command first to generate a classpath")
             return null
         }
 

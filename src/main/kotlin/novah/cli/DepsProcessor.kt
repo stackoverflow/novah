@@ -17,7 +17,6 @@ package novah.cli
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import novah.cli.maven.Maven
 import novah.data.Err
@@ -45,16 +44,7 @@ data class Deps(
 
 class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boolean) -> Unit) {
 
-    private val mapper = jacksonObjectMapper()
-
-    fun run() {
-        val depsRes = readNovahFile(mapper)
-        if (depsRes is Err) {
-            echo(depsRes.err, false)
-            return
-        }
-        val deps = depsRes.unwrap()
-
+    fun run(deps: Deps) {
         val cache = ensureCache() ?: return
         if (!isResolveNeeded(cache)) {
             echo("No changes since last run: skipping", false)

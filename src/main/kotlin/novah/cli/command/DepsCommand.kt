@@ -15,10 +15,14 @@
  */
 package novah.cli.command
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.findOrSetObject
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import novah.cli.Deps
 import novah.cli.DepsProcessor
+import novah.data.Err
 
 class DepsCommand : CliktCommand(
     name = "deps",
@@ -26,14 +30,24 @@ class DepsCommand : CliktCommand(
     invokeWithoutSubcommand = true
 ) {
 
+    private val mapper = jacksonObjectMapper()
+
     private val verbose by option(
-        "-v",
-        "--verbose",
+        "-v", "--verbose",
         help = "Print information about the process"
     ).flag(default = false)
 
+    private val config by findOrSetObject { mutableMapOf<String, Deps>() }
+    
     override fun run() {
+        val depsRes = DepsProcessor.readNovahFile(mapper)
+        if (depsRes is Err) {
+            echo(depsRes.err, false)
+            return
+        }
         val processor = DepsProcessor(verbose) { msg, err -> echo(msg, err = err) }
-        processor.run()
+        val deps = depsRes.unwrap()
+        config["deps"] = deps
+        processor.run(deps)
     }
 }
