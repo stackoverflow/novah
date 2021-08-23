@@ -33,11 +33,7 @@ class DepsCommand : CliktCommand(
     ).flag(default = false)
 
     override fun run() {
-        val processor = DepsProcessor(::log) { echo(it, err = true) }
+        val processor = DepsProcessor(verbose) { msg, err -> echo(msg, err = err) }
         processor.run()
-    }
-
-    private fun log(msg: String) {
-        if (verbose) echo(msg)
     }
 }

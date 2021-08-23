@@ -43,24 +43,24 @@ data class Deps(
     val output: String?
 )
 
-class DepsProcessor(private val echo: (String) -> Unit, private val err: (String) -> Unit) {
+class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boolean) -> Unit) {
 
     private val mapper = jacksonObjectMapper()
 
     fun run() {
-        val cache = ensureCache() ?: return
-        if (!isResolveNeeded(cache)) {
-            echo("No changes since last run: skipping")
-            return
-        }
-        deleteOldAliases(cache)
-
         val depsRes = readNovahFile(mapper)
         if (depsRes is Err) {
-            err(depsRes.err)
+            echo(depsRes.err, false)
             return
         }
         val deps = depsRes.unwrap()
+
+        val cache = ensureCache() ?: return
+        if (!isResolveNeeded(cache)) {
+            echo("No changes since last run: skipping", false)
+            return
+        }
+        deleteOldAliases(cache)
 
         val out = deps.output ?: defaultOutput
         // resolve top level deps
@@ -99,22 +99,22 @@ class DepsProcessor(private val echo: (String) -> Unit, private val err: (String
     }
 
     private fun resolveDeps(alias: String?, deps: Map<String, Coord>, repos: Map<String, MvnRepo>?): String? {
-        if (alias != null) echo("resolving dependencies for alias $alias")
-        else echo("Resolving dependencies")
+        if (alias != null) log("resolving dependencies for alias $alias")
+        else log("Resolving dependencies")
 
         return when (val res = Maven.resolveDeps(deps, repos, alias)) {
             is Ok -> {
-                echo("Generating classpath file")
+                log("Generating classpath file")
                 when (val mvncp = Maven.makeClasspath(res.value)) {
                     is Ok -> mvncp.value
                     is Err -> {
-                        err(mvncp.err)
+                        echo(mvncp.err, true)
                         null
                     }
                 }
             }
             is Err -> {
-                err("Could not resolve dependencies: ${res.err.message}")
+                echo("Could not resolve dependencies: ${res.err.message}", true)
                 null
             }
         }
@@ -150,14 +150,14 @@ class DepsProcessor(private val echo: (String) -> Unit, private val err: (String
         if (!cacheDir.exists()) {
             val success = cacheDir.mkdir()
             if (!success) {
-                err("Failed to create classpath cache directory `.cpcache`")
+                echo("Failed to create classpath cache directory `.cpcache`", true)
                 return null
             }
         }
         if (!cacheDir.isDirectory) {
             val success = cacheDir.delete()
             if (!success) {
-                err("Failed to delete classpath cache `.cpcache`")
+                echo("Failed to delete classpath cache `.cpcache`", true)
                 return null
             }
             cacheDir.mkdir()
@@ -168,6 +168,10 @@ class DepsProcessor(private val echo: (String) -> Unit, private val err: (String
     private fun deleteOldAliases(cacheDir: File) {
         val files = cacheDir.listFiles() ?: return
         files.filter(File::isFile).forEach(File::delete)
+    }
+
+    private fun log(msg: String, err: Boolean = false) {
+        if (verbose) echo(msg, err)
     }
 
     companion object {
