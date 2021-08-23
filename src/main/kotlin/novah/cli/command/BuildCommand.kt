@@ -60,7 +60,7 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
             echo("Success")
         } catch (ce: CompilationError) {
             val allErrs = compiler.getWarnings() + ce.problems
-            Compiler.printErrors(allErrs, ::echo) { echo(it, err = true) }
+            Compiler.printErrors(allErrs, ::echo)
             echo("Failure", err = true)
             exitProcess(1)
         }
