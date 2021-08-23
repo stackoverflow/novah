@@ -23,8 +23,7 @@ import novah.ide.NovahIde
 class IdeCommand : CliktCommand(name = "ide", help = "Run the Novah language server") {
 
     private val verbose by option(
-        "-v",
-        "--verbose",
+        "-v", "--verbose",
         help = "Send debug messages to the client"
     ).flag(default = false)
 

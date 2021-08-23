@@ -40,8 +40,7 @@ class CompileCommand : CliktCommand(name = "compile", help = "Compile source fil
     ).default(File("output"))
 
     private val verbose by option(
-        "-v",
-        "--verbose",
+        "-v", "--verbose",
         help = "Print information about the compilation process to stdout"
     ).flag(default = false)
 
