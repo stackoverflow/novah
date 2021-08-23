@@ -28,7 +28,7 @@ object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         val depsCommand = DepsCommand().subcommands(BuildCommand())
-        val comms = arrayOf(CompileCommand(), depsCommand, NewCommand(), IdeCommand())
+        val comms = arrayOf(CompileCommand(), depsCommand, NewCommand(), RunCommand(), IdeCommand())
         MainCommand().subcommands(*comms).main(args)
     }
 }

@@ -42,6 +42,11 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
         canBeFile = false
     ).default(File("output"))
 
+    private val check by option(
+        "-c", "--check",
+        help = "Just check the code for errors, but don't generate code"
+    ).flag(default = false)
+
     private val verbose by option(
         "-v",
         "--verbose",
@@ -55,7 +60,7 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
 
         val compiler = Compiler.new(emptySequence(), classpath, sourcepath, verbose)
         try {
-            val warns = compiler.run(out)
+            val warns = compiler.run(out, check)
             Compiler.printWarnings(warns, ::echo)
             echo("Success")
         } catch (ce: CompilationError) {
