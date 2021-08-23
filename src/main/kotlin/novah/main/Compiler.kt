@@ -53,17 +53,17 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
             }
         }
         
-        fun printErrors(errors: List<CompilerProblem>, echo: (String) -> Unit, err: (String) -> Unit) {
+        fun printErrors(errors: List<CompilerProblem>, echo: (String, Boolean) -> Unit) {
             val (errs, warns) = errors.partition { it.severity == Severity.ERROR }
             if (warns.isNotEmpty()) {
                 val label = if (warns.size > 1) "Warnings" else "Warning"
-                echo("${CompilerProblem.YELLOW}$label:${CompilerProblem.RESET}\n")
-                warns.forEach { echo(it.formatToConsole()) }
+                echo("${CompilerProblem.YELLOW}$label:${CompilerProblem.RESET}\n", false)
+                warns.forEach { echo(it.formatToConsole(), false) }
             }
             if (errs.isNotEmpty()) {
                 val label = if (errs.size > 1) "Errors" else "Error"
-                err("${CompilerProblem.RED}$label:${CompilerProblem.RESET}\n")
-                errs.forEach { err(it.formatToConsole()) }
+                echo("${CompilerProblem.RED}$label:${CompilerProblem.RESET}\n", true)
+                errs.forEach { echo(it.formatToConsole(), true) }
             }
         }
     }
