@@ -46,7 +46,7 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
     private val config by requireObject<Map<String, Deps>>()
 
     override fun run() {
-        val al = alias ?: "\$default"
+        val al = alias ?: DepsProcessor.defaultAlias
         val classpath = getClasspath(al, "classpath") ?: return
         val sourcepath = getClasspath(al, "sourcepath") ?: return
 
@@ -69,7 +69,7 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
     private fun getClasspath(alias: String, type: String): String? {
         val cp = File(".cpcache/$alias.$type")
         if (!cp.exists()) {
-            if (alias == "\$default") {
+            if (alias == DepsProcessor.defaultAlias) {
                 echo("No classpath found. Run the `deps` command first to generate a classpath")
             } else echo("No classpath found for alias $alias. Run the `deps` command first to generate a classpath")
             return null
