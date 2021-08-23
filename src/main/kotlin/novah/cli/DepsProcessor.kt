@@ -180,8 +180,8 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
                     return Err("No source paths defined for project")
                 }
                 for (path in deps.paths) {
-                    if (path == "\$default") {
-                        return Err("Invalid source path name: \$default")
+                    if (path == defaultAlias) {
+                        return Err("Invalid source path name: $defaultAlias")
                     }
                 }
                 Ok(deps)

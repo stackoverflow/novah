@@ -15,6 +15,7 @@
  */
 package novah.ide
 
+import novah.cli.DepsProcessor
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Severity
 import novah.frontend.matching.PatternMatchingCompiler
@@ -257,9 +258,9 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             }
             return false
         }
-        val defpath = root.resolve(".cpcache").resolve("\$default.classpath")
+        val defpath = root.resolve(".cpcache").resolve("${DepsProcessor.defaultAlias}.classpath")
         if (defpath.exists()) {
-            val sourcepath = root.resolve(".cpcache").resolve("\$default.sourcepath")
+            val sourcepath = root.resolve(".cpcache").resolve("${DepsProcessor.defaultAlias}.sourcepath")
             if (sourcepath.exists()) {
                 return storeSources(testpath, sourcepath)
             }
