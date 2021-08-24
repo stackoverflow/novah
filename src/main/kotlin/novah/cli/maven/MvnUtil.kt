@@ -104,8 +104,8 @@ object MvnUtil {
     }
 
     fun getScope(scope: String?): String {
-        if (scope == null) defaultScope
-        return if (scope in scopes) scope!! else defaultScope
+        if (scope == null) return defaultScope
+        return if (scope in scopes) scope else defaultScope
     }
 
     val localRepo: String by lazy {
@@ -202,9 +202,7 @@ object MvnUtil {
 
         override fun transferStarted(event: TransferEvent) {
             val res = event.resource
-            val name = res.resourceName
-            val repo = res.repositoryId
-            echo("downloading $name from $repo")
+            echo("downloading ${res.resourceName} from ${res.repositoryId}")
         }
 
         override fun transferProgressed(event: TransferEvent?) {
