@@ -48,11 +48,11 @@ compileTestKotlin {
 }
 
 application {
-    mainClassName = "novah.main.Main"
+    mainClass.set("novah.main.Main")
 }
 
 shadowJar {
-
+    mainClassName = "novah.main.Main"
 }
 
 test {
