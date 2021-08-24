@@ -280,6 +280,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             // we don't care what actually changed, just re-read the file
             key.pollEvents()
             logger!!.info("change detected in class path cache")
+            paths.clear()
             checkNovahProject(rootPath)
             poll = key.reset()
         }
