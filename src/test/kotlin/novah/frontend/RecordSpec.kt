@@ -37,7 +37,7 @@ class RecordSpec : StringSpec({
         val ds = TestUtil.compileCode(code).env.decls
 
         ds["rec"]?.type?.simpleName() shouldBe "{ a : Int32, b : Boolean, c : Int64 }"
-        ds["a"]?.type?.simpleName() shouldBe "Int32"
+        ds["a"]?.type?.simpleName() shouldBe "Int64"
         ds["minus"]?.type?.simpleName() shouldBe "{ b : Boolean, c : Int64 }"
         ds["plus"]?.type?.simpleName() shouldBe "{ d : Byte, a : Int32, b : Boolean, c : Int64 }"
     }
