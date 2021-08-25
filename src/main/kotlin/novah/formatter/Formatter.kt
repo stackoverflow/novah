@@ -172,7 +172,7 @@ class Formatter {
             is Expr.Lambda -> {
                 val shown = if (e.body.isSimpleExpr()) " -> " + show(e.body)
                 else " ->" + withIndent { tab + show(e.body) }
-                
+
                 "\\" + e.patterns.joinToString(" ") { show(it) } + shown
             }
             is Expr.Var -> e.toString()
@@ -225,6 +225,14 @@ class Formatter {
             }
             is Expr.Null -> "null"
             is Expr.TypeCast -> show(e.exp) + " as " + show(e.cast)
+            is Expr.ForeignStaticField -> "${e.clazz}#-${e.field}"
+            is Expr.ForeignField -> "${show(e.exp)}#-${e.field}"
+            is Expr.ForeignStaticMethod -> {
+                "${e.clazz}#${e.method}" + e.args.joinToString(", ", prefix = "(", postfix = ")") { show(it) }
+            }
+            is Expr.ForeignMethod -> {
+                "${show(e.exp)}#${e.method}" + e.args.joinToString(", ", prefix = "(", postfix = ")") { show(it) }
+            }
         }
     }
 

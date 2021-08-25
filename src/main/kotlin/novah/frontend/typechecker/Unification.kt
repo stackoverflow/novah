@@ -38,6 +38,10 @@ object Unification {
             unificationError(Errors.typesDontMatch(t1.show(), t2.show(), reason), span)
         }
     }
+    
+    fun unifySimple(t1: Type, t2: Type, span: Span) {
+        innerUnify(t1, t2, span)
+    }
 
     private fun innerUnify(t1: Type, t2: Type, span: Span) {
         when {
@@ -221,13 +225,13 @@ object Unification {
         }
     }
 
-    private sealed class UnifyError {
+    sealed class UnifyError {
         data class NoMatch(val t1: Type, val t2: Type) : UnifyError()
         data class MissingLabels(val msg: String) : UnifyError()
         data class InfiniteType(val type: Type) : UnifyError()
     }
 
-    private class UnifyException(val err: UnifyError) : RuntimeException()
+    class UnifyException(val err: UnifyError) : RuntimeException()
 
     private fun innerError(err: UnifyError): Nothing =
         throw UnifyException(err)

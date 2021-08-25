@@ -19,8 +19,9 @@ import novah.Core
 import novah.Util.internalError
 import novah.ast.source.*
 import novah.data.LabelMap
-import novah.main.NovahClassLoader
 import novah.data.Reflection
+import novah.data.Reflection.collectType
+import novah.data.Reflection.typeCache
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
@@ -29,8 +30,11 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.main.DeclRef
 import novah.main.FullModuleEnv
+import novah.main.NovahClassLoader
 import novah.main.TypeDeclRef
-import java.lang.reflect.*
+import java.lang.reflect.Constructor
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 import novah.ast.source.Type as SType
 
 typealias VarRef = String
@@ -379,47 +383,6 @@ private fun matchTypes(jTy: java.lang.reflect.Type, nTy: String): Type {
 
     return collectType(jTy)
 }
-
-private val typeCache = mutableMapOf<String, Type>()
-
-private fun collectType(ty: java.lang.reflect.Type): Type {
-    if (typeCache.containsKey(ty.typeName)) return typeCache[ty.typeName]!!
-    val nty = when (ty) {
-        is GenericArrayType -> TApp(TConst(primArray), listOf(collectType(ty.genericComponentType)))
-        is TypeVariable<*> -> if (unbounded(ty)) Typechecker.newGenVar() else tObject
-        is WildcardType -> {
-            if (ty.lowerBounds.isNotEmpty()) tObject
-            else if (ty.upperBounds.size == 1 && ty.upperBounds[0] is TypeVariable<*>) {
-                collectType(ty.upperBounds[0])
-            } else tObject
-        }
-        is ParameterizedType -> {
-            val arity = ty.actualTypeArguments.size
-            val kind = if (arity == 0) Kind.Star else Kind.Constructor(arity)
-            if (ty.rawType.typeName == "java.util.function.Function") {
-                TArrow(listOf(collectType(ty.actualTypeArguments[0])), collectType(ty.actualTypeArguments[1]))
-            } else {
-                TApp(TConst(javaToNovah(ty.rawType.typeName), kind), ty.actualTypeArguments.map(::collectType))
-            }
-        }
-        is Class<*> -> {
-            if (ty.isArray) TApp(TConst(primArray), listOf(collectType(ty.componentType)))
-            else {
-                val arity = ty.typeParameters.size
-                if (arity == 0) TConst(javaToNovah(ty.canonicalName))
-                else {
-                    val type = TConst(javaToNovah(ty.canonicalName), Kind.Constructor(arity))
-                    TApp(type, ty.typeParameters.map(::collectType))
-                }
-            }
-        }
-        else -> internalError("Got unknown subtype from Type: ${ty.javaClass}")
-    }
-    typeCache[ty.typeName] = nty
-    return nty
-}
-
-private fun unbounded(ty: TypeVariable<*>): Boolean = ty.bounds.all { it.typeName == "java.lang.Object" }
 
 private fun toNovahType(ty: String): Type = when (ty) {
     primArray, primList, primSet -> {

@@ -1,0 +1,10 @@
+module javainterop
+
+foreign import type java.io.File
+
+foo : Unit -> File
+foo () =
+  let sep = File#-pathSeparator
+  let file = File#new("dir")
+  //javaSet File#-pathSeparator "asd"
+  file#resolve("myFile.txt")

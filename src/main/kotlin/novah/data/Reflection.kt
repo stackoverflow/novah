@@ -15,12 +15,14 @@
  */
 package novah.data
 
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
+import novah.Util
+import novah.frontend.typechecker.*
+import novah.frontend.typechecker.Type
+import java.lang.reflect.*
 
 object Reflection {
+
+    val typeCache = mutableMapOf<String, Type>()
 
     fun novahToJava(type: String) = when (type) {
         "String" -> "java.lang.String"
@@ -46,6 +48,14 @@ object Reflection {
         "Set" -> "io.lacuna.bifurcan.Set"
         "Function" -> "java.util.function.Function"
         else -> type
+    }
+
+    tailrec fun findJavaType(type: Type): String? = when (type) {
+        is TRecord -> "novah.collections.Record"
+        is TArrow -> "java.util.function.Function"
+        is TConst -> findJavaType(type.name)
+        is TApp -> findJavaType(type.type)
+        else -> null
     }
 
     private enum class Match {
@@ -89,6 +99,18 @@ object Reflection {
         return maybe
     }
 
+    fun findStaticMethods(clazz: Class<*>, name: String, argCount: Int): List<Method> {
+        return clazz.methods.filter { it.name == name && it.parameterCount == argCount && isStatic(it) && !it.isBridge }
+    }
+
+    fun findNonStaticMethods(clazz: Class<*>, name: String, argCount: Int): List<Method> {
+        return clazz.methods.filter { it.name == name && it.parameterCount == argCount && !isStatic(it) && !it.isBridge }
+    }
+
+    fun findConstructors(clazz: Class<*>, argCount: Int): List<Constructor<*>> {
+        return clazz.constructors.filter { it.parameterCount == argCount }
+    }
+
     fun findConstructor(clazz: Class<*>, pars: List<String>): Constructor<*>? {
         var maybe: Constructor<*>? = null
         val novahPars = pars.map { novahToJava(it) }
@@ -113,4 +135,43 @@ object Reflection {
     fun isStatic(field: Field): Boolean = Modifier.isStatic(field.modifiers)
 
     fun isImutable(field: Field): Boolean = Modifier.isFinal(field.modifiers)
+
+    fun collectType(ty: java.lang.reflect.Type): Type {
+        if (typeCache.containsKey(ty.typeName)) return typeCache[ty.typeName]!!
+        val nty = when (ty) {
+            is GenericArrayType -> TApp(TConst(primArray), listOf(collectType(ty.genericComponentType)))
+            is TypeVariable<*> -> if (unbounded(ty)) Typechecker.newGenVar() else tObject
+            is WildcardType -> {
+                if (ty.lowerBounds.isNotEmpty()) tObject
+                else if (ty.upperBounds.size == 1 && ty.upperBounds[0] is TypeVariable<*>) {
+                    collectType(ty.upperBounds[0])
+                } else tObject
+            }
+            is ParameterizedType -> {
+                val arity = ty.actualTypeArguments.size
+                val kind = if (arity == 0) Kind.Star else Kind.Constructor(arity)
+                if (ty.rawType.typeName == "java.util.function.Function") {
+                    TArrow(listOf(collectType(ty.actualTypeArguments[0])), collectType(ty.actualTypeArguments[1]))
+                } else {
+                    TApp(TConst(javaToNovah(ty.rawType.typeName), kind), ty.actualTypeArguments.map(::collectType))
+                }
+            }
+            is Class<*> -> {
+                if (ty.isArray) TApp(TConst(primArray), listOf(collectType(ty.componentType)))
+                else {
+                    val arity = ty.typeParameters.size
+                    if (arity == 0) TConst(javaToNovah(ty.canonicalName))
+                    else {
+                        val type = TConst(javaToNovah(ty.canonicalName), Kind.Constructor(arity))
+                        TApp(type, ty.typeParameters.map(::collectType))
+                    }
+                }
+            }
+            else -> Util.internalError("Got unknown subtype from Type: ${ty.javaClass}")
+        }
+        typeCache[ty.typeName] = nty
+        return nty
+    }
+
+    private fun unbounded(ty: TypeVariable<*>): Boolean = ty.bounds.all { it.typeName == "java.lang.Object" }
 }

@@ -32,7 +32,10 @@ import novah.frontend.typechecker.Typechecker.instantiate
 import novah.frontend.typechecker.Typechecker.newGenVar
 import novah.frontend.typechecker.Typechecker.newVar
 import novah.frontend.typechecker.Unification.unify
+import novah.frontend.typechecker.Unification.unifySimple
 import novah.main.*
+import java.lang.reflect.Constructor
+import java.lang.reflect.Method
 import novah.frontend.error.Errors as E
 
 object Inference {
@@ -49,6 +52,7 @@ object Inference {
      */
     fun infer(ast: Module): ModuleEnv {
         warnings.clear()
+        Reflection.typeCache.clear()
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
         val warner = makeWarner(ast)
@@ -393,6 +397,83 @@ object Inference {
             infer(env, level, exp.exp)
             exp.withType(exp.cast)
         }
+        is Expr.ForeignStaticField -> {
+            val clazz = exp.clazz.value
+            val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.clazz.span)
+
+            val field = Reflection.findField(jclass, exp.fieldName.value)
+                ?: inferError(E.fieldNotFound(exp.fieldName.value, clazz), exp.span)
+            if (!Reflection.isStatic(field)) {
+                inferError(E.nonStaticField(exp.fieldName.value, clazz), exp.fieldName.span)
+            }
+
+            val ty = Reflection.collectType(field.genericType)
+            exp.field = field
+            exp.withType(ty)
+        }
+        is Expr.ForeignField -> {
+            val objTy = infer(env, level, exp.exp).realType()
+            val clazz = Reflection.findJavaType(objTy) ?: inferError(E.invalidJavaType(objTy.show()), exp.exp.span)
+            val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.exp.span)
+
+            val field = Reflection.findField(jclass, exp.fieldName.value)
+                ?: inferError(E.fieldNotFound(exp.fieldName.value, clazz), exp.span)
+            if (Reflection.isStatic(field)) inferError(E.staticField(exp.fieldName.value, clazz), exp.fieldName.span)
+
+            val ty = Reflection.collectType(field.genericType)
+            exp.field = field
+            exp.withType(ty)
+        }
+        is Expr.ForeignStaticMethod -> {
+            val clazz = exp.clazz.value
+            val argCount = exp.args.size
+            val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.clazz.span)
+            val method = exp.methodName
+
+            if (method.value == "new") { // it's a constructor
+                val ctors = Reflection.findConstructors(jclass, argCount)
+                if (ctors.isEmpty()) inferError(E.ctorNotFound(clazz, argCount), method.span)
+
+                val tys = exp.args.map { infer(env, level, it) }
+                val found = unifyConstructors(ctors, tys, exp.span)
+                    ?: inferError(E.methodDidNotUnify(method.value, clazz), method.span)
+
+                val ty = Reflection.collectType(found.declaringClass)
+                exp.ctor = found
+                exp.withType(ty)
+            } else { // it's a method
+                val methods = Reflection.findStaticMethods(jclass, method.value, argCount)
+                if (methods.isEmpty()) inferError(E.methodNotFound(method.value, clazz, argCount), method.span)
+
+                val tys = exp.args.map { infer(env, level, it) }
+                val found = unifyMethods(methods, tys, exp.span)
+                    ?: inferError(E.methodDidNotUnify(method.value, clazz), method.span)
+
+                val ty = Reflection.collectType(found.genericReturnType)
+                exp.method = found
+                exp.withType(ty)
+            }
+        }
+        is Expr.ForeignMethod -> {
+            val objTy = infer(env, level, exp.exp).realType()
+            val clazz = Reflection.findJavaType(objTy) ?: inferError(E.invalidJavaType(objTy.show()), exp.exp.span)
+            val argCount = exp.args.size
+            val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.exp.span)
+
+            val methods = Reflection.findNonStaticMethods(jclass, exp.methodName.value, argCount)
+            if (methods.isEmpty()) inferError(
+                E.methodNotFound(exp.methodName.value, clazz, argCount),
+                exp.methodName.span
+            )
+
+            val tys = exp.args.map { infer(env, level, it) }
+            val found = unifyMethods(methods, tys, exp.span)
+                ?: inferError(E.methodDidNotUnify(exp.methodName.value, clazz), exp.methodName.span)
+
+            val ty = Reflection.collectType(found.genericReturnType)
+            exp.method = found
+            exp.withType(ty)
+        }
     }
 
     private data class PatternVar(val name: String, val type: Type, val span: Span)
@@ -543,6 +624,34 @@ object Inference {
             ret = ret.ret
         }
         return ret to imps
+    }
+
+    private fun unifyMethods(methods: List<Method>, tys: List<Type>, span: Span): Method? {
+        return methods.find { method ->
+            val mtys = method.genericParameterTypes.map { Reflection.collectType(it) }
+            try {
+                mtys.zip(tys).forEach { (mty, ty) ->
+                    unifySimple(mty, ty, span)
+                }
+                true
+            } catch (_: Unification.UnifyException) {
+                false
+            }
+        }
+    }
+
+    private fun unifyConstructors(ctors: List<Constructor<*>>, tys: List<Type>, span: Span): Constructor<*>? {
+        return ctors.find { ctor ->
+            val mtys = ctor.genericParameterTypes.map { Reflection.collectType(it) }
+            try {
+                mtys.zip(tys).forEach { (mty, ty) ->
+                    unifySimple(mty, ty, span)
+                }
+                true
+            } catch (_: Unification.UnifyException) {
+                false
+            }
+        }
     }
 
     /**

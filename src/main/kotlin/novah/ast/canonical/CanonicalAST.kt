@@ -142,6 +142,33 @@ sealed class Expr(open val span: Span) {
     data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
     class Null(span: Span) : Expr(span)
     data class TypeCast(val exp: Expr, val cast: Type, override val span: Span) : Expr(span)
+    data class ForeignField(val exp: Var, val fieldName: Spanned<String>, override val span: Span) : Expr(span) {
+        var field: Field? = null
+    }
+
+    data class ForeignStaticField(val clazz: Spanned<String>, val fieldName: Spanned<String>, override val span: Span) :
+        Expr(span) {
+        var field: Field? = null
+    }
+
+    data class ForeignStaticMethod(
+        val clazz: Spanned<String>,
+        val methodName: Spanned<String>,
+        val args: List<Expr>,
+        override val span: Span
+    ) : Expr(span) {
+        var method: Method? = null
+        var ctor: JConstructor<*>? = null
+    }
+
+    data class ForeignMethod(
+        val exp: Var,
+        val methodName: Spanned<String>,
+        val args: List<Expr>,
+        override val span: Span
+    ) : Expr(span) {
+        var method: Method? = null
+    }
 
     // end of subclasses
 
@@ -257,6 +284,10 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         }
         is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
         is Expr.TypeCast -> f(e.copy(exp = go(e.exp)))
+        is Expr.ForeignStaticField -> f(e)
+        is Expr.ForeignField -> f(e.copy(exp = go(e.exp) as Expr.Var))
+        is Expr.ForeignStaticMethod -> f(e.copy(args = e.args.map(::go)))
+        is Expr.ForeignMethod -> f(e.copy(exp = go(e.exp) as Expr.Var, args = e.args.map(::go)))
         else -> f(e)
     }
     return go(this)
@@ -373,12 +404,26 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
             is Expr.While -> {
                 f(e)
                 go(e.cond)
-                e.exps.forEach { go(it) }
+                e.exps.forEach(::go)
             }
             is Expr.TypeCast -> {
                 go(e.exp)
                 f(e)
             }
+            is Expr.ForeignField -> {
+                go(e.exp)
+                f(e)
+            }
+            is Expr.ForeignStaticMethod -> {
+                f(e)
+                e.args.forEach(::go)
+            }
+            is Expr.ForeignMethod -> {
+                go(e.exp)
+                f(e)
+                e.args.forEach(::go)
+            }
+            is Expr.ForeignStaticField -> f(e)
             is Expr.Bool -> f(e)
             is Expr.Int32 -> f(e)
             is Expr.Int64 -> f(e)

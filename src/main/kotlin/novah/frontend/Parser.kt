@@ -445,7 +445,26 @@ class Parser(
             is MultilineStringT -> parseMultilineString()
             is CharT -> parseChar()
             is BoolT -> parseBool()
-            is Ident -> parseVar()
+            is Ident -> {
+                val v = parseVar()
+                // TODO: allow any kind of expression to call java methods, not only vars
+                when (iter.peek().value) {
+                    is Hash -> {
+                        iter.next()
+                        val (methodName, tk) = parseLabel()
+                        val (args, end) = parseArglist("foreign method")
+                        val method = Spanned(tk.span, methodName)
+                        Expr.ForeignMethod(v, method, args).withSpan(v.span, end).withComment(v.comment)
+                    }
+                    is HashDash -> {
+                        iter.next()
+                        val (fieldName, tk) = parseLabel()
+                        val field = Spanned(tk.span, fieldName)
+                        Expr.ForeignField(v, field).withSpan(v.span, tk.span).withComment(v.comment)
+                    }
+                    else -> v
+                }
+            }
             is Op -> parseOperator()
             is Null -> parseNull()
             is Underline -> {
@@ -472,10 +491,30 @@ class Parser(
                     peek is Dot -> {
                         parseAliasedVar(uident)
                     }
+                    // an aliased operator like `MyModule.==`
                     peek.isDotStart() -> {
                         val op = expect<Op>(noErr())
                         Expr.Operator(op.value.op.substring(1), uident.value.v)
                             .withSpan(uident.span, op.span)
+                            .withComment(uident.comment)
+                    }
+                    peek is Hash -> {
+                        iter.next()
+                        val (methodName, tk) = parseLabel()
+                        val (args, end) = parseArglist("foreign static method")
+                        val method = Spanned(tk.span, methodName)
+                        val clazz = Spanned(uident.span, uident.value.v)
+                        Expr.ForeignStaticMethod(clazz, method, args)
+                            .withSpan(uident.span, end)
+                            .withComment(uident.comment)
+                    }
+                    peek is HashDash -> {
+                        iter.next()
+                        val (fieldName, tk) = parseLabel()
+                        val field = Spanned(tk.span, fieldName)
+                        val clazz = Spanned(uident.span, uident.value.v)
+                        Expr.ForeignStaticField(clazz, field)
+                            .withSpan(uident.span, tk.span)
                             .withComment(uident.comment)
                     }
                     else -> {
@@ -574,9 +613,9 @@ class Parser(
         return Expr.Bool(bool.value.b).withSpanAndComment(bool)
     }
 
-    private fun parseVar(): Expr {
+    private fun parseVar(): Expr.Var {
         val v = expect<Ident>(withError(E.VARIABLE))
-        return Expr.Var(v.value.v).withSpanAndComment(v)
+        return Expr.Var(v.value.v).withSpanAndComment(v) as Expr.Var
     }
 
     private fun parseOperator(): Expr {
@@ -1022,6 +1061,20 @@ class Parser(
             .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 
+    private fun parseArglist(ctx: String): Pair<List<Expr>, Span> {
+        return withIgnoreOffside {
+            expect<LParen>(withError(E.lparensExpected(ctx)))
+            if (iter.peek().value is RParen) {
+                val end = expect<RParen>(withError(E.rparensExpected(ctx)))
+                emptyList<Expr>() to end.span
+            } else {
+                val args = between<Comma, Expr>(::parseExpression)
+                val end = expect<RParen>(withError(E.rparensExpected(ctx)))
+                args to end.span
+            }
+        }
+    }
+
     private fun parseConstructor(): Expr.Constructor {
         val tk = expect<UpperIdent>(noErr())
         var alias: Spanned<UpperIdent>? = null
@@ -1104,7 +1157,7 @@ class Parser(
 
     private fun parseComputation(): Expr {
         val doo = expect<DoDot>(noErr())
-        val builder = parseVar() as Expr.Var
+        val builder = parseVar()
 
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val align = iter.peek().offside()
