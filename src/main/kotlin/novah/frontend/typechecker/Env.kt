@@ -184,6 +184,22 @@ fun javaToNovah(jname: String): String = when (jname) {
     }
 }
 
+fun findJavaType(novahType: String) = when (novahType) {
+    primByte -> "java.lang.Byte"
+    primInt16 -> "java.lang.Short"
+    primInt32 -> "java.lang.Integer"
+    primInt64 -> "java.lang.Long"
+    primFloat32 -> "java.lang.Float"
+    primFloat64 -> "java.lang.Double"
+    primChar -> "java.lang.Character"
+    primString -> "java.lang.String"
+    primBoolean -> "java.lang.Boolean"
+    primObject -> "java.lang.Object"
+    primList -> "io.lacuna.bifurcan.List"
+    primSet -> "io.lacuna.bifurcan.Set"
+    else -> novahType
+}
+
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, false, emptyList(), null)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 private fun tapp(name: String, vararg ids: Id): TApp {

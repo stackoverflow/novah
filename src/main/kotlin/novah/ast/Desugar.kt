@@ -341,6 +341,19 @@ class Desugar(private val smod: SModule) {
         is SExpr.IfBang -> internalError("unexpected if-bang in desugaring: $this")
         is SExpr.Null -> Expr.Null(span)
         is SExpr.TypeCast -> Expr.TypeCast(exp.desugar(locals, tvars), cast.desugar(vars = tvars.toMutableMap()), span)
+        is SExpr.ForeignStaticField -> {
+            val fqclass = smod.foreignTypes[clazz.value] ?: Reflection.novahToJava(clazz.value)
+            Expr.ForeignStaticField(Spanned(clazz.span, fqclass), field, span)
+        }
+        is SExpr.ForeignField -> Expr.ForeignField(exp.desugar(locals, tvars) as Expr.Var, field, span)
+        is SExpr.ForeignStaticMethod -> {
+            val fqclass = smod.foreignTypes[clazz.value] ?: Reflection.novahToJava(clazz.value)
+            Expr.ForeignStaticMethod(Spanned(clazz.span, fqclass), method, args.map { it.desugar(locals, tvars) }, span)
+        }
+        is SExpr.ForeignMethod -> {
+            val desugaredExp = exp.desugar(locals, tvars) as Expr.Var
+            Expr.ForeignMethod(desugaredExp, method, args.map { it.desugar(locals, tvars) }, span)
+        }
     }
 
     private fun SCase.desugar(locals: List<String>, tvars: Map<String, Type>): Case {

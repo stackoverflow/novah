@@ -239,6 +239,20 @@ object Errors {
 
     fun methodNotFound(name: String, type: String) = "Could not find method $name for type $type."
 
+    fun methodNotFound(name: String, type: String, argsCount: Int) = """
+        Could not find method $name for class $type taking $argsCount parameters.
+    """.trimIndent()
+
+    fun ctorNotFound(type: String, argsCount: Int) = """
+        Could not find constructor for class $type taking $argsCount parameters.
+    """.trimIndent()
+
+    fun methodDidNotUnify(name: String, type: String) = """
+        Method $name for class $type could not be matched with the given parameters.
+        
+        Make sure the parameters match or cast them to a suitable type.
+    """.trimIndent()
+
     fun nonStaticMethod(name: String, type: String) = "Method $name of class $type is not static."
 
     fun staticMethod(name: String, type: String) = "Method $name of class $type is static."
@@ -288,7 +302,21 @@ object Errors {
     fun wrongConstructorName(typeName: String) =
         "Multi constructor type cannot have the same name as their type: $typeName."
 
-    fun undefinedType(type: String) = "Undefined type $type."
+    fun undefinedType(type: String) = """
+        Undefined type $type
+        
+        Make sure the type is imported: `import some.module (MyType)`
+        Or if it's a foreign type: `foreign import type java.io.File`
+    """.trimIndent()
+
+    fun invalidJavaType(type: String) = """
+        Could not determine the foreign type of
+        
+            $type
+        
+        Try adding a type annotation to the expression:
+        `(value : String).indexOf(".")`
+    """.trimIndent()
 
     fun wrongArgsToNative(name: String, ctx: String, should: Int, got: Int) = """
         Foreign setters, methods and constructors cannot be partially applied.
@@ -325,7 +353,7 @@ object Errors {
 
         return if (reason == null) fmt else fmt + "\n\n$reason"
     }
-    
+
     fun incompatibleTypes(t1: String, t2: String) = "Incompatible types $t1 and $t2."
 
     fun implicitTypesDontMatch(vari: String, type: String) = """

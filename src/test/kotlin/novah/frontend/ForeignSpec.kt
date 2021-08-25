@@ -17,6 +17,8 @@ package novah.frontend
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import novah.frontend.TestUtil.simpleName
 
 class ForeignSpec : StringSpec({
 
@@ -48,5 +50,27 @@ class ForeignSpec : StringSpec({
         shouldNotThrowAny {
             TestUtil.compileCode(code)
         }
+    }
+    
+    "test new interop" {
+        val code = """
+            module test
+            
+            foo = String#-"CASE_INSENSITIVE_ORDER"
+            
+            bar = String#valueOf(2)
+            
+            baz =
+              let str = "the lazy fox"
+              str#indexOf("z")
+            
+            zoo = String#new("str")
+        """.trimIndent()
+        
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["foo"]?.type?.simpleName() shouldBe "Comparator String"
+        ds["bar"]?.type?.simpleName() shouldBe "String"
+        ds["baz"]?.type?.simpleName() shouldBe "Int32"
+        ds["zoo"]?.type?.simpleName() shouldBe "String"
     }
 })
