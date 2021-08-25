@@ -132,9 +132,15 @@ object Reflection {
 
     fun isStatic(method: Method): Boolean = Modifier.isStatic(method.modifiers)
 
+    fun isPublic(method: Method): Boolean = Modifier.isPublic(method.modifiers)
+
     fun isStatic(field: Field): Boolean = Modifier.isStatic(field.modifiers)
 
     fun isImutable(field: Field): Boolean = Modifier.isFinal(field.modifiers)
+
+    fun isPublic(field: Field): Boolean = Modifier.isPublic(field.modifiers)
+
+    fun isPublic(constructor: Constructor<*>): Boolean = Modifier.isPublic(constructor.modifiers)
 
     fun collectType(ty: java.lang.reflect.Type): Type {
         if (typeCache.containsKey(ty.typeName)) return typeCache[ty.typeName]!!

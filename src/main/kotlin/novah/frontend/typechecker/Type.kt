@@ -63,7 +63,7 @@ class TVar(var tvar: TypeVar) : Type() {
 
     fun copyTvar(): TVar = when (val tv = tvar) {
         is TypeVar.Unbound -> TVar(tv.copy())
-        is TypeVar.Link -> TVar(tv.copy(type = tv.type.copy()))
+        is TypeVar.Link -> TVar(tv.copy(type = tv.type.clone()))
         is TypeVar.Generic -> TVar(tv.copy())
     }
 }
@@ -78,13 +78,13 @@ sealed class Type {
         else -> this
     }
 
-    fun copy(): Type = when (this) {
-        is TConst -> copy()
-        is TApp -> copy()
-        is TArrow -> copy()
-        is TImplicit -> copy()
-        is TRecord -> copy()
-        is TRowExtend -> copy()
+    fun clone(): Type = when (this) {
+        is TConst -> this
+        is TApp -> copy(type.clone(), types.map(Type::clone))
+        is TArrow -> copy(args.map(Type::clone), ret.clone())
+        is TImplicit -> copy(type.clone())
+        is TRecord -> copy(row.clone())
+        is TRowExtend -> copy(labels.mapList { it.clone() }, row.clone())
         is TRowEmpty -> TRowEmpty()
         is TVar -> copyTvar()
     }
@@ -123,46 +123,6 @@ sealed class Type {
                 is TImplicit -> {
                     f(t)
                     go(t.type)
-                }
-            }
-        }
-        go(this)
-    }
-
-    /**
-     * Recursively walks this type bottom->up
-     */
-    fun everywhereUnitBottomUp(f: (Type) -> Unit) {
-        fun go(t: Type) {
-            when (t) {
-                is TConst -> f(t)
-                is TApp -> {
-                    go(t.type)
-                    t.types.forEach(::go)
-                    f(t)
-                }
-                is TArrow -> {
-                    t.args.forEach(::go)
-                    go(t.ret)
-                    f(t)
-                }
-                is TVar -> {
-                    if (t.tvar is TypeVar.Link) go((t.tvar as TypeVar.Link).type)
-                    f(t)
-                }
-                is TRowEmpty -> f(t)
-                is TRecord -> {
-                    go(t.row)
-                    f(t)
-                }
-                is TRowExtend -> {
-                    go(t.row)
-                    t.labels.forEachList(::go)
-                    f(t)
-                }
-                is TImplicit -> {
-                    go(t.type)
-                    f(t)
                 }
             }
         }

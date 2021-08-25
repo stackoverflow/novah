@@ -406,6 +406,9 @@ object Inference {
             if (!Reflection.isStatic(field)) {
                 inferError(E.nonStaticField(exp.fieldName.value, clazz), exp.fieldName.span)
             }
+            if (!Reflection.isPublic(field)) {
+                inferError(E.nonPublicField(exp.fieldName.value, clazz), exp.fieldName.span)
+            }
 
             val ty = Reflection.collectType(field.genericType)
             exp.field = field
@@ -419,6 +422,9 @@ object Inference {
             val field = Reflection.findField(jclass, exp.fieldName.value)
                 ?: inferError(E.fieldNotFound(exp.fieldName.value, clazz), exp.span)
             if (Reflection.isStatic(field)) inferError(E.staticField(exp.fieldName.value, clazz), exp.fieldName.span)
+            if (!Reflection.isPublic(field)) {
+                inferError(E.nonPublicField(exp.fieldName.value, clazz), exp.fieldName.span)
+            }
 
             val ty = Reflection.collectType(field.genericType)
             exp.field = field
@@ -437,17 +443,21 @@ object Inference {
                 val tys = exp.args.map { infer(env, level, it) }
                 val found = unifyConstructors(ctors, tys, exp.span)
                     ?: inferError(E.methodDidNotUnify(method.value, clazz), method.span)
+                if (!Reflection.isPublic(found)) inferError(E.nonPublicCtor(clazz), method.span)
 
                 val ty = Reflection.collectType(found.declaringClass)
                 exp.ctor = found
                 exp.withType(ty)
             } else { // it's a method
                 val methods = Reflection.findStaticMethods(jclass, method.value, argCount)
-                if (methods.isEmpty()) inferError(E.methodNotFound(method.value, clazz, argCount), method.span)
+                if (methods.isEmpty()) inferError(E.staticMethodNotFound(method.value, clazz, argCount), method.span)
 
                 val tys = exp.args.map { infer(env, level, it) }
                 val found = unifyMethods(methods, tys, exp.span)
                     ?: inferError(E.methodDidNotUnify(method.value, clazz), method.span)
+                if (!Reflection.isPublic(found)) {
+                    inferError(E.nonPublicMethod(method.value, clazz), method.span)
+                }
 
                 val ty = Reflection.collectType(found.genericReturnType)
                 exp.method = found
@@ -461,14 +471,15 @@ object Inference {
             val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.exp.span)
 
             val methods = Reflection.findNonStaticMethods(jclass, exp.methodName.value, argCount)
-            if (methods.isEmpty()) inferError(
-                E.methodNotFound(exp.methodName.value, clazz, argCount),
-                exp.methodName.span
-            )
+            if (methods.isEmpty())
+                inferError(E.methodNotFound(exp.methodName.value, clazz, argCount), exp.methodName.span)
 
             val tys = exp.args.map { infer(env, level, it) }
             val found = unifyMethods(methods, tys, exp.span)
                 ?: inferError(E.methodDidNotUnify(exp.methodName.value, clazz), exp.methodName.span)
+            if (!Reflection.isPublic(found)) {
+                inferError(E.nonPublicMethod(exp.methodName.value, clazz), exp.methodName.span)
+            }
 
             val ty = Reflection.collectType(found.genericReturnType)
             exp.method = found
@@ -627,12 +638,17 @@ object Inference {
     }
 
     private fun unifyMethods(methods: List<Method>, tys: List<Type>, span: Span): Method? {
+        if (methods.size == 1) {
+            val mtys = methods[0].genericParameterTypes.map { Reflection.collectType(it) }
+            return if (unifyForeignPars(mtys, tys, span)) methods[0] else null
+        }
         return methods.find { method ->
             val mtys = method.genericParameterTypes.map { Reflection.collectType(it) }
             try {
-                mtys.zip(tys).forEach { (mty, ty) ->
-                    unifySimple(mty, ty, span)
-                }
+                // we can't commit to the unification because this method has many overloads,
+                // so we clone the types until we find a match and reunify the matching types
+                mtys.zip(tys).forEach { (mty, ty) -> unifySimple(mty.clone(), ty.clone(), span) }
+                mtys.zip(tys).forEach { (mty, ty) -> unifySimple(mty, ty, span) }
                 true
             } catch (_: Unification.UnifyException) {
                 false
@@ -641,16 +657,29 @@ object Inference {
     }
 
     private fun unifyConstructors(ctors: List<Constructor<*>>, tys: List<Type>, span: Span): Constructor<*>? {
+        if (ctors.size == 1) {
+            val mtys = ctors[0].genericParameterTypes.map { Reflection.collectType(it) }
+            return if (unifyForeignPars(mtys, tys, span)) ctors[0] else null
+        }
         return ctors.find { ctor ->
             val mtys = ctor.genericParameterTypes.map { Reflection.collectType(it) }
             try {
-                mtys.zip(tys).forEach { (mty, ty) ->
-                    unifySimple(mty, ty, span)
-                }
+                // see `unifyMethods` for an explanation
+                mtys.zip(tys).forEach { (mty, ty) -> unifySimple(mty.clone(), ty.clone(), span) }
+                mtys.zip(tys).forEach { (mty, ty) -> unifySimple(mty, ty, span) }
                 true
             } catch (_: Unification.UnifyException) {
                 false
             }
+        }
+    }
+
+    private fun unifyForeignPars(ftys: List<Type>, tys: List<Type>, span: Span): Boolean {
+        return try {
+            ftys.zip(tys).forEach { (mty, ty) -> unifySimple(mty, ty, span) }
+            true
+        } catch (_: Unification.UnifyException) {
+            false
         }
     }
 

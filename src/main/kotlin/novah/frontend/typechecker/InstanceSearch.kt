@@ -20,9 +20,8 @@ import novah.ast.canonical.Expr
 import novah.frontend.Span
 import novah.frontend.error.Errors
 import novah.frontend.typechecker.Inference.generalize
-import novah.frontend.typechecker.Typechecker.context
 import novah.frontend.typechecker.Typechecker.instantiate
-import novah.frontend.typechecker.Unification.unify
+import novah.frontend.typechecker.Unification.unifySimple
 
 object InstanceSearch {
 
@@ -55,15 +54,15 @@ object InstanceSearch {
             return try {
                 val (imps, ret) = peelImplicits(impType)
                 if (imps.isNotEmpty()) {
-                    unify(ret, genTy, span)
+                    unifySimple(ret, genTy, span)
                     val founds = imps.map { t -> find(env, t, depth + 1, span) }
                     val v = mkVar(name, impType, span)
                     nestApps(listOf(v) + founds)
                 } else {
-                    unify(impType, genTy, span)
+                    unifySimple(impType, genTy, span)
                     mkVar(name, impType, span)
                 }
-            } catch (_: InferenceError) {
+            } catch (_: Unification.UnifyException) {
                 null
             }
         }

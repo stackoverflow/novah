@@ -142,7 +142,7 @@ sealed class Expr(open val span: Span) {
     data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
     class Null(span: Span) : Expr(span)
     data class TypeCast(val exp: Expr, val cast: Type, override val span: Span) : Expr(span)
-    data class ForeignField(val exp: Var, val fieldName: Spanned<String>, override val span: Span) : Expr(span) {
+    data class ForeignField(val exp: Expr, val fieldName: Spanned<String>, override val span: Span) : Expr(span) {
         var field: Field? = null
     }
 
@@ -162,7 +162,7 @@ sealed class Expr(open val span: Span) {
     }
 
     data class ForeignMethod(
-        val exp: Var,
+        val exp: Expr,
         val methodName: Spanned<String>,
         val args: List<Expr>,
         override val span: Span

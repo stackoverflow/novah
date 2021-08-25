@@ -243,6 +243,10 @@ object Errors {
         Could not find method $name for class $type taking $argsCount parameters.
     """.trimIndent()
 
+    fun staticMethodNotFound(name: String, type: String, argsCount: Int) = """
+        Could not find static method $name for class $type taking $argsCount parameters.
+    """.trimIndent()
+
     fun ctorNotFound(type: String, argsCount: Int) = """
         Could not find constructor for class $type taking $argsCount parameters.
     """.trimIndent()
@@ -257,7 +261,11 @@ object Errors {
 
     fun staticMethod(name: String, type: String) = "Method $name of class $type is static."
 
+    fun nonPublicMethod(name: String, type: String) = "Method $name of class $type is not public."
+
     fun ctorNotFound(type: String) = "Could not find constructor $type."
+
+    fun nonPublicCtor(type: String) = "Constructor of class $type is not public."
 
     fun fieldNotFound(name: String, type: String) = "Could not find field $name for class $type."
 
@@ -266,6 +274,8 @@ object Errors {
     fun staticField(name: String, type: String) = "Field $name of class $type is static."
 
     fun immutableField(name: String, type: String) = "Field $name of class $type is not mutable."
+
+    fun nonPublicField(name: String, type: String) = "Field $name of class $type is not public."
 
     fun undefinedVarInCtor(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
@@ -314,8 +324,8 @@ object Errors {
         
             $type
         
-        Try adding a type annotation to the expression:
-        `(value : String).indexOf(".")`
+        Try adding a type annotation to the expression, for example:
+        `(value : String)#indexOf(".")`
     """.trimIndent()
 
     fun wrongArgsToNative(name: String, ctx: String, should: Int, got: Int) = """
