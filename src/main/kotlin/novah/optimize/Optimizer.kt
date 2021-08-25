@@ -31,7 +31,6 @@ import novah.frontend.error.Severity
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
-import novah.main.CompilationError
 import novah.main.Environment
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
@@ -608,7 +607,7 @@ class Optimizer(private val ast: CModule) {
                 action = Action.UnusedImport(vvar)
             )
         }
-        throw CompilationError(errs)
+        warnings += errs
     }
 
     private fun mkWarn(msg: String, span: Span): CompilerProblem =

@@ -175,28 +175,6 @@ class FailureSpec : StringSpec({
             compiler.compile()
         }
     }
-
-    "unused imports fail" {
-        val compiler = TestUtil.compilerFor("multimodulefail/unusedimport")
-
-        val error = """
-            module [33mmod2[0m
-            at src/test/resources/multimodulefail/unusedimport/mod2.novah:3:14 - 3:21
-            
-              Import notUsed is unused in module.
-            
-            
-            module [33mmod2[0m
-            at src/test/resources/multimodulefail/unusedimport/mod2.novah:5:1 - 5:35
-            
-              Import codePoints is unused in module.
-            
-
-        """.trimIndent()
-        withError(error) {
-            compiler.run(File("."), true)
-        }
-    }
 }) {
     companion object {
         private inline fun withError(error: String, block: () -> Unit) {
