@@ -76,6 +76,8 @@ class DesugarSpec : StringSpec({
     
     "anonymous function arguments" {
         val code = """
+            foreign import type java.lang.Math
+            
             f1 = if _ then 1 else -1
             
             f2 cond = if cond == 0 then _ else _
@@ -109,7 +111,13 @@ class DesugarSpec : StringSpec({
             
             f12 = { .user.name = _ | _ }
             
-            f13 = { + _, { age: 10 } }            
+            f13 = { + _, { age: 10 } }
+            
+            f14 = List.map (_ : String)#indexOf("a") ["ba", "be", "ab"]
+            
+            f15 = List.map "fox"#charAt(_) [0, 1, 2]
+            
+            f16 = List.map Math#exp(_) [3.0, 5.0, 9.0]
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
@@ -126,6 +134,9 @@ class DesugarSpec : StringSpec({
         ds["f11"]?.type?.simpleName() shouldBe "{ name : t4, age : t3, id : t2 | t1 } -> { | t1 }"
         ds["f12"]?.type?.simpleName() shouldBe "t1 -> { user : { name : t1 | t3 } | t2 } -> { user : { name : t1 | t3 } | t2 }"
         ds["f13"]?.type?.simpleName() shouldBe "{ | t1 } -> { age : Int32 | t1 }"
+        ds["f14"]?.type?.simpleName() shouldBe "List Int32"
+        ds["f15"]?.type?.simpleName() shouldBe "List Char"
+        ds["f16"]?.type?.simpleName() shouldBe "List Float64"
     }
     
     "computation expressions" {

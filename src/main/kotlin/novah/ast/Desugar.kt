@@ -346,15 +346,58 @@ class Desugar(private val smod: SModule) {
             val fqclass = smod.foreignTypes[clazz.value] ?: Reflection.novahToJava(clazz.value)
             Expr.ForeignStaticField(Spanned(clazz.span, fqclass), field, span)
         }
-        is SExpr.ForeignField -> Expr.ForeignField(exp.desugar(locals, tvars), field, span)
+        is SExpr.ForeignField -> {
+            val xp = if (exp is SExpr.Parens) exp.exp else exp
+            val lvars = mutableListOf<Binder>()
+            val lexpr = if (xp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else if (xp is SExpr.Ann && xp.exp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Ann(Expr.Var(v, span), xp.type.desugar(), span)
+            } else xp.desugar(locals, tvars)
+
+            nestLambdas(lvars, Expr.ForeignField(lexpr, field, span))
+        }
         is SExpr.ForeignStaticMethod -> {
             usedTypes += clazz.value
             val fqclass = smod.foreignTypes[clazz.value] ?: Reflection.novahToJava(clazz.value)
-            Expr.ForeignStaticMethod(Spanned(clazz.span, fqclass), method, args.map { it.desugar(locals, tvars) }, span)
+
+            val lvars = mutableListOf<Binder>()
+            val pars = args.map {
+                if (it is SExpr.Underscore) {
+                    val v = newVar()
+                    lvars += Binder(v, it.span)
+                    Expr.Var(v, it.span)
+                } else it.desugar(locals, tvars)
+            }
+
+            nestLambdas(lvars, Expr.ForeignStaticMethod(Spanned(clazz.span, fqclass), method, pars, span))
         }
         is SExpr.ForeignMethod -> {
-            val desugaredExp = exp.desugar(locals, tvars)
-            Expr.ForeignMethod(desugaredExp, method, args.map { it.desugar(locals, tvars) }, span)
+            val xp = if (exp is SExpr.Parens) exp.exp else exp
+            val lvars = mutableListOf<Binder>()
+            val lexpr = if (xp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else if (xp is SExpr.Ann && xp.exp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Ann(Expr.Var(v, span), xp.type.desugar(), span)
+            } else xp.desugar(locals, tvars)
+
+            val pars = args.map {
+                if (it is SExpr.Underscore) {
+                    val v = newVar()
+                    lvars += Binder(v, it.span)
+                    Expr.Var(v, it.span)
+                } else it.desugar(locals, tvars)
+            }
+
+            nestLambdas(lvars, Expr.ForeignMethod(lexpr, method, pars, span))
         }
     }
 

@@ -179,8 +179,11 @@ object Errors {
         Record access: _.name
         Record values: { name: _ }, { age: 10 | _ }
         Record restrictions: { - name | _ }
+        Record merges: { + _, rec }
         Ifs: if _ then 1 else 0, if check then _ else _
         Cases: case _ of ...
+        Foreign fields: (_ : MyClass)#-field
+        Foreign methods: (_ : String)#endsWith("."), Math#exp(_)
     """.trimIndent()
 
     private val foreignExamples = mapOf(

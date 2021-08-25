@@ -58,7 +58,7 @@ class ForeignSpec : StringSpec({
             
             foreign import type java.lang.Math
             
-            foo = String#-"CASE_INSENSITIVE_ORDER"
+            foo = Math#-"PI"
             
             bar = String#valueOf(2)
             
@@ -76,7 +76,7 @@ class ForeignSpec : StringSpec({
         """.trimIndent()
         
         val ds = TestUtil.compileCode(code).env.decls
-        ds["foo"]?.type?.simpleName() shouldBe "Comparator String"
+        ds["foo"]?.type?.simpleName() shouldBe "Float64"
         ds["bar"]?.type?.simpleName() shouldBe "String"
         ds["baz"]?.type?.simpleName() shouldBe "Int32"
         ds["zoo"]?.type?.simpleName() shouldBe "String"
