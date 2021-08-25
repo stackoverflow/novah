@@ -342,16 +342,18 @@ class Desugar(private val smod: SModule) {
         is SExpr.Null -> Expr.Null(span)
         is SExpr.TypeCast -> Expr.TypeCast(exp.desugar(locals, tvars), cast.desugar(vars = tvars.toMutableMap()), span)
         is SExpr.ForeignStaticField -> {
+            usedTypes += clazz.value
             val fqclass = smod.foreignTypes[clazz.value] ?: Reflection.novahToJava(clazz.value)
             Expr.ForeignStaticField(Spanned(clazz.span, fqclass), field, span)
         }
-        is SExpr.ForeignField -> Expr.ForeignField(exp.desugar(locals, tvars) as Expr.Var, field, span)
+        is SExpr.ForeignField -> Expr.ForeignField(exp.desugar(locals, tvars), field, span)
         is SExpr.ForeignStaticMethod -> {
+            usedTypes += clazz.value
             val fqclass = smod.foreignTypes[clazz.value] ?: Reflection.novahToJava(clazz.value)
             Expr.ForeignStaticMethod(Spanned(clazz.span, fqclass), method, args.map { it.desugar(locals, tvars) }, span)
         }
         is SExpr.ForeignMethod -> {
-            val desugaredExp = exp.desugar(locals, tvars) as Expr.Var
+            val desugaredExp = exp.desugar(locals, tvars)
             Expr.ForeignMethod(desugaredExp, method, args.map { it.desugar(locals, tvars) }, span)
         }
     }
@@ -431,7 +433,7 @@ class Desugar(private val smod: SModule) {
                 if (name[0].isLowerCase()) {
                     if (!isCtor) {
                         var v = vars[name]
-                        if (v != null) v.copy().span(span)
+                        if (v != null) v.clone().span(span)
                         else {
                             v = Typechecker.newGenVar(name).span(span)
                             vars[name] = v

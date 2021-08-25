@@ -272,8 +272,8 @@ sealed class Expr {
     class Null : Expr()
     data class TypeCast(val exp: Expr, val cast: Type) : Expr()
     data class ForeignStaticField(val clazz: Spanned<String>, val field: Spanned<String>) : Expr()
-    data class ForeignField(val exp: Var, val field: Spanned<String>) : Expr()
-    data class ForeignMethod(val exp: Var, val method: Spanned<String>, val args: List<Expr>) : Expr()
+    data class ForeignField(val exp: Expr, val field: Spanned<String>) : Expr()
+    data class ForeignMethod(val exp: Expr, val method: Spanned<String>, val args: List<Expr>) : Expr()
     data class ForeignStaticMethod(val clazz: Spanned<String>, val method: Spanned<String>, val args: List<Expr>) :
         Expr()
 

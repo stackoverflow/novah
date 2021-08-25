@@ -56,6 +56,8 @@ class ForeignSpec : StringSpec({
         val code = """
             module test
             
+            foreign import type java.lang.Math
+            
             foo = String#-"CASE_INSENSITIVE_ORDER"
             
             bar = String#valueOf(2)
@@ -65,6 +67,12 @@ class ForeignSpec : StringSpec({
               str#indexOf("z")
             
             zoo = String#new("str")
+            
+            boo x = Math#addExact(x, 1L)
+            
+            foo2 =
+              let rec = { name: "Name" }
+              rec.name#repeat(3)#split("a")
         """.trimIndent()
         
         val ds = TestUtil.compileCode(code).env.decls
@@ -72,5 +80,7 @@ class ForeignSpec : StringSpec({
         ds["bar"]?.type?.simpleName() shouldBe "String"
         ds["baz"]?.type?.simpleName() shouldBe "Int32"
         ds["zoo"]?.type?.simpleName() shouldBe "String"
+        ds["boo"]?.type?.simpleName() shouldBe "Int64 -> Int64"
+        ds["foo2"]?.type?.simpleName() shouldBe "Array String"
     }
 })

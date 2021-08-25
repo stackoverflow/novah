@@ -77,10 +77,8 @@ object Application {
     private fun getFixity(op: Expr.Operator): Fixity = when (op.name[0]) {
         '$', ':' -> Fixity.Right
         else -> {
-            if (op.name.length > 1) {
-                if (op.name.last() == '<') Fixity.Right
-                else Fixity.Left
-            } else Fixity.Left
+            if (op.name.length > 1 && op.name.last() == '<') Fixity.Right
+            else Fixity.Left
         }
     }
 

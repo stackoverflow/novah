@@ -445,26 +445,7 @@ class Parser(
             is MultilineStringT -> parseMultilineString()
             is CharT -> parseChar()
             is BoolT -> parseBool()
-            is Ident -> {
-                val v = parseVar()
-                // TODO: allow any kind of expression to call java methods, not only vars
-                when (iter.peek().value) {
-                    is Hash -> {
-                        iter.next()
-                        val (methodName, tk) = parseLabel()
-                        val (args, end) = parseArglist("foreign method")
-                        val method = Spanned(tk.span, methodName)
-                        Expr.ForeignMethod(v, method, args).withSpan(v.span, end).withComment(v.comment)
-                    }
-                    is HashDash -> {
-                        iter.next()
-                        val (fieldName, tk) = parseLabel()
-                        val field = Spanned(tk.span, fieldName)
-                        Expr.ForeignField(v, field).withSpan(v.span, tk.span).withComment(v.comment)
-                    }
-                    else -> v
-                }
-            }
+            is Ident -> parseVar()
             is Op -> parseOperator()
             is Null -> parseNull()
             is Underline -> {
@@ -564,13 +545,36 @@ class Parser(
             else -> null
         }
 
-        // record selection has the highest precedence
-        return if (exp != null && iter.peek().value is Dot) {
+        if (exp == null) return exp
+
+        // record selection and method/field call have the highest precedence
+        return parseSelection(exp)
+    }
+
+    private tailrec fun parseSelection(exp: Expr): Expr = when (iter.peek().value) {
+        is Dot -> {
             iter.next()
             val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
-            Expr.RecordSelect(exp, labels.map { Spanned(it.second.span, it.first) })
+            val res = Expr.RecordSelect(exp, labels.map { Spanned(it.second.span, it.first) })
                 .withSpan(exp.span, labels.last().second.span)
-        } else exp
+            parseSelection(res)
+        }
+        is Hash -> {
+            iter.next()
+            val (methodName, tk) = parseLabel()
+            val (args, end) = parseArglist("foreign method")
+            val method = Spanned(tk.span, methodName)
+            val res = Expr.ForeignMethod(exp, method, args).withSpan(exp.span, end).withComment(exp.comment)
+            parseSelection(res)
+        }
+        is HashDash -> {
+            iter.next()
+            val (fieldName, tk) = parseLabel()
+            val field = Spanned(tk.span, fieldName)
+            val res = Expr.ForeignField(exp, field).withSpan(exp.span, tk.span).withComment(exp.comment)
+            parseSelection(res)
+        }
+        else -> exp
     }
 
     private fun parseInt32(): Expr {
