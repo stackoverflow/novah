@@ -159,6 +159,8 @@ object Errors {
     const val IMPLICIT_PATTERN =
         "Implicit patterns can only be used in function parameters before any destructuring happens."
 
+    const val ANNOTATION_PATTERN = "Type annotation patterns can only be used in function variables"
+
     const val APPLIED_DO_LET = "Cannot apply let statement as a function."
 
     const val NO_FINALLY = "Expected `finally` definition after try expression without cases."

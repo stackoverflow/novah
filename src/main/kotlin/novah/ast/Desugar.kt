@@ -431,6 +431,7 @@ class Desugar(private val smod: SModule) {
         is SPattern.Unit -> Pattern.Unit(span)
         is SPattern.TypeTest -> Pattern.TypeTest(type.desugar(), alias, span)
         is SPattern.ImplicitPattern -> parserError(E.IMPLICIT_PATTERN, span)
+        is SPattern.TypeAnnotation -> parserError(E.ANNOTATION_PATTERN, span)
     }
 
     private fun SLiteralPattern.desugar(locals: List<String>): LiteralPattern = when (this) {
@@ -530,6 +531,7 @@ class Desugar(private val smod: SModule) {
         is SPattern.TypeTest -> {
             if (pat.alias != null) listOf(CollectedVar(pat.alias, pat.span, implicit)) else emptyList()
         }
+        is SPattern.TypeAnnotation -> collectVars(pat.pat)
     }
 
     private fun nestLambdas(binders: List<Binder>, exp: Expr): Expr {
@@ -568,6 +570,18 @@ class Desugar(private val smod: SModule) {
                             Span.new(pat.span, exp.span)
                         )
                     }
+                }
+                is SPattern.Parens -> {
+                    nestLambdaPatterns(listOf(pat.pattern) + pats.drop(1), exp, locals, tvars)
+                }
+                is SPattern.TypeAnnotation -> {
+                    val bind = Binder(pat.pat.v.name, pat.span)
+                    bind.type = pat.type.desugar(vars = tvars.toMutableMap())
+                    Expr.Lambda(
+                        bind,
+                        nestLambdaPatterns(pats.drop(1), exp, locals, tvars),
+                        Span.new(pat.span, exp.span)
+                    )
                 }
                 else -> {
                     val vars = pats.map { Expr.Var(newVar(), it.span) }
