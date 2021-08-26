@@ -164,7 +164,9 @@ object Inference {
         is Expr.Lambda -> {
             val binder = exp.binder
             checkShadow(env, binder.name, binder.span)
-            val param = if (binder.isImplicit) TImplicit(newVar(level)) else newVar(level)
+            // if the binder is annotated, use it
+            val par = if (binder.type != null) binder.type!! else newVar(level)
+            val param = if (binder.isImplicit) TImplicit(par) else par
             val newEnv = env.fork().extend(binder.name, param)
             if (binder.isImplicit) newEnv.extendInstance(binder.name, param, true)
             val returnTy = infer(newEnv, level, exp.body)

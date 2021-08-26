@@ -959,12 +959,24 @@ class Parser(
             }
             else -> null
         }
-        // named patterns
-        return if (pat != null && iter.peek().value is As) {
-            iter.next()
-            val name = expect<Ident>(withError(E.VARIABLE))
-            Pattern.Named(pat, Spanned(name.span, name.value.v), span(pat.span, name.span))
-        } else pat
+        if (pat == null) return pat
+
+        // named and annotation patterns
+        return when (iter.peek().value) {
+            is As -> {
+                iter.next()
+                val name = expect<Ident>(withError(E.VARIABLE))
+                Pattern.Named(pat, Spanned(name.span, name.value.v), span(pat.span, name.span))
+            }
+            is Colon -> {
+                if (pat is Pattern.Var) {
+                    iter.next()
+                    val type = parseType()
+                    Pattern.TypeAnnotation(pat, type, span(pat.span, type.span))
+                } else pat
+            }
+            else -> pat
+        }
     }
 
     private fun parsePatternRow(): Pair<String, Pattern> {
