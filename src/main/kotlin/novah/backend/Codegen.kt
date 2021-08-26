@@ -301,8 +301,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 for (localVar in e.locals) {
                     val local = ctx[localVar.name]
                         ?: internalError("unmapped local variable (${localVar.name}) in code generation: $e")
-                    localTypes += localVar.type.type
+                    val type = localVar.type.type
+                    localTypes += type
                     mv.visitVarInsn(ALOAD, local)
+                    if (type.internalName != OBJECT_CLASS)
+                        mv.visitTypeInsn(CHECKCAST, type.internalName)
                 }
                 val applyDesc = getMethodDescriptor(e.type.type, *localTypes.toTypedArray())
                 val args = localTypes + e.type.pars[0].type
