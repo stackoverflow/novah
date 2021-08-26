@@ -556,7 +556,7 @@ class Desugar(private val smod: SModule) {
                 is SPattern.ImplicitPattern -> {
                     if (pat.pat is SPattern.Var) {
                         Expr.Lambda(
-                            Binder(pat.pat.v.name, pat.span, true),
+                            Binder(pat.pat.v.name, pat.pat.span, true),
                             nestLambdaPatterns(pats.drop(1), exp, locals, tvars),
                             Span.new(pat.span, exp.span)
                         )
@@ -575,7 +575,7 @@ class Desugar(private val smod: SModule) {
                     nestLambdaPatterns(listOf(pat.pattern) + pats.drop(1), exp, locals, tvars)
                 }
                 is SPattern.TypeAnnotation -> {
-                    val bind = Binder(pat.pat.v.name, pat.span)
+                    val bind = Binder(pat.pat.v.name, pat.pat.span)
                     bind.type = pat.type.desugar(vars = tvars.toMutableMap())
                     Expr.Lambda(
                         bind,

@@ -13,47 +13,6 @@ foreign import type java.lang.AssertionError
 foreign import type java.lang.Math
 foreign import type java.lang.System
 
-foreign import Int32.byteValue() as iToB
-foreign import Int64.intValue() as lToI
-foreign import Byte.intValue() as bToI
-
-foreign import Core:compareInt(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
-foreign import Core:compareLong(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
-foreign import Core:compareDouble(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
-foreign import Core:compareChar(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
-foreign import Core:compareString(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
-foreign import Core:swapAtom(AtomicReference, Function)
-foreign import Core:and(Boolean, Boolean)
-foreign import Core:or(Boolean, Boolean)
-foreign import Core:eachRange(Int64, Int64, Int32, Function)
-foreign import Core:eachRangeBreak(Int64, Int64, Function)
-foreign import Core:listIntRange(Int32, Int32)
-foreign import Core:listLongRange(Int64, Int64)
-foreign import Core:listFloatRange(Float32, Float32)
-foreign import Core:listDoubleRange(Float64, Float64)
-foreign import Core:listCharRange(Char, Char)
-foreign import Core:intToChar(Int32)
-foreign import Core:charToInt(Char)
-foreign import Core:bitAndInt(Int32, Int32)
-foreign import Core:bitOrInt(Int32, Int32)
-foreign import Core:bitXorInt(Int32, Int32)
-foreign import Core:bitShiftLeftInt(Int32, Int32)
-foreign import Core:bitShiftRightInt(Int32, Int32)
-foreign import Core:unsignedBitShiftRightInt(Int32, Int32)
-foreign import Core:bitNotInt(Int32)
-foreign import Core:bitAndLong(Int64, Int64)
-foreign import Core:bitOrLong(Int64, Int64)
-foreign import Core:bitXorLong(Int64, Int64)
-foreign import Core:bitShiftLeftLong(Int64, Int64)
-foreign import Core:bitShiftRightLong(Int64, Int64)
-foreign import Core:unsignedBitShiftRightLong(Int64, Int64)
-foreign import Core:bitNotLong(Int64)
-foreign import Core:intRemainder(Int32, Int32)
-foreign import Core:longRemainder(Int64, Int64)
-foreign import Core:floatRemainder(Float32, Float32)
-foreign import Core:doubleRemainder(Float64, Float64)
-foreign import Record.equals(Record) as equalsRecord
-
 /**
  * A 32-bits Integer
  */
@@ -154,7 +113,7 @@ pub
  */
 pub
 (&&) : Boolean -> Boolean -> Boolean
-(&&) cond1 cond2 = and cond1 cond2
+(&&) cond1 cond2 = Core#and(cond1, cond2)
 
 /**
  * Logical `or` operator.
@@ -163,7 +122,7 @@ pub
  */
 pub
 (||) : Boolean -> Boolean -> Boolean
-(||) cond1 cond2 = or cond1 cond2
+(||) cond1 cond2 = Core#or(cond1, cond2)
 
 /**
  * Prints x to stdout and appends a new line.
@@ -200,14 +159,14 @@ todo msg = throw AssertionError#new(format "Not implemented: %s" [msg] as Object
  */
 pub
 int : Int64 -> Int32
-int l = lToI l
+int (l : Int64) = l#intValue()
 
 /**
  * Converts this 32-bit integer to a 64-bit integer.
  */
 pub
 int64 : Int32 -> Int64
-int64 i = (i : Int32)#longValue()
+int64 (i : Int32) = i#longValue()
 
 /**
  * Returns the value at index for this list.
@@ -216,7 +175,7 @@ int64 i = (i : Int32)#longValue()
  */
 pub
 (!) : List a -> Int64 -> a
-(!) list index = (list : List a)#nth(index)
+(!) (list : List a) index = list#nth(index)
 
 /**
  * Sets the value of this list at the specified index to x.
@@ -225,7 +184,7 @@ pub
  */
 pub
 setAt : Int64 -> a -> List a -> List a
-setAt index x list = (list : List a)#set(index, x)
+setAt index x (list : List a) = list#set(index, x)
 
 /**
  * Updates the value of this list at the specified index by applying function f to the old value.
@@ -234,7 +193,7 @@ setAt index x list = (list : List a)#set(index, x)
  */
 pub
 updateAt : Int64 -> (a -> a) -> List a -> List a
-updateAt index f list = (list : List a)#set(index, f (list ! index))
+updateAt index f (list : List a) = list#set(index, f (list ! index))
 
 /**
  * Appends x to the beginning of this list.
@@ -242,7 +201,7 @@ updateAt index f list = (list : List a)#set(index, f (list ! index))
  */
 pub
 addFirst : a -> List a -> List a
-addFirst x list = (list : List a)#addFirst(x)
+addFirst x (list : List a) = list#addFirst(x)
 
 /**
  * Appends x to the end of this list.
@@ -250,7 +209,7 @@ addFirst x list = (list : List a)#addFirst(x)
  */
 pub
 addLast : a -> List a -> List a
-addLast x list = (list : List a)#addLast(x)
+addLast x (list : List a) = list#addLast(x)
 
 /**
  * Removes the first element of this list.
@@ -258,7 +217,7 @@ addLast x list = (list : List a)#addLast(x)
  */
 pub
 removeFirst : List a -> List a
-removeFirst list = (list : List a)#removeFirst()
+removeFirst (list : List a) = list#removeFirst()
 
 /**
  * Removes the last element of this list.
@@ -266,7 +225,7 @@ removeFirst list = (list : List a)#removeFirst()
  */
 pub
 removeLast : List a -> List a
-removeLast list = (list : List a)#removeLast()
+removeLast (list : List a) = list#removeLast()
 
 /**
  * Gets the element of the array at the specified index.
@@ -411,19 +370,19 @@ pub
 
 pub instance
 plusInt32 : Plus Int32
-plusInt32 = Plus { plus: \x y -> Core#sum(x : Int32, y) }
+plusInt32 = Plus { plus: \(x : Int32) y -> Core#sum(x, y) }
 
 pub instance
 plusInt64 : Plus Int64
-plusInt64 = Plus { plus: \x y -> Core#sum(x : Int64, y) }
+plusInt64 = Plus { plus: \(x : Int64) y -> Core#sum(x, y) }
 
 pub instance
 plusFloat32 : Plus Float32
-plusFloat32 = Plus { plus: \x y -> Core#sum(x : Float32, y) }
+plusFloat32 = Plus { plus: \(x : Float32) y -> Core#sum(x, y) }
 
 pub instance
 plusFloat64 : Plus Float64
-plusFloat64 = Plus { plus: \x y -> Core#sum(x : Float64, y) }
+plusFloat64 = Plus { plus: \(x : Float64) y -> Core#sum(x, y) }
 
 /**
  * The type of things that can be subtracted
@@ -441,19 +400,19 @@ pub
 
 pub instance
 minusInt32 : Minus Int32
-minusInt32 = Minus { minus: \x y -> Core#sub(x : Int32, y) }
+minusInt32 = Minus { minus: \(x : Int32) y -> Core#sub(x, y) }
 
 pub instance
 minusInt64 : Minus Int64
-minusInt64 = Minus { minus: \x y -> Core#sub(x : Int64, y) }
+minusInt64 = Minus { minus: \(x : Int64) y -> Core#sub(x, y) }
 
 pub instance
 minusFloat32 : Minus Float32
-minusFloat32 = Minus { minus: \x y -> Core#sub(x : Float32, y) }
+minusFloat32 = Minus { minus: \(x : Float32) y -> Core#sub(x, y) }
 
 pub instance
 minusFloat64 : Minus Float64
-minusFloat64 = Minus { minus: \x y -> Core#sub(x : Float64, y) }
+minusFloat64 = Minus { minus: \(x : Float64) y -> Core#sub(x, y) }
 
 /**
  * The type of things that can be multiplied together
@@ -471,19 +430,19 @@ pub
 
 pub instance
 multInt32 : Mult Int32
-multInt32 = Mult { mult: \x y -> Core#mult(x : Int32, y) }
+multInt32 = Mult { mult: \(x : Int32) y -> Core#mult(x, y) }
 
 pub instance
 multInt64 : Mult Int64
-multInt64 = Mult { mult: \x y -> Core#mult(x : Int64, y) }
+multInt64 = Mult { mult: \(x : Int64) y -> Core#mult(x, y) }
 
 pub instance
 multFloat32 : Mult Float32
-multFloat32 = Mult { mult: \x y -> Core#mult(x : Float32, y) }
+multFloat32 = Mult { mult: \(x : Float32) y -> Core#mult(x, y) }
 
 pub instance
 multFloat64 : Mult Float64
-multFloat64 = Mult { mult: \x y -> Core#mult(x : Float64, y) }
+multFloat64 = Mult { mult: \(x : Float64) y -> Core#mult(x, y) }
 
 /**
  * The type of things that can be divided
@@ -501,19 +460,19 @@ pub
 
 pub instance
 divideInt32 : Divide Int32
-divideInt32 = Divide { divide: \x y -> Core#div(x : Int32, y) }
+divideInt32 = Divide { divide: \(x : Int32) y -> Core#div(x, y) }
 
 pub instance
 divideInt64 : Divide Int64
-divideInt64 = Divide { divide: \x y -> Core#div(x : Int64, y) }
+divideInt64 = Divide { divide: \(x : Int64) y -> Core#div(x, y) }
 
 pub instance
 divideFloat32 : Divide Float32
-divideFloat32 = Divide { divide: \x y -> Core#div(x : Float32, y) }
+divideFloat32 = Divide { divide: \(x : Float32) y -> Core#div(x, y) }
 
 pub instance
 divideFloat64 : Divide Float64
-divideFloat64 = Divide { divide: \x y -> Core#div(x : Float64, y) }
+divideFloat64 = Divide { divide: \(x : Float64) y -> Core#div(x, y) }
 
 /**
  * Returns x raised to the power of y.
@@ -633,31 +592,31 @@ pub
 
 pub instance
 eqByte : Equals Byte
-eqByte = Equals { equals: \x y -> Core#equivalent(x : Byte, y) }
+eqByte = Equals { equals: \(x : Byte) y -> Core#equivalent(x, y) }
 
 pub instance
 eqInt16 : Equals Int16
-eqInt16 = Equals { equals: \x y -> Core#equivalent(x : Int16, y) }
+eqInt16 = Equals { equals: \(x : Int16) y -> Core#equivalent(x, y) }
 
 pub instance
 eqInt32 : Equals Int32
-eqInt32 = Equals { equals: \x y -> Core#equivalent(x : Int32, y) }
+eqInt32 = Equals { equals: \(x : Int32) y -> Core#equivalent(x, y) }
 
 pub instance
 eqInt64 : Equals Int64
-eqInt64 = Equals { equals: \x y -> Core#equivalent(x : Int64, y) }
+eqInt64 = Equals { equals: \(x : Int64) y -> Core#equivalent(x, y) }
 
 pub instance
 eqFloat32 : Equals Float32
-eqFloat32 = Equals { equals: \x y -> Core#equivalent(x : Float32, y) }
+eqFloat32 = Equals { equals: \(x : Float32) y -> Core#equivalent(x, y) }
 
 pub instance
 eqFloat64 : Equals Float64
-eqFloat64 = Equals { equals: \x y -> Core#equivalent(x : Float64, y) }
+eqFloat64 = Equals { equals: \(x : Float64) y -> Core#equivalent(x, y) }
 
 pub instance
 eqChar : Equals Char
-eqChar = Equals { equals: \x y -> Core#equivalent(x : Char, y) }
+eqChar = Equals { equals: \(x : Char) y -> Core#equivalent(x, y) }
 
 equalsBoolean : Boolean -> Boolean -> Boolean
 equalsBoolean =
@@ -672,7 +631,7 @@ eqBoolean = Equals { equals: equalsBoolean }
 
 pub instance
 eqString : Equals String
-eqString = Equals { equals: \x y -> (x : String)#equals((y : String) as Object) }
+eqString = Equals { equals: \(x : String) y -> x#equals((y : String) as Object) }
 
 pub instance
 eqList : {{ Equals a }} -> Equals (List a)
@@ -716,7 +675,7 @@ eqNullable {{eq}} = Equals { equals: equalsNullable eq }
  */
 pub
 recordEquals : { | r } -> { | r } -> Boolean
-recordEquals r1 r2 = equalsRecord (r1 as Record) (r2 as Record)
+recordEquals r1 r2 = (r1 as Record)#equals(r2 as Object)
 
 /**
  * The ordering type represents the outcome
@@ -800,24 +759,24 @@ pub
 
 pub instance
 ordInt32 : Ord Int32
-ordInt32 = Ord eqInt32 { compare: unsafeCast (compareInt LT EQ GT) }
+ordInt32 = Ord eqInt32 { compare: unsafeCast Core#compareInt(LT as Object, EQ as Object, GT as Object) }
 
 pub instance
 ordInt64 : Ord Int64
-ordInt64 = Ord eqInt64 { compare: unsafeCast (compareLong LT EQ GT) }
+ordInt64 = Ord eqInt64 { compare: unsafeCast Core#compareLong(LT as Object, EQ as Object, GT as Object) }
 
 pub instance
 ordFloat64 : Ord Float64
-ordFloat64 = Ord eqFloat64 { compare: unsafeCast (compareDouble LT EQ GT) }
+ordFloat64 = Ord eqFloat64 { compare: unsafeCast Core#compareDouble(LT as Object, EQ as Object, GT as Object) }
 
 pub instance
 ordByte : Ord Byte
 ordByte =
   Ord eqByte
     { compare:
-      \x y ->
-        let comp = unsafeCast (compareInt LT EQ GT)
-        comp (x : Byte)#intValue() (y : Byte)#intValue()
+      \(x : Byte) (y : Byte) ->
+        let comp = unsafeCast Core#compareInt(LT as Object, EQ as Object, GT as Object)
+        comp x#intValue() y#intValue()
     }
 
 pub instance
@@ -825,9 +784,9 @@ ordInt16 : Ord Int16
 ordInt16 =
   Ord eqInt16
     { compare:
-      \x y ->
-        let comp = unsafeCast (compareInt LT EQ GT)
-        comp (x : Int16)#intValue() (y : Int16)#intValue()
+      \(x : Int16) (y : Int16) ->
+        let comp = unsafeCast Core#compareInt(LT as Object, EQ as Object, GT as Object)
+        comp x#intValue() y#intValue()
     }
 
 pub instance
@@ -835,14 +794,14 @@ ordFloat32 : Ord Float32
 ordFloat32 =
   Ord eqFloat32
     { compare:
-      \x y ->
-        let comp = unsafeCast (compareDouble LT EQ GT)
-        comp (x : Float32)#doubleValue() (y : Float32)#doubleValue()
+      \(x : Float32) (y : Float32) ->
+        let comp = unsafeCast Core#compareDouble(LT as Object, EQ as Object, GT as Object)
+        comp x#doubleValue() y#doubleValue()
     }
 
 pub instance
 ordChar : Ord Char
-ordChar = Ord eqChar { compare: unsafeCast (compareChar LT EQ GT) }
+ordChar = Ord eqChar { compare: unsafeCast Core#compareChar(LT as Object, EQ as Object, GT as Object) }
 
 compareBoolean : Boolean -> Boolean -> Ordering
 compareBoolean =
@@ -858,7 +817,7 @@ ordBoolean = Ord eqBoolean { compare: compareBoolean }
 
 pub instance
 ordString : Ord String
-ordString = Ord eqString { compare: unsafeCast (compareString LT EQ GT) }
+ordString = Ord eqString { compare: unsafeCast Core#compareString(LT as Object, EQ as Object, GT as Object) }
 
 compareOption : Ord a -> Option a -> Option a -> Ordering
 compareOption (Ord _ o) =
@@ -913,9 +872,9 @@ pub instance
 numberOpsInt32 : NumberOps Int32
 numberOpsInt32 =
   NumberOps
-    { remainder: \x y -> intRemainder x y
+    { remainder: \x y -> Core#intRemainder(x, y)
     , zero: 0
-    , even: \x -> intRemainder x 2 == 0
+    , even: \x -> Core#intRemainder(x, 2) == 0
     , min: \x y -> Math#min(x, y)
     , max: \x y -> Math#max(x, y)
     }
@@ -924,33 +883,33 @@ pub instance
 numberOpsInt64 : NumberOps Int64
 numberOpsInt64 =
   NumberOps
-    { remainder: \x y -> longRemainder x y
+    { remainder: \x y -> Core#longRemainder(x, y)
     , zero: 0L
-    , even: \x -> longRemainder x 2L == 0L
-    , min: \x y -> Math#min(x : Int64, y)
-    , max: \x y -> Math#max(x : Int64, y)
+    , even: \x -> Core#longRemainder(x, 2L) == 0L
+    , min: \(x : Int64) y -> Math#min(x, y)
+    , max: \(x : Int64) y -> Math#max(x, y)
     }
 
 pub instance
 numberOpsFloat32 : NumberOps Float32
 numberOpsFloat32 =
   NumberOps
-    { remainder: \x y -> floatRemainder x y
+    { remainder: \x y -> Core#floatRemainder(x, y)
     , zero: 0F
-    , even: \x -> floatRemainder x 2F == 0F
-    , min: \x y -> Math#min(x : Float32, y)
-    , max: \x y -> Math#max(x : Float32, y)
+    , even: \x -> Core#floatRemainder(x, 2F) == 0F
+    , min: \(x : Float32) y -> Math#min(x, y)
+    , max: \(x : Float32) y -> Math#max(x, y)
     }
 
 pub instance
 numberOpsFloat64 : NumberOps Float64
 numberOpsFloat64 =
   NumberOps
-    { remainder: \x y -> doubleRemainder x y
+    { remainder: \x y -> Core#doubleRemainder(x, y)
     , zero: 0.0
-    , even: \x -> doubleRemainder x 2.0 == 0.0
-    , min: \x y -> Math#min(x : Float64, y)
-    , max: \x y -> Math#max(x : Float64, y)
+    , even: \x -> Core#doubleRemainder(x, 2.0) == 0.0
+    , min: \(x : Float64) y -> Math#min(x, y)
+    , max: \(x : Float64) y -> Math#max(x, y)
     }
 
 /**
@@ -1027,52 +986,52 @@ pub instance
 bitOperatorByte : BitOperator Byte
 bitOperatorByte =
   BitOperator
-    { and: \x y -> iToB (bitAndInt (bToI x) (bToI y))
-    , or: \x y -> iToB (bitOrInt (bToI x) (bToI y))
-    , xor: \x y -> iToB (bitXorInt (bToI x) (bToI y))
-    , shiftLeft: \x y -> iToB (bitShiftLeftInt (bToI x) (bToI y))
-    , shiftRight: \x y -> iToB (bitShiftRightInt (bToI x) (bToI y))
-    , unsignedShiftRight: \x y -> iToB (unsignedBitShiftRightInt (bToI x) (bToI y))
-    , not: \x -> iToB (bitNotInt (bToI x))
+    { and: \(x : Byte) (y : Byte) -> Core#bitAndInt(x#intValue(), y#intValue())#byteValue()
+    , or: \(x : Byte) (y : Byte) -> Core#bitOrInt(x#intValue(), y#intValue())#byteValue()
+    , xor: \(x : Byte) (y : Byte) -> Core#bitXorInt(x#intValue(), y#intValue())#byteValue()
+    , shiftLeft: \(x : Byte) (y : Byte) -> Core#bitShiftLeftInt(x#intValue(), y#intValue())#byteValue()
+    , shiftRight: \(x : Byte) (y : Byte) -> Core#bitShiftRightInt(x#intValue(), y#intValue())#byteValue()
+    , unsignedShiftRight: \(x : Byte) (y : Byte) -> Core#unsignedBitShiftRightInt(x#intValue(), y#intValue())#byteValue()
+    , not: \(x : Byte) -> Core#bitNotInt(x#intValue())#byteValue()
     }
 
 pub instance
 bitOperatorInt16 : BitOperator Int16
 bitOperatorInt16 =
   BitOperator
-    { and: \x y -> (bitAndInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
-    , or: \x y -> (bitOrInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
-    , xor: \x y -> (bitXorInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
-    , shiftLeft: \x y -> (bitShiftLeftInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
-    , shiftRight: \x y -> (bitShiftRightInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
-    , unsignedShiftRight: \x y -> (unsignedBitShiftRightInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
-    , not: \x -> (bitNotInt (x : Int16)#intValue())#shortValue()
+    { and: \(x : Int16) (y : Int16) -> Core#bitAndInt(x#intValue(), y#intValue())#shortValue()
+    , or: \(x : Int16) (y : Int16) -> Core#bitOrInt(x#intValue(), y#intValue())#shortValue()
+    , xor: \(x : Int16) (y : Int16) -> Core#bitXorInt(x#intValue(), y#intValue())#shortValue()
+    , shiftLeft: \(x : Int16) (y : Int16) -> Core#bitShiftLeftInt(x#intValue(), y#intValue())#shortValue()
+    , shiftRight: \(x : Int16) (y : Int16) -> Core#bitShiftRightInt(x#intValue(), y#intValue())#shortValue()
+    , unsignedShiftRight: \(x : Int16) (y : Int16) -> Core#unsignedBitShiftRightInt(x#intValue(), y#intValue())#shortValue()
+    , not: \(x : Int16) -> Core#bitNotInt(x#intValue())#shortValue()
     }
 
 pub instance
 bitOperatorInt32 : BitOperator Int32
 bitOperatorInt32 =
   BitOperator
-    { and: \x y -> bitAndInt x y
-    , or: \x y -> bitOrInt x y
-    , xor: \x y -> bitXorInt x y
-    , shiftLeft: \x y -> bitShiftLeftInt x y
-    , shiftRight: \x y -> bitShiftRightInt x y
-    , unsignedShiftRight: \x y -> unsignedBitShiftRightInt x y
-    , not: \x -> bitNotInt x
+    { and: \x y -> Core#bitAndInt(x, y)
+    , or: \x y -> Core#bitOrInt(x, y)
+    , xor: \x y -> Core#bitXorInt(x, y)
+    , shiftLeft: \x y -> Core#bitShiftLeftInt(x, y)
+    , shiftRight: \x y -> Core#bitShiftRightInt(x, y)
+    , unsignedShiftRight: \x y -> Core#unsignedBitShiftRightInt(x, y)
+    , not: \x -> Core#bitNotInt(x)
     }
 
 pub instance
 bitOperatorInt64 : BitOperator Int64
 bitOperatorInt64 =
   BitOperator
-    { and: \x y -> bitAndLong x y
-    , or: \x y -> bitOrLong x y
-    , xor: \x y -> bitXorLong x y
-    , shiftLeft: \x y -> bitShiftLeftLong x y
-    , shiftRight: \x y -> bitShiftRightLong x y
-    , unsignedShiftRight: \x y -> unsignedBitShiftRightLong x y
-    , not: \x -> bitNotLong x
+    { and: \x y -> Core#bitAndLong(x, y)
+    , or: \x y -> Core#bitOrLong(x, y)
+    , xor: \x y -> Core#bitXorLong(x, y)
+    , shiftLeft: \x y -> Core#bitShiftLeftLong(x, y)
+    , shiftRight: \x y -> Core#bitShiftRightLong(x, y)
+    , unsignedShiftRight: \x y -> Core#unsignedBitShiftRightLong(x, y)
+    , not: \x -> Core#bitNotLong(x)
     }
 
 /**
@@ -1177,7 +1136,7 @@ reset x (Atom a) =
  */
 pub
 swap : (a -> a) -> Atom a -> a
-swap f (Atom a) = swapAtom a f
+swap f (Atom a) = Core#swapAtom(a, f)
 
 /**
  * Low-level function that receives the old value, the new value and attempts
@@ -1206,14 +1165,14 @@ showAtom {{Show s}} = Show { show: \atm -> format "(Atom %s)" [s.show (deref atm
  */
 pub
 forEachRange : Int64 -> Int64 -> (Int64 -> a) -> Unit
-forEachRange begin end f = eachRange begin end 1 f
+forEachRange begin end f = Core#eachRange(begin, end, 1, f)
 
 /**
  * Executes the function starting at begin (inclusive) ending in end (exclusive) with the specified step.
  */
 pub
 forEachStep : Int64 -> Int64 -> Int32 -> (Int64 -> a) -> Unit
-forEachStep begin end step f = eachRange begin end step f
+forEachStep begin end step f = Core#eachRange(begin, end, step, f)
 
 /**
  * Executes the function for every number from begin (inclusive) to end (exclusive).
@@ -1221,7 +1180,7 @@ forEachStep begin end step f = eachRange begin end step f
  */
 pub
 forEachBreak : Int64 -> Int64 -> (Int64 -> Int32) -> Unit
-forEachBreak begin end f = eachRangeBreak begin end f
+forEachBreak begin end f = Core#eachRangeBreak(begin, end, f)
 
 /**
  * Types that can generate a list over a range.
@@ -1250,38 +1209,38 @@ pub instance
 rangeInt32 : Range Int32
 rangeInt32 =
   Range
-    { range: \begin end -> listIntRange begin end
-    , rangeInclusive: \begin end -> listIntRange begin (end + 1)
+    { range: \begin end -> Core#listIntRange(begin, end)
+    , rangeInclusive: \begin end -> Core#listIntRange(begin, end + 1)
     }
 
 pub instance
 rangeInt64 : Range Int64
 rangeInt64 =
   Range
-    { range: \begin end -> listLongRange begin end
-    , rangeInclusive: \begin end -> listLongRange begin (end + 1L)
+    { range: \begin end -> Core#listLongRange(begin, end)
+    , rangeInclusive: \begin end -> Core#listLongRange(begin, end + 1L)
     }
 
 pub instance
 rangeFloat32 : Range Float32
 rangeFloat32 =
   Range
-    { range: \begin end -> listFloatRange begin end
-    , rangeInclusive: \begin end -> listFloatRange begin (end + 1.0F)
+    { range: \begin end -> Core#listFloatRange(begin, end)
+    , rangeInclusive: \begin end -> Core#listFloatRange(begin, end + 1.0F)
     }
 
 pub instance
 rangeFloat64 : Range Float64
 rangeFloat64 =
   Range
-    { range: \begin end -> listDoubleRange begin end
-    , rangeInclusive: \begin end -> listDoubleRange begin (end + 1.0)
+    { range: \begin end -> Core#listDoubleRange(begin, end)
+    , rangeInclusive: \begin end -> Core#listDoubleRange(begin, end + 1.0)
     }
 
 pub instance
 rangeChar : Range Char
 rangeChar =
   Range
-    { range: \begin end -> listCharRange begin end
-    , rangeInclusive: \begin end -> listCharRange begin (intToChar (charToInt end + 1))
+    { range: \begin end -> Core#listCharRange(begin, end)
+    , rangeInclusive: \begin end -> Core#listCharRange(begin, Core#intToChar(Core#charToInt(end) + 1))
     }
