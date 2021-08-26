@@ -1,6 +1,6 @@
 module novah.result
 
-foreign import new java.lang.AssertionError(String) as assertErr
+foreign import type java.lang.AssertionError
 
 /**
  * Maps a function over this result if it is ok.
@@ -33,7 +33,7 @@ unwrap : Result a b -> a
 unwrap =
   case _ of
     Ok x -> x
-    _ -> throw (assertErr "Empty Result")
+    _ -> throw AssertionError#new("Empty Result" as Object)
 
 /**
  * Returns true if this result is ok.

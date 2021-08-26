@@ -166,6 +166,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     "double" -> primFloat64
     "char" -> primChar
     "boolean" -> primBoolean
+    "void" -> primUnit
     "java.lang.String" -> primString
     "java.lang.Byte" -> primByte
     "java.lang.Short" -> primInt16
@@ -197,6 +198,7 @@ fun findJavaType(novahType: String) = when (novahType) {
     primObject -> "java.lang.Object"
     primList -> "io.lacuna.bifurcan.List"
     primSet -> "io.lacuna.bifurcan.Set"
+    primArray -> "java.lang.Object[]"
     else -> novahType
 }
 

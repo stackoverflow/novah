@@ -3,6 +3,7 @@
  */
 module novah.java
 
+foreign import type java.lang.AssertionError
 foreign import type java.lang.Class
 foreign import type java.lang.System
 foreign import type java.util.Iterator
@@ -17,29 +18,12 @@ foreign import type java.util.function.ToLongFunction
 foreign import type java.util.function.ToIntFunction
 foreign import type novah.Core
 
-foreign import Object.getClass()
-foreign import Object.hashCode() as jHashCode
-foreign import Object.equals(Object) as jEquals
-foreign import System:exit(Int32) as jExit
-foreign import Iterator.hasNext()
-foreign import Iterator.next()
-foreign import new java.lang.AssertionError(String) as newAssertionError
-foreign import Core:makeComparator(Function)
-foreign import Core:makeConsumer(Function)
-foreign import Core:makePredicate(Function)
-foreign import Core:makeBiPredicate(Function)
-foreign import Core:makeToLongFunction(Function)
-foreign import Core:makeToIntFunction(Function)
-foreign import Core:makeBinaryOperator(Function)
-foreign import Core:makeUnaryOperator(Function)
-foreign import Core:makeBiFunction(Function)
-
 /**
  * Returns the Java class of this object.
  */
 pub
 class : a -> Class a
-class obj = getClass (obj as Object) as Class a
+class obj = (obj as Object)#getClass() as Class a
 
 /**
  * Returns the hash code for this value using
@@ -47,7 +31,7 @@ class obj = getClass (obj as Object) as Class a
  */
 pub
 hashCode : a -> Int32
-hashCode x = jHashCode (x as Object)
+hashCode x = (x as Object)#hashCode()
 
 /**
  * Returns true if x is equals y using
@@ -55,7 +39,7 @@ hashCode x = jHashCode (x as Object)
  */
 pub
 equals : a -> a -> Boolean
-equals x y = jEquals (x as Object) (y as Object)
+equals x y = (x as Object)#equals(y as Object)
 
 /**
  * Throws an assetion error if the condition is false.
@@ -65,7 +49,7 @@ assert : Boolean -> String -> Unit
 assert cond msg =
   if cond
     then ()
-    else throw newAssertionError (format "Assert failed: %s" [msg])
+    else throw AssertionError#new(format "Assert failed: %s" [msg] as Object)
 
 /**
  * Executes the function for each value in this iterator.
@@ -74,8 +58,8 @@ assert cond msg =
 pub
 forEach : Iterator a -> (a -> Unit) -> Unit
 forEach it fun =
-  while hasNext it do
-    fun (next it)
+  while (it : Iterator a)#hasNext() do
+    fun it#next()
 
 /**
  * Terminates the currently running JVM with the given status.
@@ -83,7 +67,7 @@ forEach it fun =
  */
 pub
 exit : Int32 -> Unit
-exit status = jExit status
+exit status = System#exit(status)
 
 /**
  * Returns a `java.util.Comparator` based on this ordering function.
@@ -91,64 +75,65 @@ exit status = jExit status
 pub
 toComparator : (a -> a -> Ordering) -> Comparator a
 toComparator cmp =
-  makeComparator \x y ->
+  let comp x y =
     case cmp x y of
       LT -> -1
       EQ -> 0
       GT -> 1
+  Core#makeComparator(comp)
 
 /**
  * Creates a `java.util.function.Consumer` out of this function, ignoring the result.
  */
 pub
 consumer : (a -> b) -> Consumer a
-consumer f = makeConsumer f
+consumer f = Core#makeConsumer(f)
 
 /**
  * Creates a `java.util.function.Predicate` out of this function.
  */
 pub
 predicate : (a -> Boolean) -> Predicate a
-predicate f = makePredicate f
+predicate f = Core#makePredicate(f)
 
 /**
  * Creates a `java.util.function.BiPredicate` out of this function.
  */
 pub
 bipredicate : (a -> b -> Boolean) -> BiPredicate a b
-bipredicate f = makeBiPredicate f
+bipredicate f = Core#makeBiPredicate(f)
 
 /**
  * Creates a `java.util.function.ToLongFunction` out of this function.
  */
 pub
 toLong : (a -> Int64) -> ToLongFunction a
-toLong f = makeToLongFunction f
+toLong f = Core#makeToLongFunction(f)
 
 /**
  * Creates a `java.util.function.ToIntFunction` out of this function.
  */
 pub
 toInt : (a -> Int32) -> ToIntFunction a
-toInt f = makeToIntFunction f
+toInt f = Core#makeToIntFunction(f)
 
 /**
  * Creates a `java.util.function.BinaryOperator` out of this function.
  */
 pub
 binaryOperator : (a -> a -> a) -> BinaryOperator a
-binaryOperator f = makeBinaryOperator f
+binaryOperator f = Core#makeBinaryOperator(f)
 
 /**
  * Creates a `java.util.function.UnaryOperator` out of this function.
  */
 pub
 unaryOperator : (a -> a) -> UnaryOperator a
-unaryOperator f = makeUnaryOperator f
+unaryOperator f = Core#makeUnaryOperator(f)
 
 /**
  * Creates a `java.util.function.BiFunction` out of this function.
  */
 pub
 biFunction : (a -> b -> c) -> BiFunction a b c
-biFunction f = makeBiFunction f
+biFunction f = Core#makeBiFunction(f)

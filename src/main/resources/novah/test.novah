@@ -4,9 +4,6 @@ foreign import type java.lang.AssertionError
 foreign import type java.lang.Exception
 foreign import type java.lang.Throwable
 
-foreign import Throwable.printStackTrace()
-foreign import new AssertionError(String) as newAssert
-
 import novah.list (forEach)
 import novah.set as Set
 import novah.option as Option
@@ -79,7 +76,7 @@ shouldBe : {{ Equals a }} -> a -> a -> Unit
 shouldBe {{eq}} x y =
   if x == y
     then ()
-    else throw newAssert (format "%s is not equals %s" [x, y])
+    else throw AssertionError#new(format "%s is not equals %s" [x, y] as Object)
 
 /**
  * Fails the test if x is equals y.
@@ -89,7 +86,7 @@ shouldNotBe : {{ Equals a }} -> a -> a -> Unit
 shouldNotBe {{eq}} x y =
   if x != y
     then ()
-    else throw newAssert (format "%s is equals %s" [x, y])
+    else throw AssertionError#new(format "%s is equals %s" [x, y] as Object)
 
 /**
  * Fails the test if the record r1 is not equals r2.
@@ -99,7 +96,7 @@ recordShouldBe : { | r } -> { | r } -> Unit
 recordShouldBe r1 r2 =
   if recordEquals r1 r2
     then ()
-    else throw newAssert (format "%s is not equals %s" [r1, r2])
+    else throw AssertionError#new(format "%s is not equals %s" [r1, r2] as Object)
 
 /**
  * Fails the test if the record r1 is equals r2.
@@ -109,7 +106,7 @@ recordShouldNotBe : { | r } -> { | r } -> Unit
 recordShouldNotBe r1 r2 =
   if not (recordEquals r1 r2)
     then ()
-    else throw newAssert (format "%s is equals %s" [r1, r2])
+    else throw AssertionError#new(format "%s is equals %s" [r1, r2] as Object)
 
 /**
  * Fails the test if the element is not inside the set.
@@ -119,7 +116,7 @@ shouldBeIn : a -> Set a -> Unit
 shouldBeIn x set =
   if Set.contains x set
     then ()
-    else throw newAssert (format "%s is not inside %s" [toString x, toString set])
+    else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
 
 /**
  * Fails the test if the element is inside the set.
@@ -129,7 +126,7 @@ shouldNotBeIn : a -> Set a -> Unit
 shouldNotBeIn x set =
   if not (Set.contains x set)
     then ()
-    else throw newAssert (format "%s is inside %s" [toString x, toString set])
+    else throw AssertionError#new(format "%s is inside %s" [toString x, toString set] as Object)
 
 /**
  * Fails the test if some element of the list is not inside the set.
@@ -140,7 +137,7 @@ shouldAllBeIn list set =
   forEach list \x ->
     if Set.contains x set
       then ()
-      else throw newAssert (format "%s is not inside %s" [toString x, toString set])
+      else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
 
 /**
  * Fails the test if this option is empty.
@@ -150,7 +147,7 @@ shouldBeSome : Option a -> Unit
 shouldBeSome opt =
   case opt of
     Some _ -> ()
-    None -> throw newAssert (format "%s is not Some" [opt])
+    None -> throw AssertionError#new(format "%s is not Some" [opt] as Object)
 
 /**
  * Fails the test if this option is not empty.
@@ -159,7 +156,7 @@ pub
 shouldBeNone : Option a -> Unit
 shouldBeNone opt =
   case opt of
-    Some _ -> throw newAssert (format "%s is not None" [opt])
+    Some _ -> throw AssertionError#new(format "%s is not None" [opt] as Object)
     None -> ()
 
 /**
@@ -170,7 +167,7 @@ shouldBeEmpty : List a -> Unit
 shouldBeEmpty list =
   case list of
     [] -> ()
-    _ -> throw newAssert (format "list %s is not empty" [list])
+    _ -> throw AssertionError#new(format "list %s is not empty" [list] as Object)
 
 /**
  * Fails the test if this list is empty.
@@ -179,7 +176,7 @@ pub
 shouldNotBeEmpty : List a -> Unit
 shouldNotBeEmpty list =
   case list of
-    [] -> throw newAssert "list is empty"
+    [] -> throw AssertionError#new("list is empty" as Object)
     _ -> ()
 
 check : String -> TestFun -> List Int
@@ -191,8 +188,8 @@ check desc fun =
     [1, 0, 0]
   catch
     :? AssertionError as err ->
-      printStackTrace (err as Throwable)
+      (err as Throwable)#printStackTrace()
       [0, 1, 0]
     :? Exception as err ->
-      printStackTrace (err as Throwable)
+      (err as Throwable)#printStackTrace()
       [0, 0, 1]

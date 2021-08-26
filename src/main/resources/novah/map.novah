@@ -1,35 +1,10 @@
 module novah.map
 
 foreign import type io.lacuna.bifurcan.Map
+foreign import type io.lacuna.bifurcan.Maps
 foreign import type io.lacuna.bifurcan.IMap
-foreign import type io.lacuna.bifurcan.IList
 foreign import type io.lacuna.bifurcan.IEntry
-foreign import type java.util.function.BiPredicate
-foreign import type java.util.function.BiFunction
-foreign import type java.util.function.ToLongFunction
-foreign import type java.util.function.UnaryOperator
 foreign import type novah.Core
-foreign import new Map(ToLongFunction, BiPredicate) as newMap
-foreign import Map.linear() as mapLinear
-foreign import Map.forked() as mapForked
-foreign import Map.contains(Object) as mapContains
-foreign import Map.union(IMap) as mapUnion
-foreign import Map.size() as mapSize
-foreign import Map.keys() as mapKeys
-foreign import Map.remove(Object) as mapRemove
-foreign import Map.update(Object, UnaryOperator) as mapUpdate
-foreign import Map:empty() as mapEmpty
-foreign import Map.iterator() as mapIterator
-foreign import Map.mapValues(BiFunction) as mapMapValues
-foreign import IMap.put(Object, Object) as mapPut
-foreign import IMap.get(Object) as mapGet
-foreign import IMap.values() as imapValues
-foreign import IEntry.key() as entryKey
-foreign import IEntry.value() as entryValue
-foreign import List:from(IList) as listFrom
-foreign import Core:mapEvery(Function, Map)
-foreign import Core:equalsMap(Map, Map, Function, Function)
-foreign import get io.lacuna.bifurcan.Maps:DEFAULT_HASH_CODE as defaultHashCode
 
 import novah.java as Java
 import novah.option as Option
@@ -41,9 +16,9 @@ import novah.list as List
 pub
 new : List (Tuple k v) -> Map k v
 new list =
-  let lmap = mapLinear (mapEmpty ())
+  let lmap = Map#empty()#linear()
   List.forEach list \(Tuple key val) -> put key val lmap
-  mapForked lmap
+  lmap#forked()
 
 /**
  * Creates a new map which uses the key equality function and the provided hash function, or the default object hash function.
@@ -54,8 +29,8 @@ new list =
 pub
 newEq : {{ Equals k }} -> Option (k -> Int64) -> Map k v
 newEq {{Equals eq}} hashFn =
-  let hash = Option.map Java.toLong hashFn ?: defaultHashCode
-  newMap hash (Java.bipredicate eq.equals)
+  let hash = Option.map Java.toLong hashFn ?: Maps#-"DEFAULT_HASH_CODE"
+  Map#new(hash, Java.bipredicate eq.equals)
 
 /**
  * Returns the size of the map.
@@ -63,7 +38,7 @@ newEq {{Equals eq}} hashFn =
  */
 pub
 size : Map k v -> Int64
-size m = mapSize m
+size m = (m : Map k v)#size()
 
 /**
  * Inserts or replaces a new key/value pair in the map.
@@ -71,7 +46,7 @@ size m = mapSize m
  */
 pub
 put : k -> v -> Map k v -> Map k v
-put key val map = mapPut (map as IMap k v) key val as Map k v
+put key val map = (map as IMap k v)#put(key, val) as Map k v
 
 /**
  * Returns the value under key if it exists.
@@ -79,7 +54,7 @@ put key val map = mapPut (map as IMap k v) key val as Map k v
  */
 pub
 get : k -> Map k v -> Option v
-get k map = mapGet (map as IMap k v) k |> Option.fromOptional
+get k map = (map as IMap k v)#get(k) |> Option.fromOptional
 
 /**
  * Applies the function to the value represented by the key, updating it.
@@ -87,7 +62,7 @@ get k map = mapGet (map as IMap k v) k |> Option.fromOptional
  */
 pub
 update : k -> (v -> v) -> Map k v -> Map k v
-update key fun map = mapUpdate map key (Java.unaryOperator fun)
+update key fun map = (map : Map k v)#update(key, Java.unaryOperator fun)
 
 /**
  * Removes the key from this map.
@@ -95,7 +70,7 @@ update key fun map = mapUpdate map key (Java.unaryOperator fun)
  */
 pub
 remove : k -> Map k v -> Map k v
-remove key map = mapRemove map key
+remove key map = (map : Map k v)#remove(key)
 
 /**
  * Returns true if this map contains the key.
@@ -103,7 +78,7 @@ remove key map = mapRemove map key
  */
 pub
 hasKey : k -> Map k v -> Boolean
-hasKey key map = mapContains map key
+hasKey key map = (map : Map k v)#contains(key)
 
 /**
  * Returns the result of merging the two maps.
@@ -112,7 +87,7 @@ hasKey key map = mapContains map key
  */
 pub
 merge : Map k v -> Map k v -> Map k v
-merge m1 m2 = mapUnion m1 (m2 as IMap k v)
+merge m1 m2 = (m1 : Map k v)#union(m2 as IMap k v)
 
 /**
  * Returns a set of all keys in this map.
@@ -120,14 +95,14 @@ merge m1 m2 = mapUnion m1 (m2 as IMap k v)
  */
 pub
 keys : Map k v -> Set k
-keys map = mapKeys map
+keys map = (map : Map k v)#keys()
 
 /**
  * Returns a list of all values in this map.
  */
 pub
 values : Map k v -> List v
-values map = listFrom (imapValues (map as IMap k v))
+values map = List#from((map as IMap k v)#values())
 
 /**
  * Executes the function for every key/value pair in this map
@@ -136,7 +111,7 @@ values map = listFrom (imapValues (map as IMap k v))
 pub
 forEach : Map k v -> (k -> v -> Unit) -> Unit
 forEach map f =
-  Java.forEach (mapIterator map) \entry -> f (entryKey entry) (entryValue entry)
+  Java.forEach (map : Map k v)#iterator() \entry -> f (entry : IEntry k v)#key() entry#value()
 
 /**
  * Maps function f over all entries of this map.
@@ -144,7 +119,7 @@ forEach map f =
  */
 pub
 mapValues : (k -> v -> v2) -> Map k v -> Map k v2
-mapValues f map = mapMapValues map (Java.biFunction f)
+mapValues f map = (map : Map k v)#mapValues(Java.biFunction f)
 
 /**
  * Returns a map of the elements that match the given predicate.
@@ -153,10 +128,10 @@ mapValues f map = mapMapValues map (Java.biFunction f)
 pub
 filter : (k -> v -> Boolean) -> Map k v -> Map k v
 filter pred map =
-  let lmap = mapLinear map
+  let lmap = (map : Map k v)#linear()
   forEach lmap \k v ->
-    when (not (pred k v)) \_ -> mapRemove lmap k
-  mapForked lmap
+    when (not (pred k v)) \_ -> lmap#remove(k)
+  lmap#forked()
 
 /**
  * Returns true if the predicate is true for every entry in this map.
@@ -164,7 +139,7 @@ filter pred map =
  */
 pub
 every : (k -> v -> Boolean) -> Map k v -> Boolean
-every pred map = mapEvery pred map
+every pred map = Core#mapEvery(pred, map)
 
 pub instance
 concatMap : Concat (Map k v)
@@ -172,7 +147,7 @@ concatMap = Concat { concat: merge }
 
 pub instance
 eqMap : {{ Equals k }} -> {{ Equals v }} -> Equals (Map k v)
-eqMap {{Equals eqk}} {{Equals eqv}} = Equals { equals: \x y -> equalsMap x y eqk.equals eqv.equals }
+eqMap {{Equals eqk}} {{Equals eqv}} = Equals { equals: \x y -> Core#equalsMap(x, y, eqk.equals, eqv.equals) }
 
 /**
  * Creates a linear (mutable) version of the given map and applies the function to it.
@@ -190,4 +165,6 @@ eqMap {{Equals eqk}} {{Equals eqv}} = Equals { equals: \x y -> equalsMap x y eqk
  */
 pub
 withLinear : Map k v -> (Map k v -> Map k v) -> Map k v
-withLinear map f = mapForked (f (mapLinear map))
+withLinear map f =
+  let lin = (f (map : Map k v)#linear())
+  (lin : Map k v)#forked()

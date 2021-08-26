@@ -2,129 +2,110 @@ module novah.string
 
 foreign import type java.lang.CharSequence
 
-foreign import String.length()
-foreign import String.isBlank() as sisBlank
-foreign import String.isEmpty() as sisEmpty
-foreign import String.startsWith(String) as sstartsWith
-foreign import String.endsWith(String) as sendsWith
-foreign import String.contains(CharSequence) as scontains
-foreign import String.getBytes() as sgetBytes
-foreign import String.toLowerCase()
-foreign import String.toUpperCase()
-foreign import String.strip() as sstrip
-foreign import String.repeat(Int32) as srepeat
-foreign import String.stripLeading() as sstripLeading
-foreign import String.stripTrailing() as sstripTrailing
-foreign import String.charAt(Int32) as scharAt
-foreign import String.substring(Int32) as ssubstring
-foreign import String.split(String) as ssplit
-foreign import String:join(CharSequence, Array) as sjoin
-foreign import List:"of"(Array) as fromArray
-
 /**
  * Returns true if this string is empty or only contains whitespace codepoints.
  */
 pub
 isBlank : String -> Boolean
-isBlank s = sisBlank s
+isBlank s = (s : String)#isBlank()
 
 /**
  * Returns true if this string is empty.
  */
 pub
 isEmpty : String -> Boolean
-isEmpty s = sisEmpty s
+isEmpty s = (s : String)#isEmpty()
 
 /**
  * Returns the size of this string.
  */
 pub
 size : String -> Int32
-size s = length s
+size s = (s : String)#length()
 
 /**
  * Returns a lower case version of this string.
  */
 pub
 lowerCase : String -> String
-lowerCase str = toLowerCase str
+lowerCase str = (str : String)#toLowerCase()
 
 /**
  * Returns a upper case version of this string.
  */
 pub
 upperCase : String -> String
-upperCase str = toUpperCase str
+upperCase str = (str : String)#toUpperCase()
 
 /**
  * Returns true if this string starts with prefix.
  */
 pub
 startsWith : String -> String -> Boolean
-startsWith prefix str = sstartsWith str prefix
+startsWith prefix str = (str : String)#startsWith(prefix)
 
 /**
  * Returns true if this string ends with suffix.
  */
 pub
 endsWith : String -> String -> Boolean
-endsWith suffix str = sendsWith str suffix
+endsWith suffix str = (str : String)#endsWith(suffix)
 
 /**
  * Returns true if this string contains the string represented by another.
  */
 pub
 contains : String -> String -> Boolean
-contains another str = scontains str (another as CharSequence)
+contains another str = (str : String)#contains(another as CharSequence)
 
 /**
  * Returns true if this string contains the character.
  */
 pub
 containsChar : Char -> String -> Boolean
-containsChar char str = scontains str (toString char as CharSequence)
+containsChar char str = (str : String)#contains(toString char as CharSequence)
 
 /**
  * Encodes this string into an array of bytes using the platform's default charset.
  */
 pub
 getBytes : String -> Array Byte
-getBytes str = sgetBytes str
+getBytes str = (str : String)#getBytes()
 
 /**
  * Joins all strings in this list separated by delimiter.
  */
 pub
 join : String -> List String -> String
-join delimiter list = sjoin (delimiter as CharSequence) (arrayOf list as Array CharSequence)
+join delimiter list = String#join(delimiter as CharSequence, arrayOf list as Array CharSequence)
 
 /**
  * Returns this string with all leading and trailing white spaces removed.
  */
 pub
 strip : String -> String
-strip str = sstrip str
+strip str = (str : String)#strip()
 
 /**
  * Returns this string with all leading white spaces removed.
  */
 pub
 stripl : String -> String
-stripl str = sstripLeading str
+stripl str = (str : String)#stripLeading()
 
 /**
  * Returns this string with all trailing white spaces removed.
  */
 pub
 stript : String -> String
-stript str = sstripTrailing str
+stript str = (str : String)#stripTrailing()
 
 /**
  * Returns a string that represents the input string repeated n times.
  */
 pub
 repeat : Int32 -> String -> String
-repeat n str = srepeat str n
+repeat n str = (str : String)#repeat(n)
 
 /**
  * Returns this string with the first character converted to upper-case and the rest converted to lower-case.
@@ -132,12 +113,12 @@ repeat n str = srepeat str n
 pub
 capitalize : String -> String
 capitalize str =
-  case length str of
+  case (str : String)#length() of
     0 -> str
-    1 -> toUpperCase str
+    1 -> str#toUpperCase()
     _ ->
-      let head = toUpperCase (toString (scharAt str 0))
-      let tail = toLowerCase (ssubstring str 1)
+      let head = (toString str#charAt(0))#toUpperCase()
+      let tail = str#substring(1)#toLowerCase()
       format "%s%s" [head, tail]
 
 /**
@@ -145,7 +126,7 @@ capitalize str =
  */
 pub
 splitLines : String -> List String
-splitLines str = fromArray (ssplit str "[\\r|\\n]+")
+splitLines str = List#"of"((str : String)#split("[\\r|\\n]+"))
 
 /**
  * Returns the character at the specified index if it exists.
@@ -153,6 +134,6 @@ splitLines str = fromArray (ssplit str "[\\r|\\n]+")
 pub
 charAt : Int32 -> String -> Option Char
 charAt idx str =
-  if idx < length str
-    then Some (scharAt str idx)
+  if idx < (str : String)#length()
+    then Some str#charAt(idx)
     else None

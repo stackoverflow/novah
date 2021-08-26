@@ -5,19 +5,6 @@ foreign import type java.util.Comparator
 foreign import type java.util.stream.Stream
 foreign import type novah.Core
 
-foreign import Arrays:sort(Array, Comparator) as arraySort
-foreign import Arrays:stream(Array) as arrStream
-foreign import Core:getArrayLength(Array)
-foreign import Core:mkByteArray(Int32)
-foreign import Core:mkInt16Array(Int32)
-foreign import Core:mkInt32Array(Int32)
-foreign import Core:mkInt64Array(Int32)
-foreign import Core:mkFloat32Array(Int32)
-foreign import Core:mkFloat64Array(Int32)
-foreign import Core:mkCharArray(Int32)
-foreign import Core:mkBooleanArray(Int32)
-foreign import Core:mkObjectArray(Int32)
-
 import novah.java (toComparator)
 import novah.option as Option
 import novah.stream as Stream
@@ -27,7 +14,7 @@ import novah.stream as Stream
  */
 pub
 stream : Array a -> Stream a
-stream arr = arrStream arr
+stream arr = Arrays#stream(arr)
 
 /**
  * Collects this stream into an array.
@@ -44,7 +31,7 @@ fromStream = Stream.toArray
 pub
 nth : Int -> Array a -> Option a
 nth index arr =
-  let len = getArrayLength arr
+  let len = Core#getArrayLength(arr)
   if index < 0 || index >= len
     then None
     else Some (aget index arr)
@@ -55,7 +42,7 @@ nth index arr =
  */
 pub
 size : Array a -> Int32
-size arr = getArrayLength arr
+size arr = Core#getArrayLength(arr)
 
 /**
  * Returns true if the array is empty.
@@ -63,7 +50,7 @@ size arr = getArrayLength arr
  */
 pub
 isEmpty : Array a -> Boolean
-isEmpty arr = getArrayLength arr == 0
+isEmpty arr = Core#getArrayLength(arr) == 0
 
 /**
  * Returns true if the array is not empty.
@@ -71,7 +58,7 @@ isEmpty arr = getArrayLength arr == 0
  */
 pub
 isNotEmpty : Array a -> Boolean
-isNotEmpty arr = getArrayLength arr != 0
+isNotEmpty arr = Core#getArrayLength(arr) != 0
 
 /**
  * Returns the first occurrence of elem in the array for which the predicate returns true.
@@ -81,7 +68,7 @@ pub
 find : (a -> Boolean) -> Array a -> Option a
 find pred arr =
   let atm = atom None
-  forEachBreak 0L (int64 (getArrayLength arr)) \i ->
+  forEachBreak 0L (int64 Core#getArrayLength(arr)) \i ->
     let elem = aget (int i) arr
     if pred elem
       then
@@ -105,7 +92,7 @@ contains {{Equals eq}} elem arr = find (\x -> eq.equals x elem) arr |> Option.is
 pub
 forEach : Array a -> (a -> b) -> Unit
 forEach arr f =
-  forEachRange 0L (int64 (getArrayLength arr)) \idx ->
+  forEachRange 0L (int64 Core#getArrayLength(arr)) \idx ->
     f (aget (int idx) arr)
 
 /**
@@ -116,7 +103,7 @@ forEach arr f =
 pub
 map : (a -> b) -> Array a -> Array b
 map f arr =
-  let len = getArrayLength arr
+  let len = Core#getArrayLength(arr)
   let res = objectArray len as Array b
   forEachRange 0L (int64 len) \idx ->
     let i = int idx
@@ -138,7 +125,7 @@ pub
 sortBy : (a -> a -> Ordering) -> Array a -> Unit
 sortBy cmp arr =
   let comp = toComparator cmp
-  arraySort arr (comp as Comparator Object)
+  Arrays#sort(arr, comp as Comparator Object)
 
 /**
  * Sorts this array in place according to the elements Ord instance.
@@ -154,7 +141,7 @@ sort {{Ord _ ord}} arr = sortBy ord.compare arr
 pub
 reverse : Array a -> Array a
 reverse arr =
-  let len = getArrayLength arr |> int64
+  let len = Core#getArrayLength(arr) |> int64
   let res = objectArray (int len) as Array a
   forEachRange 0L len \idx ->
     let i = int (len - idx - 1L)
@@ -169,7 +156,7 @@ reverse arr =
 pub
 reversed : Array a -> Unit
 reversed arr =
-  let len = getArrayLength arr
+  let len = Core#getArrayLength(arr)
   forEachRange 0L (len / 2 |> int64) \ii ->
     let i = int ii
     let temp = aget i arr
@@ -181,60 +168,60 @@ reversed arr =
  */
 pub
 byteArray : Int -> Array Byte
-byteArray len = mkByteArray len
+byteArray len = Core#mkByteArray(len)
 
 /**
  * Creates a int16 array of the specified size.
  */
 pub
 int16Array : Int -> Array Int16
-int16Array len = mkInt16Array len
+int16Array len = Core#mkInt16Array(len)
 
 /**
  * Creates a int32 array of the specified size.
  */
 pub
 intArray : Int -> Array Int32
-intArray len = mkInt32Array len
+intArray len = Core#mkInt32Array(len)
 
 /**
  * Creates a int64 array of the specified size.
  */
 pub
 int64Array : Int -> Array Int64
-int64Array len = mkInt64Array len
+int64Array len = Core#mkInt64Array(len)
 
 /**
  * Creates a float32 array of the specified size.
  */
 pub
 float32Array : Int -> Array Float32
-float32Array len = mkFloat32Array len
+float32Array len = Core#mkFloat32Array(len)
 
 /**
  * Creates a float64 array of the specified size.
  */
 pub
 floatArray : Int -> Array Float64
-floatArray len = mkFloat64Array len
+floatArray len = Core#mkFloat64Array(len)
 
 /**
  * Creates a char array of the specified size.
  */
 pub
 charArray : Int -> Array Char
-charArray len = mkCharArray len
+charArray len = Core#mkCharArray(len)
 
 /**
  * Creates a boolean array of the specified size.
  */
 pub
 booleanArray : Int -> Array Boolean
-booleanArray len = mkBooleanArray len
+booleanArray len = Core#mkBooleanArray(len)
 
 /**
  * Creates an Object array of the specified size.
  */
 pub
 objectArray : Int -> Array Object
-objectArray len = mkObjectArray len
+objectArray len = Core#mkObjectArray(len)
