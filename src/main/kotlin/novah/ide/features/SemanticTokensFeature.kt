@@ -131,6 +131,8 @@ class SemanticTokensFeature(private val server: NovahServer) {
                     is Expr.TypeCast -> genTypeLine(e.cast)
                     is Expr.Ann -> genTypeLine(e.annType)
                     is Expr.NativeMethod -> genLine(e.span, METHOD)
+                    is Expr.ForeignStaticField -> genLine(e.clazz.span, TYPE)
+                    is Expr.ForeignStaticMethod -> genLine(e.clazz.span, TYPE)
                     else -> listOf()
                 }
             }

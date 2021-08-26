@@ -22,7 +22,7 @@ import java.lang.reflect.*
 
 object Reflection {
 
-    val typeCache = mutableMapOf<String, Type>()
+    val typeCache = mutableMapOf<java.lang.reflect.Type, Type>()
 
     fun novahToJava(type: String) = when (type) {
         "String" -> "java.lang.String"
@@ -142,40 +142,48 @@ object Reflection {
 
     fun isPublic(constructor: Constructor<*>): Boolean = Modifier.isPublic(constructor.modifiers)
 
-    fun collectType(ty: java.lang.reflect.Type): Type {
-        if (typeCache.containsKey(ty.typeName)) return typeCache[ty.typeName]!!
+    fun collectType(ty: java.lang.reflect.Type, level: Int? = null): Type {
+        // TODO: only cache if no newVar is created
+        if (level == null && typeCache.containsKey(ty)) return typeCache[ty]!!
         val nty = when (ty) {
-            is GenericArrayType -> TApp(TConst(primArray), listOf(collectType(ty.genericComponentType)))
-            is TypeVariable<*> -> if (unbounded(ty)) Typechecker.newGenVar() else tObject
+            is GenericArrayType -> TApp(TConst(primArray), listOf(collectType(ty.genericComponentType, level)))
+            is TypeVariable<*> -> {
+                if (unbounded(ty)) {
+                    if (level != null) Typechecker.newVar(level)
+                    else Typechecker.newGenVar()
+                } else tObject
+            }
             is WildcardType -> {
                 if (ty.lowerBounds.isNotEmpty()) tObject
                 else if (ty.upperBounds.size == 1 && ty.upperBounds[0] is TypeVariable<*>) {
-                    collectType(ty.upperBounds[0])
+                    collectType(ty.upperBounds[0], level)
                 } else tObject
             }
             is ParameterizedType -> {
                 val arity = ty.actualTypeArguments.size
                 val kind = if (arity == 0) Kind.Star else Kind.Constructor(arity)
                 if (ty.rawType.typeName == "java.util.function.Function") {
-                    TArrow(listOf(collectType(ty.actualTypeArguments[0])), collectType(ty.actualTypeArguments[1]))
+                    val args = listOf(collectType(ty.actualTypeArguments[0], level))
+                    TArrow(args, collectType(ty.actualTypeArguments[1], level))
                 } else {
-                    TApp(TConst(javaToNovah(ty.rawType.typeName), kind), ty.actualTypeArguments.map(::collectType))
+                    val ctor = TConst(javaToNovah(ty.rawType.typeName), kind)
+                    TApp(ctor, ty.actualTypeArguments.map { collectType(it, level) })
                 }
             }
             is Class<*> -> {
-                if (ty.isArray) TApp(TConst(primArray), listOf(collectType(ty.componentType)))
+                if (ty.isArray) TApp(TConst(primArray), listOf(collectType(ty.componentType, level)))
                 else {
                     val arity = ty.typeParameters.size
                     if (arity == 0) TConst(javaToNovah(ty.canonicalName))
                     else {
                         val type = TConst(javaToNovah(ty.canonicalName), Kind.Constructor(arity))
-                        TApp(type, ty.typeParameters.map(::collectType))
+                        TApp(type, ty.typeParameters.map { collectType(it, level) })
                     }
                 }
             }
             else -> Util.internalError("Got unknown subtype from Type: ${ty.javaClass}")
         }
-        typeCache[ty.typeName] = nty
+        typeCache[ty] = nty
         return nty
     }
 

@@ -4,9 +4,6 @@ import novah.linkedList (map, LinkedList(Nil), ::)
 
 foreign import type java.io.File
 foreign import type io.lacuna.bifurcan.Map
-foreign import new File(String) as newFile
-foreign import File.getName() as fileName
-foreign import get File:separator
 
 typealias Opt a = Option a
 
@@ -24,12 +21,11 @@ baz = map
 baz2 = 1 :: Nil
 
 nf : String -> File
-nf x =
-  newFile x
+nf x = File#new(x)
 
 fname : File -> String
 fname f =
-  fileName f ++ separator
+  (f: File)#getName() ++ File#-separator
 
 value : Id
 value = Id "asd"

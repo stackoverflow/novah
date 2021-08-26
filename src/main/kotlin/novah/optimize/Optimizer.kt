@@ -604,6 +604,7 @@ class Optimizer(private val ast: CModule) {
                 span,
                 ast.sourceName,
                 ast.name.value,
+                severity = Severity.WARN,
                 action = Action.UnusedImport(vvar)
             )
         }
@@ -617,8 +618,7 @@ class Optimizer(private val ast: CModule) {
             span,
             ast.sourceName,
             ast.name.value,
-            null,
-            Severity.WARN
+            severity = Severity.WARN
         )
 
     companion object {

@@ -1,26 +1,9 @@
 module novah.set
 
 foreign import type java.util.stream.Stream
-foreign import type java.util.function.BiPredicate
-foreign import type java.util.function.ToLongFunction
 foreign import type io.lacuna.bifurcan.ISet
+foreign import type io.lacuna.bifurcan.Maps
 foreign import type novah.Core
-
-foreign import get io.lacuna.bifurcan.Maps:DEFAULT_HASH_CODE as defaultHashCode
-foreign import ISet.stream() as setStream
-foreign import new Set(ToLongFunction, BiPredicate) as newSet
-foreign import Set.linear() as setLinear
-foreign import Set.forked() as setForked
-foreign import Set.add(Object) as setAdd
-foreign import Set.remove(Object) as setRemove
-foreign import Set.nth(Int64) as setNth
-foreign import Set.contains(Object) as setContains
-foreign import Set.union(ISet) as sunion
-foreign import Set.difference(ISet) as sdifference
-foreign import Set.intersection(ISet) as sintersection
-foreign import Set.size() as sizeSet
-foreign import Core:foldSet(Function, Object, Set)
-foreign import Core:setEvery(Function, Set)
 
 import novah.stream as S
 import novah.java as J
@@ -37,8 +20,8 @@ import novah.list as List
 pub
 new : {{ Equals a }} -> Option (a -> Int64) -> Set a
 new {{Equals eq}} hashFn =
-  let hash = Option.map J.toLong hashFn ?: defaultHashCode
-  newSet hash (J.bipredicate eq.equals)
+  let hash = Option.map J.toLong hashFn ?: Maps#-"DEFAULT_HASH_CODE"
+  Set#new(hash, J.bipredicate eq.equals)
 
 /**
  * Inserts this element in the set.
@@ -46,7 +29,7 @@ new {{Equals eq}} hashFn =
  */
 pub
 add : a -> Set a -> Set a
-add x set = setAdd set x
+add x set = (set : Set a)#add(x)
 
 /**
  * Removes this element from the set.
@@ -54,7 +37,7 @@ add x set = setAdd set x
  */
 pub
 remove : a -> Set a -> Set a
-remove x set = setRemove set x
+remove x set = (set : Set a)#remove(x)
 
 /**
  * Returns the size of this set.
@@ -62,14 +45,14 @@ remove x set = setRemove set x
  */
 pub
 size : Set a -> Int64
-size set = sizeSet set
+size set = (set : Set a)#size()
 
 /**
  * Returns true if this set is empty.
  */
 pub
 isEmpty : Set a -> Boolean
-isEmpty set = sizeSet set == 0L
+isEmpty set = (set : Set a)#size() == 0L
 
 /**
  * Returns true if this set is not empty.
@@ -77,7 +60,7 @@ isEmpty set = sizeSet set == 0L
  */
 pub
 isNotEmpty : Set a -> Boolean
-isNotEmpty set = sizeSet set != 0L
+isNotEmpty set = (set : Set a)#size() != 0L
 
 /**
  * Returns some value at index for this set if it exists or none.
@@ -86,10 +69,10 @@ isNotEmpty set = sizeSet set != 0L
 pub
 nth : Int64 -> Set a -> Option a
 nth index set =
-  let len = sizeSet set
+  let len = (set : Set a)#size()
   if index < 0L || index >= len
     then None
-    else Some (setNth set index)
+    else Some set#nth(index)
 
 /**
  * Returns the value at index for this set.
@@ -98,7 +81,7 @@ nth index set =
  */
 pub
 unsafeNth : Int64 -> Set a -> a
-unsafeNth index set = setNth set index
+unsafeNth index set = (set : Set a)#nth(index)
 
 /**
  * Returns the union of these 2 sets.
@@ -106,28 +89,28 @@ unsafeNth index set = setNth set index
  */
 pub
 union : Set a -> Set a -> Set a
-union s1 s2 = sunion s1 (s2 as ISet a)
+union s1 s2 = (s1 : Set a)#union(s2 as ISet a)
 
 /**
  * Returns all elements in set 1 that are not in set 2.
  */
 pub
 difference : Set a -> Set a -> Set a
-difference s1 s2 = sdifference s1 (s2 as ISet a)
+difference s1 s2 = (s1 : Set a)#difference(s2 as ISet a)
 
 /**
  * Returns the intersection between these 2 sets.
  */
 pub
 intersection : Set a -> Set a -> Set a
-intersection s1 s2 = sintersection s1 (s2 as ISet a)
+intersection s1 s2 = (s1 : Set a)#intersection(s2 as ISet a)
 
 /**
  * Returns a stream for this set.
  */
 pub
 stream : Set a -> Stream a
-stream set = setStream (set as ISet a)
+stream set = (set as ISet a)#stream()
 
 /**
  * Collects this stream into a set.
@@ -136,9 +119,9 @@ stream set = setStream (set as ISet a)
 pub
 fromStream : Stream a -> Set a
 fromStream st =
-  let lset = setLinear #{}
+  let lset = #{}#linear()
   S.forEach st \x -> add x lset
-  setForked lset
+  lset#forked()
 
 /**
  * Runs function f for every element of this set, ignoring the result.
@@ -147,8 +130,8 @@ fromStream st =
 pub
 forEach : Set a -> (a -> Unit) -> Unit
 forEach set f =
-  forEachRange 0L (sizeSet set) \idx ->
-    f (setNth set idx)
+  forEachRange 0L (set : Set a)#size() \idx ->
+    f set#nth(idx)
 
 /**
  * Maps function f over all elements of this set
@@ -158,10 +141,10 @@ forEach set f =
 pub
 map : (a -> b) -> Set a -> Set b
 map f set =
-  let lset = setLinear #{}
-  forEachRange 0L (sizeSet set) \idx ->
-    add (f (setNth set idx)) lset
-  setForked lset
+  let lset = #{}#linear()
+  forEachRange 0L (set : Set a)#size() \idx ->
+    add (f set#nth(idx)) lset
+  lset#forked()
 
 /**
  * Returns an array of the elements that match the given predicate.
@@ -170,12 +153,12 @@ map f set =
 pub
 filter : (a -> Boolean) -> Set a -> Set a
 filter pred set =
-  let lset = setLinear #{}
-  forEachRange 0L (sizeSet set) \idx ->
-    let elem = setNth set idx
+  let lset = #{}#linear()
+  forEachRange 0L (set : Set a)#size() \idx ->
+    let elem = set#nth(idx)
     when (pred elem) \_ ->
       add elem lset
-  setForked lset
+  lset#forked()
 
 /**
  * Returns the first occurrence of elem in the set for which the predicate returns true.
@@ -185,9 +168,9 @@ filter pred set =
 pub
 find : (a -> Boolean) -> Set a -> Option a
 find pred set =
-  let lset = setLinear #{}
-  forEachBreak 0L (sizeSet set) \idx ->
-    let elem = setNth set idx
+  let lset = #{}#linear()
+  forEachBreak 0L (set : Set a)#size() \idx ->
+    let elem = set#nth(idx)
     if pred elem
       then
         add elem lset
@@ -202,7 +185,7 @@ find pred set =
  */
 pub
 contains : a -> Set a -> Boolean
-contains elem set = setContains set elem
+contains elem set = (set : Set a)#contains(elem)
 
 /**
  * Reduces this set to a single value according to the reducing function.
@@ -211,7 +194,7 @@ contains elem set = setContains set elem
  */
 pub
 foldl : (b -> a -> b) -> b -> Set a -> b
-foldl f init set = foldSet f init set
+foldl f init set = Core#foldSet(f, init, set)
 
 /**
  * A specialized version of `foldl` where the first element of the set is used as initial value.
@@ -224,7 +207,7 @@ reduce f set =
   if isEmpty set
     then None
     else
-      let first = setNth set 0L
+      let first = set#nth(0L)
       let rest = remove first set
       Some (foldl f first rest)
 
@@ -238,7 +221,7 @@ flatten sets =
   if isEmpty sets
     then #{}
     else
-      let first = setNth sets 0L
+      let first = sets#nth(0L)
       let ssets = remove first sets
       foldl (\s1 s2 -> s1 ++ s2) first ssets
 
@@ -257,7 +240,7 @@ flatMap f set = flatten (map f set)
  */
 pub
 every : (a -> Boolean) -> Set a -> Boolean
-every pred set = setEvery pred set
+every pred set = Core#setEvery(pred, set)
 
 /**
  * Returns true if every element in the list is contained in the set.
@@ -282,4 +265,6 @@ containsAll list set = List.every (\x -> contains x set) list
  */
 pub
 withLinear : Set a -> (Set a -> Set a) -> Set a
-withLinear set f = setForked (f (setLinear set))
+withLinear set f =
+  let lin = f (set : Set a)#linear()
+  (lin : Set a)#forked()

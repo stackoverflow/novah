@@ -62,6 +62,7 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
             "double[]" -> return DoubleArray::class.java
             "char[]" -> return CharArray::class.java
             "boolean[]" -> return BooleanArray::class.java
+            "java.lang.Object[]" -> return Array::class.java
         }
         return try {
             findClass(name)

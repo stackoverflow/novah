@@ -285,9 +285,9 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
         is Expr.TypeCast -> f(e.copy(exp = go(e.exp)))
         is Expr.ForeignStaticField -> f(e)
-        is Expr.ForeignField -> f(e.copy(exp = go(e.exp) as Expr.Var))
+        is Expr.ForeignField -> f(e.copy(exp = go(e.exp)))
         is Expr.ForeignStaticMethod -> f(e.copy(args = e.args.map(::go)))
-        is Expr.ForeignMethod -> f(e.copy(exp = go(e.exp) as Expr.Var, args = e.args.map(::go)))
+        is Expr.ForeignMethod -> f(e.copy(exp = go(e.exp), args = e.args.map(::go)))
         else -> f(e)
     }
     return go(this)

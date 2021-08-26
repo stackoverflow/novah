@@ -1,12 +1,7 @@
 module novah.option
 
+foreign import type java.lang.AssertionError
 foreign import type java.util.Optional
-
-foreign import new java.lang.AssertionError(String) as assertErr
-foreign import Optional:"of"(Object) as newOptional
-foreign import Optional.isPresent()
-foreign import Optional:empty()
-foreign import Optional.get() as optGet
 
 /**
  * Maps a function over this option if it has a value.
@@ -60,7 +55,7 @@ unwrap : Option a -> a
 unwrap =
   case _ of
     Some x -> x
-    None -> throw (assertErr "Empty Option")
+    None -> throw AssertionError#new("Empty Option" as Object)
 
 /**
  * Transforms this nullable value into an option.
@@ -89,7 +84,7 @@ toNullable =
  */
 pub
 fromOptional : Optional a -> Option a
-fromOptional opt = if isPresent opt then Some (optGet opt) else None
+fromOptional opt = if (opt : Optional a)#isPresent() then Some opt#get() else None
 
 /**
  * Transforms an option into a `java.util.Optional`.
@@ -98,5 +93,5 @@ pub
 toOptional : Option a -> Optional a
 toOptional =
   case _ of
-    None -> empty ()
-    Some x -> newOptional x
+    None -> Optional#empty()
+    Some x -> Optional#"of"(x)

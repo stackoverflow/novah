@@ -109,22 +109,11 @@ class HoverFeature(private val server: NovahServer) {
                 val name = if (Lexer.isOperator(ctx.name)) "(${ctx.name})" else ctx.name
                 novah("$name : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}")
             }
-            is MethodCtx -> {
-                java(ctx.method.toString()) + "\n***\n" +
-                        novah("${ctx.name} : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}")
-            }
-            is CtorCtx -> {
-                val src = "(constructor)\n${ctx.name} : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}"
-                java(ctx.ctor.toString()) + "\n***\n" + novah(src)
-            }
-            is FieldCtx -> {
-                val kind = if (ctx.getter) "getter" else "setter"
-                java(ctx.field.toString()) + "\n***\n" +
-                        novah("($kind)\n${ctx.name} : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}")
-            }
-            is TypeCtx -> {
-                novah("type ${ctx.name}")
-            }
+            is MethodCtx -> java(ctx.method.toString())
+            is CtorCtx -> java(ctx.ctor.toString())
+            is FieldCtx -> java(ctx.field.toString())
+            is ClassCtx -> java(ctx.clazz.toString())
+            is TypeCtx -> novah("type ${ctx.name}")
         }
     }
 
@@ -143,9 +132,10 @@ class HoverFeature(private val server: NovahServer) {
     private class DeclCtx(val decl: Decl.ValDecl) : HoverCtx()
     private class LocalRefCtx(val name: String, val type: Type) : HoverCtx()
     private class LetCtx(val let: LetDef, val type: Type) : HoverCtx()
-    private class MethodCtx(val name: String, val type: Type, val method: Method) : HoverCtx()
-    private class CtorCtx(val name: String, val type: Type, val ctor: Constructor<*>) : HoverCtx()
-    private class FieldCtx(val name: String, val type: Type, val field: Field, val getter: Boolean) : HoverCtx()
+    private class MethodCtx(val method: Method) : HoverCtx()
+    private class CtorCtx(val ctor: Constructor<*>) : HoverCtx()
+    private class FieldCtx(val field: Field) : HoverCtx()
+    private class ClassCtx(val clazz: Class<*>) : HoverCtx()
     private class TypeCtx(val name: String) : HoverCtx()
 
     private fun findContext(line: Int, col: Int, ast: Module, mods: Map<String, FullModuleEnv>): HoverCtx? {
@@ -212,7 +202,7 @@ class HoverFeature(private val server: NovahServer) {
                                 }
                             } else if (ownRef != null) {
                                 ctx = ImportDeclCtx(e.name, ast.name.value, ownRef, ownMod.typeVarsMap)
-                            } else if (!e.name.startsWith("var$")) {
+                            } else if (!e.name.startsWith("var$") && e.type != null) {
                                 ctx = LocalRefCtx(e.name, e.type!!)
                             }
                         }
@@ -284,10 +274,35 @@ class HoverFeature(private val server: NovahServer) {
                                 ctx = LetCtx(e.letDef, e.letDef.expr.type!!)
                             }
                         }
-                        is Expr.NativeMethod -> ctx = MethodCtx(e.name, e.type!!, e.method)
-                        is Expr.NativeConstructor -> ctx = CtorCtx(e.name, e.type!!, e.ctor)
-                        is Expr.NativeFieldGet -> ctx = FieldCtx(e.name, e.type!!, e.field, getter = true)
-                        is Expr.NativeFieldSet -> ctx = FieldCtx(e.name, e.type!!, e.field, getter = false)
+                        is Expr.NativeMethod -> ctx = MethodCtx(e.method)
+                        is Expr.NativeConstructor -> ctx = CtorCtx(e.ctor)
+                        is Expr.NativeFieldGet -> ctx = FieldCtx(e.field)
+                        is Expr.NativeFieldSet -> ctx = FieldCtx(e.field)
+                        is Expr.ForeignStaticField -> {
+                            if (e.fieldName.span.matches(line, col))
+                                ctx = FieldCtx(e.field!!)
+                            if (e.clazz.span.matches(line, col))
+                                ctx = ClassCtx(e.field!!.declaringClass)
+                        }
+                        is Expr.ForeignField -> {
+                            if (e.fieldName.span.matches(line, col))
+                                ctx = FieldCtx(e.field!!)
+                        }
+                        is Expr.ForeignStaticMethod -> {
+                            if (e.methodName.span.matches(line, col)) {
+                                ctx = if (e.method != null) MethodCtx(e.method!!)
+                                else CtorCtx(e.ctor!!)
+                            }
+                            if (e.clazz.span.matches(line, col)) {
+                                val name = if (e.method != null) e.method!!.declaringClass
+                                else e.ctor!!.declaringClass
+                                ctx = ClassCtx(name)
+                            }
+                        }
+                        is Expr.ForeignMethod -> {
+                            if (e.methodName.span.matches(line, col))
+                                ctx = MethodCtx(e.method!!)
+                        }
                         is Expr.RecordSelect -> {
                             if (e.label.span.matches(line, col))
                                 ctx = LocalRefCtx(e.label.value, e.type!!)

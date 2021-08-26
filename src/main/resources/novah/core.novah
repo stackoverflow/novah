@@ -9,80 +9,14 @@ foreign import type io.lacuna.bifurcan.ISet
 foreign import type novah.Core
 foreign import type novah.collections.Record
 foreign import type java.util.concurrent.atomic.AtomicReference
+foreign import type java.lang.AssertionError
 foreign import type java.lang.Math
+foreign import type java.lang.System
 
-foreign import get java.lang.System:out
-foreign import java.io.PrintStream.println(Object) as jprintln
-foreign import java.io.PrintStream.print(Object) as jprint
-foreign import new java.lang.AssertionError(String) as newAssertionError
-foreign import java.lang.Math:pow(Float64, Float64)
-foreign import Int32.longValue()
 foreign import Int32.byteValue() as iToB
-foreign import Int32.shortValue() as iToS
 foreign import Int64.intValue() as lToI
-foreign import Object.toString() as jToString
-foreign import String:format(String, Array) as sformat
-foreign import String.equals(String) as equalsString
-foreign import IList.toArray() as listToArr
-foreign import List.concat(IList) as listConcat
-foreign import List.nth(Int64) as listNth
-foreign import List.addFirst(Object) as listAddFirst
-foreign import List.addLast(Object) as listAddLast
-foreign import List.removeFirst() as remFirst
-foreign import List.removeLast() as remLast
-foreign import List.set(Int64, Object) as listSet
-foreign import String.concat(String)
-foreign import Set.union(ISet)
 foreign import Byte.intValue() as bToI
-foreign import Int16.intValue() as sToI
-foreign import Float32.doubleValue() as fToD
-foreign import Char.compareTo(Char) as compareChar
-foreign import new AtomicReference(Object) as newAtom
-foreign import AtomicReference.get() as atomGet
-foreign import AtomicReference.set(Object) as atomSet
-foreign import AtomicReference.compareAndSet(Object, Object) as atomCmpAndSet
-foreign import Math:min(Int32, Int32) as minInt
-foreign import Math:min(Int64, Int64) as minLong
-foreign import Math:min(Float32, Float32) as minFloat
-foreign import Math:min(Float64, Float64) as minDouble
-foreign import Math:max(Int32, Int32) as maxInt
-foreign import Math:max(Int64, Int64) as maxLong
-foreign import Math:max(Float32, Float32) as maxFloat
-foreign import Math:max(Float64, Float64) as maxDouble
 
-foreign import Core:not(Boolean) as negate
-foreign import Core:getArray(Int32, Array)
-foreign import Core:setArray(Int32, Object, Array)
-foreign import Core:equivalentObject(Object, Object)
-foreign import Core:sum(Int32, Int32) as sumInt
-foreign import Core:sum(Int64, Int64) as sumInt64
-foreign import Core:sum(Float32, Float32) as sumFloat32
-foreign import Core:sum(Float64, Float64) as sumFloat64
-foreign import Core:sub(Int32, Int32) as subInt
-foreign import Core:sub(Int64, Int64) as subInt64
-foreign import Core:sub(Float32, Float32) as subFloat32
-foreign import Core:sub(Float64, Float64) as subFloat64
-foreign import Core:mult(Int32, Int32) as mulInt
-foreign import Core:mult(Int64, Int64) as mulInt64
-foreign import Core:mult(Float32, Float32) as mulFloat32
-foreign import Core:mult(Float64, Float64) as mulFloat64
-foreign import Core:div(Int32, Int32) as divInt
-foreign import Core:div(Int64, Int64) as divInt64
-foreign import Core:div(Float32, Float32) as divFloat32
-foreign import Core:div(Float64, Float64) as divFloat64
-foreign import Core:equivalent(Byte, Byte) as equiByte
-foreign import Core:equivalent(Int16, Int16) as equiInt16
-foreign import Core:equivalent(Int32, Int32) as equiInt32
-foreign import Core:equivalent(Int64, Int64) as equiInt64
-foreign import Core:equivalent(Float32, Float32) as equiFloat32
-foreign import Core:equivalent(Float64, Float64) as equiFloat64
-foreign import Core:equivalent(Char, Char) as equiChar
-foreign import Core:equalsList(List, List, Function)
-foreign import Core:equalsSet(Set, Set, Function)
-foreign import Core:equalsArray(Array, Array, Function)
-foreign import Core:toStringList(List, Function)
-foreign import Core:toStringSet(Set, Function)
-foreign import Core:toStringArray(Array, Function)
 foreign import Core:compareInt(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 foreign import Core:compareLong(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
 foreign import Core:compareDouble(novah.core.Ordering, novah.core.Ordering, novah.core.Ordering)
@@ -147,7 +81,7 @@ unsafeCast x = unsafeCoerce x
  */
 pub
 not : Boolean -> Boolean
-not b = negate b
+not b = Core#not(b)
 
 /**
  * Returns its argument unmodified.
@@ -203,7 +137,7 @@ pub
  */
 pub
 (===) : a -> a -> Boolean
-(===) x y = equivalentObject x y
+(===) x y = Core#equivalentObject(x, y)
 
 /**
  * Returns true if the 2 objects *do not* point to the same object.
@@ -211,7 +145,7 @@ pub
  */
 pub
 (!==) : a -> a -> Boolean
-(!==) x y = negate (x === y)
+(!==) x y = Core#not(x === y)
 
 /**
  * Logical `and` operator.
@@ -236,14 +170,14 @@ pub
  */
 pub
 println : a -> Unit
-println x = jprintln out (x as Object)
+println x = System#-out#println(x as Object)
 
 /**
  * Prints x to the stdout.
  */
 pub
 print : a -> Unit
-print x = jprint out (x as Object)
+print x = System#-out#print(x as Object)
 
 /**
  * Converts a value to String using the
@@ -251,7 +185,7 @@ print x = jprint out (x as Object)
  */
 pub
 toString : a -> String
-toString x = jToString (x as Object)
+toString x = (x as Object)#toString()
 
 /**
  * Throws an exception stating that this code is still undergoing implementation.
@@ -259,7 +193,7 @@ toString x = jToString (x as Object)
  */
 pub
 todo : String -> a
-todo msg = throw newAssertionError (format "Not implemented: %s" [msg])
+todo msg = throw AssertionError#new(format "Not implemented: %s" [msg] as Object)
 
 /**
  * Converts this 64-bit integer to a 32-bit integer.
@@ -273,7 +207,7 @@ int l = lToI l
  */
 pub
 int64 : Int32 -> Int64
-int64 i = longValue i
+int64 i = (i : Int32)#longValue()
 
 /**
  * Returns the value at index for this list.
@@ -282,7 +216,7 @@ int64 i = longValue i
  */
 pub
 (!) : List a -> Int64 -> a
-(!) list index = listNth list index
+(!) list index = (list : List a)#nth(index)
 
 /**
  * Sets the value of this list at the specified index to x.
@@ -291,7 +225,7 @@ pub
  */
 pub
 setAt : Int64 -> a -> List a -> List a
-setAt index x list = listSet list index x
+setAt index x list = (list : List a)#set(index, x)
 
 /**
  * Updates the value of this list at the specified index by applying function f to the old value.
@@ -300,7 +234,7 @@ setAt index x list = listSet list index x
  */
 pub
 updateAt : Int64 -> (a -> a) -> List a -> List a
-updateAt index f list = listSet list index (f (list ! index))
+updateAt index f list = (list : List a)#set(index, f (list ! index))
 
 /**
  * Appends x to the beginning of this list.
@@ -308,7 +242,7 @@ updateAt index f list = listSet list index (f (list ! index))
  */
 pub
 addFirst : a -> List a -> List a
-addFirst x list = listAddFirst list x
+addFirst x list = (list : List a)#addFirst(x)
 
 /**
  * Appends x to the end of this list.
@@ -316,7 +250,7 @@ addFirst x list = listAddFirst list x
  */
 pub
 addLast : a -> List a -> List a
-addLast x list = listAddLast list x
+addLast x list = (list : List a)#addLast(x)
 
 /**
  * Removes the first element of this list.
@@ -324,7 +258,7 @@ addLast x list = listAddLast list x
  */
 pub
 removeFirst : List a -> List a
-removeFirst list = remFirst list
+removeFirst list = (list : List a)#removeFirst()
 
 /**
  * Removes the last element of this list.
@@ -332,7 +266,7 @@ removeFirst list = remFirst list
  */
 pub
 removeLast : List a -> List a
-removeLast list = remLast list
+removeLast list = (list : List a)#removeLast()
 
 /**
  * Gets the element of the array at the specified index.
@@ -341,7 +275,7 @@ removeLast list = remLast list
  */
 pub
 aget : Int32 -> Array a -> a
-aget index arr = getArray index arr
+aget index arr = Core#getArray(index, arr)
 
 /**
  * Sets the element of the array at the specified index.
@@ -350,7 +284,7 @@ aget index arr = getArray index arr
  */
 pub
 aset : Int32-> a -> Array a -> Unit
-aset index x arr = setArray index x arr
+aset index x arr = Core#setArray(index, x, arr)
 
 /**
  * Updates the element of the array at the specified index by applying this function
@@ -360,7 +294,7 @@ aset index x arr = setArray index x arr
  */
 pub
 aupdate : Int32 -> (a -> a) -> Array a -> Unit
-aupdate index updateFn arr = setArray index (updateFn (getArray index arr)) arr
+aupdate index updateFn arr = Core#setArray(index, updateFn Core#getArray(index, arr), arr)
 
 /**
  * Converts a list of some type `a` to an Array of `a`.
@@ -368,7 +302,7 @@ aupdate index updateFn arr = setArray index (updateFn (getArray index arr)) arr
  */
 pub
 arrayOf : List a -> Array a
-arrayOf vec = listToArr (vec as IList a) as Array a
+arrayOf vec = (vec as IList a)#toArray() as Array a
 
 /**
  * Returns a formatted string using the specified format string and arguments.
@@ -376,7 +310,7 @@ arrayOf vec = listToArr (vec as IList a) as Array a
  */
 pub
 format : String -> List a -> String
-format str list = sformat str ((arrayOf list) as Array Object)
+format str list = String#format(str, arrayOf list as Array Object)
 
 /**
  * Prints the formated string to stdout.
@@ -441,15 +375,15 @@ pub
 
 pub instance
 concatString : Concat String
-concatString = Concat { concat: \s s2 -> concat s s2 }
+concatString = Concat { concat: \s s2 -> (s : String)#concat(s2) }
 
 pub instance
 concatList : Concat (List a)
-concatList = Concat { concat: \v v2 -> listConcat v (v2 as IList a) as List a }
+concatList = Concat { concat: \v v2 -> (v : List a)#concat(v2 as IList a) as List a }
 
 pub instance
 concatSet : Concat (Set a)
-concatSet = Concat { concat: \s s2 -> union s (s2 as ISet a) }
+concatSet = Concat { concat: \s s2 -> (s : Set a)#union(s2 as ISet a) }
 
 concatOption_ : Concat a -> Option a -> Option a -> Option a
 concatOption_ (Concat ap) =
@@ -477,19 +411,19 @@ pub
 
 pub instance
 plusInt32 : Plus Int32
-plusInt32 = Plus { plus: \x y -> sumInt x y }
+plusInt32 = Plus { plus: \x y -> Core#sum(x : Int32, y) }
 
 pub instance
 plusInt64 : Plus Int64
-plusInt64 = Plus { plus: \x y -> sumInt64 x y }
+plusInt64 = Plus { plus: \x y -> Core#sum(x : Int64, y) }
 
 pub instance
 plusFloat32 : Plus Float32
-plusFloat32 = Plus { plus: \x y -> sumFloat32 x y }
+plusFloat32 = Plus { plus: \x y -> Core#sum(x : Float32, y) }
 
 pub instance
 plusFloat64 : Plus Float64
-plusFloat64 = Plus { plus: \x y -> sumFloat64 x y }
+plusFloat64 = Plus { plus: \x y -> Core#sum(x : Float64, y) }
 
 /**
  * The type of things that can be subtracted
@@ -507,19 +441,19 @@ pub
 
 pub instance
 minusInt32 : Minus Int32
-minusInt32 = Minus { minus: \x y -> subInt x y }
+minusInt32 = Minus { minus: \x y -> Core#sub(x : Int32, y) }
 
 pub instance
 minusInt64 : Minus Int64
-minusInt64 = Minus { minus: \x y -> subInt64 x y }
+minusInt64 = Minus { minus: \x y -> Core#sub(x : Int64, y) }
 
 pub instance
 minusFloat32 : Minus Float32
-minusFloat32 = Minus { minus: \x y -> subFloat32 x y }
+minusFloat32 = Minus { minus: \x y -> Core#sub(x : Float32, y) }
 
 pub instance
 minusFloat64 : Minus Float64
-minusFloat64 = Minus { minus: \x y -> subFloat64 x y }
+minusFloat64 = Minus { minus: \x y -> Core#sub(x : Float64, y) }
 
 /**
  * The type of things that can be multiplied together
@@ -537,19 +471,19 @@ pub
 
 pub instance
 multInt32 : Mult Int32
-multInt32 = Mult { mult: \x y -> mulInt x y }
+multInt32 = Mult { mult: \x y -> Core#mult(x : Int32, y) }
 
 pub instance
 multInt64 : Mult Int64
-multInt64 = Mult { mult: \x y -> mulInt64 x y }
+multInt64 = Mult { mult: \x y -> Core#mult(x : Int64, y) }
 
 pub instance
 multFloat32 : Mult Float32
-multFloat32 = Mult { mult: \x y -> mulFloat32 x y }
+multFloat32 = Mult { mult: \x y -> Core#mult(x : Float32, y) }
 
 pub instance
 multFloat64 : Mult Float64
-multFloat64 = Mult { mult: \x y -> mulFloat64 x y }
+multFloat64 = Mult { mult: \x y -> Core#mult(x : Float64, y) }
 
 /**
  * The type of things that can be divided
@@ -567,19 +501,19 @@ pub
 
 pub instance
 divideInt32 : Divide Int32
-divideInt32 = Divide { divide: \x y -> divInt x y }
+divideInt32 = Divide { divide: \x y -> Core#div(x : Int32, y) }
 
 pub instance
 divideInt64 : Divide Int64
-divideInt64 = Divide { divide: \x y -> divInt64 x y }
+divideInt64 = Divide { divide: \x y -> Core#div(x : Int64, y) }
 
 pub instance
 divideFloat32 : Divide Float32
-divideFloat32 = Divide { divide: \x y -> divFloat32 x y }
+divideFloat32 = Divide { divide: \x y -> Core#div(x : Float32, y) }
 
 pub instance
 divideFloat64 : Divide Float64
-divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
+divideFloat64 = Divide { divide: \x y -> Core#div(x : Float64, y) }
 
 /**
  * Returns x raised to the power of y.
@@ -587,7 +521,7 @@ divideFloat64 = Divide { divide: \x y -> divFloat64 x y }
  */
 pub
 (^) : Float64 -> Float64 -> Float64
-(^) x y = pow x y
+(^) x y = Math#pow(x, y)
 
 /**
  * The type of things that have a String representation.
@@ -657,15 +591,15 @@ showOption {{s}} = Show { show: showOpt s }
 
 pub instance
 showList : {{ Show a }} -> Show (List a)
-showList {{Show s}} = Show { show: \v -> toStringList v s.show }
+showList {{Show s}} = Show { show: \v -> Core#toStringList(v, s.show) }
 
 pub instance
 showSet : {{ Show a }} -> Show (Set a)
-showSet {{Show s}} = Show { show: \set -> toStringSet set s.show }
+showSet {{Show s}} = Show { show: \set -> Core#toStringSet(set, s.show) }
 
 pub instance
 showArray : {{ Show a }} -> Show (Array a)
-showArray {{Show s}} = Show { show: \a -> toStringArray a s.show }
+showArray {{Show s}} = Show { show: \a -> Core#toStringArray(a, s.show) }
 
 showNull : Show a -> Nullable a -> String
 showNull (Show s) x =
@@ -699,31 +633,31 @@ pub
 
 pub instance
 eqByte : Equals Byte
-eqByte = Equals { equals: \x y -> equiByte x y }
+eqByte = Equals { equals: \x y -> Core#equivalent(x : Byte, y) }
 
 pub instance
 eqInt16 : Equals Int16
-eqInt16 = Equals { equals: \x y -> equiInt16 x y }
+eqInt16 = Equals { equals: \x y -> Core#equivalent(x : Int16, y) }
 
 pub instance
 eqInt32 : Equals Int32
-eqInt32 = Equals { equals: \x y -> equiInt32 x y }
+eqInt32 = Equals { equals: \x y -> Core#equivalent(x : Int32, y) }
 
 pub instance
 eqInt64 : Equals Int64
-eqInt64 = Equals { equals: \x y -> equiInt64 x y }
+eqInt64 = Equals { equals: \x y -> Core#equivalent(x : Int64, y) }
 
 pub instance
 eqFloat32 : Equals Float32
-eqFloat32 = Equals { equals: \x y -> equiFloat32 x y }
+eqFloat32 = Equals { equals: \x y -> Core#equivalent(x : Float32, y) }
 
 pub instance
 eqFloat64 : Equals Float64
-eqFloat64 = Equals { equals: \x y -> equiFloat64 x y }
+eqFloat64 = Equals { equals: \x y -> Core#equivalent(x : Float64, y) }
 
 pub instance
 eqChar : Equals Char
-eqChar = Equals { equals: \x y -> equiChar x y }
+eqChar = Equals { equals: \x y -> Core#equivalent(x : Char, y) }
 
 equalsBoolean : Boolean -> Boolean -> Boolean
 equalsBoolean =
@@ -738,19 +672,19 @@ eqBoolean = Equals { equals: equalsBoolean }
 
 pub instance
 eqString : Equals String
-eqString = Equals { equals: \x y -> equalsString x y }
+eqString = Equals { equals: \x y -> (x : String)#equals((y : String) as Object) }
 
 pub instance
 eqList : {{ Equals a }} -> Equals (List a)
-eqList {{Equals eq}} = Equals { equals: \x y -> equalsList x y eq.equals }
+eqList {{Equals eq}} = Equals { equals: \x y -> Core#equalsList(x, y, eq.equals) }
 
 pub instance
 eqSet : {{ Equals a }} -> Equals (Set a)
-eqSet {{Equals eq}} = Equals { equals: \x y -> equalsSet x y eq.equals }
+eqSet {{Equals eq}} = Equals { equals: \x y -> Core#equalsSet(x, y, eq.equals) }
 
 pub instance
 eqArray : {{ Equals a }} -> Equals (Array a)
-eqArray {{Equals eq}} = Equals { equals: \x y -> equalsArray x y eq.equals }
+eqArray {{Equals eq}} = Equals { equals: \x y -> Core#equalsArray(x, y, eq.equals) }
 
 equalsOption : Equals a -> Option a -> Option a -> Boolean
 equalsOption (Equals eq) =
@@ -878,15 +812,33 @@ ordFloat64 = Ord eqFloat64 { compare: unsafeCast (compareDouble LT EQ GT) }
 
 pub instance
 ordByte : Ord Byte
-ordByte = Ord eqByte { compare: \x y -> let comp = unsafeCast (compareInt LT EQ GT) in comp (bToI x) (bToI y) }
+ordByte =
+  Ord eqByte
+    { compare:
+      \x y ->
+        let comp = unsafeCast (compareInt LT EQ GT)
+        comp (x : Byte)#intValue() (y : Byte)#intValue()
+    }
 
 pub instance
 ordInt16 : Ord Int16
-ordInt16 = Ord eqInt16 { compare: \x y -> let comp = unsafeCast (compareInt LT EQ GT) in comp (sToI x) (sToI y) }
+ordInt16 =
+  Ord eqInt16
+    { compare:
+      \x y ->
+        let comp = unsafeCast (compareInt LT EQ GT)
+        comp (x : Int16)#intValue() (y : Int16)#intValue()
+    }
 
 pub instance
 ordFloat32 : Ord Float32
-ordFloat32 = Ord eqFloat32 { compare: \x y -> let comp = unsafeCast (compareDouble LT EQ GT) in comp (fToD x) (fToD y) }
+ordFloat32 =
+  Ord eqFloat32
+    { compare:
+      \x y ->
+        let comp = unsafeCast (compareDouble LT EQ GT)
+        comp (x : Float32)#doubleValue() (y : Float32)#doubleValue()
+    }
 
 pub instance
 ordChar : Ord Char
@@ -964,8 +916,8 @@ numberOpsInt32 =
     { remainder: \x y -> intRemainder x y
     , zero: 0
     , even: \x -> intRemainder x 2 == 0
-    , min: \x y -> minInt x y
-    , max: \x y -> maxInt x y
+    , min: \x y -> Math#min(x, y)
+    , max: \x y -> Math#max(x, y)
     }
 
 pub instance
@@ -975,8 +927,8 @@ numberOpsInt64 =
     { remainder: \x y -> longRemainder x y
     , zero: 0L
     , even: \x -> longRemainder x 2L == 0L
-    , min: \x y -> minLong x y
-    , max: \x y -> maxLong x y
+    , min: \x y -> Math#min(x : Int64, y)
+    , max: \x y -> Math#max(x : Int64, y)
     }
 
 pub instance
@@ -986,8 +938,8 @@ numberOpsFloat32 =
     { remainder: \x y -> floatRemainder x y
     , zero: 0F
     , even: \x -> floatRemainder x 2F == 0F
-    , min: \x y -> minFloat x y
-    , max: \x y -> maxFloat x y
+    , min: \x y -> Math#min(x : Float32, y)
+    , max: \x y -> Math#max(x : Float32, y)
     }
 
 pub instance
@@ -997,8 +949,8 @@ numberOpsFloat64 =
     { remainder: \x y -> doubleRemainder x y
     , zero: 0.0
     , even: \x -> doubleRemainder x 2.0 == 0.0
-    , min: \x y -> minDouble x y
-    , max: \x y -> maxDouble x y
+    , min: \x y -> Math#min(x : Float64, y)
+    , max: \x y -> Math#max(x : Float64, y)
     }
 
 /**
@@ -1088,13 +1040,13 @@ pub instance
 bitOperatorInt16 : BitOperator Int16
 bitOperatorInt16 =
   BitOperator
-    { and: \x y -> iToS (bitAndInt (sToI x) (sToI y))
-    , or: \x y -> iToS (bitOrInt (sToI x) (sToI y))
-    , xor: \x y -> iToS (bitXorInt (sToI x) (sToI y))
-    , shiftLeft: \x y -> iToS (bitShiftLeftInt (sToI x) (sToI y))
-    , shiftRight: \x y -> iToS (bitShiftRightInt (sToI x) (sToI y))
-    , unsignedShiftRight: \x y -> iToS (unsignedBitShiftRightInt (sToI x) (sToI y))
-    , not: \x -> iToS (bitNotInt (sToI x))
+    { and: \x y -> (bitAndInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
+    , or: \x y -> (bitOrInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
+    , xor: \x y -> (bitXorInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
+    , shiftLeft: \x y -> (bitShiftLeftInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
+    , shiftRight: \x y -> (bitShiftRightInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
+    , unsignedShiftRight: \x y -> (unsignedBitShiftRightInt (x : Int16)#intValue() (y : Int16)#intValue())#shortValue()
+    , not: \x -> (bitNotInt (x : Int16)#intValue())#shortValue()
     }
 
 pub instance
@@ -1199,14 +1151,14 @@ opaque type Atom a = AtomicReference a
  */
 pub
 atom : a -> Atom a
-atom x = Atom (newAtom x)
+atom x = Atom AtomicReference#new(x)
 
 /**
  * Returns the value inside this Atom.
  */
 pub
 deref : Atom a -> a
-deref (Atom a) = atomGet a
+deref (Atom a) = a#get()
 
 /**
  * Resets the value of this Atom to x, discarding the old value.
@@ -1215,7 +1167,7 @@ deref (Atom a) = atomGet a
 pub
 reset : a -> Atom a -> a
 reset x (Atom a) =
-  atomSet a x
+  a#set(x)
   x
 
 /**
@@ -1235,7 +1187,7 @@ swap f (Atom a) = swapAtom a f
  */
 pub
 compareAndSet : a -> a -> Atom a -> Boolean
-compareAndSet old new (Atom atm) = atomCmpAndSet atm old new
+compareAndSet old new (Atom atm) = atm#compareAndSet(old, new)
 
 equalsAtom : Equals a -> Atom a -> Atom a -> Boolean
 equalsAtom (Equals eq) x y = eq.equals (deref x) (deref y)
