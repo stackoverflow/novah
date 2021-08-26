@@ -1,5 +1,5 @@
 module [33mtest[0m
-at src/test/resources/failure/instance_arguments/non-match implicit.novah:4:5 - 4:10
+at src/test/resources/failure/instance_arguments/non-match implicit.novah:4:7 - 4:8
 
   Cannot match instance variable {{x}} with non-instance type
   

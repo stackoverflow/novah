@@ -29,7 +29,7 @@ new {{Equals eq}} hashFn =
  */
 pub
 add : a -> Set a -> Set a
-add x set = (set : Set a)#add(x)
+add x (set : Set a) = set#add(x)
 
 /**
  * Removes this element from the set.
@@ -37,7 +37,7 @@ add x set = (set : Set a)#add(x)
  */
 pub
 remove : a -> Set a -> Set a
-remove x set = (set : Set a)#remove(x)
+remove x (set : Set a) = set#remove(x)
 
 /**
  * Returns the size of this set.
@@ -45,14 +45,14 @@ remove x set = (set : Set a)#remove(x)
  */
 pub
 size : Set a -> Int64
-size set = (set : Set a)#size()
+size (set : Set a) = set#size()
 
 /**
  * Returns true if this set is empty.
  */
 pub
 isEmpty : Set a -> Boolean
-isEmpty set = (set : Set a)#size() == 0L
+isEmpty (set : Set a) = set#size() == 0L
 
 /**
  * Returns true if this set is not empty.
@@ -60,7 +60,7 @@ isEmpty set = (set : Set a)#size() == 0L
  */
 pub
 isNotEmpty : Set a -> Boolean
-isNotEmpty set = (set : Set a)#size() != 0L
+isNotEmpty (set : Set a) = set#size() != 0L
 
 /**
  * Returns some value at index for this set if it exists or none.
@@ -68,8 +68,8 @@ isNotEmpty set = (set : Set a)#size() != 0L
  */
 pub
 nth : Int64 -> Set a -> Option a
-nth index set =
-  let len = (set : Set a)#size()
+nth index (set : Set a) =
+  let len = set#size()
   if index < 0L || index >= len
     then None
     else Some set#nth(index)
@@ -81,7 +81,7 @@ nth index set =
  */
 pub
 unsafeNth : Int64 -> Set a -> a
-unsafeNth index set = (set : Set a)#nth(index)
+unsafeNth index (set : Set a) = set#nth(index)
 
 /**
  * Returns the union of these 2 sets.
@@ -89,28 +89,28 @@ unsafeNth index set = (set : Set a)#nth(index)
  */
 pub
 union : Set a -> Set a -> Set a
-union s1 s2 = (s1 : Set a)#union(s2 as ISet a)
+union (s1 : Set a) s2 = s1#union(s2 as ISet a)
 
 /**
  * Returns all elements in set 1 that are not in set 2.
  */
 pub
 difference : Set a -> Set a -> Set a
-difference s1 s2 = (s1 : Set a)#difference(s2 as ISet a)
+difference (s1 : Set a) s2 = s1#difference(s2 as ISet a)
 
 /**
  * Returns the intersection between these 2 sets.
  */
 pub
 intersection : Set a -> Set a -> Set a
-intersection s1 s2 = (s1 : Set a)#intersection(s2 as ISet a)
+intersection (s1 : Set a) s2 = s1#intersection(s2 as ISet a)
 
 /**
  * Returns a stream for this set.
  */
 pub
 stream : Set a -> Stream a
-stream set = (set as ISet a)#stream()
+stream (set : Set a) = set#stream()
 
 /**
  * Collects this stream into a set.
@@ -129,8 +129,8 @@ fromStream st =
  */
 pub
 forEach : Set a -> (a -> Unit) -> Unit
-forEach set f =
-  forEachRange 0L (set : Set a)#size() \idx ->
+forEach (set : Set a) f =
+  forEachRange 0L set#size() \idx ->
     f set#nth(idx)
 
 /**
@@ -140,9 +140,9 @@ forEach set f =
  */
 pub
 map : (a -> b) -> Set a -> Set b
-map f set =
+map f (set : Set a) =
   let lset = #{}#linear()
-  forEachRange 0L (set : Set a)#size() \idx ->
+  forEachRange 0L set#size() \idx ->
     add (f set#nth(idx)) lset
   lset#forked()
 
@@ -152,9 +152,9 @@ map f set =
  */
 pub
 filter : (a -> Boolean) -> Set a -> Set a
-filter pred set =
+filter pred (set : Set a) =
   let lset = #{}#linear()
-  forEachRange 0L (set : Set a)#size() \idx ->
+  forEachRange 0L set#size() \idx ->
     let elem = set#nth(idx)
     when (pred elem) \_ ->
       add elem lset
@@ -167,9 +167,9 @@ filter pred set =
  */
 pub
 find : (a -> Boolean) -> Set a -> Option a
-find pred set =
+find pred (set : Set a) =
   let lset = #{}#linear()
-  forEachBreak 0L (set : Set a)#size() \idx ->
+  forEachBreak 0L set#size() \idx ->
     let elem = set#nth(idx)
     if pred elem
       then
@@ -185,7 +185,7 @@ find pred set =
  */
 pub
 contains : a -> Set a -> Boolean
-contains elem set = (set : Set a)#contains(elem)
+contains elem (set : Set a) = set#contains(elem)
 
 /**
  * Reduces this set to a single value according to the reducing function.
@@ -265,6 +265,6 @@ containsAll list set = List.every (\x -> contains x set) list
  */
 pub
 withLinear : Set a -> (Set a -> Set a) -> Set a
-withLinear set f =
-  let lin = f (set : Set a)#linear()
+withLinear (set : Set a) f =
+  let lin = f set#linear()
   (lin : Set a)#forked()

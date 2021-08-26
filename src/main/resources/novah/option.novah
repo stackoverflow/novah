@@ -84,7 +84,7 @@ toNullable =
  */
 pub
 fromOptional : Optional a -> Option a
-fromOptional opt = if (opt : Optional a)#isPresent() then Some opt#get() else None
+fromOptional (opt : Optional a) = if opt#isPresent() then Some opt#get() else None
 
 /**
  * Transforms an option into a `java.util.Optional`.

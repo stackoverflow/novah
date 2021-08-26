@@ -57,8 +57,8 @@ assert cond msg =
  */
 pub
 forEach : Iterator a -> (a -> Unit) -> Unit
-forEach it fun =
-  while (it : Iterator a)#hasNext() do
+forEach (it : Iterator a) fun =
+  while it#hasNext() do
     fun it#next()
 
 /**

@@ -98,10 +98,14 @@ class SemanticTokensFeature(private val server: NovahServer) {
             // create tokens for lambda params
             while (exp is Expr.Lambda) {
                 val name = exp.binder.name
+                val type = exp.binder.type
                 if (!name.startsWith("var$")) {
                     parNames += name
                     tokens += genLine(exp.binder.span, PARAM)
                 } else destruct++
+                if (type?.span != null) {
+                    tokens += genTypeLine(type)
+                }
                 exp = exp.body
             }
             // create tokens for destructuring patterns params
@@ -131,8 +135,16 @@ class SemanticTokensFeature(private val server: NovahServer) {
                     is Expr.TypeCast -> genTypeLine(e.cast)
                     is Expr.Ann -> genTypeLine(e.annType)
                     is Expr.NativeMethod -> genLine(e.span, METHOD)
-                    is Expr.ForeignStaticField -> genLine(e.clazz.span, TYPE)
-                    is Expr.ForeignStaticMethod -> genLine(e.clazz.span, TYPE)
+                    is Expr.ForeignStaticField -> {
+                        tokens += genLine(e.clazz.span, CLASS)
+                        genLine(e.fieldName.span, PROPERTY)
+                    }
+                    is Expr.ForeignStaticMethod -> {
+                        tokens += genLine(e.clazz.span, CLASS)
+                        genLine(e.methodName.span, METHOD)
+                    }
+                    is Expr.ForeignField -> genLine(e.fieldName.span, PROPERTY)
+                    is Expr.ForeignMethod -> genLine(e.methodName.span, METHOD)
                     else -> listOf()
                 }
             }
@@ -155,7 +167,9 @@ class SemanticTokensFeature(private val server: NovahServer) {
                 "string",
                 "number",
                 "operator",
-                "method"
+                "method",
+                "property",
+                "class"
             ),
             listOf("declaration", "defaultLibrary")
         )
@@ -167,5 +181,7 @@ class SemanticTokensFeature(private val server: NovahServer) {
         const val OP = 9
         const val NUM = 8
         const val METHOD = 10
+        const val PROPERTY = 11
+        const val CLASS = 12
     }
 }

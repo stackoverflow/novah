@@ -34,7 +34,7 @@ fromStream st =
  */
 pub
 forEach : List a -> (a -> b) -> Unit
-forEach list f = forEachRange 0L (list : List a)#size() \idx -> f (list ! idx)
+forEach (list : List a) f = forEachRange 0L list#size() \idx -> f (list ! idx)
 
 /**
  * Maps function f over all elements of this list
@@ -43,9 +43,9 @@ forEach list f = forEachRange 0L (list : List a)#size() \idx -> f (list ! idx)
  */
 pub
 map : (a -> b) -> List a -> List b
-map f list =
+map f (list : List a) =
   let llist = []#linear()
-  forEachRange 0L (list : List a)#size() \idx ->
+  forEachRange 0L list#size() \idx ->
     addLast (f (list ! idx)) llist
   llist#forked()
 
@@ -56,8 +56,8 @@ map f list =
  */
 pub
 nth : Int64 -> List a -> Option a
-nth index list =
-  let len = (list : List a)#size()
+nth index (list : List a) =
+  let len = list#size()
   if index < 0L || index >= len
     then None
     else Some (list ! index)
@@ -68,7 +68,7 @@ nth index list =
  */
 pub
 size : List a -> Int64
-size list = (list : List a)#size()
+size (list : List a) = list#size()
 
 /**
  * Returns the first element of this list if it's not empty.
@@ -84,7 +84,7 @@ first list = nth 0L list
  */
 pub
 last : List a -> Option a
-last list = nth ((list : List a)#size() - 1L) list
+last (list : List a) = nth (list#size() - 1L) list
 
 /**
  * Returns true if this list is empty.
@@ -92,7 +92,7 @@ last list = nth ((list : List a)#size() - 1L) list
  */
 pub
 isEmpty : List a -> Boolean
-isEmpty list = (list : List a)#size() == 0L
+isEmpty (list : List a) = list#size() == 0L
 
 /**
  * Returns true if this list is not empty.
@@ -100,7 +100,7 @@ isEmpty list = (list : List a)#size() == 0L
  */
 pub
 isNotEmpty : List a -> Boolean
-isNotEmpty list = (list : List a)#size() != 0L
+isNotEmpty (list : List a) = list#size() != 0L
 
 /**
  * Returns a list of the elements that match the given predicate.
@@ -108,9 +108,9 @@ isNotEmpty list = (list : List a)#size() != 0L
  */
 pub
 filter : (a -> Boolean) -> List a -> List a
-filter f list =
+filter f (list : List a) =
   let llist = []#linear()
-  forEachRange 0L (list : List a)#size() \idx ->
+  forEachRange 0L list#size() \idx ->
     let elem = list ! idx
     when (f elem) \_ ->
       addLast elem llist
@@ -193,7 +193,7 @@ tail =
  */
 pub
 slice : Int64 -> Int64 -> List a -> List a
-slice from to list = (list : List a)#slice(from, to)
+slice from to (list : List a) = list#slice(from, to)
 
 /**
  * Takes the first n elements of this list and returns it.
@@ -209,7 +209,7 @@ take n = slice 0L n
  */
 pub
 drop : Int64 -> List a -> List a
-drop n list = slice n (list : List a)#size() list
+drop n (list : List a) = slice n list#size() list
 
 /**
  * Keeps taking elements of this list while the predicate holds.
@@ -217,8 +217,8 @@ drop n list = slice n (list : List a)#size() list
  */
 pub
 takeWhile : (a -> Boolean) -> List a -> List a
-takeWhile pred list =
-  let v = (list : List a)#linear()
+takeWhile pred (list : List a) =
+  let v = list#linear()
   let res = []#linear()
   while isNotEmpty v && pred (v ! 0L) do
     addLast (v ! 0L) res
@@ -231,8 +231,8 @@ takeWhile pred list =
  */
 pub
 dropWhile : (a -> Boolean) -> List a -> List a
-dropWhile pred list =
-  let v = (list : List a)#linear()
+dropWhile pred (list : List a) =
+  let v = list#linear()
   while isNotEmpty v && pred (v ! 0L) do
     removeFirst v
   v#forked()
@@ -293,9 +293,9 @@ flatMap f list = flatten (map f list)
  */
 pub
 reverse : List a -> List a
-reverse list =
+reverse (list : List a) =
   let llist = []#linear()
-  forEachRange 0L (list : List a)#size() \i ->
+  forEachRange 0L list#size() \i ->
     addFirst (list ! i) llist
   llist#forked()
 
@@ -340,6 +340,6 @@ fromArray arr = List#"of"(arr)
  */
 pub
 withLinear : List a -> (List a -> List a) -> List a
-withLinear list f =
-  let lin = f (list : List a)#linear()
+withLinear (list : List a) f =
+  let lin = f list#linear()
   (lin : List a)#forked()

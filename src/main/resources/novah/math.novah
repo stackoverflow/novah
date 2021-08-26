@@ -147,11 +147,11 @@ floor x = Math#floor(x)
  */
 pub
 round : Float32 -> Int32
-round x = Math#round(x : Float32)
+round (x : Float32) = Math#round(x)
 
 /**
  * Returns the Int64 closest to x.
  */
 pub
 round64 : Float64 -> Int64
-round64 x = Math#round(x : Float64)
+round64 (x : Float64) = Math#round(x)

@@ -7,70 +7,70 @@ foreign import type java.lang.CharSequence
  */
 pub
 isBlank : String -> Boolean
-isBlank s = (s : String)#isBlank()
+isBlank (s : String) = s#isBlank()
 
 /**
  * Returns true if this string is empty.
  */
 pub
 isEmpty : String -> Boolean
-isEmpty s = (s : String)#isEmpty()
+isEmpty (s : String) = s#isEmpty()
 
 /**
  * Returns the size of this string.
  */
 pub
 size : String -> Int32
-size s = (s : String)#length()
+size (s : String) = s#length()
 
 /**
  * Returns a lower case version of this string.
  */
 pub
 lowerCase : String -> String
-lowerCase str = (str : String)#toLowerCase()
+lowerCase (str : String) = str#toLowerCase()
 
 /**
  * Returns a upper case version of this string.
  */
 pub
 upperCase : String -> String
-upperCase str = (str : String)#toUpperCase()
+upperCase (str : String) = str#toUpperCase()
 
 /**
  * Returns true if this string starts with prefix.
  */
 pub
 startsWith : String -> String -> Boolean
-startsWith prefix str = (str : String)#startsWith(prefix)
+startsWith prefix (str : String) = str#startsWith(prefix)
 
 /**
  * Returns true if this string ends with suffix.
  */
 pub
 endsWith : String -> String -> Boolean
-endsWith suffix str = (str : String)#endsWith(suffix)
+endsWith suffix (str : String) = str#endsWith(suffix)
 
 /**
  * Returns true if this string contains the string represented by another.
  */
 pub
 contains : String -> String -> Boolean
-contains another str = (str : String)#contains(another as CharSequence)
+contains another (str : String) = str#contains(another as CharSequence)
 
 /**
  * Returns true if this string contains the character.
  */
 pub
 containsChar : Char -> String -> Boolean
-containsChar char str = (str : String)#contains(toString char as CharSequence)
+containsChar char (str : String) = str#contains(toString char as CharSequence)
 
 /**
  * Encodes this string into an array of bytes using the platform's default charset.
  */
 pub
 getBytes : String -> Array Byte
-getBytes str = (str : String)#getBytes()
+getBytes (str : String) = str#getBytes()
 
 /**
  * Joins all strings in this list separated by delimiter.
@@ -84,36 +84,36 @@ join delimiter list = String#join(delimiter as CharSequence, arrayOf list as Arr
  */
 pub
 strip : String -> String
-strip str = (str : String)#strip()
+strip (str : String) = str#strip()
 
 /**
  * Returns this string with all leading white spaces removed.
  */
 pub
 stripl : String -> String
-stripl str = (str : String)#stripLeading()
+stripl (str : String) = str#stripLeading()
 
 /**
  * Returns this string with all trailing white spaces removed.
  */
 pub
 stript : String -> String
-stript str = (str : String)#stripTrailing()
+stript (str : String) = str#stripTrailing()
 
 /**
  * Returns a string that represents the input string repeated n times.
  */
 pub
 repeat : Int32 -> String -> String
-repeat n str = (str : String)#repeat(n)
+repeat n (str : String) = str#repeat(n)
 
 /**
  * Returns this string with the first character converted to upper-case and the rest converted to lower-case.
  */
 pub
 capitalize : String -> String
-capitalize str =
-  case (str : String)#length() of
+capitalize (str : String) =
+  case str#length() of
     0 -> str
     1 -> str#toUpperCase()
     _ ->
@@ -126,14 +126,14 @@ capitalize str =
  */
 pub
 splitLines : String -> List String
-splitLines str = List#"of"((str : String)#split("[\\r|\\n]+"))
+splitLines (str : String) = List#"of"(str#split("[\\r|\\n]+"))
 
 /**
  * Returns the character at the specified index if it exists.
  */
 pub
 charAt : Int32 -> String -> Option Char
-charAt idx str =
-  if idx < (str : String)#length()
+charAt idx (str : String) =
+  if idx < str#length()
     then Some str#charAt(idx)
     else None
