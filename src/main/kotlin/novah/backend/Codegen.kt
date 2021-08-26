@@ -526,6 +526,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitInsn(AASTORE)
                 }
             }
+            is Expr.ArrayLength -> {
+                genExpr(e.expr, mv, ctx)
+                mv.visitInsn(ARRAYLENGTH)
+                box(INT_TYPE, mv)
+            }
             is Expr.While -> {
                 val whileLb = Label()
                 val endLb = Label()
@@ -889,6 +894,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.ConstructorAccess -> {
                 go(exp.ctor)
+            }
+            is Expr.ArrayLength -> {
+                go(exp.expr)
             }
             is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
             is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor, is Expr.Null, is Expr.Var,

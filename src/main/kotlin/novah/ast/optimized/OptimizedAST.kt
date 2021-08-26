@@ -194,6 +194,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
         Expr(type, span)
 
     data class Null(override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class ArrayLength(val expr: Expr, override val type: Clazz, override val span: Span) : Expr(type, span)
 }
 
 data class Catch(val exception: Clazz, val binder: String?, val expr: Expr, val span: Span) {
@@ -235,6 +236,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
             f(e.copy(tryExpr = tryy, catches = cs, finallyExp = e.finallyExp?.let(::go)))
         }
         is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
+        is Expr.ArrayLength -> f(e.copy(expr = go(e.expr)))
         else -> f(e)
     }
     return go(this)

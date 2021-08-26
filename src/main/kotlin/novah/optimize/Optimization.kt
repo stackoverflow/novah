@@ -272,6 +272,9 @@ object Optimization {
                             && arg.type.isInt64() -> {
                         Expr.NativeStaticMethod(unsignedBitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
                     }
+                    fn is Var && fn.fullname() == "novah/array/Module.size" -> {
+                        Expr.ArrayLength(arg, e.type, e.span)
+                    }
                     else -> e
                 }
             }
