@@ -26,5 +26,5 @@ jobs:
 
     - name: Test with Gradle
       run: |
-        chmod +x gradlew
-        ./gradlew test
+        gradle clean
+        gradle test
