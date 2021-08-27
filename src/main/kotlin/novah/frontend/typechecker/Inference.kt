@@ -52,7 +52,6 @@ object Inference {
      */
     fun infer(ast: Module): ModuleEnv {
         warnings.clear()
-        Reflection.typeCache.clear()
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
         val warner = makeWarner(ast)
@@ -400,6 +399,7 @@ object Inference {
             exp.withType(exp.cast)
         }
         is Expr.ForeignStaticField -> {
+            Reflection.typeCache.clear()
             val clazz = exp.clazz.value
             val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.clazz.span)
 
@@ -417,6 +417,7 @@ object Inference {
             exp.withType(ty)
         }
         is Expr.ForeignField -> {
+            Reflection.typeCache.clear()
             val objTy = infer(env, level, exp.exp).realType()
             val clazz = Reflection.findJavaType(objTy) ?: inferError(E.invalidJavaType(objTy.show()), exp.exp.span)
             val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.exp.span)
@@ -433,6 +434,7 @@ object Inference {
             exp.withType(ty)
         }
         is Expr.ForeignStaticMethod -> {
+            Reflection.typeCache.clear()
             val clazz = exp.clazz.value
             val argCount = exp.args.size
             val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.clazz.span)
@@ -467,6 +469,7 @@ object Inference {
             }
         }
         is Expr.ForeignMethod -> {
+            Reflection.typeCache.clear()
             val objTy = infer(env, level, exp.exp).realType()
             val clazz = Reflection.findJavaType(objTy) ?: inferError(E.invalidJavaType(objTy.show()), exp.exp.span)
             val argCount = exp.args.size
