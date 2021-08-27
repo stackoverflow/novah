@@ -912,8 +912,7 @@ class Desugar(private val smod: SModule) {
                     if (name !in usedTypes) unusedImports[name] = imp.span
                 }
                 else -> {
-                    if (name !in usedVars && name != "unsafeCoerce")
-                        unusedImports[name] = imp.span
+                    if (name !in usedVars) unusedImports[name] = imp.span
                 }
             }
         }

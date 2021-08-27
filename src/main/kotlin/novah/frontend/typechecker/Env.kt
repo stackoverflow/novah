@@ -131,8 +131,6 @@ val tSet = tapp(primSet, -2)
 val tArray = tapp(primArray, -3)
 val tNullable = tapp(primNullable, -4)
 
-val tUnsafeCoerce = TArrow(listOf(tbound(-5)), tbound(-6))
-
 val primTypes = mapOf(
     primByte to tByte,
     primInt16 to tInt16,

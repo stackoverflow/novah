@@ -15,7 +15,6 @@
  */
 package novah.frontend
 
-import novah.Core
 import novah.Util.internalError
 import novah.ast.source.*
 import novah.data.LabelMap
@@ -181,7 +180,6 @@ fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProbl
     val typealiases = mutableMapOf<String, String>()
     val foreigVars = mutableMapOf<String, ForeignRef>()
     val env = Typechecker.env
-    addUnsafeCoerce(foreigVars, env)
     typeCache.clear()
 
     val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
@@ -313,13 +311,6 @@ fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProbl
     mod.foreignTypes = typealiases
     mod.foreignVars = foreigVars
     return errors
-}
-
-private val unsafeCoerce = Core::class.java.methods.find { it.name == "unsafeCoerce" }!!
-
-private fun addUnsafeCoerce(vars: MutableMap<String, ForeignRef>, env: Env) {
-    vars["unsafeCoerce"] = ForeignRef.MethodRef(unsafeCoerce)
-    env.extend("unsafeCoerce", tUnsafeCoerce)
 }
 
 private fun resolveImportedTypealiases(tas: List<Decl.TypealiasDecl>): Map<String, String> {

@@ -33,7 +33,7 @@ typealias Float = Float64
  */
 pub
 unsafeCast : a -> b
-unsafeCast x = unsafeCoerce x
+unsafeCast x = x as b
 
 /**
  * Negates a boolean value.
