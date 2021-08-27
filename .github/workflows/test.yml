@@ -25,4 +25,4 @@ jobs:
         settings-path: ${{ github.workspace }} # location for the settings.xml file
 
     - name: Test with Gradle
-      run: gradle test
+      run: ./gradlew test
