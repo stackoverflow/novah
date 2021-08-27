@@ -148,48 +148,13 @@ class Optimizer(private val ast: CModule) {
                 Expr.Lambda(bind, body.convert(locals + bind), type = typ, span = span)
             }
             is CExpr.App -> {
-                val pair = unrollForeignApp(this)
-                if (pair != null) {
-                    val (exp, pars) = pair
-                    when (exp) {
-                        // native getter will never be static here
-                        is CExpr.NativeFieldGet -> Expr.NativeFieldGet(exp.field, pars[0].convert(locals), typ, span)
-                        is CExpr.NativeFieldSet -> {
-                            if (exp.isStatic)
-                                Expr.NativeStaticFieldSet(exp.field, pars[0].convert(locals), typ, span)
-                            else Expr.NativeFieldSet(
-                                exp.field,
-                                pars[0].convert(locals),
-                                pars[1].convert(locals),
-                                typ,
-                                span
-                            )
-                        }
-                        is CExpr.NativeMethod -> {
-                            if (exp.isStatic)
-                                Expr.NativeStaticMethod(exp.method, pars.map { it.convert(locals) }, typ, span)
-                            else {
-                                val nativePars = pars.map { it.convert(locals) }
-                                Expr.NativeMethod(exp.method, nativePars[0], nativePars.drop(1), typ, span)
-                            }
-                        }
-                        is CExpr.NativeConstructor -> Expr.NativeCtor(
-                            exp.ctor,
-                            pars.map { it.convert(locals) },
-                            typ,
-                            span
-                        )
-                        else -> internalError("Problem in `unrollForeignApp`, got non-native expression: $exp")
+                if (implicitContext != null) {
+                    val app = resolvedImplicits().fold(fn.convert(locals)) { acc, instance ->
+                        checkUseImport(instance)
+                        Expr.App(acc, instance.convert(locals), getReturnType(acc.type), span)
                     }
-                } else {
-                    if (implicitContext != null) {
-                        val app = resolvedImplicits().fold(fn.convert(locals)) { acc, instance ->
-                            checkUseImport(instance)
-                            Expr.App(acc, instance.convert(locals), getReturnType(acc.type), span)
-                        }
-                        Expr.App(app, arg.convert(locals), typ, span)
-                    } else Expr.App(fn.convert(locals), arg.convert(locals), typ, span)
-                }
+                    Expr.App(app, arg.convert(locals), typ, span)
+                } else Expr.App(fn.convert(locals), arg.convert(locals), typ, span)
             }
             is CExpr.If -> Expr.If(
                 listOf(cond.convert(locals) to thenCase.convert(locals)),
@@ -213,18 +178,6 @@ class Optimizer(private val ast: CModule) {
                 reportPatternMatch(compRes, this)
                 desugarMatch(this, typ, locals)
             }
-            is CExpr.NativeFieldGet -> {
-                if (!Reflection.isStatic(field))
-                    inferError(E.unkonwnArgsToNative(name, "getter"), span, ProblemContext.FOREIGN)
-                Expr.NativeStaticFieldGet(field, typ, span)
-            }
-            is CExpr.NativeFieldSet -> inferError(E.unkonwnArgsToNative(name, "setter"), span, ProblemContext.FOREIGN)
-            is CExpr.NativeMethod -> inferError(E.unkonwnArgsToNative(name, "method"), span, ProblemContext.FOREIGN)
-            is CExpr.NativeConstructor -> inferError(
-                E.unkonwnArgsToNative(name, "constructor"),
-                span,
-                ProblemContext.FOREIGN
-            )
             is CExpr.Unit -> Expr.Unit(typ, span)
             is CExpr.RecordEmpty -> Expr.RecordEmpty(typ, span)
             is CExpr.RecordExtend -> Expr.RecordExtend(
@@ -548,27 +501,6 @@ class Optimizer(private val ast: CModule) {
         is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
         is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor -> false
         else -> true
-    }
-
-    /**
-     * Unrolls a native java call, as native
-     * calls can't be partially applied.
-     * @return the native call and it's parameters or null
-     */
-    private fun unrollForeignApp(app: CExpr.App): Pair<CExpr, List<CExpr>>? {
-        var depth = 0
-        val pars = mutableListOf<CExpr>()
-        var exp: CExpr = app
-        while (exp is CExpr.App) {
-            depth++
-            pars += exp.arg
-            exp = exp.fn
-        }
-        pars.reverse()
-        return when (exp) {
-            is CExpr.NativeFieldGet, is CExpr.NativeFieldSet, is CExpr.NativeMethod, is CExpr.NativeConstructor -> exp to pars
-            else -> null
-        }
     }
 
     private fun peelArgs(type: TType): Pair<List<Clazz>, Clazz> {

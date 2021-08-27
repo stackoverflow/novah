@@ -1,7 +1,7 @@
 module novah.option
 
-foreign import type java.lang.AssertionError
-foreign import type java.util.Optional
+foreign import java.lang.AssertionError
+foreign import java.util.Optional
 
 /**
  * Maps a function over this option if it has a value.

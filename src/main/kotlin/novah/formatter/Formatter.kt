@@ -74,20 +74,8 @@ class Formatter {
     fun show(fi: ForeignImport): String {
         // TODO: show comments
         fun alias(al: String?) = if (al != null) " as $al" else ""
-        fun sep(static: Boolean) = if (static) ":" else "."
-        val imp = when (fi) {
-            is ForeignImport.Type -> "type " + fi.type + alias(fi.alias)
-            is ForeignImport.Method -> fi.type + sep(fi.static) + fi.name + fi.pars.joinToString(
-                prefix = "(",
-                postfix = ")"
-            ) + alias(fi.alias)
-            is ForeignImport.Ctor -> "new " + fi.type + fi.pars.joinToString(
-                prefix = "(",
-                postfix = ")"
-            ) + alias(fi.alias)
-            is ForeignImport.Getter -> "get " + fi.type + sep(fi.static) + fi.name + alias(fi.alias)
-            is ForeignImport.Setter -> "set " + fi.type + sep(fi.static) + fi.name + alias(fi.alias)
-        }
+
+        val imp = fi.type + alias(fi.alias)
         return "foreign import $imp"
     }
 

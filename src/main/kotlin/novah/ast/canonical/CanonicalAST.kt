@@ -114,16 +114,6 @@ sealed class Expr(open val span: Span) {
     data class Match(val exps: List<Expr>, val cases: List<Case>, override val span: Span) : Expr(span)
     data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
     data class Do(val exps: List<Expr>, override val span: Span) : Expr(span)
-    data class NativeFieldGet(val name: String, val field: Field, val isStatic: Boolean, override val span: Span) :
-        Expr(span)
-
-    data class NativeFieldSet(val name: String, val field: Field, val isStatic: Boolean, override val span: Span) :
-        Expr(span)
-
-    data class NativeMethod(val name: String, val method: Method, val isStatic: Boolean, override val span: Span) :
-        Expr(span)
-
-    data class NativeConstructor(val name: String, val ctor: JConstructor<*>, override val span: Span) : Expr(span)
     class Unit(span: Span) : Expr(span)
     class RecordEmpty(span: Span) : Expr(span)
     data class RecordSelect(val exp: Expr, val label: Spanned<String>, override val span: Span) : Expr(span)
@@ -452,10 +442,6 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
             is Expr.Var -> f(e)
             is Expr.Constructor -> f(e)
             is Expr.ImplicitVar -> f(e)
-            is Expr.NativeConstructor -> f(e)
-            is Expr.NativeMethod -> f(e)
-            is Expr.NativeFieldGet -> f(e)
-            is Expr.NativeFieldSet -> f(e)
             is Expr.RecordEmpty -> f(e)
             is Expr.Null -> f(e)
             is Expr.Unit -> f(e)

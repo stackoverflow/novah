@@ -1,6 +1,6 @@
 module novah.math
 
-foreign import type java.lang.Math
+foreign import java.lang.Math
 
 /**
  * The base of natural logarithms.

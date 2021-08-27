@@ -1,10 +1,10 @@
 module novah.map
 
-foreign import type io.lacuna.bifurcan.Map
-foreign import type io.lacuna.bifurcan.Maps
-foreign import type io.lacuna.bifurcan.IMap
-foreign import type io.lacuna.bifurcan.IEntry
-foreign import type novah.Core
+foreign import io.lacuna.bifurcan.Map
+foreign import io.lacuna.bifurcan.Maps
+foreign import io.lacuna.bifurcan.IMap
+foreign import io.lacuna.bifurcan.IEntry
+foreign import novah.Core
 
 import novah.java as Java
 import novah.option as Option

@@ -1,3 +1,5 @@
 module test
 
-foreign import set java.io.File:separator as setSeparator
+foreign import java.io.File
+
+foo = File#-separator <- ""

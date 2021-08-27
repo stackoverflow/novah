@@ -17,20 +17,19 @@ package novah.ide.features
 
 import novah.ast.canonical.*
 import novah.ast.source.DeclarationRef
-import novah.ast.source.ForeignImport
 import novah.ast.source.Import
-import novah.ast.source.name
 import novah.data.LabelMap
 import novah.data.mapBoth
 import novah.formatter.Formatter
-import novah.frontend.*
+import novah.frontend.Comment
+import novah.frontend.Span
+import novah.frontend.Spanned
 import novah.frontend.typechecker.*
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.Environment
 import novah.main.ModuleEnv
 import org.eclipse.lsp4j.*
-import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.util.concurrent.CompletableFuture
 
@@ -143,34 +142,12 @@ class CompletionFeature(private val server: NovahServer) {
 
         // find all imported foreign names
         for (imp in ast.foreigns) {
-            when (imp) {
-                is ForeignImport.Type -> {
-                    val type = imp.name()
-                    if (type.startsWith(name)) {
-                        val ci = CompletionItem(type)
-                        ci.detail = imp.type
-                        ci.kind = CompletionItemKind.Class
-                        completions += ci
-                    }
-                    if (typesOnly) continue
-                }
-                is ForeignImport.Ctor -> {
-                    if (imp.alias.startsWith(name)) {
-                        val ci = CompletionItem(imp.alias)
-                        ci.detail = imp.type
-                        ci.kind = CompletionItemKind.Constructor
-                        completions += ci
-                    }
-                }
-                else -> {
-                    val foreign = imp.name()
-                    if (foreign.startsWith(name)) {
-                        val ci = CompletionItem(foreign)
-                        ci.kind =
-                            if (imp is ForeignImport.Method) CompletionItemKind.Method else CompletionItemKind.Property
-                        completions += ci
-                    }
-                }
+            val type = imp.name()
+            if (type.startsWith(name)) {
+                val ci = CompletionItem(type)
+                ci.detail = imp.type
+                ci.kind = CompletionItemKind.Class
+                completions += ci
             }
         }
 

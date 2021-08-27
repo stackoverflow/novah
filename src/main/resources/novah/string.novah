@@ -1,6 +1,6 @@
 module novah.string
 
-foreign import type java.lang.CharSequence
+foreign import java.lang.CharSequence
 
 /**
  * Returns true if this string is empty or only contains whitespace codepoints.

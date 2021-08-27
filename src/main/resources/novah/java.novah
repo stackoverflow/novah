@@ -3,20 +3,20 @@
  */
 module novah.java
 
-foreign import type java.lang.AssertionError
-foreign import type java.lang.Class
-foreign import type java.lang.System
-foreign import type java.util.Iterator
-foreign import type java.util.Comparator
-foreign import type java.util.function.Consumer
-foreign import type java.util.function.Predicate
-foreign import type java.util.function.BiPredicate
-foreign import type java.util.function.BiFunction
-foreign import type java.util.function.BinaryOperator
-foreign import type java.util.function.UnaryOperator
-foreign import type java.util.function.ToLongFunction
-foreign import type java.util.function.ToIntFunction
-foreign import type novah.Core
+foreign import java.lang.AssertionError
+foreign import java.lang.Class
+foreign import java.lang.System
+foreign import java.util.Iterator
+foreign import java.util.Comparator
+foreign import java.util.function.Consumer
+foreign import java.util.function.Predicate
+foreign import java.util.function.BiPredicate
+foreign import java.util.function.BiFunction
+foreign import java.util.function.BinaryOperator
+foreign import java.util.function.UnaryOperator
+foreign import java.util.function.ToLongFunction
+foreign import java.util.function.ToIntFunction
+foreign import novah.Core
 
 /**
  * Returns the Java class of this object.

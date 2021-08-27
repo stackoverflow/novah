@@ -1,9 +1,9 @@
 module novah.array
 
-foreign import type java.util.Arrays
-foreign import type java.util.Comparator
-foreign import type java.util.stream.Stream
-foreign import type novah.Core
+foreign import java.util.Arrays
+foreign import java.util.Comparator
+foreign import java.util.stream.Stream
+foreign import novah.Core
 
 import novah.java (toComparator)
 import novah.option as Option

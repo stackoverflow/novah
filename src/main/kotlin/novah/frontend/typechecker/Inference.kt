@@ -144,22 +144,6 @@ object Inference {
             val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
             exp.withType(instantiate(level, ty))
         }
-        is Expr.NativeFieldGet -> {
-            val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(instantiate(level, ty))
-        }
-        is Expr.NativeFieldSet -> {
-            val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(instantiate(level, ty))
-        }
-        is Expr.NativeMethod -> {
-            val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(instantiate(level, ty))
-        }
-        is Expr.NativeConstructor -> {
-            val ty = env.lookup(exp.name) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(instantiate(level, ty))
-        }
         is Expr.Lambda -> {
             val binder = exp.binder
             checkShadow(env, binder.name, binder.span)

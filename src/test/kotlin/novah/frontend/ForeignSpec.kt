@@ -15,48 +15,17 @@
  */
 package novah.frontend
 
-import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import novah.frontend.TestUtil.simpleName
 
 class ForeignSpec : StringSpec({
-
-    "test foreign imports" {
-        val code = """
-            module test
-
-            foreign import type java.util.ArrayList
-            foreign import type java.io.File
-            foreign import ArrayList.add(String)
-            foreign import new ArrayList() as newArrayList
-            foreign import new File(String) as newFile
-            foreign import Int:parseInt(String)
-            //foreign import set File:separator as setSeparator
-            
-            f : String -> File
-            f x = newFile x
-            
-            main _ =
-              println "running novah"
-              let arr = newArrayList ()
-              add arr "asd"
-              add arr "oops"
-              println (toString arr)
-            
-            h x = parseInt x
-        """.trimIndent()
-
-        shouldNotThrowAny {
-            TestUtil.compileCode(code)
-        }
-    }
     
-    "test new interop" {
+    "test interop" {
         val code = """
             module test
             
-            foreign import type java.lang.Math
+            foreign import java.lang.Math
             
             foo = Math#-"PI"
             

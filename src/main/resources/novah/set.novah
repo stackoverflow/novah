@@ -1,9 +1,9 @@
 module novah.set
 
-foreign import type java.util.stream.Stream
-foreign import type io.lacuna.bifurcan.ISet
-foreign import type io.lacuna.bifurcan.Maps
-foreign import type novah.Core
+foreign import java.util.stream.Stream
+foreign import io.lacuna.bifurcan.ISet
+foreign import io.lacuna.bifurcan.Maps
+foreign import novah.Core
 
 import novah.stream as S
 import novah.java as J

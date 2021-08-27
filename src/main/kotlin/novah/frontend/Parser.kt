@@ -15,7 +15,6 @@
  */
 package novah.frontend
 
-import novah.Util.splitAt
 import novah.ast.source.*
 import novah.ast.source.Type
 import novah.data.*
@@ -180,83 +179,17 @@ class Parser(
         val tkSpan = expect<ForeignT>(noErr()).span
         expect<ImportT>(withError(E.FOREIGN_IMPORT))
 
-        fun mkspan() = span(tkSpan, iter.current().span)
-        fun parseAlias(lower: Boolean = true): String? {
+        fun parseAlias(): String? {
             if (iter.peek().value !is As) return null
             iter.next()
-            return if (lower) expect<Ident>(withError(E.FOREIGN_ALIAS)).value.v
-            else expect<UpperIdent>(withError(E.FOREIGN_TYPE_ALIAS)).value.v
+            return expect<UpperIdent>(withError(E.FOREIGN_TYPE_ALIAS)).value.v
         }
 
-        fun parseStatic(): Boolean {
-            val tk = iter.peek().value
-            return if (tk is Colon) {
-                iter.next()
-                true
-            } else false
+        val fullName = between<Dot, String>(::parseIdentOrString).joinToString(".")
+        if (fullName.split(".").last()[0].isLowerCase()) {
+            throwError(E.FOREIGN_TYPE_ALIAS to span(tkSpan, iter.current().span))
         }
-
-        fun forceAlias(ctx: String, lower: Boolean = true) =
-            parseAlias(lower) ?: throwError(E.invalidForeign(ctx) to mkspan())
-
-        fun parseFullName() = between<Dot, String>(::parseIdentOrString).joinToString(".")
-        fun parsePars(ctx: String): List<String> {
-            expect<LParen>(withError(E.invalidForeign(ctx)))
-            if (iter.peek().value is RParen) {
-                iter.next()
-                return listOf()
-            }
-            val pars = between<Comma, String>(::parseFullName)
-            expect<RParen>(withError(E.rparensExpected("$ctx import")))
-            return pars
-        }
-
-        val tk = iter.peek().value
-        return when {
-            tk is TypeT -> {
-                iter.next()
-                val fullName = parseFullName()
-                if (fullName.split(".").last()[0].isLowerCase()) {
-                    throwError(E.FOREIGN_TYPE_ALIAS to span(tkSpan, iter.current().span))
-                }
-                ForeignImport.Type(fullName, parseAlias(false), mkspan())
-            }
-            tk is Ident && tk.v == "new" -> {
-                iter.next()
-                val name = parseFullName()
-                val pars = parsePars("constructor")
-                ForeignImport.Ctor(name, pars, forceAlias("constructor"), mkspan())
-            }
-            tk is Ident && (tk.v == "get" || tk.v == "set") -> {
-                iter.next()
-                val maybename = parseFullName()
-                val static = parseStatic()
-                val idx = maybename.lastIndexOf('.')
-                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseIdentOrString()
-                if (tk.v == "get") {
-                    val alias = parseAlias()
-                    if (alias == null && name[0].isUpperCase()) {
-                        throwError(E.FOREIGN_ALIAS to span(tkSpan, iter.current().span))
-                    }
-                    ForeignImport.Getter(type, name, static, alias, mkspan())
-                } else ForeignImport.Setter(type, name, static, forceAlias("setter"), mkspan())
-            }
-            else -> {
-                val maybename = parseFullName()
-                val static = parseStatic()
-                val idx = maybename.lastIndexOf('.')
-                if (!static && idx == -1) {
-                    throwError(E.FOREIGN_METHOD_ERROR to span(tkSpan, iter.current().span))
-                }
-                val (type, name) = if (!static) maybename.splitAt(idx) else maybename to parseIdentOrString()
-                val pars = parsePars("method")
-                val alias = parseAlias()
-                if (alias == null && name[0].isUpperCase()) {
-                    throwError(E.FOREIGN_ALIAS to span(tkSpan, iter.current().span))
-                }
-                ForeignImport.Method(type, name, pars, static, alias, mkspan())
-            }
-        }
+        return ForeignImport(fullName, parseAlias(), span(tkSpan, iter.current().span))
     }
 
     private fun parseDecl(): Decl {
