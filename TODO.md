@@ -15,4 +15,3 @@
 - [ ] Validate operator size at desugar time to allow things like `Mod.:::`
 - [ ] Make sure the optimizations are still there after move to better interop
 - [ ] Test java field setter
-- [ ] Go to definition is broken in IDE (maybe it's just for the stdlib)

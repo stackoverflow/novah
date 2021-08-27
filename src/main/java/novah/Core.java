@@ -662,9 +662,4 @@ public class Core {
         }
         return true;
     }
-
-    @SuppressWarnings("unchecked")
-    public static <T, T2> T unsafeCoerce(T2 o) {
-        return (T) o;
-    }
 }
