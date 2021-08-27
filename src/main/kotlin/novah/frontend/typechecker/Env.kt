@@ -23,6 +23,7 @@ import novah.ast.source.Visibility
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
+import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
@@ -201,6 +202,7 @@ fun findJavaType(novahType: String) = when (novahType) {
 }
 
 private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, false, emptyList(), null)
+private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC, false, null)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 private fun tapp(name: String, vararg ids: Id): TApp {
     val kind = if (ids.isEmpty()) Kind.Star else Kind.Constructor(ids.size)
@@ -208,7 +210,7 @@ private fun tapp(name: String, vararg ids: Id): TApp {
 }
 
 val primModuleEnv = ModuleEnv(
-    mapOf(),
+    mapOf("<-" to decl(TArrow(listOf(tbound(-10)), TArrow(listOf(tbound(-10)), tUnit)))),
     mapOf(
         "Byte" to tdecl(tByte),
         "Int16" to tdecl(tInt16),

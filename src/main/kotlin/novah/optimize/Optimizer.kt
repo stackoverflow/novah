@@ -268,6 +268,14 @@ class Optimizer(private val ast: CModule) {
                 val m = method ?: internalError("got null for java method")
                 Expr.NativeMethod(m, exp.convert(locals), args.map { it.convert(locals) }, typ, span)
             }
+            is CExpr.ForeignStaticFieldSetter -> {
+                val f = field.field ?: internalError("got null for java field")
+                Expr.NativeStaticFieldSet(f, value.convert(locals), typ, span)
+            }
+            is CExpr.ForeignFieldSetter -> {
+                val f = field.field ?: internalError("got null for java field")
+                Expr.NativeFieldSet(f, field.exp.convert(locals), value.convert(locals), typ, span)
+            }
         }
     }
 
