@@ -13,5 +13,4 @@
 - [ ] Auto complete java method, constructors, etc
 - [ ] Some way to package novah source for distribution
 - [ ] Validate operator size at desugar time to allow things like `Mod.:::`
-- [ ] Make sure the optimizations are still there after move to better interop
 - [ ] Test java field setter
