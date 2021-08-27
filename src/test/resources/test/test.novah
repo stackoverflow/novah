@@ -2,8 +2,8 @@ module test
 
 import novah.linkedList (map, LinkedList(Nil), ::)
 
-foreign import type java.io.File
-foreign import type io.lacuna.bifurcan.Map
+foreign import java.io.File
+foreign import io.lacuna.bifurcan.Map
 
 typealias Opt a = Option a
 

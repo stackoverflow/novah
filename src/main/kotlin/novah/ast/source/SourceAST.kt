@@ -21,9 +21,6 @@ import novah.data.show
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Method
 
 data class Module(
     val name: Spanned<String>,
@@ -39,7 +36,6 @@ data class Module(
     var resolvedTypealiases = emptyList<Decl.TypealiasDecl>()
 
     var foreignTypes = emptyMap<String, String>()
-    var foreignVars = emptyMap<String, ForeignRef>()
 
     fun withComment(c: Comment?) = apply { comment = c }
 }
@@ -70,15 +66,6 @@ sealed class DeclarationRef(open val name: String, open val span: Span) {
             else -> name + ctors.joinToString(prefix = "(", postfix = ")") { it.value }
         }
     }
-}
-
-/**
- * A native imported reference.
- */
-sealed class ForeignRef {
-    data class MethodRef(val method: Method) : ForeignRef()
-    data class FieldRef(val field: Field, val isSetter: Boolean) : ForeignRef()
-    data class CtorRef(val ctor: Constructor<*>) : ForeignRef()
 }
 
 sealed class Import(open val module: Spanned<String>) {
@@ -116,31 +103,8 @@ sealed class Import(open val module: Spanned<String>) {
     fun withComment(c: Comment?) = apply { comment = c }
 }
 
-sealed class ForeignImport(val type: String, val span: Span) {
-    class Type(type: String, val alias: String?, span: Span) : ForeignImport(type, span)
-    class Ctor(type: String, val pars: List<String>, val alias: String, span: Span) : ForeignImport(type, span)
-    class Method(
-        type: String,
-        val name: String,
-        val pars: List<String>,
-        val static: Boolean,
-        val alias: String?,
-        span: Span
-    ) : ForeignImport(type, span)
-
-    class Getter(type: String, val name: String, val static: Boolean, val alias: String?, span: Span) :
-        ForeignImport(type, span)
-
-    class Setter(type: String, val name: String, val static: Boolean, val alias: String, span: Span) :
-        ForeignImport(type, span)
-}
-
-fun ForeignImport.name(): String = when (this) {
-    is ForeignImport.Type -> alias ?: type.split(".").last()
-    is ForeignImport.Ctor -> alias
-    is ForeignImport.Method -> alias ?: name
-    is ForeignImport.Getter -> alias ?: name
-    is ForeignImport.Setter -> alias
+data class ForeignImport(val type: String, val alias: String?, val span: Span) {
+    fun name() = alias ?: type.split(".").last()
 }
 
 sealed class Decl(val name: String, val visibility: Visibility) {

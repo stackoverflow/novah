@@ -1,8 +1,8 @@
 module novah.test
 
-foreign import type java.lang.AssertionError
-foreign import type java.lang.Exception
-foreign import type java.lang.Throwable
+foreign import java.lang.AssertionError
+foreign import java.lang.Exception
+foreign import java.lang.Throwable
 
 import novah.list (forEach)
 import novah.set as Set

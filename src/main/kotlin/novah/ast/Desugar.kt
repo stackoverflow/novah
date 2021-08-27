@@ -18,11 +18,11 @@ package novah.ast
 import novah.Util.internalError
 import novah.Util.partitionIsInstance
 import novah.ast.canonical.*
-import novah.ast.canonical.Signature
-import novah.ast.source.*
 import novah.ast.source.Decl.TypealiasDecl
+import novah.ast.source.DeclarationRef
+import novah.ast.source.Import
+import novah.ast.source.fullname
 import novah.data.*
-import novah.data.Reflection.isStatic
 import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.Spanned
@@ -32,7 +32,6 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
-import kotlin.math.max
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
@@ -145,7 +144,6 @@ class Desugar(private val smod: SModule) {
     private fun SExpr.desugar(
         locals: List<String> = listOf(),
         tvars: Map<String, Type> = mapOf(),
-        appFnDepth: Int = 0
     ): Expr = when (this) {
         is SExpr.Int32 -> Expr.Int32(v, span)
         is SExpr.Int64 -> Expr.Int64(v, span)
@@ -160,29 +158,8 @@ class Desugar(private val smod: SModule) {
             usedVars += name
             if (name in locals) Expr.Var(name, span)
             else {
-                val foreign = smod.foreignVars[name]
-                if (foreign != null) {
-                    // this var is a native call/field
-                    val exp = when (foreign) {
-                        is ForeignRef.FieldRef -> {
-                            val isStatic = isStatic(foreign.field)
-                            if (foreign.isSetter) {
-                                Expr.NativeFieldSet(name, foreign.field, isStatic, span)
-                            } else Expr.NativeFieldGet(name, foreign.field, isStatic, span)
-                        }
-                        is ForeignRef.MethodRef -> {
-                            Expr.NativeMethod(name, foreign.method, isStatic(foreign.method), span)
-                        }
-                        is ForeignRef.CtorRef -> {
-                            Expr.NativeConstructor(name, foreign.ctor, span)
-                        }
-                    }
-                    validateNativeCall(exp, appFnDepth)
-                    exp
-                } else {
-                    if (alias != null) checkAlias(alias, span)
-                    Expr.Var(name, span, imports[fullname()])
-                }
+                if (alias != null) checkAlias(alias, span)
+                Expr.Var(name, span, imports[fullname()])
             }
         }
         is SExpr.ImplicitVar -> {
@@ -209,7 +186,7 @@ class Desugar(private val smod: SModule) {
             }
             nestLambdaPatterns(patterns, body.desugar(locals + vars.map { it.name }, tvars), locals, tvars)
         }
-        is SExpr.App -> Expr.App(fn.desugar(locals, tvars, appFnDepth + 1), arg.desugar(locals, tvars), span)
+        is SExpr.App -> Expr.App(fn.desugar(locals, tvars), arg.desugar(locals, tvars), span)
         is SExpr.Parens -> exp.desugar(locals, tvars)
         is SExpr.If -> {
             val args = listOf(cond, thenCase, elseCase).map {
@@ -849,40 +826,6 @@ class Desugar(private val smod: SModule) {
         return exprs.map { replaceSpecialFun(it, builder) }
     }
 
-    /**
-     * Check if a native expression has the correct number
-     * of parameters as they can't be partially applied.
-     */
-    private fun validateNativeCall(exp: Expr, depth: Int) {
-        fun throwArgs(name: String, span: Span, ctx: String, should: Int, got: Int): Nothing {
-            parserError(
-                E.wrongArgsToNative(name, ctx, should, got),
-                span
-            )
-        }
-        when (exp) {
-            is Expr.NativeFieldGet -> {
-                if (!exp.isStatic && depth < 1) throwArgs(exp.name, exp.span, "getter", 1, depth)
-            }
-            is Expr.NativeFieldSet -> {
-                val should = if (exp.isStatic) 1 else 2
-                if (depth != should) throwArgs(exp.name, exp.span, "setter", should, depth)
-            }
-            is Expr.NativeMethod -> {
-                var count = exp.method.parameterCount
-                if (!exp.isStatic) count++
-                if (count == 0) count++
-                if (depth != count) throwArgs(exp.name, exp.span, "method", count, depth)
-            }
-            is Expr.NativeConstructor -> {
-                val count = max(exp.ctor.parameterCount, 1)
-                if (depth != count) throwArgs(exp.name, exp.span, "constructor", count, depth)
-            }
-            else -> {
-            }
-        }
-    }
-
     private fun reportUnusedImports() {
         // normal imports
         for (imp in smod.imports.filterIsInstance<Import.Exposing>()) {
@@ -906,26 +849,9 @@ class Desugar(private val smod: SModule) {
             }
         }
 
-        // foreign imports
-        for (imp in smod.foreigns) {
-            if (!imp.type.contains(".")) usedTypes += imp.type
-            usedTypes += when (imp) {
-                is ForeignImport.Ctor -> imp.pars.filter { !it.contains(".") }
-                is ForeignImport.Method -> imp.pars.filter { !it.contains(".") }
-                else -> emptyList()
-            }
-        }
-
         for (imp in smod.foreigns) {
             val name = imp.name()
-            when (imp) {
-                is ForeignImport.Type -> {
-                    if (name !in usedTypes) unusedImports[name] = imp.span
-                }
-                else -> {
-                    if (name !in usedVars) unusedImports[name] = imp.span
-                }
-            }
+            if (name !in usedTypes) unusedImports[name] = imp.span
         }
     }
 

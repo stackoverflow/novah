@@ -1,6 +1,0 @@
-module [33mtest[0m
-at src/test/resources/failure/imports/native import partial apply method.novah:5:8 - 5:22
-
-  Foreign setters, methods and constructors cannot be partially applied.
-  Foreign method codePointCount needs 3 parameter(s), got 2.
-

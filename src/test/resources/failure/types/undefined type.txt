@@ -4,7 +4,7 @@ at src/test/resources/failure/types/undefined type.novah:3:13 - 3:18
   Undefined type Undef
   
   Make sure the type is imported: `import some.module (MyType)`
-  Or if it's a foreign type: `foreign import type java.io.File`
+  Or if it's a foreign type: `foreign import java.io.File`
 
 while checking type Unit -> Undef
 in declaration f

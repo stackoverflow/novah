@@ -2,4 +2,4 @@ module mod2
 
 import mod1 ( ArrayList )
 
-foreign import type java.util.ArrayList
+foreign import java.util.ArrayList

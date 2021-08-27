@@ -76,7 +76,7 @@ class DesugarSpec : StringSpec({
     
     "anonymous function arguments" {
         val code = """
-            foreign import type java.lang.Math
+            foreign import java.lang.Math
             
             f1 = if _ then 1 else -1
             

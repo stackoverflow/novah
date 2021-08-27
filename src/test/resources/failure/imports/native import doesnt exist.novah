@@ -1,3 +1,3 @@
 module test
 
-foreign import no.exist.Class.method()
+foo = String#nope()

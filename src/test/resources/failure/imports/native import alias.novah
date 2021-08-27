@@ -1,3 +1,3 @@
 module test
 
-foreign import get java.io.File:separator as Separator
+foreign import java.io.File as file

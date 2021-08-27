@@ -274,10 +274,6 @@ class HoverFeature(private val server: NovahServer) {
                                 ctx = LetCtx(e.letDef, e.letDef.expr.type!!)
                             }
                         }
-                        is Expr.NativeMethod -> ctx = MethodCtx(e.method)
-                        is Expr.NativeConstructor -> ctx = CtorCtx(e.ctor)
-                        is Expr.NativeFieldGet -> ctx = FieldCtx(e.field)
-                        is Expr.NativeFieldSet -> ctx = FieldCtx(e.field)
                         is Expr.ForeignStaticField -> {
                             if (e.fieldName.span.matches(line, col))
                                 ctx = FieldCtx(e.field!!)

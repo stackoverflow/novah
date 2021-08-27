@@ -1,4 +1,5 @@
 module test
 
-foreign import type java.io.File
-foreign import get File.path
+foreign import java.io.File
+
+foo = File#-path

@@ -1,9 +1,9 @@
 module novah.stream
 
-foreign import type java.util.function.Consumer
-foreign import type java.util.function.Predicate
-foreign import type java.util.stream.Stream
-foreign import type novah.Core
+foreign import java.util.function.Consumer
+foreign import java.util.function.Predicate
+foreign import java.util.stream.Stream
+foreign import novah.Core
 
 import novah.option as Option
 

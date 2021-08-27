@@ -149,7 +149,7 @@ class FailureSpec : StringSpec({
 
         val error = """
             module [33mmod2[0m
-            at src/test/resources/multimodulefail/duplicatedimports/mod2.novah:5:1 - 5:40
+            at src/test/resources/multimodulefail/duplicatedimports/mod2.novah:5:1 - 5:35
             
               Another import with name ArrayList is already in scope.
             
@@ -165,11 +165,11 @@ class FailureSpec : StringSpec({
 
         val error = """
             module [33mmod2[0m
-            at src/test/resources/multimodulefail/duplicatedimportvars/mod2.novah:5:1 - 5:57
+            at src/test/resources/multimodulefail/duplicatedimportvars/mod2.novah:5:1 - 6:17
             
-              Another import with name newArrayList is already in scope.
+              Declaration newArrayList is already defined or imported.
             
- 
+            
         """.trimIndent()
         withError(error) {
             compiler.compile()

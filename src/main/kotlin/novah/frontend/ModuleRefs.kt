@@ -15,25 +15,18 @@
  */
 package novah.frontend
 
-import novah.Util.internalError
 import novah.ast.source.*
-import novah.data.LabelMap
 import novah.data.Reflection
 import novah.data.Reflection.collectType
-import novah.data.Reflection.typeCache
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
 import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
-import novah.frontend.typechecker.Type
 import novah.main.DeclRef
 import novah.main.FullModuleEnv
 import novah.main.NovahClassLoader
 import novah.main.TypeDeclRef
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Method
 import novah.ast.source.Type as SType
 
 typealias VarRef = String
@@ -169,7 +162,6 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
 /**
  * Resolves all java imports in this module.
  */
-@Suppress("UNCHECKED_CAST")
 fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProblem> {
     val errors = mutableListOf<CompilerProblem>()
 
@@ -178,12 +170,9 @@ fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProbl
     }
 
     val typealiases = mutableMapOf<String, String>()
-    val foreigVars = mutableMapOf<String, ForeignRef>()
     val env = Typechecker.env
-    typeCache.clear()
 
-    val (types, foreigns) = mod.foreigns.partition { it is ForeignImport.Type }
-    for (type in (types as List<ForeignImport.Type>)) {
+    for (type in mod.foreigns) {
         val fqType = type.type
         val clazz = cl.safeFindClass(fqType)
         if (clazz == null) {
@@ -205,111 +194,7 @@ fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProbl
     }
     typealiases.putAll(resolveImportedTypealiases(mod.resolvedTypealiases))
 
-    for (imp in foreigns) {
-        val error = makeError(imp.span)
-        val type = typealiases[imp.type] ?: Reflection.novahToJava(imp.type)
-        val clazz = cl.safeFindClass(type)
-        if (clazz == null) {
-            errors += error(Errors.classNotFound(type))
-            continue
-        }
-
-        when (imp) {
-            is ForeignImport.Method -> {
-                val pars = imp.pars.map { typealiases[it] ?: it }
-                val method = Reflection.findMethod(clazz, imp.name, pars)
-                if (method == null) {
-                    val sig = imp.pars.joinToString(prefix = "${imp.name}(", postfix = ")")
-                    errors += error(Errors.methodNotFound(sig, type))
-                    continue
-                }
-                val isStatic = Reflection.isStatic(method)
-                if (imp.static && !isStatic) {
-                    errors += error(Errors.nonStaticMethod(imp.name, type))
-                    continue
-                }
-                if (!imp.static && isStatic) {
-                    errors += error(Errors.staticMethod(imp.name, type))
-                    continue
-                }
-                val ctxType = methodTofunction(method, imp.static, pars)
-                val name = imp.alias ?: imp.name
-                if (mod.resolvedImports.containsKey(name)) {
-                    errors += error(Errors.duplicatedImport(name))
-                }
-                foreigVars[name] = ForeignRef.MethodRef(method)
-                env.extend(name, ctxType)
-            }
-            is ForeignImport.Ctor -> {
-                val pars = imp.pars.map { typealiases[it] ?: it }
-                val ctor = Reflection.findConstructor(clazz, pars)
-                if (ctor == null) {
-                    val sig = imp.pars.joinToString(prefix = "$type(", postfix = ")")
-                    errors += error(Errors.ctorNotFound(sig))
-                    continue
-                }
-                val ctxType = ctorToFunction(ctor, pars)
-                if (mod.resolvedImports.containsKey(imp.alias)) {
-                    errors += error(Errors.duplicatedImport(imp.alias))
-                }
-                foreigVars[imp.alias] = ForeignRef.CtorRef(ctor)
-                env.extend(imp.alias, ctxType)
-            }
-            is ForeignImport.Getter -> {
-                val field = Reflection.findField(clazz, imp.name)
-                if (field == null) {
-                    errors += error(Errors.fieldNotFound(imp.name, type))
-                    continue
-                }
-                val isStatic = Reflection.isStatic(field)
-                if (imp.static && !isStatic) {
-                    errors += error(Errors.nonStaticField(imp.name, type))
-                    continue
-                }
-                if (!imp.static && isStatic) {
-                    errors += error(Errors.staticField(imp.name, type))
-                    continue
-                }
-                val name = imp.alias ?: imp.name
-                if (mod.resolvedImports.containsKey(name)) {
-                    errors += error(Errors.duplicatedImport(name))
-                }
-                foreigVars[name] = ForeignRef.FieldRef(field, false)
-                val ctxType = getterToFunction(field, imp.static)
-                env.extend(name, ctxType)
-            }
-            is ForeignImport.Setter -> {
-                val field = Reflection.findField(clazz, imp.name)
-                if (field == null) {
-                    errors += error(Errors.fieldNotFound(imp.name, type))
-                    continue
-                }
-                val isStatic = Reflection.isStatic(field)
-                if (imp.static && !isStatic) {
-                    errors += error(Errors.nonStaticField(imp.name, type))
-                    continue
-                }
-                if (!imp.static && isStatic) {
-                    errors += error(Errors.staticField(imp.name, type))
-                    continue
-                }
-                if (Reflection.isImutable(field)) {
-                    errors += error(Errors.immutableField(imp.name, type))
-                    continue
-                }
-                if (mod.resolvedImports.containsKey(imp.alias)) {
-                    errors += error(Errors.duplicatedImport(imp.alias))
-                }
-                foreigVars[imp.alias] = ForeignRef.FieldRef(field, true)
-                val ctxType = setterToFunction(field, imp.static)
-                env.extend(imp.alias, ctxType)
-            }
-            else -> internalError("Got imported type: ${imp.type}")
-        }
-    }
-
     mod.foreignTypes = typealiases
-    mod.foreignVars = foreigVars
     return errors
 }
 
@@ -321,65 +206,6 @@ private fun resolveImportedTypealiases(tas: List<Decl.TypealiasDecl>): Map<Strin
             else null
         } else null
     }.toMap()
-}
-
-private fun methodTofunction(m: Method, static: Boolean, novahPars: List<String>): Type {
-    val pars = mutableListOf<Type>()
-    if (!static) pars += collectType(m.declaringClass) // `this` is always first paramenter of non-static methods
-
-    if (static && m.parameterTypes.isEmpty()) pars += tUnit
-    else {
-        val givenArgs = novahPars.map { javaToNovah(Reflection.novahToJava(it)) }
-        pars.addAll(m.genericParameterTypes.zip(givenArgs).map { (ty, nty) -> matchTypes(ty, nty) })
-    }
-
-    pars += if (m.returnType.canonicalName == "void") tUnit else collectType(m.genericReturnType)
-
-    return pars.reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
-}
-
-private fun ctorToFunction(c: Constructor<*>, novahPars: List<String>): Type {
-    val pars = if (c.parameterTypes.isEmpty()) listOf(tUnit)
-    else {
-        val givenArgs = novahPars.map { javaToNovah(Reflection.novahToJava(it)) }
-        c.genericParameterTypes.zip(givenArgs).map { (ty, nty) -> matchTypes(ty, nty) }
-    }
-
-    val typeCl = collectType(c.declaringClass)
-    return (pars + typeCl).reduceRight { tVar, acc -> TArrow(listOf(tVar), acc) }
-}
-
-private fun getterToFunction(f: Field, static: Boolean): Type {
-    return if (static) {
-        collectType(f.genericType)
-    } else {
-        TArrow(listOf(collectType(f.declaringClass)), collectType(f.genericType))
-    }
-}
-
-private fun setterToFunction(f: Field, static: Boolean): Type {
-    val parType = collectType(f.genericType)
-    return if (static) {
-        TArrow(listOf(parType), tUnit)
-    } else {
-        TArrow(listOf(TArrow(listOf(collectType(f.declaringClass)), parType)), tUnit)
-    }
-}
-
-private fun matchTypes(jTy: java.lang.reflect.Type, nTy: String): Type {
-    if (jTy.typeName == "java.lang.Object" && nTy != primObject) return toNovahType(nTy)
-    if (jTy.typeName == "novah.collections.Record") {
-        return TRecord(TRowExtend(LabelMap.empty(), Typechecker.newGenVar()))
-    }
-
-    return collectType(jTy)
-}
-
-private fun toNovahType(ty: String): Type = when (ty) {
-    primArray, primList, primSet -> {
-        TApp(TConst(ty), listOf(Typechecker.newGenVar()))
-    }
-    else -> TConst(ty)
 }
 
 /**

@@ -2,4 +2,5 @@ module mod2
 
 import mod1 ( newArrayList )
 
-foreign import new java.util.ArrayList() as newArrayList
+newArrayList : Int
+newArrayList = 1

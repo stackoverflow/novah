@@ -114,10 +114,6 @@ object Errors {
 
     const val FOREIGN_TYPE_ALIAS = "Type has to start with a upper case letter."
 
-    const val FOREIGN_ALIAS = "Identifier has to start with a lower case letter."
-
-    const val FOREIGN_METHOD_ERROR = "Wrong syntax for foreign method."
-
     const val LET_DO_LAST = "Do expression cannot end with a let definition."
 
     const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
@@ -188,31 +184,6 @@ object Errors {
         Foreign methods: (_ : String)#endsWith("."), Math#exp(_)
     """.trimIndent()
 
-    private val foreignExamples = mapOf(
-        "getter" to """foreign import get my.java.SomeClass.field
-            |// static field
-            |foreign import get java.lang.Integer:MAX_VALUE as maxValue""".trimMargin(),
-        "type" to """foreign import type java.util.ArrayList as List
-            |foreign import type java.io.File""".trimMargin(),
-        "constructor" to "foreign import new java.util.ArrayList(Int) as newArrayList",
-        "method" to """foreign import java.io.File.setExecutable(Boolean)
-            |// static method
-            |foreign import java.io.File:createTempFile(String, String) as makeTmpFile""".trimMargin(),
-        "setter" to """foreign import set some.package.MyClass.field as setField
-            |// static field
-            |foreign import set some.package.MyStaticClass:FIELD as setField
-        """.trimMargin()
-    )
-
-    fun invalidForeign(ctx: String?): String {
-        val example = if (ctx != null) foreignExamples[ctx] else foreignExamples.values.joinToString("\n")
-        return """Wrong format for foreign $ctx import.
-        |
-        |Example:
-        |$example
-    """.trimMargin()
-    }
-
     fun notException(type: String) = """
         Type
         
@@ -242,8 +213,6 @@ object Errors {
 
     fun classNotFound(name: String) = "Could not find class $name in classpath."
 
-    fun methodNotFound(name: String, type: String) = "Could not find method $name for type $type."
-
     fun methodNotFound(name: String, type: String, argsCount: Int) = """
         Could not find method $name for class $type taking $argsCount parameters.
     """.trimIndent()
@@ -262,13 +231,9 @@ object Errors {
         Make sure the parameters match or cast them to a suitable type.
     """.trimIndent()
 
-    fun nonStaticMethod(name: String, type: String) = "Method $name of class $type is not static."
-
     fun staticMethod(name: String, type: String) = "Method $name of class $type is static."
 
     fun nonPublicMethod(name: String, type: String) = "Method $name of class $type is not public."
-
-    fun ctorNotFound(type: String) = "Could not find constructor $type."
 
     fun nonPublicCtor(type: String) = "Constructor of class $type is not public."
 
@@ -323,7 +288,7 @@ object Errors {
         Undefined type $type
         
         Make sure the type is imported: `import some.module (MyType)`
-        Or if it's a foreign type: `foreign import type java.io.File`
+        Or if it's a foreign type: `foreign import java.io.File`
     """.trimIndent()
 
     fun invalidJavaType(type: String) = """
@@ -333,16 +298,6 @@ object Errors {
         
         Try adding a type annotation to the expression, for example:
         `(value : String)#indexOf(".")`
-    """.trimIndent()
-
-    fun wrongArgsToNative(name: String, ctx: String, should: Int, got: Int) = """
-        Foreign setters, methods and constructors cannot be partially applied.
-        Foreign $ctx $name needs $should parameter(s), got $got.
-    """.trimIndent()
-
-    fun unkonwnArgsToNative(name: String, ctx: String) = """
-        Foreign setters, methods and constructors cannot be partially applied.
-        For $ctx $name.
     """.trimIndent()
 
     fun wrongKind(expected: String, got: String) = """

@@ -1,3 +1,0 @@
-module test
-
-foreign import get Int.MAX_VALUE as maxInt

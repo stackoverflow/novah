@@ -1,5 +1,7 @@
 module [33mtest[0m
-at src/test/resources/failure/imports/native import private.novah:4:1 - 4:29
+at src/test/resources/failure/imports/native import private.novah:5:7 - 5:17
 
   Could not find field path for class java.io.File.
+
+in declaration foo
 

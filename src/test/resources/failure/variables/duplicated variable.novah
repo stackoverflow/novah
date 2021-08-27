@@ -1,7 +1,5 @@
 module test
 
-foreign import new java.io.File(String) as newFile
+foo = 1
 
-file = newFile "asd"
-
-newFile () = 1
+foo = "a"

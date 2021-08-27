@@ -115,18 +115,18 @@ class PatternMatchingSpec : StringSpec({
     
     "pattern match records" {
         val code = """
-            foreign import novah.Core:sum(Int, Int)
+            foreign import novah.Core
             
             rec = { x: 1, y: 0 }
             
             f1 = case rec of
-              { x } -> sum x 1
-              { y } -> sum y 2
+              { x } -> Core#sum(x, 1)
+              { y } -> Core#sum(y, 2)
             
             f2 r = case r of
-              { x, z: true } -> sum x 1
+              { x, z: true } -> Core#sum(x, 1)
               { x } -> x
-              { y } -> sum y 2
+              { y } -> Core#sum(y, 2)
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
@@ -136,14 +136,12 @@ class PatternMatchingSpec : StringSpec({
     
     "pattern match lists" {
         val code = """
-            foreign import novah.Core:sum(Int, Int)
-            
             list = [1, 2, 3, 4]
             
             f1 = case list of
               [] -> 0
-              [x] -> sum x 1
-              [x, y] -> sum x y
+              [x] -> x + 1
+              [x, y] -> x + y
               _ -> -1
             
             f2 l =
@@ -154,7 +152,7 @@ class PatternMatchingSpec : StringSpec({
             len l =
               case l of
                 [] -> 0
-                [_ :: xs] -> sum 1 (len xs)
+                [_ :: xs] -> 1 + len xs
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
@@ -221,13 +219,13 @@ class PatternMatchingSpec : StringSpec({
     
     "function parameter destructuring" {
         val code = """
-            foreign import novah.Core:sum(Int, Int)
+            foreign import novah.Core
             
             f1 () x _ = x
             
-            f2 [x, y] = sum x y
+            f2 [x, y] = Core#sum(x, y)
             
-            f3 {x, y} z = sum (sum x y) z
+            f3 {x, y} z = Core#sum(Core#sum(x, y), z)
             
             f4 (:? Int as i) = i
             
@@ -235,7 +233,7 @@ class PatternMatchingSpec : StringSpec({
             
             f6 = \None () [] -> 0
             
-            f7 = let f [x] {y} = sum x y
+            f7 = let f [x] {y} = Core#sum(x, y)
                  in f [1] {y: 3}
         """.module()
 
@@ -251,13 +249,11 @@ class PatternMatchingSpec : StringSpec({
     
     "let destructuring" {
         val code = """
-            foreign import novah.Core:sum(Int, Int)
-            
             f1 () =
               let [x, y] = [5, 10]
               let {z} = {x: 2, y: 0, z: 33}
               let [h :: _] = [3, 4, 5, 6]
-              sum (sum (sum x y) z) h
+              x + y + z + h
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls

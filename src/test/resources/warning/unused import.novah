@@ -1,6 +1,6 @@
 module test
 
-foreign import type java.io.File
+foreign import java.io.File
 
 foo : String
 foo = ""
