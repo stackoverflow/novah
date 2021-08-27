@@ -143,8 +143,7 @@ object Reflection {
     fun isPublic(constructor: Constructor<*>): Boolean = Modifier.isPublic(constructor.modifiers)
 
     fun collectType(ty: java.lang.reflect.Type, level: Int? = null): Type {
-        // TODO: only cache if no newVar is created
-        if (level == null && typeCache.containsKey(ty)) return typeCache[ty]!!
+        if (typeCache.containsKey(ty)) return typeCache[ty]!!
         val nty = when (ty) {
             is GenericArrayType -> TApp(TConst(primArray), listOf(collectType(ty.genericComponentType, level)))
             is TypeVariable<*> -> {
