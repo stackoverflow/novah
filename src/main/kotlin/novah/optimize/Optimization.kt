@@ -272,8 +272,13 @@ object Optimization {
                             && arg.type.isInt64() -> {
                         Expr.NativeStaticMethod(unsignedBitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
                     }
+                    // optimize `Array.size array` to `array.length`
                     fn is Var && fn.fullname() == "novah/array/Module.size" -> {
                         Expr.ArrayLength(arg, e.type, e.span)
+                    }
+                    // optimize `not`
+                    fn is Var && fn.fullname() == "$coreMod.not" -> {
+                        Expr.NativeStaticMethod(negate, listOf(arg), e.type, e.span)
                     }
                     else -> e
                 }
@@ -315,6 +320,7 @@ object Optimization {
     private val bitShiftLeftLong = Core::class.java.methods.find { it.name == "bitShiftLeftLong" }!!
     private val bitShiftRightLong = Core::class.java.methods.find { it.name == "bitShiftRightLong" }!!
     private val unsignedBitShiftRightLong = Core::class.java.methods.find { it.name == "unsignedBitShiftRightLong" }!!
+    private val negate = Core::class.java.methods.find { it.name == "not" }!!
 }
 
 private typealias App = Expr.App
