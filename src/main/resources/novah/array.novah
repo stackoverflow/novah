@@ -10,6 +10,14 @@ import novah.option as Option
 import novah.stream as Stream
 
 /**
+ * Returns the size of this array.
+ * Runtime: O(1)
+ */
+pub
+size : Array a -> Int32
+size arr = Core#getArrayLength(arr)
+
+/**
  * Returns a stream for this array.
  */
 pub
@@ -31,18 +39,10 @@ fromStream = Stream.toArray
 pub
 nth : Int -> Array a -> Option a
 nth index arr =
-  let len = Core#getArrayLength(arr)
+  let len = size arr
   if index < 0 || index >= len
     then None
     else Some (aget index arr)
-
-/**
- * Returns the size of this array.
- * Runtime: O(1)
- */
-pub
-size : Array a -> Int32
-size arr = Core#getArrayLength(arr)
 
 /**
  * Returns true if the array is empty.
@@ -50,7 +50,7 @@ size arr = Core#getArrayLength(arr)
  */
 pub
 isEmpty : Array a -> Boolean
-isEmpty arr = Core#getArrayLength(arr) == 0
+isEmpty arr = size arr == 0
 
 /**
  * Returns true if the array is not empty.
@@ -58,7 +58,7 @@ isEmpty arr = Core#getArrayLength(arr) == 0
  */
 pub
 isNotEmpty : Array a -> Boolean
-isNotEmpty arr = Core#getArrayLength(arr) != 0
+isNotEmpty arr = size arr != 0
 
 /**
  * Returns the first occurrence of elem in the array for which the predicate returns true.
@@ -68,7 +68,7 @@ pub
 find : (a -> Boolean) -> Array a -> Option a
 find pred arr =
   let atm = atom None
-  forEachBreak 0L (int64 Core#getArrayLength(arr)) \i ->
+  forEachBreak 0L (int64 (size arr)) \i ->
     let elem = aget (int i) arr
     if pred elem
       then
@@ -92,7 +92,7 @@ contains {{Equals eq}} elem arr = find (\x -> eq.equals x elem) arr |> Option.is
 pub
 forEach : Array a -> (a -> b) -> Unit
 forEach arr f =
-  forEachRange 0L (int64 Core#getArrayLength(arr)) \idx ->
+  forEachRange 0L (int64 (size arr)) \idx ->
     f (aget (int idx) arr)
 
 /**
@@ -103,7 +103,7 @@ forEach arr f =
 pub
 map : (a -> b) -> Array a -> Array b
 map f arr =
-  let len = Core#getArrayLength(arr)
+  let len = size arr
   let res = objectArray len as Array b
   forEachRange 0L (int64 len) \idx ->
     let i = int idx
@@ -141,7 +141,7 @@ sort {{Ord _ ord}} arr = sortBy ord.compare arr
 pub
 reverse : Array a -> Array a
 reverse arr =
-  let len = Core#getArrayLength(arr) |> int64
+  let len = size arr |> int64
   let res = objectArray (int len) as Array a
   forEachRange 0L len \idx ->
     let i = int (len - idx - 1L)
@@ -156,7 +156,7 @@ reverse arr =
 pub
 reversed : Array a -> Unit
 reversed arr =
-  let len = Core#getArrayLength(arr)
+  let len = size arr
   forEachRange 0L (len / 2 |> int64) \ii ->
     let i = int ii
     let temp = aget i arr
