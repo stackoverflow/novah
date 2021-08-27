@@ -151,6 +151,10 @@ sealed class Expr(open val span: Span) {
         var field: Field? = null
     }
 
+    data class ForeignFieldSetter(val field: ForeignField, val value: Expr, override val span: Span) : Expr(span)
+    data class ForeignStaticFieldSetter(val field: ForeignStaticField, val value: Expr, override val span: Span) :
+        Expr(span)
+
     data class ForeignStaticMethod(
         val clazz: Spanned<String>,
         val methodName: Spanned<String>,
@@ -288,6 +292,10 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.ForeignField -> f(e.copy(exp = go(e.exp)))
         is Expr.ForeignStaticMethod -> f(e.copy(args = e.args.map(::go)))
         is Expr.ForeignMethod -> f(e.copy(exp = go(e.exp), args = e.args.map(::go)))
+        is Expr.ForeignFieldSetter -> f(e.copy(field = go(e.field) as Expr.ForeignField, value = go(e.value)))
+        is Expr.ForeignStaticFieldSetter -> {
+            f(e.copy(field = go(e.field) as Expr.ForeignStaticField, value = go(e.value)))
+        }
         else -> f(e)
     }
     return go(this)
@@ -422,6 +430,16 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
                 go(e.exp)
                 f(e)
                 e.args.forEach(::go)
+            }
+            is Expr.ForeignFieldSetter -> {
+                go(e.field)
+                f(e)
+                go(e.value)
+            }
+            is Expr.ForeignStaticFieldSetter -> {
+                go(e.field)
+                f(e)
+                go(e.value)
             }
             is Expr.ForeignStaticField -> f(e)
             is Expr.Bool -> f(e)

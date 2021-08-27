@@ -190,6 +190,7 @@ class Desugar(private val smod: SModule) {
             Expr.ImplicitVar(name, span, if (name in locals) null else imports[fullname()])
         }
         is SExpr.Operator -> {
+            if (name == "<-") parserError(E.notAField(), span)
             unusedVars.remove(name)
             usedVars += name
             if (alias != null) checkAlias(alias, span)
@@ -313,15 +314,19 @@ class Desugar(private val smod: SModule) {
         is SExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
         is SExpr.BinApp -> {
-            val args = listOf(left, right).map {
-                if (it is SExpr.Underscore) {
-                    val v = newVar()
-                    Binder(v, it.span) to Expr.Var(v, it.span)
-                } else null to it.desugar(locals, tvars)
+            if (op is SExpr.Operator && op.name == "<-") {
+                desugarSetter(left.desugar(locals, tvars), right.desugar(locals, tvars), span)
+            } else {
+                val args = listOf(left, right).map {
+                    if (it is SExpr.Underscore) {
+                        val v = newVar()
+                        Binder(v, it.span) to Expr.Var(v, it.span)
+                    } else null to it.desugar(locals, tvars)
+                }
+                val inner = Expr.App(op.desugar(locals, tvars), args[0].second, Span.new(left.span, op.span))
+                val app = Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
+                nestLambdas(args.mapNotNull { it.first }, app)
             }
-            val inner = Expr.App(op.desugar(locals, tvars), args[0].second, Span.new(left.span, op.span))
-            val app = Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
-            nestLambdas(args.mapNotNull { it.first }, app)
         }
         is SExpr.Underscore -> parserError(E.ANONYMOUS_FUNCTION_ARGUMENT, span)
         is SExpr.Throw -> Expr.Throw(exp.desugar(locals, tvars), span)
@@ -502,6 +507,12 @@ class Desugar(private val smod: SModule) {
             }
             is SType.TImplicit -> TImplicit(type.goDesugar(isCtor, vars)).span(span)
         }
+
+    private fun desugarSetter(field: Expr, value: Expr, span: Span): Expr = when (field) {
+        is Expr.ForeignStaticField -> Expr.ForeignStaticFieldSetter(field, value, span)
+        is Expr.ForeignField -> Expr.ForeignFieldSetter(field, value, span)
+        else -> parserError(E.notAField(), span)
+    }
 
     private data class CollectedVar(
         val name: String,

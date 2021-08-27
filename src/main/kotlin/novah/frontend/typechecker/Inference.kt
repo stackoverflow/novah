@@ -433,6 +433,26 @@ object Inference {
             exp.field = field
             exp.withType(ty)
         }
+        is Expr.ForeignStaticFieldSetter -> {
+            val fieldTy = infer(env, level, exp.field)
+            if (Reflection.isImutable(exp.field.field!!))
+                inferError(E.immutableField(exp.field.fieldName.value, exp.field.clazz.value), exp.field.span)
+            val argTy = infer(env, level, exp.value)
+            unify(fieldTy, argTy, exp.span)
+            exp.withType(fieldTy)
+            tUnit
+        }
+        is Expr.ForeignFieldSetter -> {
+            val fieldTy = infer(env, level, exp.field)
+            if (Reflection.isImutable(exp.field.field!!)) {
+                val clazz = exp.field.field!!.declaringClass.name
+                inferError(E.immutableField(exp.field.fieldName.value, clazz), exp.field.span)
+            }
+            val argTy = infer(env, level, exp.value)
+            unify(fieldTy, argTy, exp.span)
+            exp.withType(fieldTy)
+            tUnit
+        }
         is Expr.ForeignStaticMethod -> {
             Reflection.typeCache.clear()
             val clazz = exp.clazz.value
