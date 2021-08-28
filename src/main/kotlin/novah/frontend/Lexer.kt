@@ -76,7 +76,7 @@ sealed class Token {
     data class DoubleT(val v: Double, val text: String) : Token()
     data class Ident(val v: String) : Token()
     data class UpperIdent(val v: String) : Token()
-    data class Op(val op: String) : Token()
+    data class Op(val op: String, val isPrefix: Boolean = false) : Token()
 
     fun isDoubleColon() = this is Op && op == "::"
 
@@ -254,7 +254,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                             Span.new(startLine, startColumn, iter.position())
                         )
                     }
-                    Op(op.v)
+                    Op(op.v, isPrefix = true)
                 } else lexError("Invalid operator application.", Span.new(startLine, startColumn, iter.position()))
             }
             else -> {
@@ -482,12 +482,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     private fun operator(init: Char): Token {
-        val op = init + acceptMany(operators)
-
-        // Long operators = unreadable code
-        if (op.length > 3) lexError("Operators cannot have more than 3 characters: `$op`")
-
-        return when (op) {
+        return when (val op = init + acceptMany(operators)) {
             "=" -> Equals
             "->" -> Arrow
             "|" -> Pipe

@@ -184,6 +184,9 @@ object Errors {
         Foreign methods: (_ : String)#endsWith("."), Math#exp(_)
     """.trimIndent()
 
+    fun opToolong(op: String) =
+        "Operator $op is too long. Operators cannot contain more than 3 characters."
+
     fun notException(type: String) = """
         Type
         
@@ -248,7 +251,7 @@ object Errors {
     fun nonPublicField(name: String, type: String) = "Field $name of class $type is not public."
 
     fun notAField() = "Operator `<-` expects a foreign field as first parameter and cannot be partially applied."
-    
+
     fun undefinedVarInCtor(name: String, typeVars: List<String>): String {
         return if (typeVars.size == 1) "The variable ${typeVars[0]} is undefined in constructor $name."
         else "The variables ${typeVars.joinToString()} are undefined in constructor $name."

@@ -104,16 +104,17 @@ class Formatter {
         }
     }
 
-    fun show(name: String, type: Type): String {
-        val td = "$name : " + show(type)
+    fun show(name: String, type: Type, isOperator: Boolean): String {
+        val theName = if (isOperator) "($name)" else name
+        val td = "$theName : " + show(type)
         return if (td.length > maxColumns) {
-            name + withIndent { showIndented(type) }
+            theName + withIndent { showIndented(type) }
         } else td
     }
 
     fun show(d: Decl.ValDecl): String {
         var prefix = ""
-        if (d.signature?.type != null) prefix = show(d.name, d.signature.type) + "\n"
+        if (d.signature?.type != null) prefix = show(d.name, d.signature.type, d.isOperator) + "\n"
         prefix += d.name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
         return if (d.exp.isSimpleExpr()) "$prefix ${show(d.exp)}"
@@ -166,8 +167,7 @@ class Formatter {
             is Expr.Var -> e.toString()
             is Expr.Operator -> {
                 val str = if (e.alias != null) "${e.alias}.${e.name}" else e.name
-                val isFun = wordRegex.containsMatchIn(e.name)
-                if (isFun) "`$str`" else str
+                if (e.isPrefix) "`$str`" else str
             }
             is Expr.ImplicitVar -> "{{${e.name}}}"
             is Expr.Constructor -> e.toString()
@@ -339,7 +339,5 @@ class Formatter {
     companion object {
         const val maxColumns = 80
         const val tabSize = "  " // 2 spaces
-
-        val wordRegex = Regex("\\w")
     }
 }
