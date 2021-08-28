@@ -875,8 +875,8 @@ numberOpsInt32 =
     { remainder: \x y -> Core#intRemainder(x, y)
     , zero: 0
     , even: \x -> Core#intRemainder(x, 2) == 0
-    , min: \x y -> Math#min(x, y)
-    , max: \x y -> Math#max(x, y)
+    , min: \(x : Int32) y -> Math#min(x, y)
+    , max: \(x : Int32) y -> Math#max(x, y)
     }
 
 pub instance

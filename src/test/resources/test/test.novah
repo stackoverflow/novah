@@ -21,7 +21,7 @@ baz = map
 baz2 = 1 :: Nil
 
 nf : String -> File
-nf x = File#new(x)
+nf (x : String) = File#new(x)
 
 fname : File -> String
 fname f =
