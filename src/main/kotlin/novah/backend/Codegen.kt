@@ -132,7 +132,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val ctx = GenContext()
         val init = cw.visitMethod(ACC_STATIC, STATIC_INIT, "()V", null, emptyArray())
         init.visitCode()
-        // TODO: check variable dependencies and sort them in orders
         for (decl in values) genValDecl(decl, init, ctx)
 
         init.visitInsn(RETURN)
