@@ -81,7 +81,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         // Folding capability
         initializeResult.capabilities.setFoldingRangeProvider(true)
         // Completion capability
-        initializeResult.capabilities.completionProvider = CompletionOptions(false, listOf("."))
+        initializeResult.capabilities.completionProvider = CompletionOptions(false, listOf(".", "#"))
         // Semantic tokens capability
         val semOpts =
             SemanticTokensWithRegistrationOptions(SemanticTokensFeature.legend, SemanticTokensServerFull(false))

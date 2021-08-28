@@ -78,7 +78,7 @@ object Reflection {
         return clazz.fields.find { it.name == name }
     }
 
-    private fun isStatic(method: Method): Boolean = Modifier.isStatic(method.modifiers)
+    fun isStatic(method: Method): Boolean = Modifier.isStatic(method.modifiers)
 
     fun isPublic(method: Method): Boolean = Modifier.isPublic(method.modifiers)
 
