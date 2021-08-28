@@ -14,3 +14,4 @@
 - [ ] Some way to package novah source for distribution
 - [ ] Validate operator size at desugar time to allow things like `Mod.:::`
 - [ ] Test java field setter
+- [ ] Don't create `main` method directly. Create a function and call it
