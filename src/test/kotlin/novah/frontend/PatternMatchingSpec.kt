@@ -223,9 +223,9 @@ class PatternMatchingSpec : StringSpec({
             
             f1 () x _ = x
             
-            f2 [x, y] = Core#sum(x, y)
+            f2 [x, y] = Core#sum(x : Int, y)
             
-            f3 {x, y} z = Core#sum(Core#sum(x, y), z)
+            f3 {x, y} z = Core#sum(Core#sum(x : Int, y), z)
             
             f4 (:? Int as i) = i
             
@@ -233,7 +233,7 @@ class PatternMatchingSpec : StringSpec({
             
             f6 = \None () [] -> 0
             
-            f7 = let f [x] {y} = Core#sum(x, y)
+            f7 = let f [x] {y} = Core#sum(x : Int, y)
                  in f [1] {y: 3}
         """.module()
 

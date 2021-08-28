@@ -22,7 +22,7 @@ size arr = Core#getArrayLength(arr)
  */
 pub
 stream : Array a -> Stream a
-stream arr = Arrays#stream(arr)
+stream arr = Arrays#stream(arr as Array Object) as Stream a
 
 /**
  * Collects this stream into an array.

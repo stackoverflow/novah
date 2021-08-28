@@ -59,15 +59,19 @@ object Reflection {
     }
 
     fun findStaticMethods(clazz: Class<*>, name: String, argCount: Int): List<Method> {
-        return clazz.methods.filter { it.name == name && it.parameterCount == argCount && isStatic(it) && !it.isBridge }
+        return clazz.methods
+            .sortedBy { it.toString() }
+            .filter { it.name == name && it.parameterCount == argCount && isStatic(it) && !it.isBridge }
     }
 
     fun findNonStaticMethods(clazz: Class<*>, name: String, argCount: Int): List<Method> {
-        return clazz.methods.filter { it.name == name && it.parameterCount == argCount && !isStatic(it) && !it.isBridge }
+        return clazz.methods
+            .sortedBy { it.toString() }
+            .filter { it.name == name && it.parameterCount == argCount && !isStatic(it) && !it.isBridge }
     }
 
     fun findConstructors(clazz: Class<*>, argCount: Int): List<Constructor<*>> {
-        return clazz.constructors.filter { it.parameterCount == argCount }
+        return clazz.constructors.sortedBy { it.toString() }.filter { it.parameterCount == argCount }
     }
 
     fun findField(clazz: Class<*>, name: String): Field? {
