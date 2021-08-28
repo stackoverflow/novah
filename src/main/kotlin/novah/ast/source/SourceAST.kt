@@ -184,7 +184,7 @@ sealed class Expr {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 
-    data class Operator(val name: String, val alias: String? = null) : Expr() {
+    data class Operator(val name: String, val isPrefix: Boolean, val alias: String? = null) : Expr() {
         override fun toString(): String = if (alias != null) "$alias.$name" else name
     }
 

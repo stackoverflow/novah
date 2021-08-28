@@ -12,5 +12,4 @@
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
 - [ ] Auto complete foreign imports
 - [ ] Some way to package novah source for distribution
-- [ ] Validate operator size at desugar time to allow things like `Mod.:::`
 - [ ] Test java field setter

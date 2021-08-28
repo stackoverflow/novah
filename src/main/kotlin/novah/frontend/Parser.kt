@@ -272,15 +272,15 @@ class Parser(
     }
 
     private fun parseVarDecl(visibility: Token?, isInstance: Boolean, isOperator: Boolean = false): Decl {
-        fun parseName(name: String): Pair<Spanned<Token>, String> {
+        fun parseName(name: String): Spanned<String> {
             return if (isOperator) {
                 val tk = expect<LParen>(withError(E.INVALID_OPERATOR_DECL))
                 val op = expect<Op>(withError(E.INVALID_OPERATOR_DECL))
-                expect<RParen>(withError(E.INVALID_OPERATOR_DECL))
-                tk to op.value.op
+                val end = expect<RParen>(withError(E.INVALID_OPERATOR_DECL))
+                Spanned(span(tk.span, end.span), op.value.op)
             } else {
                 val id = expect<Ident>(withError(E.expectedDefinition(name)))
-                id to id.value.v
+                Spanned(id.span, id.value.v)
             }
         }
 
@@ -289,16 +289,18 @@ class Parser(
             if (visibility is PublicPlus) throwError(E.PUB_PLUS to iter.current().span)
             vis = Visibility.PUBLIC
         }
-        val (nameTk, name) = parseName("")
+        val nameTk = parseName("")
+        val name = nameTk.value
+
         return withOffside(nameTk.offside() + 1) {
             var sig: Signature? = null
-            var nameTk2: Spanned<Token>? = null
+            var nameTk2: Spanned<String>? = null
             if (iter.peek().value is Colon) {
                 sig = Signature(parseTypeSignature(), nameTk.span)
                 withOffside(nameTk.offside()) {
-                    val (tk, name2) = parseName(name)
-                    nameTk2 = tk
-                    if (name != name2) throwError(withError(E.expectedDefinition(name))(tk))
+                    nameTk2 = parseName(name)
+                    if (name != nameTk2!!.value)
+                        throwError(E.expectedDefinition(name) to nameTk2!!.span)
                 }
             }
             val vars = tryParseListOf { tryParsePattern(true) }
@@ -307,6 +309,7 @@ class Parser(
 
             val exp = parseDo()
             val binder = Spanned(if (nameTk2 != null) nameTk2!!.span else nameTk.span, name)
+            if (isOperator && name.length > 3) throwError(E.opToolong(name) to binder.span)
             Decl.ValDecl(binder, vars, exp, sig, vis, isInstance, isOperator)
                 .withSpan(nameTk.span, exp.span)
         }
@@ -408,7 +411,7 @@ class Parser(
                     // an aliased operator like `MyModule.==`
                     peek.isDotStart() -> {
                         val op = expect<Op>(noErr())
-                        Expr.Operator(op.value.op.substring(1), uident.value.v)
+                        Expr.Operator(op.value.op.substring(1), false, uident.value.v)
                             .withSpan(uident.span, op.span)
                             .withComment(uident.comment)
                     }
@@ -557,7 +560,7 @@ class Parser(
 
     private fun parseOperator(): Expr {
         val op = expect<Op>(withError("Expected Operator."))
-        return Expr.Operator(op.value.op).withSpanAndComment(op)
+        return Expr.Operator(op.value.op, op.value.isPrefix).withSpanAndComment(op)
     }
 
     private fun parseNull(): Expr {
