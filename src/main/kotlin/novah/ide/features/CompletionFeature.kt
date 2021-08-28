@@ -19,6 +19,7 @@ import novah.ast.canonical.*
 import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
 import novah.data.LabelMap
+import novah.data.Reflection
 import novah.data.mapBoth
 import novah.formatter.Formatter
 import novah.frontend.Comment
@@ -31,6 +32,8 @@ import novah.main.Environment
 import novah.main.ModuleEnv
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.util.concurrent.CompletableFuture
 
 class CompletionFeature(private val server: NovahServer) {
@@ -45,29 +48,36 @@ class CompletionFeature(private val server: NovahServer) {
             val change = server.change() ?: return null
             if (change.txt == null) return null
             val env = server.lastSuccessfulEnv() ?: return null
-            val (line, col) = params.position.line to params.position.character
-            val name = getPartialName(change.txt, line, col) ?: return null
-            server.logger().log("received completion request for ${file.absolutePath} at $line:$col text `$name`")
+            val (lineC, colC) = params.position.line to params.position.character
+            val name = getPartialName(change.txt, lineC, colC) ?: return null
+            server.logger().log("received completion request for ${file.absolutePath} at $lineC:$colC text `$name`")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
             typeVarsMap = mod.typeVarsMap
-            val ctx = findContext(change.txt, line + 1, col + 1)
+            val line = lineC + 1
+            val ctx = findContext(change.txt, line, colC + 1)
 
             return when (params.context.triggerKind) {
                 CompletionTriggerKind.Invoked -> {
-                    val comps = complete(mod.ast, env, name, line + 1, ctx, incomplete = true)
+                    val comps = complete(mod.ast, env, name, line, ctx, incomplete = true)
                     Either.forRight(CompletionList(true, comps))
                 }
                 CompletionTriggerKind.TriggerForIncompleteCompletions -> {
-                    Either.forLeft(complete(mod.ast, env, name, line + 1, ctx, incomplete = false))
+                    Either.forLeft(complete(mod.ast, env, name, line, ctx, incomplete = false))
                 }
                 CompletionTriggerKind.TriggerCharacter -> {
-                    if (name == "do") null
-                    else {
-                        val comps = if (name[0].isUpperCase()) {
-                            findNamespacedDecl(mod.ast, env, name, false)
-                        } else findRecord(mod.ast, env, name, line + 1)
-                        comps?.let { Either.forLeft(it.toMutableList()) }
+                    when {
+                        name == "do" -> null
+                        params.context.triggerCharacter == "#" -> {
+                            val comps = findInJava(name, env, mod.ast, line)
+                            comps?.let { Either.forLeft(it) }
+                        }
+                        else -> {
+                            val comps = if (name[0].isUpperCase()) {
+                                findNamespacedDecl(mod.ast, env, name, false)
+                            } else findRecord(mod.ast, env, name, line)
+                            comps?.let { Either.forLeft(it.toMutableList()) }
+                        }
                     }
                 }
             }
@@ -321,12 +331,13 @@ class CompletionFeature(private val server: NovahServer) {
                     val (_, ty) = pars[0]
                     return addLabels(((ty as TRecord).row as TRowExtend).labels)
                 }
+                break
             }
         }
 
         // finally, search for imported values
         for (imp in ast.imports) {
-            val mod = env.modules()[imp.module.value]?.env ?: break
+            val mod = env.modules()[imp.module.value]?.env ?: continue
             when (imp) {
                 is Import.Exposing -> {
                     for (d in imp.defs) {
@@ -407,6 +418,115 @@ class CompletionFeature(private val server: NovahServer) {
                         ci.detail = d.type.show(qualified = true, typeVarsMap = typeVarsMap)
                         ci.documentation = getDoc(d.comment, modName)
                         comps += ci
+                    }
+                }
+            }
+        }
+        return comps
+    }
+
+    private fun findInJava(name: String, env: Environment, mod: Module, line: Int): MutableList<CompletionItem>? {
+        val comps = mutableListOf<CompletionItem>()
+
+        fun genFields(fields: List<Field>) {
+            fields.forEach {
+                val comp = CompletionItem(it.name)
+                comp.kind = CompletionItemKind.Field
+                comp.detail = it.genericType.typeName
+                comp.insertText = "-${it.name}"
+                comps += comp
+            }
+        }
+
+        fun genMethods(methods: List<Method>) {
+            methods.forEach { m ->
+                val comp = CompletionItem(m.name)
+                comp.kind = CompletionItemKind.Method
+                var details = m.parameterTypes.joinToString(prefix = "(", postfix = ")") { it.typeName }
+                details += " : ${m.returnType.typeName}"
+                comp.detail = details
+                var i = 1
+                val format = m.parameterTypes.joinToString { "\${${i++}:${it.simpleName}}" }
+                comp.insertText = "${m.name}($format)"
+                comp.insertTextFormat = InsertTextFormat.Snippet
+                comps += comp
+            }
+        }
+        
+        fun genAllNonStatic(ty: Type) {
+            val jtype = Reflection.findJavaType(ty) ?: return
+            val clazz = env.classLoader().safeFindClass(jtype) ?: return
+            val fields = clazz.fields.filter { Reflection.isPublic(it) && !Reflection.isStatic(it) }
+            val methods =
+                clazz.methods.filter { Reflection.isPublic(it) && !Reflection.isStatic(it) && !it.isBridge }
+            genFields(fields)
+            genMethods(methods)
+        }
+
+        if (name[0].isUpperCase()) { // Static method/field/constructor
+            val fqt = mod.foreigns.find { it.name() == name }?.type ?: return null
+            val clazz = env.classLoader().safeFindClass(fqt) ?: return null
+            val fields = clazz.fields.filter { Reflection.isPublic(it) && Reflection.isStatic(it) }
+            val methods = clazz.methods.filter { Reflection.isPublic(it) && Reflection.isStatic(it) && !it.isBridge }
+            val ctors = clazz.constructors.filter { Reflection.isPublic(it) }
+            genFields(fields)
+            genMethods(methods)
+            ctors.forEach { c ->
+                val comp = CompletionItem("new")
+                comp.kind = CompletionItemKind.Constructor
+                val details = c.parameterTypes.joinToString(prefix = "(", postfix = ")") { it.typeName }
+                var i = 1
+                val format = c.parameterTypes.joinToString { "\${${i++}:${it.simpleName}}" }
+                comp.insertText = "new($format)"
+                comp.insertTextFormat = InsertTextFormat.Snippet
+                comp.detail = details
+                comps += comp
+            }
+        } else { // non-static method/field
+            // search first in the module itself
+            val ownModule = env.modules()[mod.name.value]!!
+            val obj = ownModule.env.decls[name]
+            if (obj != null) {
+                genAllNonStatic(obj.type)
+                return comps
+            }
+
+            // then search in the parameters of functions
+            for (d in mod.decls) {
+                if (d is Decl.ValDecl && d.span.matchesLine(line)) {
+                    val pars = collectParameters(d) { it == name }
+                    if (pars.isNotEmpty()) {
+                        val (_, ty) = pars[0]
+                        if (ty == null) return null
+                        genAllNonStatic(ty)
+                        return comps
+                    }
+                    break
+                }
+            }
+
+            // finally, search for imported values
+            for (imp in mod.imports) {
+                val m = env.modules()[imp.module.value]?.env ?: continue
+                when (imp) {
+                    is Import.Exposing -> {
+                        for (d in imp.defs) {
+                            if (d.name == name) {
+                                val decl = m.decls[name]
+                                if (decl != null) {
+                                    genAllNonStatic(decl.type)
+                                    return comps
+                                }
+                            }
+                        }
+                    }
+                    is Import.Raw -> {
+                        for ((binder, d) in m.decls) {
+                            if (binder == name && d.visibility.isPublic()) {
+                                genAllNonStatic(d.type)
+                                return comps
+                            }
+                        }
                     }
                 }
             }
@@ -534,13 +654,21 @@ class CompletionFeature(private val server: NovahServer) {
             }
 
             val comps = mutableListOf<Pair<String, Type?>>()
-            var exp = if (d.exp is Expr.Ann) d.exp.exp else d.exp
-            while (exp is Expr.Lambda) {
-                val binder = exp.binder.name
-                if (pred(binder) && !binder.startsWith("$")) {
-                    comps += exp.binder.name to exp.type?.let(::paramType)
+            d.exp.everywhereUnit { e ->
+                when (e) {
+                    is Expr.Lambda -> {
+                        val binder = e.binder.name
+                        if (pred(binder) && !binder.startsWith("$")) {
+                            comps += binder to e.type?.let(::paramType)
+                        }
+                    }
+                    is Expr.Let -> {
+                        val binder = e.letDef.binder.name
+                        if (pred(binder) && !binder.startsWith("$")) {
+                            comps += binder to e.letDef.expr.type
+                        }
+                    }
                 }
-                exp = if (exp.body is Expr.Ann) (exp.body as Expr.Ann).exp else exp.body
             }
             return comps
         }
@@ -549,7 +677,7 @@ class CompletionFeature(private val server: NovahServer) {
             val l = txt.lines().getOrNull(line) ?: return null
             val b = StringBuilder()
             var i = col - 1
-            if (col > 0 && l[i] == '.') i--
+            if (col > 0 && (l[i] == '.' || l[i] == '#')) i--
             while (i >= 0 && (l[i].isLetterOrDigit() || l[i] == '.')) {
                 b.append(l[i])
                 i--

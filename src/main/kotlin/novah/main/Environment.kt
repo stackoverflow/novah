@@ -186,6 +186,8 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
 
     fun sourceMap() = sourceMap
 
+    fun classLoader() = classLoader
+
     /**
      * Copy all the java classes necessary for novah to run
      * from the resources folder to the output.
