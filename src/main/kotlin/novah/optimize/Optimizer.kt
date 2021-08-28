@@ -573,7 +573,7 @@ class Optimizer(private val ast: CModule) {
             primBoolean -> Type.getType(Boolean::class.javaObjectType)
             primChar -> Type.getType(Char::class.javaObjectType)
             primString -> Type.getType(String::class.java)
-            primUnit -> OBJECT_TYPE
+            primUnit -> Type.getObjectType(internalize("novah.Unit"))
             primObject -> OBJECT_TYPE
             primArray -> ARRAY_TYPE
             primList -> LIST_TYPE

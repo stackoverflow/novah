@@ -34,6 +34,8 @@ import novah.backend.TypeUtil.FLOAT_CLASS
 import novah.backend.TypeUtil.FUNCTION_CLASS
 import novah.backend.TypeUtil.FUNCTION_DESC
 import novah.backend.TypeUtil.INTEGER_CLASS
+import novah.backend.TypeUtil.LIST_CLASS
+import novah.backend.TypeUtil.LIST_DESC
 import novah.backend.TypeUtil.LONG_CLASS
 import novah.backend.TypeUtil.OBJECT_DESC
 import novah.backend.TypeUtil.RECORD_CLASS
@@ -42,8 +44,7 @@ import novah.backend.TypeUtil.SET_CLASS
 import novah.backend.TypeUtil.SET_DESC
 import novah.backend.TypeUtil.SHORT_CLASS
 import novah.backend.TypeUtil.STRING_DESC
-import novah.backend.TypeUtil.LIST_CLASS
-import novah.backend.TypeUtil.LIST_DESC
+import novah.backend.TypeUtil.UNIT_CLASS
 import novah.backend.TypeUtil.box
 import novah.backend.TypeUtil.descriptor
 import novah.backend.TypeUtil.lambdaMethodType
@@ -88,7 +89,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     }
                     datas += decl
                 }
-                is Decl.ValDecl -> if (isMain(decl)) main = decl else values += decl
+                is Decl.ValDecl -> {
+                    values += decl
+                    if (main == null && isMain(decl)) main = decl
+                }
             }
         }
         NovahClassWriter.addADTs(ast.name, datas)
@@ -101,8 +105,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         ADTGen.genEmptyConstructor(cw, ACC_PRIVATE)
 
         // lambda methods
-        val allValues = if (main != null) values + main else values
-        for (v in allValues) {
+        for (v in values) {
             val lambdas = setupLambdas(v)
             for (l in lambdas) genLambdaMethod(l, cw)
         }
@@ -903,8 +906,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
         }
 
-        val v = if (isMain(value)) (value.exp as Expr.Lambda).body else value.exp
-        go(v)
+        go(value.exp)
 
         return lambdas.map { l ->
             l.lambda.locals = l.locals
@@ -959,23 +961,30 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     }
 
     private fun genMain(d: Decl.ValDecl, cw: ClassWriter, ctx: GenContext) {
-        val e = d.exp
         val main = cw.visitMethod(ACC_PUBLIC + ACC_STATIC, "main", "([Ljava/lang/String;)V", null, emptyArray())
         main.visitCode()
 
-        val lam = e as Expr.Lambda
         val startL = Label()
-        ctx.putParameter(lam.binder, arrayOfStringClazz, startL)
-        main.visitLineNumber(d.span.startLine, startL)
+        ctx.putParameter("args", arrayOfStringClazz, startL)
+        main.visitLabel(startL)
 
-        val exp = lam.body
-        genExpr(exp, main, ctx)
+        main.visitFieldInsn(GETSTATIC, className, "main", d.exp.type.type.descriptor)
+        main.visitVarInsn(ALOAD, 0)
+
+        main.visitMethodInsn(
+            INVOKEINTERFACE,
+            "java/util/function/Function",
+            "apply",
+            "(Ljava/lang/Object;)Ljava/lang/Object;",
+            true
+        )
+        
         main.visitInsn(POP)
         main.visitInsn(RETURN)
 
         val endL = Label()
         main.visitLabel(endL)
-        ctx.setEndLabel(lam.binder, endL)
+        ctx.setEndLabel("args", endL)
         ctx.visitLocalVariables(main)
 
         main.visitMaxs(0, 0)
@@ -987,6 +996,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         val typ = d.exp.type
         if (typ.type.internalName != FUNCTION_CLASS && typ.pars.size != 2) return false
         return typ.pars[0].type == ARRAY_TYPE && typ.pars[0].pars[0].type.descriptor == STRING_DESC
+                && typ.pars[1].type.internalName == UNIT_CLASS
     }
 
     companion object {

@@ -37,6 +37,7 @@ object TypeUtil {
     const val LIST_CLASS = "io/lacuna/bifurcan/List"
     const val SET_CLASS = "io/lacuna/bifurcan/Set"
     const val FUNCTION_CLASS = "java/util/function/Function"
+    const val UNIT_CLASS = "novah/Unit"
 
     const val FUNCTION_DESC = "Ljava/util/function/Function;"
     const val OBJECT_DESC = "Ljava/lang/Object;"
