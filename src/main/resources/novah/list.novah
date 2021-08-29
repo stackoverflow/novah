@@ -4,6 +4,7 @@ foreign import java.util.Arrays
 foreign import java.util.Comparator
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.IList
+foreign import io.lacuna.bifurcan.Map
 foreign import novah.Core
 
 import novah.java (toComparator)
@@ -47,6 +48,19 @@ map f (list : List a) =
   let llist = []#linear()
   forEachRange 0L list#size() \idx ->
     addLast (f (list ! idx)) llist
+  llist#forked()
+
+/**
+ * Same as `map` but the function also receives the
+ * current index.
+ * Runtime: O(n)
+ */
+pub
+mapIndexed : (Int64 -> a -> b) -> List a -> List b
+mapIndexed f (list : List a) =
+  let llist = []#linear()
+  forEachRange 0L list#size() \idx ->
+    addLast (f idx (list ! idx)) llist
   llist#forked()
 
 /**
@@ -113,6 +127,20 @@ filter f (list : List a) =
   forEachRange 0L list#size() \idx ->
     let elem = list ! idx
     when (f elem) \_ ->
+      addLast elem llist
+  llist#forked()
+
+/**
+ * Same as `filter` but the predicate also receives
+ * the current index.
+ */
+pub
+filterIndexed : (Int64 -> a -> Boolean) -> List a -> List a
+filterIndexed f (list : List a) =
+  let llist = []#linear()
+  forEachRange 0L list#size() \idx ->
+    let elem = list ! idx
+    when (f idx elem) \_ ->
       addLast elem llist
   llist#forked()
 
@@ -226,7 +254,7 @@ takeWhile pred (list : List a) =
   res#forked()
 
 /**
- * Keeps removing elements from this list while the predicate holds.
+ * Keeps droping elements from this list while the predicate holds.
  * Runtime: O(n)
  */
 pub
@@ -323,6 +351,156 @@ toArray = arrayOf
 pub
 fromArray : Array a -> List a
 fromArray arr = List#"of"(arr)
+
+/**
+ * Converts this byte array to a list of bytes.
+ * Runtime: O(n)
+ */
+pub
+fromByteArray : ByteArray -> List Byte
+fromByteArray arr = Core#fromByteArray(arr)
+
+/**
+ * Converts this int16 array to a list of int16s.
+ * Runtime: O(n)
+ */
+pub
+fromInt16Array : Int16Array -> List Int16
+fromInt16Array arr = Core#fromInt16Array(arr)
+
+/**
+ * Converts this int array to a list of ints.
+ * Runtime: O(n)
+ */
+pub
+fromInt32Array : Int32Array -> List Int32
+fromInt32Array arr = Core#fromInt32Array(arr)
+
+/**
+ * Converts this int64 array to a list of int64s.
+ * Runtime: O(n)
+ */
+pub
+fromInt64Array : Int64Array -> List Int64
+fromInt64Array arr = Core#fromInt64Array(arr)
+
+/**
+ * Converts this float32 array to a list of float32s.
+ * Runtime: O(n)
+ */
+pub
+fromFloat32Array : Float32Array -> List Float32
+fromFloat32Array arr = Core#fromFloat32Array(arr)
+
+/**
+ * Converts this float64 array to a list of float64s.
+ * Runtime: O(n)
+ */
+pub
+fromFloat64Array : Float64Array -> List Float64
+fromFloat64Array arr = Core#fromFloat64Array(arr)
+
+/**
+ * Converts this boolean array to a list of booleans.
+ * Runtime: O(n)
+ */
+pub
+fromBooleanArray : BooleanArray -> List Boolean
+fromBooleanArray arr = Core#fromBooleanArray(arr)
+
+/**
+ * Converts this char array to a list of chars.
+ * Runtime: O(n)
+ */
+pub
+fromCharArray : CharArray -> List Char
+fromCharArray arr = Core#fromCharArray(arr)
+
+/**
+ * Converts this list of bytes to a byte array.
+ * Runtime: O(n)
+ */
+pub
+toByteArray : List Byte -> ByteArray
+toByteArray list = Core#toByteArray(list)
+
+/**
+ * Converts this list of int16s to a int16 array.
+ * Runtime: O(n)
+ */
+pub
+toInt16Array : List Int16 -> Int16Array
+toInt16Array list = Core#toInt16Array(list)
+
+/**
+ * Converts this list of ints to a int array.
+ * Runtime: O(n)
+ */
+pub
+toInt32Array : List Int32 -> Int32Array
+toInt32Array list = Core#toInt32Array(list)
+
+/**
+ * Converts this list of int64s to a int64 array.
+ * Runtime: O(n)
+ */
+pub
+toInt64Array : List Int64 -> Int64Array
+toInt64Array list = Core#toInt64Array(list)
+
+/**
+ * Converts this list of float32s to a float32 array.
+ * Runtime: O(n)
+ */
+pub
+toFloat32Array : List Float32 -> Float32Array
+toFloat32Array list = Core#toFloat32Array(list)
+
+/**
+ * Converts this list of float64s to a float64 array.
+ * Runtime: O(n)
+ */
+pub
+toFloat64Array : List Float64 -> Float64Array
+toFloat64Array list = Core#toFloat64Array(list)
+
+/**
+ * Converts this list of booleans to a boolean array.
+ * Runtime: O(n)
+ */
+pub
+toBooleanArray : List Boolean -> BooleanArray
+toBooleanArray list = Core#toBooleanArray(list)
+
+/**
+ * Converts this list of chars to a char array.
+ * Runtime: O(n)
+ */
+pub
+toCharArray : List Char -> CharArray
+toCharArray list = Core#toCharArray(list)
+
+/**
+ * Groups the elements of the list according
+ * to the the function.
+ * Ex:
+ * ```novah
+ * groupBy isOdd [1, 2, 3, 4, 5, 6]
+ * // => { true: [1, 3, 5], false: [2, 4, 6] }
+ * ```
+ */
+pub
+groupBy : (a -> b) -> List a -> Map b (List a)
+groupBy f list =
+  let m = Map#empty()#linear()
+  let grouper elem =
+    let key = f elem
+    let entry = m#get(key, [])
+    m#put(key, addLast elem entry)
+  
+  forEach list \el ->
+    grouper el
+  m#forked()
 
 /**
  * Creates a linear (mutable) version of the given list and applies the function to it.

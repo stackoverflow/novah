@@ -167,56 +167,56 @@ reversed arr =
  * Creates a byte array of the specified size.
  */
 pub
-byteArray : Int -> Array Byte
+byteArray : Int -> ByteArray
 byteArray len = Core#mkByteArray(len)
 
 /**
  * Creates a int16 array of the specified size.
  */
 pub
-int16Array : Int -> Array Int16
+int16Array : Int -> Int16Array
 int16Array len = Core#mkInt16Array(len)
 
 /**
  * Creates a int32 array of the specified size.
  */
 pub
-intArray : Int -> Array Int32
+intArray : Int -> Int32Array
 intArray len = Core#mkInt32Array(len)
 
 /**
  * Creates a int64 array of the specified size.
  */
 pub
-int64Array : Int -> Array Int64
+int64Array : Int -> Int64Array
 int64Array len = Core#mkInt64Array(len)
 
 /**
  * Creates a float32 array of the specified size.
  */
 pub
-float32Array : Int -> Array Float32
+float32Array : Int -> Float32Array
 float32Array len = Core#mkFloat32Array(len)
 
 /**
  * Creates a float64 array of the specified size.
  */
 pub
-floatArray : Int -> Array Float64
+floatArray : Int -> Float64Array
 floatArray len = Core#mkFloat64Array(len)
 
 /**
  * Creates a char array of the specified size.
  */
 pub
-charArray : Int -> Array Char
+charArray : Int -> CharArray
 charArray len = Core#mkCharArray(len)
 
 /**
  * Creates a boolean array of the specified size.
  */
 pub
-booleanArray : Int -> Array Boolean
+booleanArray : Int -> BooleanArray
 booleanArray len = Core#mkBooleanArray(len)
 
 /**

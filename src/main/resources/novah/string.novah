@@ -1,5 +1,7 @@
 module novah.string
 
+import novah.list as List
+
 foreign import java.lang.CharSequence
 
 /**
@@ -66,10 +68,24 @@ containsChar : Char -> String -> Boolean
 containsChar char (str : String) = str#contains(toString char as CharSequence)
 
 /**
+ * Returns a sub string from the given string.
+ */
+pub
+substring : Int32 -> Int32 -> String -> String
+substring begin end (str : String) = str#substring(begin, end)
+
+/**
+ * Returns a sub string from the given string starting from begin.
+ */
+pub
+startFrom : Int32 -> String -> String
+startFrom begin (str : String) = str#substring(begin)
+
+/**
  * Encodes this string into an array of bytes using the platform's default charset.
  */
 pub
-getBytes : String -> Array Byte
+getBytes : String -> ByteArray
 getBytes (str : String) = str#getBytes()
 
 /**
@@ -122,18 +138,143 @@ capitalize (str : String) =
       format "%s%s" [head, tail]
 
 /**
+ * Splits the string using the given regular expression.
+ * Runtime: O(n)
+ */
+pub
+split : String -> String -> List String
+split regex (str : String) = str#split(regex) |> List.fromArray
+
+/**
  * Split this string at new lines.
  */
 pub
 splitLines : String -> List String
-splitLines (str : String) = List#"of"(str#split("[\\r|\\n]+"))
+splitLines (str : String) = List#"of"(str#split("""[\r|\n]+"""))
 
 /**
  * Returns the character at the specified index if it exists.
+ * Runtime: O(1)
  */
 pub
-charAt : Int32 -> String -> Option Char
-charAt idx (str : String) =
-  if idx < str#length()
+nth : Int32 -> String -> Option Char
+nth idx (str : String) =
+  if idx >= 0 && idx < str#length()
     then Some str#charAt(idx)
     else None
+
+/**
+ * Returns the index of the given sub string inside the string
+ * or -1 if none found.
+ * Runtime: O(1)
+ */
+pub
+indexOf : String -> String -> Int32
+indexOf (sub : String) (str : String) = str#indexOf(sub)
+
+/**
+ * A unsafe version `nth`.
+ * Will thrown a `IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+charAt : Int32 -> String -> Char
+charAt idx (str : String) = str#charAt(idx)
+
+/**
+ * Returns a list of all chars in this string.
+ * Runtime: O(n)
+ */
+pub
+toList : String -> List Char
+toList (str : String) =
+  str#toCharArray() |> List.fromCharArray
+
+/**
+ * Returns a string from a list of chars.
+ * Runtime: O(n)
+ */
+pub
+fromList : List Char -> String
+fromList (list : List Char) = String#new(List.toCharArray list)
+
+/**
+ * Maps a function over every char in this string.
+ * Runtime: O(n)
+ */
+pub
+map : (Char -> b) -> String -> List b
+map f str = List.map f (toList str)
+
+/**
+ * Maps a function over every char in this string
+ * returning a new string.
+ * Runtime: O(n)
+ */
+pub
+mapString : (Char -> Char) -> String -> String
+mapString f str = map f str |> fromList
+
+/**
+ * Filters chars of this string with the given predicate.
+ * Runtime: O(n)
+ */
+pub
+filter : (Char -> Boolean) -> String -> String
+filter pred str =
+  toList str |> List.filter pred |> fromList
+
+/**
+ * Remove chars of this string with the given predicate.
+ * Runtime: O(n)
+ */
+pub
+remove : (Char -> Boolean) -> String -> String
+remove pred str =
+  toList str |> List.filter (not << pred) |> fromList
+
+/**
+ * Returns the first occurrence of a char to which the predicate returns true.
+ * Runtime: O(n)
+ */
+pub
+find : (Char -> Boolean) -> String -> Option Char
+find pred str = List.find pred (toList str)
+
+/**
+ * Drops the first n chars from this string.
+ */
+pub
+drop : Int32 -> String -> String
+drop = startFrom
+
+/**
+ * Takes the first n chars from this string.
+ */
+pub
+take : Int32 -> String -> String
+take n str = substring 0 n str
+
+/**
+ * Keeps taking chars from this string while
+ * the predicate holds.
+ * Runtime: O(n)
+ */
+pub
+takeWhile : (Char -> Boolean) -> String -> String
+takeWhile pred str =
+  toList str
+    |> List.takeWhile pred
+    |> fromList
+
+/**
+ * Keeps droping chars from this string while
+ * the predicate holds.
+ * Runtime: O(n)
+ */
+pub
+dropWhile : (Char -> Boolean) -> String -> String
+dropWhile pred str =
+  toList str
+    |> List.dropWhile pred
+    |> fromList
