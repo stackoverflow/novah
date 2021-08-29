@@ -244,6 +244,22 @@ every : (a -> Boolean) -> Set a -> Boolean
 every pred set = Core#setEvery(pred, set)
 
 /**
+ * Returns true if the predicate is true for any element in this set.
+ * Runtime: O(n)
+ */
+pub
+any : (a -> Boolean) -> Set a -> Boolean
+any pred set =
+  let res = arrayOf [false]
+  forEachBreak 0L (size set) \i ->
+    if unsafeNth i set |> pred
+      then
+        aset 0 true res
+        -1
+      else 0
+  aget 0 res
+
+/**
  * Returns true if every element in the list is contained in the set.
  */
 pub

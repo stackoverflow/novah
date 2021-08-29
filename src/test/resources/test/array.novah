@@ -25,6 +25,7 @@ readersTest =
     Array.isNotEmpty arr `shouldBe` true
     Array.contains 4 arr `shouldBe` true
     Array.size arr `shouldBe` 4
+    Array.copy arr `shouldBe` a [1, 2, 3, 4]
 
 writersTest : Suite
 writersTest =
