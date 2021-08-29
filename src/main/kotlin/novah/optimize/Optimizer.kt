@@ -576,6 +576,14 @@ class Optimizer(private val ast: CModule) {
             primUnit -> Type.getObjectType(internalize("novah.Unit"))
             primObject -> OBJECT_TYPE
             primArray -> ARRAY_TYPE
+            primByteArray -> Type.getType(ByteArray::class.java)
+            primInt16Array -> Type.getType(ShortArray::class.java)
+            primInt32Array -> Type.getType(IntArray::class.java)
+            primInt64Array -> Type.getType(LongArray::class.java)
+            primFloat32Array -> Type.getType(FloatArray::class.java)
+            primFloat64Array -> Type.getType(DoubleArray::class.java)
+            primBooleanArray -> Type.getType(BooleanArray::class.java)
+            primCharArray -> Type.getType(CharArray::class.java)
             primList -> LIST_TYPE
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
