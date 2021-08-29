@@ -114,8 +114,9 @@ class Optimizer(private val ast: CModule) {
             is CExpr.Bool -> Expr.Bool(v, typ, span)
             is CExpr.Var -> {
                 val conName = Names.convert(name)
-                val vvar = if (name in locals) Expr.LocalVar(conName, typ, span)
-                else {
+                val vvar = if (moduleName == null && name in locals) {
+                    Expr.LocalVar(conName, typ, span)
+                } else {
                     val cname = internalize(moduleName ?: ast.name.value) + "/Module"
                     Expr.Var(conName, cname, typ, span)
                 }
