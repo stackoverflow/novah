@@ -154,7 +154,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.Var -> {
             declVars += name
-            unusedVars.remove(name)
+            if (alias == null) unusedVars.remove(name)
             usedVars += name
             if (name in locals) Expr.Var(name, span)
             else {
@@ -168,7 +168,7 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.Operator -> {
             if (name == "<-") parserError(E.notAField(), span)
-            unusedVars.remove(name)
+            if (alias == null) unusedVars.remove(name)
             usedVars += name
             if (alias != null) checkAlias(alias, span)
             Expr.Var(name, span, imports[fullname()], isOp = true)
