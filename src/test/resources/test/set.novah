@@ -47,6 +47,7 @@ traversersTest =
     Set.flatMap (\x -> #{x, x * 10}) set `shouldBe` #{1, 10, 2, 20, 3, 30}
     Set.every (_ < 10) set `shouldBe` true
     Set.every (_ < 3) set `shouldBe` false
+    Set.groupBy isEven #{1, 2, 3, 4, 5} `shouldBe` Map.new [true <> #{2, 4}, false <> #{1, 3, 5}]
 
 linearTest : Suite
 linearTest =

@@ -2,6 +2,9 @@ module string
 
 import novah.test
 
+isVowel : Char -> Boolean
+isVowel c = Set.contains c #{'a', 'e', 'i', 'o', 'u'}
+
 readersTest : Suite
 readersTest =
   Test "String reading functions" \_ ->
@@ -21,8 +24,22 @@ readersTest =
     String.repeat 3 "nein!" `shouldBe` "nein!nein!nein!"
     String.capitalize "nAMe" `shouldBe` "Name"
     String.splitLines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
-    String.charAt 3 "exquisite" `shouldBe` Some 'u'
-    String.charAt 9 "exquisite" `shouldBe` None
+    String.nth 3 "exquisite" `shouldBe` Some 'u'
+    String.nth 9 "exquisite" `shouldBe` None
+    String.charAt 3 "exquisite" `shouldBe` 'u'
+    String.substring 2 5 "exquisite" `shouldBe` "qui"
+    String.startFrom 3 "exquisite" `shouldBe` "uisite"
+    String.split "\\d" "sum2plus2equals6" `shouldBe` ["sum", "plus", "equals"]
+    String.indexOf "x" "exquisite" `shouldBe` 1
+    String.indexOf "z" "exquisite" `shouldBe` -1
+    String.toList "fox" `shouldBe` ['f', 'o', 'x']
+    String.fromList ['f', 'o', 'x'] `shouldBe` "fox"
+    String.map (\c -> if c == 'o' then 'a' else c) "fox" `shouldBe` ['f', 'a', 'x']
+    String.mapString (\c -> if c == 'o' then 'a' else c) "fox" `shouldBe` "fax"
+    String.filter isVowel "exquisite" `shouldBe` "euiie"
+    String.remove isVowel "exquisite" `shouldBe` "xqst"
+    String.find isVowel "fox" `shouldBe` Some 'o'
+    String.find (_ == 'z') "fox" `shouldBe` None
 
 pub
 stringTests : List Suite
