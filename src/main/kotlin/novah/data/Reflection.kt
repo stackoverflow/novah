@@ -118,8 +118,19 @@ object Reflection {
                 }
             }
             is Class<*> -> {
-                if (ty.isArray) TApp(TConst(primArray), listOf(collectType(ty.componentType, level)))
-                else {
+                if (ty.isArray) {
+                    when (ty.componentType.name) {
+                        "byte" -> tByteArray
+                        "short" -> tInt16Array
+                        "int" -> tInt32Array
+                        "long" -> tInt64Array
+                        "float" -> tFloat32Array
+                        "double" -> tFloat64Array
+                        "boolean" -> tBooleanArray
+                        "char" -> tCharArray
+                        else -> TApp(TConst(primArray), listOf(collectType(ty.componentType, level)))
+                    }
+                } else {
                     val arity = ty.typeParameters.size
                     if (arity == 0) TConst(javaToNovah(ty.canonicalName))
                     else {

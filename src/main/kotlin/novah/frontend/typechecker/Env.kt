@@ -114,6 +114,14 @@ const val primObject = "$PRIM.Object"
 const val primList = "$PRIM.List"
 const val primSet = "$PRIM.Set"
 const val primArray = "$PRIM.Array"
+const val primByteArray = "$PRIM.ByteArray"
+const val primInt16Array = "$PRIM.Int16Array"
+const val primInt32Array = "$PRIM.Int32Array"
+const val primInt64Array = "$PRIM.Int64Array"
+const val primFloat32Array = "$PRIM.Float32Array"
+const val primFloat64Array = "$PRIM.Float64Array"
+const val primBooleanArray = "$PRIM.BooleanArray"
+const val primCharArray = "$PRIM.CharArray"
 const val primNullable = "$PRIM.Nullable"
 
 val tByte = TConst(primByte)
@@ -130,6 +138,14 @@ val tUnit = TConst(primUnit)
 val tList = tapp(primList, -1)
 val tSet = tapp(primSet, -2)
 val tArray = tapp(primArray, -3)
+val tByteArray = TConst(primByteArray)
+val tInt16Array = TConst(primInt16Array)
+val tInt32Array = TConst(primInt32Array)
+val tInt64Array = TConst(primInt64Array)
+val tFloat32Array = TConst(primFloat32Array)
+val tFloat64Array = TConst(primFloat64Array)
+val tBooleanArray = TConst(primBooleanArray)
+val tCharArray = TConst(primCharArray)
 val tNullable = tapp(primNullable, -4)
 
 val primTypes = mapOf(
@@ -147,6 +163,14 @@ val primTypes = mapOf(
     primList to tList,
     primSet to tSet,
     primArray to tArray,
+    primByteArray to tByteArray,
+    primInt16Array to tInt16Array,
+    primInt32Array to tInt32Array,
+    primInt64Array to tInt64Array,
+    primFloat32Array to tFloat32Array,
+    primFloat64Array to tFloat64Array,
+    primBooleanArray to tBooleanArray,
+    primCharArray to tCharArray,
     primNullable to tNullable
 )
 
@@ -179,7 +203,19 @@ fun javaToNovah(jname: String): String = when (jname) {
     "io.lacuna.bifurcan.List" -> primList
     "io.lacuna.bifurcan.Set" -> primSet
     else -> {
-        if (jname.endsWith("[]")) primArray
+        if (jname.endsWith("[]")) {
+            when (jname.substring(0, jname.length - 2)) {
+                "byte" -> primByteArray
+                "short" -> primInt16
+                "int" -> primInt32Array
+                "long" -> primInt64Array
+                "float" -> primFloat32Array
+                "double" -> primFloat64Array
+                "boolean" -> primBooleanArray
+                "char" -> primCharArray
+                else -> primArray
+            }
+        }
         else jname
     }
 }
@@ -198,6 +234,14 @@ fun findJavaType(novahType: String) = when (novahType) {
     primList -> "io.lacuna.bifurcan.List"
     primSet -> "io.lacuna.bifurcan.Set"
     primArray -> "java.lang.Object[]"
+    primByteArray -> "byte[]"
+    primInt16Array -> "short[]"
+    primInt32Array -> "int[]"
+    primInt64Array -> "long[]"
+    primFloat32Array -> "float[]"
+    primFloat64Array -> "double[]"
+    primBooleanArray -> "boolean[]"
+    primCharArray -> "char[]"
     else -> novahType
 }
 
@@ -226,6 +270,14 @@ val primModuleEnv = ModuleEnv(
         "List" to tdecl(tList),
         "Set" to tdecl(tSet),
         "Array" to tdecl(tArray),
+        "ByteArray" to tdecl(tByteArray),
+        "Int16Array" to tdecl(tInt16Array),
+        "Int32Array" to tdecl(tInt32Array),
+        "Int64Array" to tdecl(tInt64Array),
+        "Float32Array" to tdecl(tFloat32Array),
+        "Float64Array" to tdecl(tFloat64Array),
+        "BooleanArray" to tdecl(tBooleanArray),
+        "CharArray" to tdecl(tCharArray),
         "Nullable" to tdecl(tNullable)
     )
 )
@@ -250,6 +302,14 @@ val primModule = Module(
         primType("Object", "A platform reference value.\nEquivalent to `java.lang.Object`."),
         primType("Nullable", "Represents a foreign value that can be `null`.\nUsed for Java interop."),
         primType("Array", "A platform array.\nEquivalent to a Java array."),
+        primType("ByteArray", "An array of primitive bytes.\nEquivalent to a Java byte array."),
+        primType("Int16Array", "An array of primitive int16s.\nEquivalent to a Java short array."),
+        primType("Int32Array", "An array of primitive ints.\nEquivalent to a Java int array."),
+        primType("Int64Array", "An array of primitive int64s.\nEquivalent to a Java long array."),
+        primType("Float32Array", "An array of primitive floats.\nEquivalent to a Java float array."),
+        primType("Float64Array", "An array of primitive float64s.\nEquivalent to a Java double array."),
+        primType("BooleanArray", "An array of primitive booleans.\nEquivalent to a Java boolean array."),
+        primType("CharArray", "An array of primitive chars.\nEquivalent to a Java char array."),
         primType(
             "List", """A persistent, immutable list of values.
             |Can also be used as a vector, stack or queue.

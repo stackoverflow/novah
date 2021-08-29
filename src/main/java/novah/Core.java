@@ -280,6 +280,142 @@ public class Core {
         return new Object[size];
     }
 
+    public static List<Byte> fromByteArray(byte[] arr) {
+        var list = new List<Byte>().linear();
+        for (var e : arr) {
+            list.addLast(e);
+        }
+        return list.forked();
+    }
+
+    public static List<Short> fromInt16Array(short[] arr) {
+        var list = new List<Short>().linear();
+        for (var e : arr) {
+            list.addLast(e);
+        }
+        return list.forked();
+    }
+
+    public static List<Integer> fromInt32Array(int[] arr) {
+        var list = new List<Integer>().linear();
+        for (var e : arr) {
+            list.addLast(e);
+        }
+        return list.forked();
+    }
+
+    public static List<Long> fromInt64Array(long[] arr) {
+        var list = new List<Long>().linear();
+        for (var e : arr) {
+            list.addLast(e);
+        }
+        return list.forked();
+    }
+
+    public static List<Float> fromFloat32Array(float[] arr) {
+        var list = new List<Float>().linear();
+        for (var e : arr) {
+            list.addLast(e);
+        }
+        return list.forked();
+    }
+
+    public static List<Double> fromFloat64Array(double[] arr) {
+        var list = new List<Double>().linear();
+        for (var e : arr) {
+            list.addLast(e);
+        }
+        return list.forked();
+    }
+
+    public static List<Boolean> fromBooleanArray(boolean[] arr) {
+        var list = new List<Boolean>().linear();
+        for (var e : arr) {
+            list.addLast(e);
+        }
+        return list.forked();
+    }
+
+    public static List<Character> fromCharArray(char[] arr) {
+        var list = new List<Character>().linear();
+        for (var e : arr) {
+            list.addLast(e);
+        }
+        return list.forked();
+    }
+
+    public static byte[] toByteArray(List<Byte> list) {
+        int size = (int) list.size();
+        var arr = new byte[size];
+        for (int i = 0; i < size; i++) {
+            arr[i] = list.nth(i);
+        }
+        return arr;
+    }
+
+    public static short[] toInt16Array(List<Short> list) {
+        int size = (int) list.size();
+        var arr = new short[size];
+        for (int i = 0; i < size; i++) {
+            arr[i] = list.nth(i);
+        }
+        return arr;
+    }
+
+    public static int[] toInt32Array(List<Integer> list) {
+        int size = (int) list.size();
+        var arr = new int[size];
+        for (int i = 0; i < size; i++) {
+            arr[i] = list.nth(i);
+        }
+        return arr;
+    }
+
+    public static long[] toInt64Array(List<Long> list) {
+        int size = (int) list.size();
+        var arr = new long[size];
+        for (int i = 0; i < size; i++) {
+            arr[i] = list.nth(i);
+        }
+        return arr;
+    }
+
+    public static float[] toFloat32Array(List<Float> list) {
+        int size = (int) list.size();
+        var arr = new float[size];
+        for (int i = 0; i < size; i++) {
+            arr[i] = list.nth(i);
+        }
+        return arr;
+    }
+
+    public static double[] toFloat64Array(List<Double> list) {
+        int size = (int) list.size();
+        var arr = new double[size];
+        for (int i = 0; i < size; i++) {
+            arr[i] = list.nth(i);
+        }
+        return arr;
+    }
+
+    public static boolean[] toBooleanArray(List<Boolean> list) {
+        int size = (int) list.size();
+        var arr = new boolean[size];
+        for (int i = 0; i < size; i++) {
+            arr[i] = list.nth(i);
+        }
+        return arr;
+    }
+
+    public static char[] toCharArray(List<Character> list) {
+        int size = (int) list.size();
+        var arr = new char[size];
+        for (int i = 0; i < size; i++) {
+            arr[i] = list.nth(i);
+        }
+        return arr;
+    }
+
     public static <T> T getArray(int index, T[] arr) {
         return arr[index];
     }
@@ -333,7 +469,7 @@ public class Core {
             , Function<V, Function<V, Boolean>> valComp) {
         if (m1.size() != m2.size()) return false;
         if (m1.hashCode() == m2.hashCode()) return true;
-        
+
         for (long i = 0; i < m1.size(); i++) {
             var m1e = m1.nth(i);
             var m2e = m2.nth(i);
@@ -641,7 +777,7 @@ public class Core {
         }
         return acc;
     }
-    
+
     public static <T> boolean listEvery(Function<T, Boolean> pred, List<T> list) {
         for (T elem : list) {
             if (!pred.apply(elem)) return false;
