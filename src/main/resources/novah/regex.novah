@@ -1,0 +1,94 @@
+module novah.regex
+
+foreign import java.lang.CharSequence
+foreign import java.util.regex.Matcher
+foreign import java.util.regex.Pattern
+
+import novah.list as List
+
+/**
+ * Compiles this string into a regular expression.
+ */
+pub
+new : String -> Pattern
+new pat = Pattern#compile(pat)
+
+/**
+ * Returns a matcher for the given regex and string.
+ */
+pub
+matcher : Pattern -> String -> Matcher
+matcher (pat : Pattern) str = pat#matcher(str as CharSequence)
+
+/**
+ * Returns a list of all matched groups for
+ * the most recent match on this matcher.
+ * The first element represents the whole match.
+ */
+pub
+groups : Matcher -> List String
+groups (mat : Matcher) =
+  let count = mat#groupCount()
+  if count == 0
+    then [mat#group()]
+    else List.map mat#group(_) (0 ... count)
+
+/**
+ * Returns the first match of this regex for the given string.
+ * Returns an empty list if there was no match.
+ */
+pub
+find : Pattern -> String -> List String
+find pat str =
+  let mat = matcher pat str
+  if mat#find()
+    then groups mat
+    else []
+
+/**
+ * Returns the first match of this regex for the given string.
+ * Returns an empty list if there was no match.
+ * The regex will be compiled first.
+ */
+pub
+findString : String -> String -> List String
+findString re str = find (new re) str
+
+/**
+ * Returns all the matches of this regex for the given string.
+ * Returns an empty list if there was no match.
+ */
+pub
+findAll : Pattern -> String -> List (List String)
+findAll pat str =
+  let mat = matcher pat str
+  let seq = []#linear()
+  while mat#find() do
+    addLast (groups mat) seq
+  seq#forked()
+
+/**
+ * Returns all the matches of this regex for the given string.
+ * Returns an empty list if there was no match.
+ * The regex will be compiled first.
+ */
+pub
+findAllString : String -> String -> List (List String)
+findAllString re str = findAll (new re) str
+
+/**
+ * Returns true if this regex matches the whole input string.
+ */
+pub
+matches : Pattern -> String -> Boolean
+matches pat str =
+  let mat = matcher pat str
+  mat#matches()
+
+/**
+ * Returns true if this regex matches the whole input string.
+ * The regex will be compiled first.
+ */
+pub
+matchesString : String -> String -> Boolean
+matchesString re str = matches (new re) str

@@ -1,5 +1,6 @@
 module novah.array
 
+foreign import java.lang.System
 foreign import java.util.Arrays
 foreign import java.util.Comparator
 foreign import java.util.stream.Stream
@@ -225,3 +226,13 @@ booleanArray len = Core#mkBooleanArray(len)
 pub
 objectArray : Int -> Array Object
 objectArray len = Core#mkObjectArray(len)
+
+/**
+ * Returns a copy of this array.
+ */
+pub
+copy : Array a -> Array a
+copy arr =
+  let dest = objectArray (size arr)
+  System#arraycopy(arr as Object, 0, dest as Object, 0, size arr)
+  dest as Array a

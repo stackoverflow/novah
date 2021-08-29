@@ -336,6 +336,22 @@ every : (a -> Boolean) -> List a -> Boolean
 every pred list = Core#listEvery(pred, list)
 
 /**
+ * Returns true if the predicate is true for any element in this list.
+ * Runtime: O(n)
+ */
+pub
+any : (a -> Boolean) -> List a -> Boolean
+any pred list =
+  let res = arrayOf [false]
+  forEachBreak 0L (size list) \i ->
+    if list ! i |> pred
+      then
+        aset 0 true res
+        -1
+      else 0
+  aget 0 res
+
+/**
  * Converts this list into an array.
  * This is an alias to the `arrayOf` function in the core namespace.
  * Runtime: O(n)

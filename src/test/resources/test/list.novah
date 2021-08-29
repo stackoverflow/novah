@@ -58,6 +58,8 @@ traversersTest =
     List.flatMap (\x -> [x, x]) list `shouldBe` [1, 1, 2, 2, 3, 3]
     List.every (_ < 10) list `shouldBe` true
     List.every (_ < 3) list `shouldBe` false
+    List.any (_ < 3) list `shouldBe` true
+    List.any (_ < 0) list `shouldBe` false
     List.reverse list `shouldBe` [3, 2, 1]
     List.mapIndexed (\idx i -> if idx < 2L then i * 2 else i * 3) list `shouldBe` [2, 4, 9]
     List.filterIndexed (\idx _ -> idx < 2L) list `shouldBe` [1, 2]

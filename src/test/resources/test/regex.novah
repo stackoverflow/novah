@@ -1,0 +1,17 @@
+module regex
+
+import novah.test
+
+regexTest : Suite
+regexTest =
+  Test "Regex tests" \_ ->
+    let re = Re.new """\d+"""
+    Re.find re "some 123 and 890." `shouldBe` ["123"]
+    Re.findString "some (\\d+) and (\\d+)" "some 123 and 890." `shouldBe` ["some 123 and 890", "123", "890"]
+    Re.findAll re "some 123 and 890." `shouldBe` [["123"], ["890"]]
+    Re.matches re "some 123 and 890." `shouldBe` false
+    Re.matches re "123456" `shouldBe` true
+
+pub
+regexTests : List Suite
+regexTests = [regexTest]
