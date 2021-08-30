@@ -979,10 +979,14 @@ class Parser(
     }
 
     private fun parseRecordRow(): Pair<String, Expr> {
-        val label = parseLabel()
+        val (label, tk) = parseLabel()
+        if (iter.peek().value !is Colon && tk.value is Ident) {
+            val exp = Expr.Var(label).withSpanAndComment(tk)
+            return label to exp
+        }
         expect<Colon>(withError(E.RECORD_COLON))
         val exp = parseExpression()
-        return label.first to exp
+        return label to exp
     }
 
     private fun parseRecordUpdate(begin: Spanned<Token>): Expr {
