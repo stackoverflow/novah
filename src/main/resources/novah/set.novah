@@ -284,8 +284,7 @@ groupBy f set =
     let entry = m#get(key, #{})
     m#put(key, add elem entry)
   
-  forEach set \el ->
-    grouper el
+  forEach set grouper
   m#forked()
 
 /**
