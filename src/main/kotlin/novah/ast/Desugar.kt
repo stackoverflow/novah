@@ -55,8 +55,9 @@ class Desugar(private val smod: SModule) {
     private val warnings = mutableListOf<CompilerProblem>()
     private val errors = mutableListOf<CompilerProblem>()
     private val usedVars = mutableSetOf<String>()
-    private val unusedImports = mutableMapOf<String, Span>()
     private val usedTypes = mutableSetOf<String>()
+    private val usedImports = mutableSetOf<String>()
+    private val unusedImports = mutableMapOf<String, Span>()
 
     fun getWarnings(): List<CompilerProblem> = warnings
 
@@ -159,24 +160,32 @@ class Desugar(private val smod: SModule) {
             if (name in locals) Expr.Var(name, span)
             else {
                 if (alias != null) checkAlias(alias, span)
-                Expr.Var(name, span, imports[fullname()])
+                val importedModule = imports[fullname()]
+                if (importedModule != null) usedImports += importedModule
+                Expr.Var(name, span, importedModule)
             }
         }
         is SExpr.ImplicitVar -> {
             if (alias != null) checkAlias(alias, span)
-            Expr.ImplicitVar(name, span, if (name in locals) null else imports[fullname()])
+            val importedModule = imports[fullname()]
+            if (importedModule != null) usedImports += importedModule
+            Expr.ImplicitVar(name, span, if (name in locals) null else importedModule)
         }
         is SExpr.Operator -> {
             if (name == "<-") parserError(E.notAField(), span)
             if (alias == null) unusedVars.remove(name)
             usedVars += name
             if (alias != null) checkAlias(alias, span)
-            Expr.Var(name, span, imports[fullname()], isOp = true)
+            val importedModule = imports[fullname()]
+            if (importedModule != null) usedImports += importedModule
+            Expr.Var(name, span, importedModule, isOp = true)
         }
         is SExpr.Constructor -> {
             usedVars += name
             if (alias != null) checkAlias(alias, span)
-            Expr.Constructor(name, span, imports[fullname()])
+            val importedModule = imports[fullname()]
+            if (importedModule != null) usedImports += importedModule
+            Expr.Constructor(name, span, importedModule)
         }
         is SExpr.Lambda -> {
             val vars = patterns.map { collectVars(it) }.flatten()
@@ -467,7 +476,9 @@ class Desugar(private val smod: SModule) {
                         }
                     } else TConst(name).span(span)
                 } else {
-                    val varName = smod.foreignTypes[name] ?: ((imports[fullname()] ?: moduleName) + ".$name")
+                    val importedModule = imports[fullname()]
+                    if (importedModule != null) usedImports += importedModule
+                    val varName = smod.foreignTypes[name] ?: ((importedModule ?: moduleName) + ".$name")
                     TConst(varName, kind).span(span)
                 }
             }
@@ -828,20 +839,25 @@ class Desugar(private val smod: SModule) {
 
     private fun reportUnusedImports() {
         // normal imports
-        for (imp in smod.imports.filterIsInstance<Import.Exposing>()) {
-            if (imp.isAuto()) continue
-            for (def in imp.defs) {
-                when (def) {
-                    is DeclarationRef.RefVar -> {
-                        if (def.name !in usedVars) unusedImports[def.name] = def.span
-                    }
-                    is DeclarationRef.RefType -> {
-                        if (def.ctors == null && def.name !in usedTypes)
-                            unusedImports[def.name] = def.span
-                        if (def.ctors != null) {
-                            for (ct in def.ctors) {
-                                if (ct.value !in usedVars)
-                                    unusedImports[ct.value] = ct.span
+        for (imp in smod.imports.filter { !it.isAuto() }) {
+            if (imp.module.value !in usedImports) {
+                unusedImports[imp.module.value] = imp.span()
+                continue
+            }
+            if (imp is Import.Exposing) {
+                for (def in imp.defs) {
+                    when (def) {
+                        is DeclarationRef.RefVar -> {
+                            if (def.name !in usedVars) unusedImports[def.name] = def.span
+                        }
+                        is DeclarationRef.RefType -> {
+                            if (def.ctors == null && def.name !in usedTypes)
+                                unusedImports[def.name] = def.span
+                            if (def.ctors != null) {
+                                for (ct in def.ctors) {
+                                    if (ct.value !in usedVars)
+                                        unusedImports[ct.value] = ct.span
+                                }
                             }
                         }
                     }
