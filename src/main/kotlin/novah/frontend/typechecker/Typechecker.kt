@@ -21,7 +21,6 @@ import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
-import novah.frontend.error.ProblemContext
 import novah.main.CompilationError
 import novah.main.ModuleEnv
 import java.util.*
@@ -63,7 +62,7 @@ object Typechecker {
         return try {
             Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
-            Err(listOf(CompilerProblem(ie.msg, ie.ctx, ie.span, mod.sourceName, mod.name.value, context)))
+            Err(listOf(CompilerProblem(ie.msg, ie.span, mod.sourceName, mod.name.value, context)))
         } catch (ce: CompilationError) {
             Err(ce.problems.map { it.copy(typingContext = context) })
         }
@@ -139,7 +138,6 @@ class TypingContext(
     val types: ArrayDeque<Type> = ArrayDeque()
 )
 
-class InferenceError(val msg: String, val span: Span, val ctx: ProblemContext) : RuntimeException(msg)
+class InferenceError(val msg: String, val span: Span) : RuntimeException(msg)
 
-fun inferError(msg: String, span: Span, ctx: ProblemContext = ProblemContext.TYPECHECK): Nothing =
-    throw InferenceError(msg, span, ctx)
+fun inferError(msg: String, span: Span): Nothing = throw InferenceError(msg, span)

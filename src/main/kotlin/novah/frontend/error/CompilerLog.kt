@@ -19,7 +19,7 @@ import novah.frontend.Span
 import novah.frontend.typechecker.TypingContext
 
 enum class Severity {
-    WARN, ERROR;
+    WARN, ERROR, FATAL
 }
 
 sealed class Action {
@@ -33,7 +33,6 @@ sealed class Action {
  */
 data class CompilerProblem(
     val msg: String,
-    val context: ProblemContext,
     val span: Span,
     val fileName: String,
     val module: String? = null,
@@ -68,20 +67,4 @@ data class CompilerProblem(
         const val YELLOW = "\u001b[33m"
         const val RESET = "\u001b[0m"
     }
-}
-
-/**
- * The context in which the problem
- * happened.
- */
-enum class ProblemContext {
-    MODULE,
-    PARSER,
-    IMPORT,
-    FOREIGN_IMPORT,
-    DESUGAR,
-    TYPECHECK,
-    PATTERN_MATCHING,
-    FOREIGN,
-    UNIFICATION;
 }

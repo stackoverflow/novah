@@ -26,7 +26,6 @@ import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
-import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
@@ -71,7 +70,7 @@ class Optimizer(private val ast: CModule) {
             reportUnusedImports()
             Ok(optimized)
         } catch (ie: InferenceError) {
-            Err(CompilerProblem(ie.msg, ie.ctx, ie.span, ast.sourceName, ast.name.value))
+            Err(CompilerProblem(ie.msg, ie.span, ast.sourceName, ast.name.value))
         }
     }
 
@@ -541,7 +540,6 @@ class Optimizer(private val ast: CModule) {
         val errs = unusedImports.map { (vvar, span) ->
             CompilerProblem(
                 E.unusedImport(vvar),
-                ProblemContext.DESUGAR,
                 span,
                 ast.sourceName,
                 ast.name.value,
@@ -555,7 +553,6 @@ class Optimizer(private val ast: CModule) {
     private fun mkWarn(msg: String, span: Span): CompilerProblem =
         CompilerProblem(
             msg,
-            ProblemContext.PATTERN_MATCHING,
             span,
             ast.sourceName,
             ast.name.value,
