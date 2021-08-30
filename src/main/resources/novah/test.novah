@@ -3,6 +3,7 @@ module novah.test
 foreign import java.lang.AssertionError
 foreign import java.lang.Exception
 foreign import java.lang.Throwable
+foreign import novah.Core
 
 import novah.list (forEach)
 import novah.set as Set
@@ -29,11 +30,28 @@ type TestResult
   | Failure
   | Error
 
+allRegisteredtests : List Suite
+allRegisteredtests = []#linear()
+
 /**
- * Runs all given tests and reports the result.
- * Should be called once at the entry function for tests.
+ * Register a test function.
  */
 pub
+test : String -> TestFun -> Unit
+test description testFun =
+  addLast (Test description testFun) allRegisteredtests
+  ()
+
+/**
+ * Register a test function with a before and after hook.
+ */
+pub
+testWith : TestFun -> TestFun -> String -> TestFun -> Unit
+testWith before after description testFun =
+  let suite = Setup { before, after, suite: Test description testFun }
+  addLast suite allRegisteredtests
+  ()
+
 runTests : List Suite -> TestResult
 runTests suites =
   let total = atom 0
@@ -67,6 +85,27 @@ runTests suites =
     0, 0 -> Success
     _, 0 -> Failure
     _, _ -> Error
+
+/**
+ * Run all registered tests.
+ * Tests need to be located in a root `test` package.
+ */
+pub
+runAllTests : Unit -> TestResult
+runAllTests _ =
+  Core#loadAllClasses("test")
+  runTests allRegisteredtests
+
+/**
+ * Run all registered tests.
+ * Modules containing tests will be searched
+ * in the given root package.
+ */
+pub
+runTestsFor : String -> TestResult
+runTestsFor package =
+  Core#loadAllClasses(package)
+  runTests allRegisteredtests
 
 /**
  * Fails the test if x is not equals y.

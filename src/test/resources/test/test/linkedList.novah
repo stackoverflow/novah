@@ -1,4 +1,4 @@
-module linkedList
+module test.linkedList
 
 import novah.linkedList (::, LinkedList(..))
 import novah.linkedList as LinkedList
@@ -7,9 +7,9 @@ import novah.test
 fv : List a -> LinkedList a
 fv = LinkedList.fromList
 
-readersTest : Suite
-readersTest =
-  Test "List reading functions" \_ ->
+linkedListTests : Unit
+linkedListTests =
+  test "List reading functions" \_ ->
     let l = fv [1, 2, 3, 4]
     LinkedList.nth 2 l `shouldBe` Some 3
     LinkedList.head l `shouldBe` Some 1
@@ -27,15 +27,11 @@ readersTest =
     LinkedList.size l `shouldBe` 4
     (l ++ (5 :: 6 :: Nil)) `shouldBe` LinkedList.range 1 7
 
-writersTest : Suite
-writersTest =
-  Test "List writing functions" \_ ->
+  test "List writing functions" \_ ->
     let l = fv [1, 2, 3]
     (0 :: l) `shouldBe` fv [0, 1, 2, 3]
 
-traversersTest : Suite
-traversersTest =
-  Test "List traversing functions" \_ ->
+  test "List traversing functions" \_ ->
     let l = fv [1, 2, 3]
     let revSort : {{ Ord a }} -> a -> a -> Ordering
         revSort {{ord}} x y =
@@ -55,11 +51,3 @@ traversersTest =
     LinkedList.flatten (fv [fv [1, 2], fv [3, 4], fv [5, 6]]) `shouldBe` fv [1, 2, 3, 4, 5, 6]
     LinkedList.flatMap (\x -> x :: x :: Nil) l `shouldBe` fv [1, 1, 2, 2, 3, 3]
     LinkedList.reverse l `shouldBe` fv [3, 2, 1]
-
-pub
-linkedListTests : List Suite
-linkedListTests =
-  [ readersTest
-  , writersTest
-  , traversersTest
-  ]

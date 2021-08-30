@@ -1,40 +1,34 @@
-module computation
+module test.computation
 
 import novah.computation
 import novah.linkedList (::, LinkedList(..))
 import novah.linkedList as LinkedList
 import novah.test
 
-listTest : Suite
-listTest =
-  Test "List computations" \_ ->
+listTests : Unit
+listTests =
+  test "List computations" \_ ->
     let l = do.list
       let! x = 1 .. 5
       let! y = 2 .. 6
       if isEven (x + y) then return (x <> y)
     l `shouldBe` [1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4]
 
-setTest : Suite
-setTest =
-  Test "Set computations" \_ ->
+  test "Set computations" \_ ->
     let s = do.set
       let! x = #{1, 2, 3, 4}
       let! y = #{2, 3, 4, 5}
       if isEven (x + y) then return (x <> y)
     s `shouldBe` #{1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4}
 
-linkedListTest : Suite
-linkedListTest =
-  Test "LinkedList computations" \_ ->
+  test "LinkedList computations" \_ ->
     let l = do.linkedList
       let! x = LinkedList.range 1 5
       let! y = LinkedList.range 2 6
       if isEven (x + y) then return (x <> y)
     l `shouldBe` ((1 <> 3) :: (1 <> 5) :: (2 <> 2) :: (2 <> 4) :: (3 <> 3) :: (3 <> 5) :: (4 <> 2) :: (4 <> 4) :: Nil)
 
-optionTest : Suite
-optionTest =
-  Test "Option computations" \_ ->
+  test "Option computations" \_ ->
     let opt = do.option
       let! x = Some 3
       let! y = Some 5
@@ -53,9 +47,7 @@ optionTest =
       if isEven (x + y) then return (x <> y)
     opt3 `shouldBe` None
 
-resultTest : Suite
-resultTest =
-  Test "Result computation" \_ ->
+  test "Result computation" \_ ->
     let res = do.result
       let! x = Ok 3 : Result Int Int
       let! y = Ok 5
@@ -67,13 +59,3 @@ resultTest =
       let! y = Ok 5
       return (x + y)
     res2 `shouldBe` Err 3
-
-pub
-computationTests : List Suite
-computationTests =
-  [ listTest
-  , setTest
-  , linkedListTest
-  , optionTest
-  , resultTest
-  ]

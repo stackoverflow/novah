@@ -1,10 +1,10 @@
-module math
+module test.math
 
 import novah.test
 
-readersTest : Suite
-readersTest =
-  Test "Math reading functions" \_ ->
+mathTests : Unit
+mathTests =
+  test "Math reading functions" \_ ->
     Math.min 44 12 `shouldBe` 12
     Math.max 44 12 `shouldBe` 44
     Math.clamp 10 20 6 `shouldBe` 10
@@ -12,7 +12,3 @@ readersTest =
     Math.sqrt 9.0 `shouldBe` 3.0
     Math.cbrt 27.0 `shouldBe` 3.0
     (3.0 ^ 3.0) `shouldBe` 27.0
-
-pub
-mathTests : List Suite
-mathTests = [readersTest]

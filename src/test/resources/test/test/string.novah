@@ -1,13 +1,13 @@
-module string
+module test.string
 
 import novah.test
 
 isVowel : Char -> Boolean
 isVowel c = Set.contains c #{'a', 'e', 'i', 'o', 'u'}
 
-readersTest : Suite
-readersTest =
-  Test "String reading functions" \_ ->
+stringTests : Unit
+stringTests =
+  test "String reading functions" \_ ->
     String.isBlank "  " `shouldBe` true
     String.isEmpty "  " `shouldBe` false
     String.size "abc" `shouldBe` 3
@@ -40,7 +40,3 @@ readersTest =
     String.remove isVowel "exquisite" `shouldBe` "xqst"
     String.find isVowel "fox" `shouldBe` Some 'o'
     String.find (_ == 'z') "fox" `shouldBe` None
-
-pub
-stringTests : List Suite
-stringTests = [readersTest]
