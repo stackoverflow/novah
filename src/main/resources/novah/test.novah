@@ -52,6 +52,22 @@ testWith before after description testFun =
   addLast suite allRegisteredtests
   ()
 
+/**
+ * Executes the function for every entry in the table.
+ * Ex:
+ * ```novah
+ * withTable
+ *   [ { animal: "Cat", sound: "meow" }
+ *   , { animal: "Dog", sound: "woof" }
+ *   , { animal: "Duck", sound: "quack" }
+ *   ]
+ *   \{animal, sound} -> makeSound animal `shouldBe` sound
+ * ```
+ */
+pub
+withTable : List { | r } -> ({ | r } -> Unit) -> Unit
+withTable = forEach
+
 runTests : List Suite -> TestResult
 runTests suites =
   let total = atom 0

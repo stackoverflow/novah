@@ -16,3 +16,10 @@
 - [ ] Add String.replace* functions
 - [ ] What happens if someone creates a `type Module`? Will it crash with the module itself?
 - [ ] Add a `do!` to computations
+- [ ] Make unused imports an error
+- [ ] Don't stop at first error
+- [ ] Make the ide store the env as successful if no fatal errors happen
+- [ ] Have a `dev mode` for dev use and make all warnings errors in real builds
+- [ ] Check if a raw import is used
+- [ ] Add documentation to stdlib at module level
+- [ ] Allow if without else (returning Unit) and change computation if to if!
