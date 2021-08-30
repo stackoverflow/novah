@@ -516,8 +516,7 @@ groupBy f list =
     let entry = m#get(key, [])
     m#put(key, addLast elem entry)
   
-  forEach list \el ->
-    grouper el
+  forEach list grouper
   m#forked()
 
 /**
