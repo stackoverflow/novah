@@ -20,6 +20,7 @@ import novah.ast.source.Type
 import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
+import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
 import novah.main.Environment
 import novah.frontend.error.Errors as E
@@ -40,9 +41,9 @@ class Parser(
             Ok(innerParseFullModule())
         } catch (le: LexError) {
             // for now, we just return the first error
-            Err(CompilerProblem(le.msg, le.span, sourceName, moduleName))
+            Err(CompilerProblem(le.msg, le.span, sourceName, moduleName, severity = Severity.FATAL))
         } catch (pe: ParserError) {
-            Err(CompilerProblem(pe.msg, pe.span, sourceName, moduleName))
+            Err(CompilerProblem(pe.msg, pe.span, sourceName, moduleName, severity = Severity.FATAL))
         }
     }
 
@@ -51,13 +52,15 @@ class Parser(
         moduleName = mname.value
 
         val imports = mutableListOf<Import>()
-        val foreigns = mutableListOf<ForeignImport>()
-        while (true) {
-            when (iter.peek().value) {
-                is ImportT -> imports += parseImport()
-                is ForeignT -> foreigns += parseForeignImport()
-                else -> break
-            }
+        var foreigns: List<ForeignImport> = listOf()
+        
+        val next = iter.peek().value
+        if (next is ImportT) {
+            imports += parseImports()
+            if (iter.peek().value is ForeignT) foreigns = parseForeignImports()
+        } else if (next is ForeignT) {
+            foreigns = parseForeignImports()
+            if (iter.peek().value is ImportT) imports += parseImports()
         }
         addDefaultImports(imports)
 
@@ -74,6 +77,28 @@ class Parser(
             decls,
             mspan
         ).withComment(comment)
+    }
+    
+    private fun parseImports(): List<Import> {
+        val imports = mutableListOf<Import>()
+        while (true) {
+            when (iter.peek().value) {
+                is ImportT -> imports += parseImport()
+                else -> break
+            }
+        }
+        return imports
+    }
+
+    private fun parseForeignImports(): List<ForeignImport> {
+        val imports = mutableListOf<ForeignImport>()
+        while (true) {
+            when (iter.peek().value) {
+                is ForeignT -> imports += parseForeignImport()
+                else -> break
+            }
+        }
+        return imports
     }
 
     private fun parseModule(): ModuleDef {
