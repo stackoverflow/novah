@@ -23,7 +23,6 @@ import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
-import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.Type.Companion.nestArrows
 import novah.frontend.typechecker.Typechecker.context
@@ -783,7 +782,6 @@ object Inference {
     private fun makeWarner(ast: Module) = { msg: String, span: Span, action: Action ->
         val warn = CompilerProblem(
             msg,
-            ProblemContext.TYPECHECK,
             span,
             ast.sourceName,
             ast.name.value,

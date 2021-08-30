@@ -20,7 +20,6 @@ import novah.data.Reflection
 import novah.data.Reflection.collectType
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
-import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
 import novah.main.DeclRef
@@ -37,11 +36,11 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
     val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
 
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
-        CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name.value)
+        CompilerProblem(msg, span, mod.sourceName, mod.name.value)
     }
 
     fun makeWarn(span: Span): (String) -> CompilerProblem = { msg ->
-        CompilerProblem(msg, ProblemContext.IMPORT, span, mod.sourceName, mod.name.value, null, Severity.WARN)
+        CompilerProblem(msg, span, mod.sourceName, mod.name.value, null, Severity.WARN)
     }
 
     val env = Typechecker.env
@@ -166,7 +165,7 @@ fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProbl
     val errors = mutableListOf<CompilerProblem>()
 
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
-        CompilerProblem(msg, ProblemContext.FOREIGN_IMPORT, span, mod.sourceName, mod.name.value)
+        CompilerProblem(msg, span, mod.sourceName, mod.name.value)
     }
 
     val typealiases = mutableMapOf<String, String>()
@@ -228,7 +227,6 @@ fun validatePublicAliases(ast: Module): List<CompilerProblem> {
             if (ty != null && ty.visibility == Visibility.PRIVATE) {
                 errors += CompilerProblem(
                     Errors.TYPEALIAS_PUB,
-                    ProblemContext.FOREIGN_IMPORT,
                     ta.span,
                     ast.sourceName,
                     ast.name.value

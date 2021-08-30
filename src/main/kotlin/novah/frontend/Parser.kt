@@ -20,7 +20,6 @@ import novah.ast.source.Type
 import novah.data.*
 import novah.frontend.Token.*
 import novah.frontend.error.CompilerProblem
-import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
 import novah.main.Environment
 import novah.frontend.error.Errors as E
@@ -41,9 +40,9 @@ class Parser(
             Ok(innerParseFullModule())
         } catch (le: LexError) {
             // for now, we just return the first error
-            Err(CompilerProblem(le.msg, ProblemContext.PARSER, le.span, sourceName, moduleName))
+            Err(CompilerProblem(le.msg, le.span, sourceName, moduleName))
         } catch (pe: ParserError) {
-            Err(CompilerProblem(pe.msg, ProblemContext.PARSER, pe.span, sourceName, moduleName))
+            Err(CompilerProblem(pe.msg, pe.span, sourceName, moduleName))
         }
     }
 

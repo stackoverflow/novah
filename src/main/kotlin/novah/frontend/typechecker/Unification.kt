@@ -19,7 +19,6 @@ import novah.Util.internalError
 import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Errors
-import novah.frontend.error.ProblemContext
 
 object Unification {
 
@@ -236,7 +235,6 @@ object Unification {
     private fun innerError(err: UnifyError): Nothing =
         throw UnifyException(err)
 
-    private fun unificationError(msg: String, span: Span): Nothing =
-        inferError(msg, span, ProblemContext.UNIFICATION)
+    private fun unificationError(msg: String, span: Span): Nothing = inferError(msg, span)
 }
 

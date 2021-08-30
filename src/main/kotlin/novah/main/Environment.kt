@@ -30,7 +30,6 @@ import novah.data.unwrapOrElse
 import novah.frontend.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
-import novah.frontend.error.ProblemContext
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.Inference
 import novah.frontend.typechecker.Type
@@ -201,7 +200,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
         val msg = Errors.cycleFound(nodes.map { it.value })
         nodes.forEach { n ->
             val mod = n.data
-            errors += CompilerProblem(msg, ProblemContext.MODULE, mod.span, mod.sourceName, mod.name.value)
+            errors += CompilerProblem(msg, mod.span, mod.sourceName, mod.name.value)
         }
         throwErrors()
     }
@@ -209,7 +208,6 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     private fun duplicateError(mod: Module, path: Path): CompilerProblem {
         return CompilerProblem(
             Errors.duplicateModule(mod.name.value),
-            ProblemContext.MODULE,
             mod.span,
             path.toFile().invariantSeparatorsPath,
             mod.name.value

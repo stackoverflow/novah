@@ -27,7 +27,6 @@ import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.Spanned
 import novah.frontend.error.CompilerProblem
-import novah.frontend.error.ProblemContext
 import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
@@ -85,7 +84,7 @@ class Desugar(private val smod: SModule) {
                 ) to errors
             )
         } catch (pe: ParserError) {
-            Err(listOf(CompilerProblem(pe.msg, ProblemContext.DESUGAR, pe.span, smod.sourceName, moduleName)))
+            Err(listOf(CompilerProblem(pe.msg, pe.span, smod.sourceName, moduleName)))
         } catch (ce: CompilationError) {
             Err(ce.problems)
         }
@@ -874,7 +873,6 @@ class Desugar(private val smod: SModule) {
     private fun addUnusedVars(unusedVars: Map<String, Span>) {
         val err = CompilerProblem(
             E.unusedVariables(unusedVars.keys.toList()),
-            ProblemContext.DESUGAR,
             unusedVars.values.first(),
             smod.sourceName,
             moduleName
@@ -888,7 +886,6 @@ class Desugar(private val smod: SModule) {
         if (alias !in aliasedImports) {
             val err = CompilerProblem(
                 E.noAliasFound(alias),
-                ProblemContext.DESUGAR,
                 span,
                 smod.sourceName,
                 moduleName
@@ -901,7 +898,6 @@ class Desugar(private val smod: SModule) {
         if (imports.containsKey(name)) {
             val err = CompilerProblem(
                 E.shadowedVariable(name),
-                ProblemContext.DESUGAR,
                 span,
                 smod.sourceName,
                 moduleName
@@ -917,7 +913,7 @@ class Desugar(private val smod: SModule) {
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
 
     private fun makeError(msg: String, span: Span): CompilerProblem =
-        CompilerProblem(msg, ProblemContext.DESUGAR, span, smod.sourceName, moduleName)
+        CompilerProblem(msg, span, smod.sourceName, moduleName)
 
     companion object {
         fun collectVars(exp: Expr): List<String> =
