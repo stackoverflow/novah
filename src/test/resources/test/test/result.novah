@@ -1,10 +1,10 @@
-module result
+module test.result
 
 import novah.test
 
-readersTest : Suite
-readersTest =
-  Test "Result reading functions" \_ ->
+resultTests : Unit
+resultTests =
+  test "Result reading functions" \_ ->
     Result.isOk (Ok 1) `shouldBe` true
     Result.isErr (Err 0) `shouldBe` true
     Result.ok (Ok 1) `shouldBe` Some 1
@@ -14,7 +14,3 @@ readersTest =
     Result.mapErr (_ + 1) (Err 1) `shouldBe` (Err 2 : Result String Int)
     Result.handle (_ ++ "def") toString (Ok "abc") `shouldBe` "abcdef"
     Result.handle (_ ++ "def") toString (Err 0) `shouldBe` "0"
-
-pub
-resultTests : List Suite
-resultTests = [readersTest]

@@ -1,10 +1,10 @@
-module option
+module test.option
 
 import novah.test
 
-readersTest : Suite
-readersTest =
-  Test "Option reading functions" \_ ->
+optionTests : Unit
+optionTests =
+  test "Option reading functions" \_ ->
     Option.isSome (Some 1) `shouldBe` true
     Option.isNone None `shouldBe` true
     Option.maybe 3 (_ + 1) (Some 1) `shouldBe` 2
@@ -16,7 +16,3 @@ readersTest =
     Option.toOption null `shouldBe` (None : Option Int)
     Option.toNullable None `shouldBe` (null : Nullable Int)
     (Option.toNullable (Some 3) |> unsafeCast) `shouldBe` 3
-
-pub
-optionTests : List Suite
-optionTests = [readersTest]

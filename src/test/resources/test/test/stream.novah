@@ -1,4 +1,4 @@
-module stream
+module test.stream
 
 import novah.stream as Stream
 import novah.test
@@ -8,9 +8,9 @@ foreign import java.util.stream.Stream
 vs : List a -> Stream a
 vs = List.stream
 
-readersTest : Suite
-readersTest =
-  Test "Stream functions" \_ ->
+streamTests : Unit
+streamTests =
+  test "Stream functions" \_ ->
     let st = List.stream [1, 2, 3, 4, 5, 6]
     (Stream.empty () |> List.fromStream) `shouldBe` ([] : List Int)
     (Stream.from 1 |> Stream.toArray) `shouldBe` arrayOf [1]
@@ -37,7 +37,3 @@ readersTest =
     res2 `shouldBe` Some 15
     let res3 = vs [1, 2, 3] |> Stream.reduceInit (-) 0
     res3 `shouldBe` -6
-
-pub
-streamTests : List Suite
-streamTests = [readersTest]

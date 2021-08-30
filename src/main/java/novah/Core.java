@@ -20,10 +20,16 @@ import io.lacuna.bifurcan.List;
 import io.lacuna.bifurcan.Map;
 import io.lacuna.bifurcan.Set;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Core language functions
@@ -797,5 +803,44 @@ public class Core {
             if (!pred.apply(kv.key()).apply(kv.value())) return false;
         }
         return true;
+    }
+
+    public static Set<Class> loadAllClasses(String packageName) {
+        var classes = findAllClasses(packageName)
+                .filter(clazz -> clazz.endsWith("Module"))
+                .map(Core::getClass)
+                .collect(Collectors.toSet());
+        return Set.from(classes);
+    }
+
+    public static Stream<String> findAllClasses(String packageName) {
+        InputStream stream = ClassLoader.getSystemClassLoader()
+                .getResourceAsStream(packageName.replaceAll("[.]", "/"));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+        var packs = new ArrayList<String>();
+        var lines = reader.lines().collect(Collectors.toList());
+        lines.forEach(line -> {
+            if (!line.endsWith(".class")) packs.add(packageName + "/" + line);
+        });
+        var classes = lines.stream()
+                .filter(line -> line.endsWith(".class"))
+                .map(clazz ->
+                        packageName.replaceAll("/", "\\.") + "."
+                                + clazz.substring(0, clazz.lastIndexOf('.'))
+                );
+        if (!packs.isEmpty()) {
+            var res = packs.stream().flatMap(Core::findAllClasses);
+            return Stream.concat(classes, res);
+        }
+        return classes;
+    }
+
+    private static Class getClass(String className) {
+        try {
+            return Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            // handle the exception
+        }
+        return null;
     }
 }

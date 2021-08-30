@@ -47,7 +47,7 @@ class NovahSpec : StringSpec({
     }
     
     fun runStdlibTests(): Int =
-        runCommand("java -cp output main.Module", File("."))
+        runCommand("java -cp output test.main.Module", File("."))
     
     "run standard library tests" {
         compileStdlibTests()
