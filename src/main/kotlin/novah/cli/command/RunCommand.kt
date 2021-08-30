@@ -72,7 +72,7 @@ class RunCommand : CliktCommand(name = "run", help = "Run the main module if one
             return
         }
 
-        var cmd = "java @${argsfile.path} $mainFun.Module"
+        var cmd = "java @${argsfile.path} $mainFun.\$Module"
         if (args.isNotEmpty()) cmd = args.joinToString(" ", prefix = "$cmd ")
         runCommand(cmd)
     }

@@ -117,7 +117,7 @@ class Optimizer(private val ast: CModule) {
                 val vvar = if (moduleName == null && name in locals) {
                     Expr.LocalVar(conName, typ, span)
                 } else {
-                    val cname = internalize(moduleName ?: ast.name.value) + "/Module"
+                    val cname = internalize(moduleName ?: ast.name.value) + "/\$Module"
                     Expr.Var(conName, cname, typ, span)
                 }
                 if (implicitContext != null) {
@@ -139,7 +139,7 @@ class Optimizer(private val ast: CModule) {
                 val conName = Names.convert(name)
                 if (name in locals) Expr.LocalVar(conName, typ, span)
                 else {
-                    val cname = internalize(moduleName ?: ast.name.value) + "/Module"
+                    val cname = internalize(moduleName ?: ast.name.value) + "/\$Module"
                     Expr.Var(conName, cname, typ, span)
                 }
             }

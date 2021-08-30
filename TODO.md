@@ -14,7 +14,6 @@
 - [ ] Some way to package novah source for distribution
 - [ ] Test java field setter
 - [ ] Add String.replace* functions
-- [ ] What happens if someone creates a `type Module`? Will it crash with the module itself?
 - [ ] Add a `do!` to computations
 - [ ] Make unused imports an error
 - [ ] Don't stop at first error
