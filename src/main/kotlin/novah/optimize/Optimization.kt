@@ -90,7 +90,7 @@ object Optimization {
         "java.lang.Double",
     )
 
-    private const val coreMod = "novah/core/Module"
+    private const val coreMod = "novah/core/\$Module"
 
     /**
      * Unnest operators like &&, ||, ==, |>, etc
@@ -273,7 +273,7 @@ object Optimization {
                         Expr.NativeStaticMethod(unsignedBitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize `Array.size array` to `array.length`
-                    fn is Var && fn.fullname() == "novah/array/Module.size" -> {
+                    fn is Var && fn.fullname() == "novah/array/\$Module.size" -> {
                         Expr.ArrayLength(arg, e.type, e.span)
                     }
                     // optimize `not`

@@ -63,7 +63,7 @@ import org.objectweb.asm.Type.*
  */
 class Codegen(private val ast: Module, private val onGenClass: (String, String, ByteArray) -> Unit) {
 
-    private val className = "${ast.name}/Module"
+    private val className = "${ast.name}/\$Module"
 
     fun run() {
         val cw = NovahClassWriter(COMPUTE_FRAMES)
@@ -116,7 +116,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         genStaticCtor(cw, values)
 
         cw.visitEnd()
-        onGenClass(ast.name, "Module", cw.toByteArray())
+        onGenClass(ast.name, "\$Module", cw.toByteArray())
     }
 
     private fun genFieldVal(cw: ClassWriter, decl: Decl.ValDecl) {
