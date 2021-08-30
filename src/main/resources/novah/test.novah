@@ -7,7 +7,6 @@ foreign import novah.Core
 
 import novah.list (forEach)
 import novah.set as Set
-import novah.option as Option
 
 pub
 typealias TestFun = Unit -> Unit
