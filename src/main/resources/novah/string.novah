@@ -68,7 +68,8 @@ containsChar : Char -> String -> Boolean
 containsChar char (str : String) = str#contains(toString char as CharSequence)
 
 /**
- * Returns a sub string from the given string.
+ * Returns a sub string from the given string
+ * starting at begin (inclusive) and ending in end (exclusive).
  */
 pub
 substring : Int32 -> Int32 -> String -> String
@@ -171,15 +172,6 @@ nth idx (str : String) =
 pub
 indexOf : String -> String -> Int32
 indexOf (sub : String) (str : String) = str#indexOf(sub)
-
-/**
- * A unsafe version `nth`.
- * Will thrown a `IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
-pub
-charAt : Int32 -> String -> Char
-charAt idx (str : String) = str#charAt(idx)
 
 /**
  * Returns a list of all chars in this string.
