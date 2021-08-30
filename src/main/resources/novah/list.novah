@@ -51,8 +51,9 @@ map f (list : List a) =
   llist#forked()
 
 /**
- * Same as `map` but the function also receives the
- * current index.
+ * Maps function f over all elements of this list
+ * returning a list of the same size.
+ * Also receives the index of the element as a parameter.
  * Runtime: O(n)
  */
 pub
@@ -131,8 +132,9 @@ filter f (list : List a) =
   llist#forked()
 
 /**
- * Same as `filter` but the predicate also receives
- * the current index.
+ * Returns a list of the elements that match the given predicate.
+ * Also receives the index of the list as parameter.
+ * Runtime: O(n)
  */
 pub
 filterIndexed : (Int64 -> a -> Boolean) -> List a -> List a
