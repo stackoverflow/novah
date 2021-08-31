@@ -222,7 +222,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
         )
     }
 
-    private fun throwAllErrors(errs: List<CompilerProblem>): Nothing = throw CompilationError(errors + errs)
+    private fun throwAllErrors(errs: Set<CompilerProblem>): Nothing = throw CompilationError(errors + errs)
     private fun throwErrors(errs: Set<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
 
     companion object {

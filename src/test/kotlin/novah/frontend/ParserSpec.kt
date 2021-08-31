@@ -155,7 +155,7 @@ class ParserSpec : StringSpec({
         val errs = des.errors()
         errs.size shouldBe 1
         
-        errs[0].msg shouldBe "Multi constructor type cannot have the same name as their type: Wrong."
+        errs.first().msg shouldBe "Multi constructor type cannot have the same name as their type: Wrong."
     }
 
     "Constructors with the same name as the type are allowed for single constructor types" {

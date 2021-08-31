@@ -58,16 +58,16 @@ object Typechecker {
 
     fun typeVars() = typeVarMap.toMap()
 
-    fun infer(mod: Module): Result<ModuleEnv, List<CompilerProblem>> {
+    fun infer(mod: Module): Result<ModuleEnv, Set<CompilerProblem>> {
         context = TypingContext(mod)
         return try {
             Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
-            val err =
-                CompilerProblem(ie.msg, ie.span, mod.sourceName, mod.name.value, context, severity = Severity.FATAL)
-            Err(listOf(err))
+            val sev = Severity.FATAL
+            val err = CompilerProblem(ie.msg, ie.span, mod.sourceName, mod.name.value, context?.copy(), severity = sev)
+            Err(setOf(err))
         } catch (ce: CompilationError) {
-            Err(ce.problems.map { it.copy(typingContext = context, severity = Severity.FATAL) })
+            Err(ce.problems.map { it.copy(typingContext = context?.copy(), severity = Severity.FATAL) }.toSet())
         }
     }
 
@@ -139,7 +139,9 @@ class TypingContext(
     val mod: Module,
     var decl: Decl.ValDecl? = null,
     val types: ArrayDeque<Type> = ArrayDeque()
-)
+) {
+    fun copy() = TypingContext(mod, decl, types.clone())
+}
 
 class InferenceError(val msg: String, val span: Span) : RuntimeException(msg)
 

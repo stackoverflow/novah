@@ -140,10 +140,16 @@ class FailureSpec : StringSpec({
             in declaration foo
             
             
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/importfail/mod2.novah:3:1 - 3:18
+            
+              Import mod1 is unused in module.
+            
+            
         """.trimIndent()
 
         withError(error) {
-            compiler.compile()
+            compiler.run(File(""), true)
         }
     }
 
@@ -166,10 +172,16 @@ class FailureSpec : StringSpec({
             in declaration bar
             
             
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/privateimport/mod2.novah:3:1 - 3:18
+            
+              Import mod1 is unused in module.
+            
+            
         """.trimIndent()
 
         withError(error) {
-            compiler.compile()
+            compiler.run(File(""), true)
         }
     }
 
