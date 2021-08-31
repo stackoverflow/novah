@@ -40,11 +40,11 @@ import novah.frontend.error.Errors as E
 object Inference {
 
     private val implicitsToCheck = mutableListOf<Expr>()
-    private val errors = mutableListOf<CompilerProblem>()
+    private val errors = mutableSetOf<CompilerProblem>()
 
     var classLoader: NovahClassLoader? = null
 
-    fun errors(): List<CompilerProblem> = errors
+    fun errors(): Set<CompilerProblem> = errors
 
     /**
      * Infer the whole module
@@ -97,24 +97,30 @@ object Inference {
             context?.apply { this.decl = decl }
             val name = decl.name.value
             val isAnnotated = decl.exp is Expr.Ann
-            if (!isAnnotated) checkShadow(env, name, decl.span)
+            try {
+                if (!isAnnotated) checkShadow(env, name, decl.span)
 
-            val newEnv = env.fork()
-            val ty = if (decl.recursive) {
-                newEnv.remove(name)
-                inferRecursive(name, decl.exp, newEnv, 0)
-            } else infer(newEnv, 0, decl.exp)
+                val newEnv = env.fork()
+                val ty = if (decl.recursive) {
+                    newEnv.remove(name)
+                    inferRecursive(name, decl.exp, newEnv, 0)
+                } else infer(newEnv, 0, decl.exp)
 
-            if (implicitsToCheck.isNotEmpty()) InstanceSearch.instanceSearch(implicitsToCheck)
+                if (implicitsToCheck.isNotEmpty()) InstanceSearch.instanceSearch(implicitsToCheck)
 
-            val genTy = generalize(-1, ty)
-            env.extend(name, genTy)
-            if (decl.isInstance) env.extendInstance(name, genTy)
-            decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
+                val genTy = generalize(-1, ty)
+                env.extend(name, genTy)
+                if (decl.isInstance) env.extendInstance(name, genTy)
+                decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
 
-            if (!isAnnotated) {
-                val fix = "$name : ${genTy.show(false)}"
-                warner(E.noTypeAnnDecl(name, genTy.show()), decl.span, Action.NoType(fix))
+                if (!isAnnotated) {
+                    val fix = "$name : ${genTy.show(false)}"
+                    warner(E.noTypeAnnDecl(name, genTy.show()), decl.span, Action.NoType(fix))
+                }
+            } catch (ie: InferenceError) {
+                decl.typeError = true
+                errors += CompilerProblem(ie.msg, ie.span, ast.sourceName, ast.name.value, context?.copy())
+                context?.types?.clear()
             }
         }
 

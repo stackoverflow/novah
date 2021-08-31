@@ -55,7 +55,7 @@ class Desugar(private val smod: SModule) {
 
     private var synonyms = emptyMap<String, TypealiasDecl>()
 
-    private val errors = mutableListOf<CompilerProblem>()
+    private val errors = mutableSetOf<CompilerProblem>()
 
     private val usedVars = mutableSetOf<String>()
 
@@ -70,9 +70,9 @@ class Desugar(private val smod: SModule) {
 
     private val declNames = mutableSetOf<String>()
 
-    fun errors(): List<CompilerProblem> = errors
+    fun errors(): Set<CompilerProblem> = errors
 
-    fun desugar(): Result<Module, List<CompilerProblem>> {
+    fun desugar(): Result<Module, Set<CompilerProblem>> {
         declNames.clear()
         declNames += imports.keys
         return try {
@@ -91,9 +91,9 @@ class Desugar(private val smod: SModule) {
                 )
             )
         } catch (pe: ParserError) {
-            Err(listOf(CompilerProblem(pe.msg, pe.span, smod.sourceName, moduleName, severity = Severity.FATAL)))
+            Err(setOf(CompilerProblem(pe.msg, pe.span, smod.sourceName, moduleName, severity = Severity.FATAL)))
         } catch (ce: CompilationError) {
-            Err(ce.problems.map { it.copy(severity = Severity.FATAL) })
+            Err(ce.problems.map { it.copy(severity = Severity.FATAL) }.toSet())
         }
     }
 

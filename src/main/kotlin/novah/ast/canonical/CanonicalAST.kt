@@ -63,7 +63,9 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
         val isInstance: Boolean,
         val isOperator: Boolean,
         override val comment: Comment? = null
-    ) : Decl(span, comment)
+    ) : Decl(span, comment) {
+        var typeError = false
+    }
 
     fun isPublic() = when (this) {
         is TypeDecl -> visibility == Visibility.PUBLIC

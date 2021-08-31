@@ -75,7 +75,7 @@ class Optimizer(private val ast: CModule) {
         val ds = mutableListOf<Decl>()
         for (d in decls) {
             if (d is CDataDecl) ds += d.convert()
-            if (d is CValDecl) ds += d.convert()
+            if (d is CValDecl && !d.typeError) ds += d.convert()
         }
         return Module(internalize(name.value), sourceName, haslambda, ds)
     }
