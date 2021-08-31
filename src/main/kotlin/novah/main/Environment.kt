@@ -53,7 +53,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     private val modules = mutableMapOf<String, FullModuleEnv>()
     private val sourceMap = mutableMapOf<Path, String>()
 
-    private val errors = mutableListOf<CompilerProblem>()
+    private val errors = mutableSetOf<CompilerProblem>()
 
     private val classLoader: NovahClassLoader
     private val sourceLoader: SourceCodeLoader
@@ -193,7 +193,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
 
     fun classLoader() = classLoader
 
-    fun errors(): List<CompilerProblem> = errors.toList()
+    fun errors(): Set<CompilerProblem> = errors
 
     /**
      * Copy all the java classes necessary for novah to run
@@ -223,7 +223,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     }
 
     private fun throwAllErrors(errs: List<CompilerProblem>): Nothing = throw CompilationError(errors + errs)
-    private fun throwErrors(errs: List<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
+    private fun throwErrors(errs: Set<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
 
     companion object {
         private const val ERROR_THRESHOLD = 10
@@ -240,7 +240,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
 
         fun findConstructor(name: String): Type? = constructorTypes[name]
 
-        private fun shouldThrow(errors: List<CompilerProblem>) =
+        private fun shouldThrow(errors: Set<CompilerProblem>) =
             errors.any { it.isFatal() } || errors.count { it.isErrorOrFatal() } > ERROR_THRESHOLD
 
         private val stdlibCompiled = mutableMapOf<String, FullModuleEnv>()
@@ -270,7 +270,7 @@ private val stdlib by lazy {
     }.asSequence()
 }
 
-class CompilationError(val problems: List<CompilerProblem>) :
+class CompilationError(val problems: Set<CompilerProblem>) :
     RuntimeException(problems.joinToString("\n") { it.formatToConsole() })
 
 data class FullModuleEnv(

@@ -930,7 +930,7 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun desugarErrors(errs: List<CompilerProblem>): Nothing {
-        throw CompilationError(errs)
+        throw CompilationError(errs.toSet())
     }
 
     private fun parserError(msg: String, span: Span): Nothing = throw ParserError(msg, span)
