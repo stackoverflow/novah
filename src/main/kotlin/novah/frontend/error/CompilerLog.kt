@@ -48,6 +48,10 @@ data class CompilerProblem(
         return "$mod$at${msg.prependIndent("  ")}\n\n$ctx"
     }
 
+    fun isFatal() = severity == Severity.FATAL
+
+    fun isErrorOrFatal() = severity != Severity.WARN
+
     private fun formatTypingContext(ctx: TypingContext): String {
         var str = ""
         val ty = ctx.types.peek()

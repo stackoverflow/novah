@@ -22,7 +22,8 @@ import novah.ast.Desugar
 import novah.ast.canonical.*
 import novah.ast.optimized.*
 import novah.ast.optimized.Decl
-import novah.data.*
+import novah.data.forEachKeyList
+import novah.data.mapList
 import novah.frontend.Span
 import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
@@ -56,22 +57,18 @@ import novah.frontend.typechecker.Type as TType
 class Optimizer(private val ast: CModule) {
 
     private var haslambda = false
-    private val warnings = mutableListOf<CompilerProblem>()
+    private val errors = mutableListOf<CompilerProblem>()
     private val unusedImports: MutableMap<String, Span> = ast.unusedImports.toMutableMap()
 
     private var genVar = 0
 
-    fun getWarnings(): List<CompilerProblem> = warnings
+    fun errors(): List<CompilerProblem> = errors
 
-    fun convert(): Result<Module, CompilerProblem> {
-        return try {
-            PatternMatchingCompiler.addConsToCache(ast)
-            val optimized = ast.convert()
-            reportUnusedImports()
-            Ok(optimized)
-        } catch (ie: InferenceError) {
-            Err(CompilerProblem(ie.msg, ie.span, ast.sourceName, ast.name.value))
-        }
+    fun convert(): Module {
+        PatternMatchingCompiler.addConsToCache(ast)
+        val optimized = ast.convert()
+        reportUnusedImports()
+        return optimized
     }
 
     private fun CModule.convert(): Module {
@@ -254,10 +251,7 @@ class Optimizer(private val ast: CModule) {
             when (val tv = tvar) {
                 is TypeVar.Link -> tv.type.convert()
                 is TypeVar.Generic -> Clazz(OBJECT_TYPE)
-                is TypeVar.Unbound -> {
-                    //internalError("got unbound variable after typechecking: ${show(true)} at $span")
-                    Clazz(OBJECT_TYPE)
-                }
+                is TypeVar.Unbound -> Clazz(OBJECT_TYPE)
             }
         }
         // records always have the same type
@@ -522,11 +516,11 @@ class Optimizer(private val ast: CModule) {
     private fun reportPatternMatch(res: PatternCompilationResult<Pattern>, expr: CExpr.Match) {
         if (!res.exhaustive) {
             val span = if (expr.cases.size == 1) expr.cases[0].patternSpan() else expr.span
-            warnings += mkWarn(E.NON_EXHAUSTIVE_PATTERN, span)
+            errors += mkWarn(E.NON_EXHAUSTIVE_PATTERN, span)
         }
         if (res.redundantMatches.isNotEmpty()) {
             val unreacheable = res.redundantMatches.map { it.joinToString { p -> p.show() } }
-            warnings += mkWarn(E.redundantMatches(unreacheable), expr.span)
+            errors += mkWarn(E.redundantMatches(unreacheable), expr.span)
         }
     }
 
@@ -547,7 +541,7 @@ class Optimizer(private val ast: CModule) {
                 action = Action.UnusedImport(vvar)
             )
         }
-        warnings += errs
+        errors += errs
     }
 
     private fun mkWarn(msg: String, span: Span): CompilerProblem =

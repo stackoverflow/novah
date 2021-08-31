@@ -70,7 +70,7 @@ class CompileCommand : CliktCommand(name = "compile", help = "Compile source fil
             Compiler.printWarnings(warns, ::echo)
             echo("Success")
         } catch (ce: CompilationError) {
-            val allErrs = compiler.getWarnings() + ce.problems
+            val allErrs = compiler.errors() + ce.problems
             Compiler.printErrors(allErrs, ::echo)
             echo("Failure", err = true)
             exitProcess(1)

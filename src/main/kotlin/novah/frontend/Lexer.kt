@@ -293,6 +293,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         }
 
         return when (val id = builder.toString()) {
+            "" -> lexError("Identifiers cannot be empty")
             "true" -> BoolT(true)
             "false" -> BoolT(false)
             "if" -> IfT

@@ -71,11 +71,22 @@ class FailureSpec : StringSpec({
               
                   mod1
             
-
+            
+            module [33mmod1[0m
+            at src/test/resources/multimodulefail/duplicatedmodules/same.novah:3:1 - 3:6
+            
+              No type annotation given for top-level declaration x.
+              Consider adding a type annotation.
+              
+              The inferred type was:
+              
+                  Int32
+            
+            
         """.trimIndent()
 
         withError(error) {
-            compiler.compile()
+            compiler.run(File("."), true)
         }
     }
 
@@ -119,7 +130,16 @@ class FailureSpec : StringSpec({
             
               Cannot find declaration bar in module mod1.
             
-
+            
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/importfail/mod2.novah:6:7 - 6:10
+            
+              Undefined variable bar.
+            
+            while checking type Int32
+            in declaration foo
+            
+            
         """.trimIndent()
 
         withError(error) {
@@ -136,7 +156,16 @@ class FailureSpec : StringSpec({
             
               Cannot import private declaration foo in module mod1.
             
-
+            
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/privateimport/mod2.novah:6:31 - 6:34
+            
+              Undefined variable foo.
+            
+            while checking type Int32 -> Int32
+            in declaration bar
+            
+            
         """.trimIndent()
 
         withError(error) {
@@ -154,9 +183,21 @@ class FailureSpec : StringSpec({
               Another import with name ArrayList is already in scope.
             
             
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/duplicatedimports/mod2.novah:3:1 - 3:26
+            
+              Import mod1 is unused in module.
+            
+            
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/duplicatedimports/mod2.novah:5:1 - 5:35
+            
+              Import ArrayList is unused in module.
+            
+            
         """.trimIndent()
         withError(error) {
-            compiler.compile()
+            compiler.run(File(""), true)
         }
     }
 
@@ -164,15 +205,32 @@ class FailureSpec : StringSpec({
         val compiler = TestUtil.compilerFor("multimodulefail/duplicatedimportvars")
 
         val error = """
+            module [33mmod1[0m
+            at src/test/resources/multimodulefail/duplicatedimportvars/mod1.novah:4:1 - 4:21
+            
+              No type annotation given for top-level declaration newArrayList.
+              Consider adding a type annotation.
+              
+              The inferred type was:
+              
+                  Unit -> Int32
+            
+            
             module [33mmod2[0m
             at src/test/resources/multimodulefail/duplicatedimportvars/mod2.novah:5:1 - 6:17
             
               Declaration newArrayList is already defined or imported.
             
             
+            module [33mmod2[0m
+            at src/test/resources/multimodulefail/duplicatedimportvars/mod2.novah:3:1 - 3:29
+            
+              Import mod1 is unused in module.
+            
+            
         """.trimIndent()
         withError(error) {
-            compiler.compile()
+            compiler.run(File(""), true)
         }
     }
 }) {

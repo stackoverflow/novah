@@ -34,6 +34,8 @@ class Parser(
 
     private var moduleName: String? = null
 
+    private val errors = mutableListOf<CompilerProblem>()
+
     private data class ModuleDef(val name: Spanned<String>, val span: Span, val comment: Comment?)
 
     fun parseFullModule(): Result<Module, CompilerProblem> {
@@ -47,13 +49,15 @@ class Parser(
         }
     }
 
+    fun errors(): List<CompilerProblem> = errors
+
     private fun innerParseFullModule(): Module {
         val (mname, mspan, comment) = parseModule()
         moduleName = mname.value
 
         val imports = mutableListOf<Import>()
         var foreigns: List<ForeignImport> = listOf()
-        
+
         val next = iter.peek().value
         if (next is ImportT) {
             imports += parseImports()
@@ -66,7 +70,15 @@ class Parser(
 
         val decls = mutableListOf<Decl>()
         while (iter.peek().value !is EOF) {
-            decls += parseDecl()
+            try {
+                decls += parseDecl()
+            } catch (le: LexError) {
+                errors += CompilerProblem(le.msg, le.span, sourceName, moduleName)
+                fastForward()
+            } catch (pe: ParserError) {
+                errors += CompilerProblem(pe.msg, pe.span, sourceName, moduleName)
+                fastForward()
+            }
         }
 
         return Module(
@@ -78,7 +90,7 @@ class Parser(
             mspan
         ).withComment(comment)
     }
-    
+
     private fun parseImports(): List<Import> {
         val imports = mutableListOf<Import>()
         while (true) {
@@ -1346,17 +1358,32 @@ class Parser(
     private fun <T> withOffside(off: Int = iter.offside() + 1, f: () -> T): T {
         val tmp = iter.offside()
         iter.withOffside(off)
-        val res = f()
-        iter.withOffside(tmp)
-        return res
+        try {
+            return f()
+        } finally {
+            iter.withOffside(tmp)
+        }
     }
 
     private inline fun <T> withIgnoreOffside(shouldIgnore: Boolean = true, f: () -> T): T {
         val tmp = iter.ignoreOffside()
         iter.withIgnoreOffside(shouldIgnore)
-        val res = f()
-        iter.withIgnoreOffside(tmp)
-        return res
+        try {
+            return f()
+        } finally {
+            iter.withIgnoreOffside(tmp)
+        }
+    }
+
+    /**
+     * Fast-forward the lexer to the next declaration.
+     */
+    private fun fastForward() {
+        var peek = iter.peek()
+        while (peek.value !is EOF && peek.offside() != 1) {
+            iter.next()
+            peek = iter.peek()
+        }
     }
 
     companion object {

@@ -4,4 +4,5 @@ x : Int
 
 y = 12
 
+x : Int
 x = 1

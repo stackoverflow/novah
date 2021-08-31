@@ -21,6 +21,7 @@ import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
+import novah.frontend.error.Severity
 import novah.main.CompilationError
 import novah.main.ModuleEnv
 import java.util.*
@@ -62,9 +63,11 @@ object Typechecker {
         return try {
             Ok(Inference.infer(mod))
         } catch (ie: InferenceError) {
-            Err(listOf(CompilerProblem(ie.msg, ie.span, mod.sourceName, mod.name.value, context)))
+            val err =
+                CompilerProblem(ie.msg, ie.span, mod.sourceName, mod.name.value, context, severity = Severity.FATAL)
+            Err(listOf(err))
         } catch (ce: CompilationError) {
-            Err(ce.problems.map { it.copy(typingContext = context) })
+            Err(ce.problems.map { it.copy(typingContext = context, severity = Severity.FATAL) })
         }
     }
 

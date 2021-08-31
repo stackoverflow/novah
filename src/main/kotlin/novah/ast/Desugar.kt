@@ -27,6 +27,7 @@ import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.Spanned
 import novah.frontend.error.CompilerProblem
+import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
@@ -49,23 +50,29 @@ import novah.frontend.error.Errors as E
 class Desugar(private val smod: SModule) {
 
     private val imports = smod.resolvedImports
-    private val moduleName = smod.name.value
-    private var synonyms = emptyMap<String, TypealiasDecl>()
-    private val warnings = mutableListOf<CompilerProblem>()
-    private val errors = mutableListOf<CompilerProblem>()
-    private val usedVars = mutableSetOf<String>()
-    private val usedTypes = mutableSetOf<String>()
-    private val usedImports = mutableSetOf<String>()
-    private val unusedImports = mutableMapOf<String, Span>()
 
-    fun getWarnings(): List<CompilerProblem> = warnings
+    private val moduleName = smod.name.value
+
+    private var synonyms = emptyMap<String, TypealiasDecl>()
+
+    private val errors = mutableListOf<CompilerProblem>()
+
+    private val usedVars = mutableSetOf<String>()
+
+    private val usedTypes = mutableSetOf<String>()
+
+    private val usedImports = mutableSetOf<String>()
+
+    private val unusedImports = mutableMapOf<String, Span>()
 
     private var varCount = 0
     private fun newVar() = "var$${varCount++}"
 
     private val declNames = mutableSetOf<String>()
 
-    fun desugar(): Result<Pair<Module, List<CompilerProblem>>, List<CompilerProblem>> {
+    fun errors(): List<CompilerProblem> = errors
+
+    fun desugar(): Result<Module, List<CompilerProblem>> {
         declNames.clear()
         declNames += imports.keys
         return try {
@@ -81,61 +88,73 @@ class Desugar(private val smod: SModule) {
                     smod.imports,
                     smod.foreigns,
                     smod.comment
-                ) to errors
+                )
             )
         } catch (pe: ParserError) {
-            Err(listOf(CompilerProblem(pe.msg, pe.span, smod.sourceName, moduleName)))
+            Err(listOf(CompilerProblem(pe.msg, pe.span, smod.sourceName, moduleName, severity = Severity.FATAL)))
         } catch (ce: CompilationError) {
-            Err(ce.problems)
+            Err(ce.problems.map { it.copy(severity = Severity.FATAL) })
         }
     }
 
     private val declVars = mutableSetOf<String>()
     private val unusedVars = mutableMapOf<String, Span>()
 
-    private fun SDecl.desugar(): Decl? = when (this) {
-        is SDecl.TypeDecl -> {
-            validateDataConstructorNames(this)
-            if (smod.foreignTypes[name] != null || imports[name] != null) {
-                parserError(E.duplicatedType(name), span)
+    private fun SDecl.desugar(): Decl? {
+        return when (this) {
+            is SDecl.TypeDecl -> {
+                validateDataConstructorNames(this)
+                if (smod.foreignTypes[name] != null || imports[name] != null) {
+                    errors += makeError(E.duplicatedType(name), span)
+                    null
+                } else {
+                    Decl.TypeDecl(binder, tyVars, dataCtors.map { it.desugar() }, span, visibility, isOpaque, comment)
+                }
             }
-            Decl.TypeDecl(binder, tyVars, dataCtors.map { it.desugar() }, span, visibility, isOpaque, comment)
-        }
-        is SDecl.ValDecl -> {
-            if (declNames.contains(name)) parserError(E.duplicatedDecl(name), span)
-            declNames += name
-            declVars.clear()
-            checkShadow(name, span)
+            is SDecl.ValDecl -> {
+                if (declNames.contains(name)) {
+                    errors += makeError(E.duplicatedDecl(name), span)
+                    return null
+                }
+                declNames += name
+                declVars.clear()
+                checkShadow(name, span)
 
-            unusedVars.clear()
-            patterns.map { collectVars(it) }.flatten().forEach {
-                if (!it.instance && !it.implicit) unusedVars[it.name] = it.span
-                checkShadow(it.name, it.span)
+                unusedVars.clear()
+                patterns.map { collectVars(it) }.flatten().forEach {
+                    if (!it.instance && !it.implicit) unusedVars[it.name] = it.span
+                    checkShadow(it.name, it.span)
+                }
+
+                // hold the type variables as scoped typed variables
+                val typeVars = mutableMapOf<String, Type>()
+                val expType = signature?.type?.desugar(isCtor = false, vars = typeVars)
+                val sig = if (expType != null) Signature(expType, signature!!.span) else null
+
+                try {
+                    var expr = nestLambdaPatterns(patterns, exp.desugar(tvars = typeVars), emptyList(), typeVars)
+
+                    // if the declaration has a type annotation, annotate it
+                    expr = if (expType != null) Expr.Ann(expr, expType, expr.span) else expr
+                    if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
+                    Decl.ValDecl(
+                        binder,
+                        expr,
+                        name in declVars,
+                        span,
+                        sig,
+                        visibility,
+                        isInstance,
+                        isOperator,
+                        comment
+                    )
+                } catch (pe: ParserError) {
+                    errors += makeError(pe.msg, pe.span)
+                    return null
+                }
             }
-
-            // hold the type variables as scoped typed variables
-            val typeVars = mutableMapOf<String, Type>()
-            val expType = signature?.type?.desugar(isCtor = false, vars = typeVars)
-            val sig = if (expType != null) Signature(expType, signature!!.span) else null
-
-            var expr = nestLambdaPatterns(patterns, exp.desugar(tvars = typeVars), emptyList(), typeVars)
-
-            // if the declaration has a type annotation, annotate it
-            expr = if (expType != null) Expr.Ann(expr, expType, expr.span) else expr
-            if (unusedVars.isNotEmpty()) addUnusedVars(unusedVars)
-            Decl.ValDecl(
-                binder,
-                expr,
-                name in declVars,
-                span,
-                sig,
-                visibility,
-                isInstance,
-                isOperator,
-                comment
-            )
+            else -> null
         }
-        else -> null
     }
 
     private fun SDataConstructor.desugar(): DataConstructor =
@@ -641,8 +660,10 @@ class Desugar(private val smod: SModule) {
                 val pointer = map[ty.fullname()]
                 if (pointer != null) {
                     // recursively resolved inner typealiases
-                    if (vars.size != pointer.tyVars.size)
-                        parserError(E.partiallyAppliedAlias(pointer.name, pointer.tyVars.size, vars.size), ta.span)
+                    if (vars.size != pointer.tyVars.size) {
+                        val errMsg = E.partiallyAppliedAlias(pointer.name, pointer.tyVars.size, vars.size)
+                        errors += makeError(errMsg, ta.span)
+                    }
 
                     if (vars.isEmpty() && pointer.tyVars.isEmpty()) expandAndcheck(ta, pointer.type)
                     else {
@@ -669,10 +690,11 @@ class Desugar(private val smod: SModule) {
         }
         typealiases.forEach { ta ->
             ta.expanded = expandAndcheck(ta, ta.type)
-            if (ta.freeVars.isNotEmpty()) parserError(E.freeVarsInTypealias(ta.name, ta.freeVars), ta.span)
+            if (ta.freeVars.isNotEmpty()) {
+                errors += makeError(E.freeVarsInTypealias(ta.name, ta.freeVars), ta.span)
+            }
         }
-        val errs = validatePublicAliases(smod)
-        if (errs.isNotEmpty()) desugarErrors(errs)
+        errors += validatePublicAliases(smod)
         return map
     }
 
@@ -754,7 +776,7 @@ class Desugar(private val smod: SModule) {
                         // variables cannot have cycles
                         isVariable(d1.exp) || isVariable(d2.exp) -> dep.link(node)
                         // functions can be recursive
-                        d1.name == d2.name -> {
+                        d1.name.value == d2.name.value -> {
                         }
                         // functions can only be mutually recursive if they have type annotations
                         d1.signature?.type == null || d2.signature?.type == null -> dep.link(node)
@@ -777,8 +799,9 @@ class Desugar(private val smod: SModule) {
         if (dd.dataCtors.size > 1) {
             val typeName = dd.name
             dd.dataCtors.forEach { dc ->
-                if (dc.name.value == typeName)
-                    parserError(E.wrongConstructorName(typeName), dd.span)
+                if (dc.name.value == typeName) {
+                    errors += makeError(E.wrongConstructorName(typeName), dd.span)
+                }
             }
         }
     }

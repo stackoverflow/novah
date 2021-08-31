@@ -1,5 +1,5 @@
 module [33mtest[0m
-at src/test/resources/failure/pattern_matching/wrong record type.novah:8:14 - 8:15
+at src/test/resources/failure/pattern_matching/wrong record type.novah:9:14 - 9:15
 
   Cannot match type
   
