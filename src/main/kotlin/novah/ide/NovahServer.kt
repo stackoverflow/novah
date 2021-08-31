@@ -169,7 +169,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         client!!.publishDiagnostics(params)
     }
 
-    private fun saveDiagnostics(errors: List<CompilerProblem>) {
+    private fun saveDiagnostics(errors: Set<CompilerProblem>) {
         if (errors.isEmpty()) return
 
         val actions = textService.codeAction

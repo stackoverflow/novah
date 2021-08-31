@@ -29,7 +29,7 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
 
     fun compile(): Map<String, FullModuleEnv> = env.parseSources(sources)
 
-    fun run(output: File, dryRun: Boolean = false): List<CompilerProblem> {
+    fun run(output: File, dryRun: Boolean = false): Set<CompilerProblem> {
         env.parseSources(sources)
         env.generateCode(output, dryRun)
         return env.errors()
@@ -45,7 +45,7 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
             return Compiler(entries, classpath, sourcepath, verbose)
         }
         
-        fun printWarnings(warns: List<CompilerProblem>, echo: (String) -> Unit) {
+        fun printWarnings(warns: Set<CompilerProblem>, echo: (String) -> Unit) {
             if (warns.isNotEmpty()) {
                 val label = if (warns.size > 1) "Warnings" else "Warning"
                 echo("${CompilerProblem.YELLOW}$label:${CompilerProblem.RESET}\n")
@@ -53,7 +53,7 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
             }
         }
         
-        fun printErrors(errors: List<CompilerProblem>, echo: (String, Boolean) -> Unit) {
+        fun printErrors(errors: Set<CompilerProblem>, echo: (String, Boolean) -> Unit) {
             val (errs, warns) = errors.partition { it.severity == Severity.ERROR }
             if (warns.isNotEmpty()) {
                 val label = if (warns.size > 1) "Warnings" else "Warning"

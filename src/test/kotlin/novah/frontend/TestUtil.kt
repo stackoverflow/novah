@@ -61,7 +61,7 @@ object TestUtil {
         val parser = Parser(lexer, false)
         return parser.parseFullModule().unwrapOrElse {
             println(it.formatToConsole())
-            throw CompilationError(listOf(it))
+            throw CompilationError(setOf(it))
         }
     }
 
