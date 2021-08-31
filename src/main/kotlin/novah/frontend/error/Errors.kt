@@ -35,6 +35,8 @@ object Errors {
         |Example: foreign import java.util.ArrayList as AList
     """.trimMargin()
 
+    const val MIXED_IMPORTS = "Foreign and normal imports cannot be mixed together."
+
     const val UPPER_LOWER_STR = "Expected a string or an identifier."
 
     const val IMPORT_REFER =

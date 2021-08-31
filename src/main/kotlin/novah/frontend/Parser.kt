@@ -58,7 +58,7 @@ class Parser(
         val imports = mutableListOf<Import>()
         var foreigns: List<ForeignImport> = listOf()
 
-        val next = iter.peek().value
+        var next = iter.peek().value
         if (next is ImportT) {
             imports += parseImports()
             if (iter.peek().value is ForeignT) foreigns = parseForeignImports()
@@ -66,6 +66,8 @@ class Parser(
             foreigns = parseForeignImports()
             if (iter.peek().value is ImportT) imports += parseImports()
         }
+        next = iter.peek().value
+        if (next is ImportT || next is ForeignT) throwError(E.MIXED_IMPORTS to iter.peek().span)
         addDefaultImports(imports)
 
         val decls = mutableListOf<Decl>()
