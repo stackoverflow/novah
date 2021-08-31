@@ -4,3 +4,19 @@ at src/test/resources/failure/typealias/partially applied typealias.novah:7:11 -
   Partially applied type alias Opt.
   Opt expects 1 parameter(s) but got 0.
 
+
+module [33mtest[0m
+at src/test/resources/failure/typealias/partially applied typealias.novah:7:11 - 7:16
+
+  Type variables
+  
+      a
+  
+  are unbounded in type alias Alias.
+
+
+module [33mtest[0m
+at src/test/resources/failure/typealias/partially applied typealias.novah:3:1 - 3:30
+
+  Type Option is already defined or imported.
+

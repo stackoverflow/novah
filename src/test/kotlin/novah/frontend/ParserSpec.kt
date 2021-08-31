@@ -22,8 +22,10 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.contain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import novah.ast.Desugar
-import novah.ast.source.*
-import novah.data.Err
+import novah.ast.source.Decl
+import novah.ast.source.Expr
+import novah.ast.source.Module
+import novah.ast.source.Pattern
 import novah.formatter.Formatter
 import novah.frontend.TestUtil._i
 import novah.frontend.TestUtil._v
@@ -149,7 +151,11 @@ class ParserSpec : StringSpec({
 
         val ast = parseString(code)
         val des = Desugar(ast)
-        des.desugar().shouldBeInstanceOf<Err<*>>()
+        des.desugar()
+        val errs = des.errors()
+        errs.size shouldBe 1
+        
+        errs[0].msg shouldBe "Multi constructor type cannot have the same name as their type: Wrong."
     }
 
     "Constructors with the same name as the type are allowed for single constructor types" {

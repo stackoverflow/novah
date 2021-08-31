@@ -175,7 +175,10 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val actions = textService.codeAction
         actions.resetCache()
         diags = errors.map { err ->
-            val sev = if (err.severity == Severity.ERROR) DiagnosticSeverity.Error else DiagnosticSeverity.Warning
+            val sev = when (err.severity) {
+                Severity.FATAL, Severity.ERROR -> DiagnosticSeverity.Error
+                Severity.WARN -> DiagnosticSeverity.Warning
+            }
             val diag = Diagnostic(spanToRange(err.span), err.msg + "\n\n")
             diag.severity = sev
             diag.source = "Novah compiler"
@@ -206,10 +209,12 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             theEnv.parseSources(sources.asSequence())
             theEnv.generateCode(File("."), dryRun = true)
             diags.clear()
-            saveDiagnostics(theEnv.getWarnings())
+            saveDiagnostics(theEnv.errors())
             lastSuccessfulEnv = theEnv
         } catch (ce: CompilationError) {
-            saveDiagnostics(ce.problems + theEnv.getWarnings())
+            val errors = ce.problems + theEnv.errors()
+            saveDiagnostics(errors)
+            if (!errors.any { it.isFatal() }) lastSuccessfulEnv = theEnv
         } catch (e: Exception) {
             logger().error(e.stackTraceToString())
         } finally {

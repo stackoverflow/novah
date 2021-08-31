@@ -30,7 +30,6 @@ import novah.data.unwrapOrElse
 import novah.frontend.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
-import novah.frontend.error.Severity
 import novah.frontend.typechecker.Inference
 import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
@@ -55,7 +54,6 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     private val sourceMap = mutableMapOf<Path, String>()
 
     private val errors = mutableListOf<CompilerProblem>()
-    private val warnings = mutableListOf<CompilerProblem>()
 
     private val classLoader: NovahClassLoader
     private val sourceLoader: SourceCodeLoader
@@ -65,8 +63,6 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
         sourceLoader = SourceCodeLoader(sourcepath)
         Inference.classLoader = classLoader
     }
-
-    fun getWarnings(): List<CompilerProblem> = warnings
 
     /**
      * Lex, parse and typecheck all modules and store them.
@@ -89,6 +85,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
         val alreadySeenPaths = mutableSetOf<String>()
         for (source in sources) {
             val path = source.path
+            // TODO: check for duplicate modules
             // don't parse the same path
             if (path.toString() in alreadySeenPaths) continue
             alreadySeenPaths += path.toString()
@@ -108,15 +105,17 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
                         if (modMap.containsKey(module)) {
                             errors += duplicateError(mod, path)
                         }
+                        errors += parser.errors()
                         modMap[module] = node
                     },
                     { err -> errors += err }
                 )
             }
         }
-        if (errors.isNotEmpty()) throwErrors()
+        if (shouldThrow(errors)) throwErrors()
 
         if (modMap.isEmpty()) {
+            if (errors.any { it.isErrorOrFatal() }) throwErrors()
             if (verbose) echo("No files to compile")
             return modules
         }
@@ -132,27 +131,29 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
         modGraph.findCycle()?.let { reportCycle(it) }
 
         val orderedMods = modGraph.topoSort()
-        orderedMods.forEach { mod ->
+        for (modNode in orderedMods) {
+            val mod = modNode.data
             Typechecker.reset()
-            val importErrs = resolveImports(mod.data, modules)
-            val foreignErrs = resolveForeignImports(mod.data, classLoader)
-            val (warns, errs) = (importErrs + foreignErrs).partition { it.severity == Severity.WARN }
-            if (errs.isNotEmpty()) throwErrors(errs)
-            warnings.addAll(warns)
+            val importErrs = resolveImports(mod, modules)
+            val foreignErrs = resolveForeignImports(mod, classLoader)
+            errors += importErrs
+            errors += foreignErrs
+            if (shouldThrow(errors)) throwErrors()
 
-            if (verbose) echo("Typechecking ${mod.data.name.value}")
+            if (verbose) echo("Typechecking ${mod.name.value}")
 
-            val desugar = Desugar(mod.data)
-            val (canonical, errs_) = desugar.desugar().unwrapOrElse { throwAllErrors(it) }
-            errors += errs_
-            warnings.addAll(desugar.getWarnings())
-            val menv = Typechecker.infer(canonical).unwrapOrElse { throwAllErrors(it) }
-            warnings.addAll(Inference.getWarnings())
-            if (errors.isNotEmpty()) throwErrors()
+            val desugar = Desugar(mod)
+            val canonical = desugar.desugar().unwrapOrElse { throwAllErrors(it + desugar.errors()) }
+            errors += desugar.errors()
+            if (shouldThrow(errors)) throwErrors()
 
-            val taliases = mod.data.decls.filterIsInstance<Decl.TypealiasDecl>()
-            modules[mod.data.name.value] =
-                FullModuleEnv(menv, canonical, taliases, Typechecker.typeVars(), mod.data.comment, isStdlib)
+            val menv = Typechecker.infer(canonical).unwrapOrElse { throwAllErrors(it + Inference.errors()) }
+            errors += Inference.errors()
+            if (shouldThrow(errors)) throwErrors()
+
+            val taliases = mod.decls.filterIsInstance<Decl.TypealiasDecl>()
+            modules[mod.name.value] =
+                FullModuleEnv(menv, canonical, taliases, Typechecker.typeVars(), mod.comment, isStdlib)
         }
         return modules
     }
@@ -161,13 +162,18 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
      * Optimize and generate jvm bytecode for all modules.
      */
     fun generateCode(output: File, dryRun: Boolean = false) {
-        modules.values.forEach { menv ->
+
+        val optASTs = modules.values.map { menv ->
             val optimizer = Optimizer(menv.ast)
-            val opt = optimizer.convert().unwrapOrElse { throwError(it) }
+            val opt = optimizer.convert()
+            errors += optimizer.errors()
+            opt
+        }
 
-            warnings.addAll(optimizer.getWarnings())
+        if (errors.any { it.isErrorOrFatal() }) throwErrors(errors)
 
-            if (!dryRun) {
+        if (!dryRun) {
+            optASTs.forEach { opt ->
                 val optAST = Optimization.run(opt)
                 val codegen = Codegen(optAST) { dirName, fileName, bytes ->
                     val dir = output.resolve(dirName)
@@ -177,8 +183,8 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
                 }
                 codegen.run()
             }
+            copyNativeLibs(output)
         }
-        if (!dryRun) copyNativeLibs(output)
     }
 
     fun modules() = modules
@@ -186,6 +192,8 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     fun sourceMap() = sourceMap
 
     fun classLoader() = classLoader
+
+    fun errors(): List<CompilerProblem> = errors.toList()
 
     /**
      * Copy all the java classes necessary for novah to run
@@ -216,9 +224,10 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
 
     private fun throwAllErrors(errs: List<CompilerProblem>): Nothing = throw CompilationError(errors + errs)
     private fun throwErrors(errs: List<CompilerProblem> = errors): Nothing = throw CompilationError(errs)
-    private fun throwError(err: CompilerProblem): Nothing = throw CompilationError(listOf(err))
 
     companion object {
+        private const val ERROR_THRESHOLD = 10
+
         private val stdlibModuleNames = mutableSetOf<String>()
 
         fun stdlibModuleNames(): Set<String> = stdlibModuleNames
@@ -230,6 +239,9 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
         }
 
         fun findConstructor(name: String): Type? = constructorTypes[name]
+
+        private fun shouldThrow(errors: List<CompilerProblem>) =
+            errors.any { it.isFatal() } || errors.count { it.isErrorOrFatal() } > ERROR_THRESHOLD
 
         private val stdlibCompiled = mutableMapOf<String, FullModuleEnv>()
 

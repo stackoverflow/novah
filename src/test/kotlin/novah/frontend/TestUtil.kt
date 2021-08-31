@@ -16,7 +16,6 @@
 package novah.frontend
 
 import novah.ast.source.*
-import novah.data.map
 import novah.data.mapList
 import novah.data.unwrapOrElse
 import novah.frontend.typechecker.*
@@ -87,8 +86,8 @@ object TestUtil {
     fun compileCode(code: String, verbose: Boolean = false): FullModuleEnv {
         val compiler = compilerForCode(code, verbose)
         compiler.run(File("."), dryRun = true)
-        if (compiler.getWarnings().isNotEmpty()) {
-            compiler.getWarnings().forEach { println(it.formatToConsole()) }
+        if (compiler.errors().isNotEmpty()) {
+            compiler.errors().forEach { println(it.formatToConsole()) }
         }
         return compiler.getModules()["test"]!!
     }
@@ -98,10 +97,10 @@ object TestUtil {
         val ast = compiler.compile().values.last().ast
         val opt = Optimizer(ast)
         val conv = opt.convert()
-        if (opt.getWarnings().isNotEmpty()) {
-            opt.getWarnings().forEach { println(it.formatToConsole()) }
+        if (opt.errors().isNotEmpty()) {
+            opt.errors().forEach { println(it.formatToConsole()) }
         }
-        return conv.map { Optimization.run(it) }.unwrapOrElse { throw CompilationError(listOf(it)) }
+        return Optimization.run(conv)
     }
 
     fun _i(i: Int) = Expr.Int32(i, "$i")

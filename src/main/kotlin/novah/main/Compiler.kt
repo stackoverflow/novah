@@ -32,10 +32,10 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
     fun run(output: File, dryRun: Boolean = false): List<CompilerProblem> {
         env.parseSources(sources)
         env.generateCode(output, dryRun)
-        return env.getWarnings()
+        return env.errors()
     }
 
-    fun getWarnings() = env.getWarnings()
+    fun errors() = env.errors()
 
     fun getModules() = env.modules()
 

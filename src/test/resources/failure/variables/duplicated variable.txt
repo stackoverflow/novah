@@ -1,5 +1,5 @@
 module [33mtest[0m
-at src/test/resources/failure/variables/duplicated variable.novah:5:1 - 5:10
+at src/test/resources/failure/variables/duplicated variable.novah:6:1 - 6:10
 
   Declaration foo is already defined or imported.
 

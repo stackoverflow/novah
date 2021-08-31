@@ -1,5 +1,6 @@
 module test
 
+foo : Int
 foo = 1
 
 foo = "a"

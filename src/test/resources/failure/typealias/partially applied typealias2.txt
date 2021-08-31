@@ -4,3 +4,13 @@ at src/test/resources/failure/typealias/partially applied typealias2.novah:5:11 
   Partially applied type alias Aged.
   Aged expects 2 parameter(s) but got 1.
 
+
+module [33mtest[0m
+at src/test/resources/failure/typealias/partially applied typealias2.novah:5:11 - 5:15
+
+  Type variables
+  
+      r
+  
+  are unbounded in type alias User.
+

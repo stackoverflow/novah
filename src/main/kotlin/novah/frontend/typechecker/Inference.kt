@@ -40,17 +40,17 @@ import novah.frontend.error.Errors as E
 object Inference {
 
     private val implicitsToCheck = mutableListOf<Expr>()
-    private val warnings = mutableListOf<CompilerProblem>()
+    private val errors = mutableListOf<CompilerProblem>()
 
     var classLoader: NovahClassLoader? = null
 
-    fun getWarnings(): List<CompilerProblem> = warnings
+    fun errors(): List<CompilerProblem> = errors
 
     /**
      * Infer the whole module
      */
     fun infer(ast: Module): ModuleEnv {
-        warnings.clear()
+        errors.clear()
         val decls = mutableMapOf<String, DeclRef>()
         val types = mutableMapOf<String, TypeDeclRef>()
         val warner = makeWarner(ast)
@@ -92,7 +92,7 @@ object Inference {
             if (decl.isInstance) env.extendInstance(name, expr.annType)
         }
 
-        vals.forEach { decl ->
+        for (decl in vals) {
             implicitsToCheck.clear()
             context?.apply { this.decl = decl }
             val name = decl.name.value
@@ -788,6 +788,6 @@ object Inference {
             severity = Severity.WARN,
             action = action
         )
-        warnings += warn
+        errors += warn
     }
 }

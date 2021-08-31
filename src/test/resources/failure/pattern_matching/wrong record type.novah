@@ -1,5 +1,6 @@
 module test
 
+rec : { x : Int, s : String }
 rec = { x: 1, s: "abc" }
 
 fun () =
