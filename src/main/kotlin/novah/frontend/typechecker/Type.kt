@@ -78,6 +78,11 @@ sealed class Type {
         else -> this
     }
 
+    fun isUnbound(): Boolean {
+        val rt = realType()
+        return rt is TVar && rt.tvar is TypeVar.Unbound
+    }
+
     fun clone(): Type = when (this) {
         is TConst -> this
         is TApp -> copy(type.clone(), types.map(Type::clone))

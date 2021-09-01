@@ -27,7 +27,9 @@ import novah.main.DeclRef
 import novah.main.ModuleEnv
 import novah.main.TypeDeclRef
 
-data class InstanceEnv(val type: Type, val isVar: Boolean = false)
+data class InstanceEnv(val type: Type, val isLambdaVar: Boolean = false) {
+    var typeName: String? = null
+}
 
 class Env private constructor(
     private val env: Map<String, Type>,
@@ -55,8 +57,8 @@ class Env private constructor(
 
     fun lookupType(name: String): Type? = types.get(name, null)
 
-    fun extendInstance(name: String, type: Type, isVar: Boolean = false): Env {
-        instances.put(name, InstanceEnv(type, isVar))
+    fun extendInstance(name: String, type: Type, isLambdaVar: Boolean = false): Env {
+        instances.put(name, InstanceEnv(type, isLambdaVar))
         return this
     }
 
