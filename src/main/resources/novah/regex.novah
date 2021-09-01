@@ -1,3 +1,6 @@
+/**
+ * Functions to work with regular expressions.
+ */
 module novah.regex
 
 foreign import java.lang.CharSequence

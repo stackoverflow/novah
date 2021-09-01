@@ -1,3 +1,7 @@
+/**
+ * Functions to work with values that may fail.
+ * Result should always be prefered over throwing exceptions.
+ */
 module novah.result
 
 foreign import java.lang.AssertionError

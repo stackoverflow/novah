@@ -1,3 +1,6 @@
+/**
+ * Functions to work with strings.
+ */
 module novah.string
 
 import novah.list as List

@@ -1,3 +1,6 @@
+/**
+ * Functions to work with persistent maps.
+ */
 module novah.map
 
 foreign import io.lacuna.bifurcan.Map
