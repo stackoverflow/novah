@@ -64,17 +64,31 @@ const : a -> b -> a
 const x _ = x
 
 /**
- * Apply function f to x.
+ * The railway operator.
+ * Applies function f to x.
  * Used to minimize parentheses and have a
  * more intuitive order of execution:
  *
- * `x |> fun1 |> fun2 |> fun3 y`
+ * `1 .. 100 |> List.reverse |> List.map (_ * 10)`
  * instead of
- * `fun3 y (fun2 (fun1 x))`
+ * `List.map (_ * 10) (List.reverse (1 .. 100))`
  */
 pub
 (|>) : a -> (a -> b) -> b
 (|>) x f = f x
+
+/**
+ * The reverse of the `|>` (railway operator).
+ * Applies function f to x.
+ * Used to minimize parentheses:
+ *
+ * `List.map (_ * 10) <| List.reverse <| 1 .. 100`
+ * instead of
+ * `List.map (_ * 10) (List.sort (1 .. 100))`
+ */
+pub
+(<|) : (a -> b) -> a -> b
+(<|) f x = f x
 
 /**
  * Forward function composition operator: `(f >> g) x = g (f x)`
@@ -104,7 +118,7 @@ pub
  */
 pub
 (!==) : a -> a -> Boolean
-(!==) x y = Core#not(x === y)
+(!==) x y = Core#not(Core#equivalentObject(x, y))
 
 /**
  * Logical `and` operator.

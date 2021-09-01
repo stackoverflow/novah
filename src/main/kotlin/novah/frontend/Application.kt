@@ -70,14 +70,14 @@ object Application {
     /**
      * Returns the fixity (left/right) of an operator.
      * Operators that start with `$` or `:` are right associative.
-     * Operators that end with `<` (as long as they have at least 2 characters)
-     * are also right associative.
+     * Operators that end with `<` are right associative.
+     * <| is right associative.
      * Everything else is left associative.
      */
     private fun getFixity(op: Expr.Operator): Fixity = when (op.name[0]) {
         '$', ':' -> Fixity.Right
         else -> {
-            if (op.name.length > 1 && op.name.last() == '<') Fixity.Right
+            if (op.name == "<|" || op.name.last() == '<') Fixity.Right
             else Fixity.Left
         }
     }
