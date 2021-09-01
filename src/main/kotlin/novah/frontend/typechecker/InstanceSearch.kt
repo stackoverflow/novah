@@ -30,18 +30,10 @@ object InstanceSearch {
     fun instanceSearch(apps: List<Expr>) {
         for (app in apps) {
             val impCtx = app.implicitContext!!
-            val imps = impCtx.types
 
-            val resolved = imps.map { find(impCtx.env, it, 0, app.span) }
+            val resolved = impCtx.types.map { find(impCtx.env, it, 0, app.span) }
             impCtx.resolveds.addAll(resolved)
-            //println("resolved ${imps.joinToString { it.show() }} with $resolved at ${app.span}")
         }
-    }
-
-    private sealed class Res {
-        class Yes(val exp: Expr) : Res()
-        class Maybe(val exp: Expr) : Res()
-        object No : Res()
     }
 
     private fun find(env: Env, ty: Type, depth: Int, span: Span): Expr {
@@ -49,7 +41,7 @@ object InstanceSearch {
 
         val candidates = findCandidates(env, ty, span)
         val genTy = generalize(-1, ty)
-        
+
         fun checkImplicit(name: String, impType: Type): Expr? {
             return try {
                 val (imps, ret) = peelImplicits(impType)
@@ -67,22 +59,14 @@ object InstanceSearch {
             }
         }
 
-        val res = candidates.map { (name, ienv) ->
-            val found = checkImplicit(name, ienv.type)
-            if (found != null) {
-                Res.Yes(found)
-            } else if (!ienv.isVar) {
-                val found2 = checkImplicit(name, instantiate(0, ienv.type))
-                if (found2 != null) Res.Maybe(found2) else Res.No
-            } else Res.No
+        val res = candidates.mapNotNull { (name, ienv) ->
+            checkImplicit(name, ienv.type) ?: if (!ienv.isLambdaVar) {
+                checkImplicit(name, instantiate(0, ienv.type))
+            } else null
         }
-        val yeses = res.filterIsInstance<Res.Yes>()
-        if (yeses.size == 1) return yeses[0].exp
-        if (yeses.size > 1) inferError(Errors.overlappingInstances(showImplicit(ty)), span)
 
-        val maybes = res.filterIsInstance<Res.Maybe>()
-        if (maybes.size == 1) return maybes[0].exp
-        if (maybes.size > 1) inferError(Errors.overlappingInstances(showImplicit(ty)), span)
+        if (res.size == 1) return res[0]
+        if (res.size > 1) inferError(Errors.overlappingInstances(showImplicit(ty)), span)
         inferError(Errors.noInstanceFound(showImplicit(ty)), span)
     }
 
@@ -90,7 +74,7 @@ object InstanceSearch {
         val cands = mutableListOf<Pair<String, InstanceEnv>>()
         val tname = typeName(ty) ?: inferError(Errors.unamedType(ty.show()), span)
         env.forEachInstance { name, ienv ->
-            if (tname == typeName(ienv.type)) cands += name to ienv
+            if (isCandidate(tname, ienv)) cands += name to ienv
         }
         return cands.sortedBy { it.first }
     }
@@ -103,6 +87,9 @@ object InstanceSearch {
         else -> emptyList<Type>() to ty
     }
 
+    /**
+     * Returns the name of this type if it's a named type.
+     */
     private tailrec fun typeName(ty: Type): String? = when (ty) {
         is TConst -> ty.name
         is TApp -> typeName(ty.type)
@@ -116,6 +103,20 @@ object InstanceSearch {
         exps.reversed().reduceRight { exp, acc ->
             Expr.App(acc, exp, acc.span).apply { type = getReturn(acc.type!!) }
         }
+
+    /**
+     * An instance is a candidate for the type named tname if,
+     * either they are the same type (names match), or if
+     * the instance is an unbound implicit lambda parameter.
+     */
+    private fun isCandidate(tname: String, ienv: InstanceEnv): Boolean {
+        if (ienv.typeName == null) ienv.typeName = typeName(ienv.type)
+
+        if (tname == ienv.typeName) return true
+        if (!ienv.isLambdaVar) return false
+
+        return ienv.type is TImplicit && ienv.type.type.isUnbound()
+    }
 
     private tailrec fun getReturn(ty: Type): Type = when (ty) {
         is TArrow -> getReturn(ty.ret)

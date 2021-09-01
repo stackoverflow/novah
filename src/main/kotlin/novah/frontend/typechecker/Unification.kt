@@ -90,6 +90,7 @@ object Unification {
                 val ls = labels.show { key, type -> "$key : ${type.show()}" }
                 innerError(UnifyError.MissingLabels(ls))
             }
+            t1 is TImplicit && t2 is TImplicit -> innerUnify(t1.type, t2.type, span)
             t1 is TImplicit -> innerUnify(t1.type, t2, span)
             t2 is TImplicit -> innerUnify(t1, t2.type, span)
             else -> innerError(UnifyError.NoMatch(t1, t2))
