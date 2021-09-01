@@ -1,3 +1,6 @@
+/**
+ * Function to work with native Java arrays.
+ */
 module novah.array
 
 foreign import java.lang.System

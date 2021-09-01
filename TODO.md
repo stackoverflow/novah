@@ -17,6 +17,5 @@
 - [ ] Add a `do!` to computations
 - [ ] Make unused imports an error
 - [ ] Have a `dev mode` for dev use and make all warnings errors in real builds
-- [ ] Add documentation to stdlib at module level
 - [ ] Allow if without else (returning Unit) and change computation if to if!
 - [ ] Only recompile files that changed + dependencies

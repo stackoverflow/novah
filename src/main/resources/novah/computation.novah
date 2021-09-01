@@ -1,3 +1,7 @@
+/**
+ * This module defines computation expressions
+ * for some types like List and Option.
+ */
 module novah.computation
 
 import novah.linkedList (LinkedList(..))
@@ -76,7 +80,8 @@ option =
 pub
 result :
   { bind : Result a e -> (a -> Result b e) -> Result b e
-  , return : c -> Result c f }
+  , return : c -> Result c f
+  }
 result =
   { bind: resultBind
   , return: Ok

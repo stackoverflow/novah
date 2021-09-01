@@ -1,3 +1,11 @@
+/**
+ * A lightweight test library.
+ * Tests can be either automatically registered
+ * with the `test` and `testWith` function
+ * and ran with `runAllTests` or `runTestsFor`
+ * or manually created with the `Test`, `Tests` and `Setup` constructors
+ * and ran with `ranTests`.
+ */
 module novah.test
 
 foreign import java.lang.AssertionError

@@ -1,3 +1,6 @@
+/**
+ * Functions to work with optional values.
+ */
 module novah.option
 
 foreign import java.lang.AssertionError

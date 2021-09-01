@@ -1,3 +1,8 @@
+/**
+ * Functions to work with persistent lists.
+ * They can also be used as queues or stacks.
+ * Literal lists can be created using `[]`.
+ */
 module novah.list
 
 foreign import java.util.Arrays

@@ -1,3 +1,6 @@
+/**
+ * Functions to work with Java streams.
+ */
 module novah.stream
 
 foreign import java.util.function.Consumer

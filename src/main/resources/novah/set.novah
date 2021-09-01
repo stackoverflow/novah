@@ -1,3 +1,7 @@
+/**
+ * Functions to work with persistent sets.
+ * Literal sets can be created using `#{}`.
+ */
 module novah.set
 
 foreign import java.util.stream.Stream
