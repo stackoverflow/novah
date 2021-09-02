@@ -132,8 +132,9 @@ filter f (list : List a) =
   let llist = []#linear()
   forEachRange 0L list#size() \idx ->
     let elem = list ! idx
-    when (f elem) \_ ->
+    if (f elem) then
       addLast elem llist
+      ()
   llist#forked()
 
 /**
@@ -147,8 +148,9 @@ filterIndexed f (list : List a) =
   let llist = []#linear()
   forEachRange 0L list#size() \idx ->
     let elem = list ! idx
-    when (f idx elem) \_ ->
+    if (f idx elem) then
       addLast elem llist
+      ()
   llist#forked()
 
 /**
