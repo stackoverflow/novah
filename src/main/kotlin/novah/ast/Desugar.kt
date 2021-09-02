@@ -416,6 +416,7 @@ class Desugar(private val smod: SModule) {
             nestLambdas(lvars, Expr.ForeignMethod(lexpr, method, pars, span))
         }
         is SExpr.Return -> parserError(E.RETURN_EXPR, span)
+        is SExpr.LetBang -> parserError(E.LET_BANG, span)
     }
 
     private fun SCase.desugar(locals: List<String>, tvars: Map<String, Type>): Case {
@@ -820,20 +821,21 @@ class Desugar(private val smod: SModule) {
      * that comes after.
      */
     private fun convertDoLets(exprs: List<SExpr>, builder: SExpr.Var?): List<SExpr> {
-        return if (exprs.filterIsInstance<SExpr.DoLet>().isEmpty()) exprs
+        return if (exprs.none { it is SExpr.DoLet || it is SExpr.LetBang }) exprs
         else {
             val exp = exprs[0]
             if (exp is SExpr.DoLet) {
                 val body = convertDoLets(exprs.drop(1), builder)
                 val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
-                if (exp.isBind && builder != null) {
-                    val span = exp.span
-                    val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
-                    val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), bodyExp).withSpan(span)
-                    listOf(SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span))
-                } else {
-                    listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span, bodyExp.span))
-                }
+                listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span, bodyExp.span))
+            } else if (exp is SExpr.LetBang && builder != null) {
+                val body = convertDoLets(exprs.drop(1), builder)
+                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
+                
+                val span = exp.span
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
+                val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), bodyExp).withSpan(span)
+                listOf(SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span))
             } else {
                 listOf(exp) + convertDoLets(exprs.drop(1), builder)
             }
