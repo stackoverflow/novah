@@ -233,6 +233,7 @@ sealed class Expr {
     data class While(val cond: Expr, val exps: List<Expr>) : Expr()
     data class Computation(val builder: Var, val exps: List<Expr>) : Expr()
     data class IfBang(val cond: Expr, val thenCase: Expr) : Expr()
+    data class Return(val exp: Expr) : Expr()
     class Null : Expr()
     data class TypeCast(val exp: Expr, val cast: Type) : Expr()
     data class ForeignStaticField(val clazz: Spanned<String>, val field: Spanned<String>) : Expr()

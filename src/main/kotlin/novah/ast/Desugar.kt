@@ -415,6 +415,7 @@ class Desugar(private val smod: SModule) {
 
             nestLambdas(lvars, Expr.ForeignMethod(lexpr, method, pars, span))
         }
+        is SExpr.Return -> parserError(E.RETURN_EXPR, span)
     }
 
     private fun SCase.desugar(locals: List<String>, tvars: Map<String, Type>): Case {
@@ -839,31 +840,22 @@ class Desugar(private val smod: SModule) {
         }
     }
 
-    private val specialComputationFunctions = setOf("return")
-
-    private fun replaceSpecialFun(exp: SExpr, builder: SExpr.Var): SExpr {
-        fun replace(e: SExpr): SExpr = when {
-            e is SExpr.App && e.fn is SExpr.App -> SExpr.App(replace(e.fn), e.arg)
-            e is SExpr.App && e.fn is SExpr.Var && e.fn.alias == null && e.fn.name in specialComputationFunctions -> {
-                val span = exp.span
-                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, e.fn.name))).withSpan(span)
-                SExpr.App(select, e.arg).withSpan(span)
-            }
-            else -> e
+    private fun desugarComputationSyntax(exp: SExpr, builder: SExpr.Var): SExpr = when (exp) {
+        is SExpr.IfBang -> {
+            val span = exp.span
+            val elseCase = SExpr.RecordSelect(builder, listOf(Spanned(span, "zero"))).withSpan(span)
+            SExpr.If(exp.cond, desugarComputationSyntax(exp.thenCase, builder), elseCase).withSpan(span)
         }
-        return when (exp) {
-            is SExpr.App -> replace(exp)
-            is SExpr.IfBang -> {
-                val span = exp.span
-                val elseCase = SExpr.RecordSelect(builder, listOf(Spanned(span, "zero"))).withSpan(span)
-                SExpr.If(exp.cond, replaceSpecialFun(exp.thenCase, builder), elseCase).withSpan(span)
-            }
-            else -> exp
+        is SExpr.Return -> {
+            val span = exp.span
+            val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "pure"))).withSpan(span)
+            SExpr.App(select, exp.exp).withSpan(span)
         }
+        else -> exp
     }
 
     private fun desugarSpecialComputationFunctions(exprs: List<SExpr>, builder: SExpr.Var): List<SExpr> {
-        return exprs.map { replaceSpecialFun(it, builder) }
+        return exprs.map { desugarComputationSyntax(it, builder) }
     }
 
     private fun reportUnusedImports() {

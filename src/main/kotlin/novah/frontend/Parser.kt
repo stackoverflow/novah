@@ -518,6 +518,11 @@ class Parser(
             }
             is TryT -> parseTryCatch()
             is WhileT -> parseWhile()
+            is Return -> {
+                val ret = iter.next()
+                val exp = parseExpression()
+                Expr.Return(exp).withSpan(ret.span, exp.span).withComment(ret.comment)
+            }
             else -> null
         }
 

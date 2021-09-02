@@ -171,6 +171,8 @@ object Errors {
 
     const val LET_BANG = "`let!` syntax can only be used inside a computation expression."
 
+    const val RETURN_EXPR = "return keyword can only be used inside a computation expression."
+
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
         
