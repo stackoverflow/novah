@@ -47,6 +47,7 @@ sealed class Token {
     object IfT : Token()
     object Then : Token()
     object Else : Token()
+    object Ifbang : Token()
     object LetT : Token()
     object LetBang : Token()
     object CaseT : Token()
@@ -296,7 +297,12 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "" -> lexError("Identifiers cannot be empty")
             "true" -> BoolT(true)
             "false" -> BoolT(false)
-            "if" -> IfT
+            "if" -> {
+                if (iter.peek() == '!') {
+                    iter.next()
+                    Ifbang
+                } else IfT
+            }
             "then" -> Then
             "else" -> Else
             "_" -> Underline

@@ -143,14 +143,20 @@ class Formatter {
                 let + show(e.letDef)
             }
             is Expr.If -> {
-                val simple = e.thenCase.isSimpleExpr() && e.elseCase.isSimpleExpr()
-                if (simple) "if ${show(e.cond)} then ${show(e.thenCase)} else ${show(e.elseCase)}"
-                else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}\n${tab}else ${show(e.elseCase)}"
+                if (e.elseCase != null) {
+                    val simple = e.thenCase.isSimpleExpr() && e.elseCase.isSimpleExpr()
+                    if (simple) "if ${show(e.cond)} then ${show(e.thenCase)} else ${show(e.elseCase)}"
+                    else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}\n${tab}else ${show(e.elseCase)}"
+                } else {
+                    val simple = e.thenCase.isSimpleExpr()
+                    if (simple) "if ${show(e.cond)} then ${show(e.thenCase)}"
+                    else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}"
+                }
             }
             is Expr.IfBang -> {
                 val simple = e.thenCase.isSimpleExpr()
-                if (simple) "if ${show(e.cond)} then ${show(e.thenCase)}"
-                else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}"
+                if (simple) "if! ${show(e.cond)} then ${show(e.thenCase)}"
+                else "if! ${show(e.cond)}\n${tab}then ${show(e.thenCase)}"
             }
             is Expr.App -> {
                 "${show(e.fn)} ${show(e.arg)}"

@@ -216,7 +216,8 @@ class Desugar(private val smod: SModule) {
         is SExpr.App -> Expr.App(fn.desugar(locals, tvars), arg.desugar(locals, tvars), span)
         is SExpr.Parens -> exp.desugar(locals, tvars)
         is SExpr.If -> {
-            val args = listOf(cond, thenCase, elseCase).map {
+            val els = elseCase ?: SExpr.Unit()
+            val args = listOf(cond, thenCase, els).map {
                 if (it is SExpr.Underscore) {
                     val v = newVar()
                     Binder(v, it.span) to Expr.Var(v, it.span)
