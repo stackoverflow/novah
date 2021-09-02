@@ -337,156 +337,156 @@ pub
  * The type of things that can be concatenated.
  */
 pub+
-opaque type Concat a = { concat : a -> a -> a }
+opaque type Concat a = a -> a -> a
 
 /**
  * Concatenate 2 concatenable values together.
  */
 pub
 (++) : {{ Concat a }} -> a -> a -> a
-(++) {{Concat app}} x y = app.concat x y
+(++) {{Concat concat}} x y = concat x y
 
 pub instance
 concatString : Concat String
-concatString = Concat { concat: \s s2 -> (s : String)#concat(s2) }
+concatString = Concat \s s2 -> (s : String)#concat(s2)
 
 pub instance
 concatList : Concat (List a)
-concatList = Concat { concat: \v v2 -> (v : List a)#concat(v2 as IList a) as List a }
+concatList = Concat \v v2 -> (v : List a)#concat(v2 as IList a) as List a
 
 pub instance
 concatSet : Concat (Set a)
-concatSet = Concat { concat: \s s2 -> (s : Set a)#union(s2 as ISet a) }
+concatSet = Concat \s s2 -> (s : Set a)#union(s2 as ISet a)
 
 concatOption_ : Concat a -> Option a -> Option a -> Option a
-concatOption_ (Concat ap) =
+concatOption_ (Concat concat) =
   case _, _ of
-    Some x, Some y -> Some (ap.concat x y)
+    Some x, Some y -> Some (concat x y)
     _, _ -> None
 
 pub instance
 concatOption : {{ Concat a }} -> Concat (Option a)
-concatOption {{ap}} = Concat { concat: concatOption_ ap }
+concatOption {{ap}} = Concat (concatOption_ ap)
 
 /**
  * The type of things that can be added together
  * using the + operator.
  */
 pub+
-opaque type Plus a = { plus : a -> a -> a }
+opaque type Plus a = a -> a -> a
 
 /**
  * Adds x and y.
  */
 pub
 (+) : {{ Plus a }} -> a -> a -> a
-(+) {{Plus p}} x y = p.plus x y
+(+) {{Plus plus}} x y = plus x y
 
 pub instance
 plusInt32 : Plus Int32
-plusInt32 = Plus { plus: \(x : Int32) y -> Core#sum(x, y) }
+plusInt32 = Plus \(x : Int32) y -> Core#sum(x, y)
 
 pub instance
 plusInt64 : Plus Int64
-plusInt64 = Plus { plus: \(x : Int64) y -> Core#sum(x, y) }
+plusInt64 = Plus \(x : Int64) y -> Core#sum(x, y)
 
 pub instance
 plusFloat32 : Plus Float32
-plusFloat32 = Plus { plus: \(x : Float32) y -> Core#sum(x, y) }
+plusFloat32 = Plus \(x : Float32) y -> Core#sum(x, y)
 
 pub instance
 plusFloat64 : Plus Float64
-plusFloat64 = Plus { plus: \(x : Float64) y -> Core#sum(x, y) }
+plusFloat64 = Plus \(x : Float64) y -> Core#sum(x, y)
 
 /**
  * The type of things that can be subtracted
  * using the - operator.
  */
 pub+
-opaque type Minus a = { minus : a -> a -> a }
+opaque type Minus a = a -> a -> a
 
 /**
  * Subtracts x and y.
  */
 pub
 (-) : {{ Minus a }} -> a -> a -> a
-(-) {{Minus p}} x y = p.minus x y
+(-) {{Minus minus}} x y = minus x y
 
 pub instance
 minusInt32 : Minus Int32
-minusInt32 = Minus { minus: \(x : Int32) y -> Core#sub(x, y) }
+minusInt32 = Minus \(x : Int32) y -> Core#sub(x, y)
 
 pub instance
 minusInt64 : Minus Int64
-minusInt64 = Minus { minus: \(x : Int64) y -> Core#sub(x, y) }
+minusInt64 = Minus \(x : Int64) y -> Core#sub(x, y)
 
 pub instance
 minusFloat32 : Minus Float32
-minusFloat32 = Minus { minus: \(x : Float32) y -> Core#sub(x, y) }
+minusFloat32 = Minus \(x : Float32) y -> Core#sub(x, y)
 
 pub instance
 minusFloat64 : Minus Float64
-minusFloat64 = Minus { minus: \(x : Float64) y -> Core#sub(x, y) }
+minusFloat64 = Minus \(x : Float64) y -> Core#sub(x, y)
 
 /**
  * The type of things that can be multiplied together
  * using the * operator.
  */
 pub+
-opaque type Mult a = { mult : a -> a -> a }
+opaque type Mult a = a -> a -> a
 
 /**
  * Multiplies x and y.
  */
 pub
 (*) : {{ Mult a }} -> a -> a -> a
-(*) {{Mult p}} x y = p.mult x y
+(*) {{Mult mult}} x y = mult x y
 
 pub instance
 multInt32 : Mult Int32
-multInt32 = Mult { mult: \(x : Int32) y -> Core#mult(x, y) }
+multInt32 = Mult \(x : Int32) y -> Core#mult(x, y)
 
 pub instance
 multInt64 : Mult Int64
-multInt64 = Mult { mult: \(x : Int64) y -> Core#mult(x, y) }
+multInt64 = Mult \(x : Int64) y -> Core#mult(x, y)
 
 pub instance
 multFloat32 : Mult Float32
-multFloat32 = Mult { mult: \(x : Float32) y -> Core#mult(x, y) }
+multFloat32 = Mult \(x : Float32) y -> Core#mult(x, y)
 
 pub instance
 multFloat64 : Mult Float64
-multFloat64 = Mult { mult: \(x : Float64) y -> Core#mult(x, y) }
+multFloat64 = Mult \(x : Float64) y -> Core#mult(x, y)
 
 /**
  * The type of things that can be divided
  * using the / operator.
  */
 pub+
-opaque type Divide a = { divide : a -> a -> a }
+opaque type Divide a = a -> a -> a
 
 /**
  * Divides x by y.
  */
 pub
 (/) : {{ Divide a }} -> a -> a -> a
-(/) {{Divide p}} x y = p.divide x y
+(/) {{Divide divide}} x y = divide x y
 
 pub instance
 divideInt32 : Divide Int32
-divideInt32 = Divide { divide: \(x : Int32) y -> Core#div(x, y) }
+divideInt32 = Divide \(x : Int32) y -> Core#div(x, y)
 
 pub instance
 divideInt64 : Divide Int64
-divideInt64 = Divide { divide: \(x : Int64) y -> Core#div(x, y) }
+divideInt64 = Divide \(x : Int64) y -> Core#div(x, y)
 
 pub instance
 divideFloat32 : Divide Float32
-divideFloat32 = Divide { divide: \(x : Float32) y -> Core#div(x, y) }
+divideFloat32 = Divide \(x : Float32) y -> Core#div(x, y)
 
 pub instance
 divideFloat64 : Divide Float64
-divideFloat64 = Divide { divide: \(x : Float64) y -> Core#div(x, y) }
+divideFloat64 = Divide \(x : Float64) y -> Core#div(x, y)
 
 /**
  * Returns x raised to the power of y.
@@ -500,137 +500,137 @@ pub
  * The type of things that have a String representation.
  */
 pub+
-opaque type Show a = { show : a -> String }
+opaque type Show a = a -> String
 
 /**
  * Converts this value to a String.
  */
 pub
 show : {{ Show a }} -> a -> String
-show {{Show s}} x = s.show x
+show {{Show sh}} x = sh x
 
 /**
  * Like `println` but transforms x to a String using `show` first.
  */
 pub
 printlnShow : {{ Show a }} -> a -> Unit
-printlnShow {{Show s}} x = println (s.show x)
+printlnShow {{Show sh}} x = println (sh x)
 
 pub instance
 showString : Show String
-showString = Show { show: identity }
+showString = Show identity
 
 pub instance
 showByte : Show Byte
-showByte = Show { show: toString }
+showByte = Show toString
 
 pub instance
 showInt16 : Show Int16
-showInt16 = Show { show: toString }
+showInt16 = Show toString
 
 pub instance
 showInt32 : Show Int32
-showInt32 = Show { show: toString }
+showInt32 = Show toString
 
 pub instance
 showInt64 : Show Int64
-showInt64 = Show { show: toString }
+showInt64 = Show toString
 
 pub instance
 showFloat32 : Show Float32
-showFloat32 = Show { show: toString }
+showFloat32 = Show toString
 
 pub instance
 showFloat64 : Show Float64
-showFloat64 = Show { show: toString }
+showFloat64 = Show toString
 
 pub instance
 showChar : Show Char
-showChar = Show { show: toString }
+showChar = Show toString
 
 pub instance
 showBoolean : Show Boolean
-showBoolean = Show { show: toString }
+showBoolean = Show toString
 
 showOpt : Show a -> Option a -> String
-showOpt (Show s) =
+showOpt (Show sh) =
   case _ of
-    Some x -> format "(Some %s)" [s.show x]
+    Some x -> format "(Some %s)" [sh x]
     None -> "None"
 
 pub instance
 showOption : {{ Show a }} -> Show (Option a)
-showOption {{s}} = Show { show: showOpt s }
+showOption {{s}} = Show (showOpt s)
 
 pub instance
 showList : {{ Show a }} -> Show (List a)
-showList {{Show s}} = Show { show: \v -> Core#toStringList(v, s.show) }
+showList {{Show sh}} = Show Core#toStringList(_, sh)
 
 pub instance
 showSet : {{ Show a }} -> Show (Set a)
-showSet {{Show s}} = Show { show: \set -> Core#toStringSet(set, s.show) }
+showSet {{Show sh}} = Show Core#toStringSet(_, sh)
 
 pub instance
 showArray : {{ Show a }} -> Show (Array a)
-showArray {{Show s}} = Show { show: \a -> Core#toStringArray(a, s.show) }
+showArray {{Show sh}} = Show Core#toStringArray(_, sh)
 
 showNull : Show a -> Nullable a -> String
-showNull (Show s) x =
+showNull (Show sh) x =
   if x === null
     then "null"
-    else s.show (x as a)
+    else sh (x as a)
 
 pub instance
 showNullable : {{ Show a }} -> Show (Nullable a)
-showNullable {{s}} = Show { show: showNull s }
+showNullable {{s}} = Show (showNull s)
 
 /**
  * The type of things that support equality comparison.
  */
 pub+
-opaque type Equals a = { equals : a -> a -> Boolean }
+opaque type Equals a = a -> a -> Boolean
 
 /**
  * Returns true if the two values are equal.
  */
 pub
 (==) : {{ Equals a }} -> a -> a -> Boolean
-(==) {{Equals eq}} x y = eq.equals x y
+(==) {{Equals eq}} x y = eq x y
 
 /**
  * Returns true if the two values are *not* equal.
  */
 pub
 (!=) : {{ Equals a }} -> a -> a -> Boolean
-(!=) {{Equals eq}} x y = not (eq.equals x y)
+(!=) {{Equals eq}} x y = not (eq x y)
 
 pub instance
 eqByte : Equals Byte
-eqByte = Equals { equals: \(x : Byte) y -> Core#equivalent(x, y) }
+eqByte = Equals \(x : Byte) y -> Core#equivalent(x, y)
 
 pub instance
 eqInt16 : Equals Int16
-eqInt16 = Equals { equals: \(x : Int16) y -> Core#equivalent(x, y) }
+eqInt16 = Equals \(x : Int16) y -> Core#equivalent(x, y)
 
 pub instance
 eqInt32 : Equals Int32
-eqInt32 = Equals { equals: \(x : Int32) y -> Core#equivalent(x, y) }
+eqInt32 = Equals \(x : Int32) y -> Core#equivalent(x, y)
 
 pub instance
 eqInt64 : Equals Int64
-eqInt64 = Equals { equals: \(x : Int64) y -> Core#equivalent(x, y) }
+eqInt64 = Equals \(x : Int64) y -> Core#equivalent(x, y)
 
 pub instance
 eqFloat32 : Equals Float32
-eqFloat32 = Equals { equals: \(x : Float32) y -> Core#equivalent(x, y) }
+eqFloat32 = Equals \(x : Float32) y -> Core#equivalent(x, y)
 
 pub instance
 eqFloat64 : Equals Float64
-eqFloat64 = Equals { equals: \(x : Float64) y -> Core#equivalent(x, y) }
+eqFloat64 = Equals \(x : Float64) y -> Core#equivalent(x, y)
 
 pub instance
 eqChar : Equals Char
-eqChar = Equals { equals: \(x : Char) y -> Core#equivalent(x, y) }
+eqChar = Equals \(x : Char) y -> Core#equivalent(x, y)
 
 equalsBoolean : Boolean -> Boolean -> Boolean
 equalsBoolean =
@@ -641,34 +641,34 @@ equalsBoolean =
 
 pub instance
 eqBoolean : Equals Boolean
-eqBoolean = Equals { equals: equalsBoolean }
+eqBoolean = Equals equalsBoolean
 
 pub instance
 eqString : Equals String
-eqString = Equals { equals: \(x : String) y -> x#equals((y : String) as Object) }
+eqString = Equals \(x : String) y -> x#equals((y : String) as Object)
 
 pub instance
 eqList : {{ Equals a }} -> Equals (List a)
-eqList {{Equals eq}} = Equals { equals: \x y -> Core#equalsList(x, y, eq.equals) }
+eqList {{Equals eq}} = Equals \x y -> Core#equalsList(x, y, eq)
 
 pub instance
 eqSet : {{ Equals a }} -> Equals (Set a)
-eqSet {{Equals eq}} = Equals { equals: \x y -> Core#equalsSet(x, y, eq.equals) }
+eqSet {{Equals eq}} = Equals \x y -> Core#equalsSet(x, y, eq)
 
 pub instance
 eqArray : {{ Equals a }} -> Equals (Array a)
-eqArray {{Equals eq}} = Equals { equals: \x y -> Core#equalsArray(x, y, eq.equals) }
+eqArray {{Equals eq}} = Equals \x y -> Core#equalsArray(x, y, eq)
 
 equalsOption : Equals a -> Option a -> Option a -> Boolean
 equalsOption (Equals eq) =
   case _, _ of
-    Some x, Some y -> eq.equals x y
+    Some x, Some y -> eq x y
     None, None -> true
     _, _ -> false
 
 pub instance
 eqOption : {{ Equals a }} -> Equals (Option a)
-eqOption {{eq}} = Equals { equals: equalsOption eq }
+eqOption {{eq}} = Equals (equalsOption eq)
 
 equalsNullable : Equals a -> Nullable a -> Nullable a -> Boolean
 equalsNullable (Equals eq) x y =
@@ -677,11 +677,11 @@ equalsNullable (Equals eq) x y =
     else
       if x === null || y === null
         then false
-        else eq.equals (x as a) (y as a)
+        else eq (x as a) (y as a)
 
 pub instance
 eqNullable : {{ Equals a }} -> Equals (Nullable a)
-eqNullable {{eq}} = Equals { equals: equalsNullable eq }
+eqNullable {{eq}} = Equals (equalsNullable eq)
 
 /**
  * Compare if the two records are equals
@@ -712,11 +712,11 @@ equalsOrdering =
 
 pub instance
 eqOrdering : Equals Ordering
-eqOrdering = Equals { equals: equalsOrdering }
+eqOrdering = Equals equalsOrdering
 
 pub instance
 showOrdering : Show Ordering
-showOrdering = Show { show: toString }
+showOrdering = Show toString
 
 /**
  * The type of things that can be ordered.
@@ -1060,23 +1060,23 @@ type Result ok err
 equalsResult : Equals ok -> Equals err -> Result ok err -> Result ok err -> Boolean
 equalsResult (Equals eq1) (Equals eq2) =
   case _, _ of
-    Ok x, Ok y -> eq1.equals x y
-    Err x, Err y -> eq2.equals x y
+    Ok x, Ok y -> eq1 x y
+    Err x, Err y -> eq2 x y
     _, _ -> false
 
 pub instance
 eqResult : {{ Equals ok }} -> {{ Equals err }} -> Equals (Result ok err)
-eqResult {{eq1}} {{eq2}} = Equals { equals: equalsResult eq1 eq2 }
+eqResult {{eq1}} {{eq2}} = Equals (equalsResult eq1 eq2)
 
 showRes : Show ok -> Show err -> Result ok err -> String
 showRes (Show s1) (Show s2) =
   case _ of
-    Ok x -> format "(Ok %s)" [s1.show x]
-    Err x -> format "(Err %s)" [s2.show x]
+    Ok x -> format "(Ok %s)" [s1 x]
+    Err x -> format "(Err %s)" [s2 x]
 
 pub instance
 showResult : {{ Show ok }} -> {{ Show err }} -> Show (Result ok err)
-showResult {{s1}} {{s2}} = Show { show: showRes s1 s2 }
+showResult {{s1}} {{s2}} = Show (showRes s1 s2)
 
 /**
  * A Tuple containing two values.
@@ -1092,25 +1092,25 @@ pub
 (<>) = Tuple
 
 equalsTuple : Equals a -> Equals b -> Tuple a b -> Tuple a b -> Boolean
-equalsTuple (Equals eq1) (Equals eq2) (Tuple x y) (Tuple x2 y2) = eq1.equals x x2 && eq2.equals y y2
+equalsTuple (Equals eq1) (Equals eq2) (Tuple x y) (Tuple x2 y2) = eq1 x x2 && eq2 y y2
 
 pub instance
 eqTuple : {{ Equals a }} -> {{ Equals b }} -> Equals (Tuple a b)
-eqTuple {{eq1}} {{eq2}} = Equals { equals: equalsTuple eq1 eq2 }
+eqTuple {{eq1}} {{eq2}} = Equals (equalsTuple eq1 eq2)
 
 showTup : Show a -> Show b -> Tuple a b -> String
-showTup (Show s1) (Show s2) (Tuple x y) = format "(Tuple %s %s)" [s1.show x, s2.show y]
+showTup (Show s1) (Show s2) (Tuple x y) = format "(Tuple %s %s)" [s1 x, s2 y]
 
 pub instance
 showTuple : {{ Show a }} -> {{ Show b }} -> Show (Tuple a b)
-showTuple {{s1}} {{s2}} = Show { show: showTup s1 s2 }
+showTuple {{s1}} {{s2}} = Show (showTup s1 s2)
 
 concatTup : Concat a -> Concat b -> Tuple a b -> Tuple a b -> Tuple a b
-concatTup (Concat c1) (Concat c2) (Tuple x y) (Tuple x2 y2) = Tuple (c1.concat x x2) (c2.concat y y2)
+concatTup (Concat c1) (Concat c2) (Tuple x y) (Tuple x2 y2) = Tuple (c1 x x2) (c2 y y2)
 
 pub instance
 concatTuple : {{ Concat a }} -> {{ Concat b }} -> Concat (Tuple a b)
-concatTuple {{c1}} {{c2}} = Concat { concat: concatTup c1 c2 }
+concatTuple {{c1}} {{c2}} = Concat (concatTup c1 c2)
 
 /**
  * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
@@ -1163,15 +1163,15 @@ compareAndSet : a -> a -> Atom a -> Boolean
 compareAndSet old new (Atom atm) = atm#compareAndSet(old, new)
 
 equalsAtom : Equals a -> Atom a -> Atom a -> Boolean
-equalsAtom (Equals eq) x y = eq.equals (deref x) (deref y)
+equalsAtom (Equals eq) x y = eq (deref x) (deref y)
 
 pub instance
 eqAtom : {{ Equals a }} -> Equals (Atom a)
-eqAtom {{eq}} = Equals { equals: equalsAtom eq }
+eqAtom {{eq}} = Equals (equalsAtom eq)
 
 pub instance
 showAtom : {{ Show a }} -> Show (Atom a)
-showAtom {{Show s}} = Show { show: \atm -> format "(Atom %s)" [s.show (deref atm)] }
+showAtom {{Show sh}} = Show \atm -> format "(Atom %s)" [sh (deref atm)]
 
 /**
  * Executes the function for every number from begin (inclusive) to end (exclusive).

@@ -13,6 +13,7 @@
 - [ ] Auto complete foreign imports
 - [ ] Some way to package novah source for distribution
 - [ ] Test java field setter
+- [ ] Write tests for the core library functions
 - [ ] Add String.replace* functions and `count fun`
 - [ ] Add a `do!` to computations
 - [ ] Make unused imports an error

@@ -209,18 +209,18 @@ size =
     Cons _ xs -> 1 + (size xs)
 
 showLinkedList_ : Show a -> LinkedList a -> String
-showLinkedList_ (Show s) l =
+showLinkedList_ (Show sh) l =
   let innerShow =
     case _ of
       Nil -> "Nil"
-      Cons x xs -> s.show x ++ " :: " ++ innerShow xs
+      Cons x xs -> sh x ++ " :: " ++ innerShow xs
   case l of
     Nil -> "Nil"
     (Cons _ _) as list -> "(" ++ innerShow list ++ ")"
 
 pub instance
 showLinkedList : {{ Show a }} -> Show (LinkedList a)
-showLinkedList {{s}} = Show { show: showLinkedList_ s }
+showLinkedList {{s}} = Show (showLinkedList_ s)
 
 eqLinkedList_ : Equals a -> LinkedList a -> LinkedList a -> Boolean
 eqLinkedList_ ((Equals eq) as equals) =
@@ -228,11 +228,11 @@ eqLinkedList_ ((Equals eq) as equals) =
     Nil, Nil -> true
     Nil, _ -> false
     _, Nil -> false
-    Cons x xs, Cons y ys -> eq.equals x y && eqLinkedList_ equals xs ys
+    Cons x xs, Cons y ys -> eq x y && eqLinkedList_ equals xs ys
 
 pub instance
 eqLinkedList : {{ Equals a }} -> Equals (LinkedList a)
-eqLinkedList {{eq}} = Equals { equals: eqLinkedList_ eq }
+eqLinkedList {{eq}} = Equals (eqLinkedList_ eq)
 
 concatLinkedList_ : LinkedList a -> LinkedList a -> LinkedList a
 concatLinkedList_ l1 l2 =
@@ -244,7 +244,7 @@ concatLinkedList_ l1 l2 =
 
 pub instance
 concatLinkedList : Concat (LinkedList a)
-concatLinkedList = Concat { concat: concatLinkedList_ }
+concatLinkedList = Concat concatLinkedList_
 
 /**
  * Returns a reversed version of this linked list.

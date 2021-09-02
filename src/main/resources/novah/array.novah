@@ -87,7 +87,7 @@ find pred arr =
  */
 pub
 contains : {{ Equals a }} -> a -> Array a -> Boolean
-contains {{Equals eq}} elem arr = find (\x -> eq.equals x elem) arr |> Option.isSome
+contains {{Equals eq}} elem arr = find (\x -> eq x elem) arr |> Option.isSome
 
 /**
  * Runs function f for every element of this array, ignoring the result.
