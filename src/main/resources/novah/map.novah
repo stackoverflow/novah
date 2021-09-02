@@ -33,7 +33,7 @@ pub
 newEq : {{ Equals k }} -> Option (k -> Int64) -> Map k v
 newEq {{Equals eq}} hashFn =
   let hash = Option.map Java.toLong hashFn ?: Maps#-"DEFAULT_HASH_CODE"
-  Map#new(hash, Java.bipredicate eq.equals)
+  Map#new(hash, Java.bipredicate eq)
 
 /**
  * Returns the size of the map.
@@ -146,11 +146,11 @@ every pred map = Core#mapEvery(pred, map)
 
 pub instance
 concatMap : Concat (Map k v)
-concatMap = Concat { concat: merge }
+concatMap = Concat merge
 
 pub instance
 eqMap : {{ Equals k }} -> {{ Equals v }} -> Equals (Map k v)
-eqMap {{Equals eqk}} {{Equals eqv}} = Equals { equals: \x y -> Core#equalsMap(x, y, eqk.equals, eqv.equals) }
+eqMap {{Equals eqk}} {{Equals eqv}} = Equals \x y -> Core#equalsMap(x, y, eqk, eqv)
 
 /**
  * Creates a linear (mutable) version of the given map and applies the function to it.

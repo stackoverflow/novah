@@ -206,7 +206,7 @@ pop = removeFirst
 pub
 contains : {{ Equals a }} -> a -> List a -> Boolean
 contains {{Equals eq}} elem list =
-  case find (\e -> eq.equals e elem) list of
+  case find (\e -> eq e elem) list of
     Some _ -> true
     None -> false
 
