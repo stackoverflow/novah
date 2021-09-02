@@ -4,7 +4,7 @@
  * with the `test` and `testWith` function
  * and ran with `runAllTests` or `runTestsFor`
  * or manually created with the `Test`, `Tests` and `Setup` constructors
- * and ran with `ranTests`.
+ * and ran with `runTests`.
  */
 module novah.test
 

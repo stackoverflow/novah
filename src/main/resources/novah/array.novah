@@ -1,5 +1,5 @@
 /**
- * Function to work with native Java arrays.
+ * Functions to work with native Java arrays.
  */
 module novah.array
 
