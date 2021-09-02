@@ -201,6 +201,7 @@ class Optimizer(private val ast: CModule) {
             is CExpr.While -> Expr.While(cond.convert(locals), exps.map { it.convert(locals) }, typ, span)
             is CExpr.Null -> Expr.Null(typ, span)
             is CExpr.TypeCast -> Expr.Cast(exp.convert(locals), cast.convert(), span)
+            is CExpr.ClassConstant -> Expr.ClassConstant(internalize(clazz.value), typ, span)
             is CExpr.ForeignStaticField -> {
                 val f = field ?: internalError("got null for java field")
                 Expr.NativeStaticFieldGet(f, typ, span)

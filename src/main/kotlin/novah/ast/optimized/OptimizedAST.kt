@@ -195,6 +195,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
 
     data class Null(override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ArrayLength(val expr: Expr, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class ClassConstant(val clazz: String, override val type: Clazz, override val span: Span) : Expr(type, span)
 }
 
 data class Catch(val exception: Clazz, val binder: String?, val expr: Expr, val span: Span) {

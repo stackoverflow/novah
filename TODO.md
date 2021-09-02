@@ -15,8 +15,8 @@
 - [ ] Test java field setter
 - [ ] Write tests for the core library functions
 - [ ] Add String.replace* functions and `count fun`
-- [ ] Add a `do!` to computations
 - [ ] Make unused imports an error
 - [ ] Have a `dev mode` for dev use and make all warnings errors in real builds
 - [ ] Allow if without else (returning Unit) and change computation if to if!
+- [ ] Add a `do!` to computations
 - [ ] Only recompile files that changed + dependencies
