@@ -139,8 +139,10 @@ class Formatter {
                 "let " + show(e.letDef) + "\n${tab}$str"
             }
             is Expr.DoLet -> {
-                val let = if (e.isBind) "let! " else "let "
-                let + show(e.letDef)
+                "let ${show(e.letDef)}"
+            }
+            is Expr.LetBang -> {
+                "let! ${show(e.letDef)}"
             }
             is Expr.If -> {
                 if (e.elseCase != null) {

@@ -213,7 +213,8 @@ sealed class Expr {
     data class Match(val exps: List<Expr>, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
-    data class DoLet(val letDef: LetDef, val isBind: Boolean) : Expr()
+    data class DoLet(val letDef: LetDef) : Expr()
+    data class LetBang(val letDef: LetDef) : Expr()
     data class Parens(val exp: Expr) : Expr() {
         override fun toString(): String = "($exp)"
     }

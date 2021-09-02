@@ -344,11 +344,8 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 } else PublicT
             }
             else ->
-                if (id[0].isUpperCase()) {
-                    UpperIdent(id)
-                } else {
-                    Ident(id)
-                }
+                if (id[0].isUpperCase()) UpperIdent(id)
+                else Ident(id)
         }
     }
 
