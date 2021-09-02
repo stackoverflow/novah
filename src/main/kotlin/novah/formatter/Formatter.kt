@@ -144,6 +144,9 @@ class Formatter {
             is Expr.LetBang -> {
                 "let! ${show(e.letDef)}"
             }
+            is Expr.DoBang -> {
+                "do! ${show(e.exp)}"
+            }
             is Expr.If -> {
                 if (e.elseCase != null) {
                     val simple = e.thenCase.isSimpleExpr() && e.elseCase.isSimpleExpr()
