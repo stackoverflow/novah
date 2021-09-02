@@ -484,6 +484,11 @@ class Parser(
             is LetT -> parseLet()
             is LetBang -> parseLetBang()
             is DoDot -> parseComputation()
+            is DoBang -> {
+                val dobang = iter.next()
+                val exp = parseExpression()
+                Expr.DoBang(exp).withSpan(dobang.span, exp.span).withComment(dobang.comment)
+            }
             is CaseT -> parseMatch()
             is LBracket -> parseRecordOrImplicit()
             is LSBracket -> {

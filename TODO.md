@@ -17,5 +17,4 @@
 - [ ] Add String.replace* functions and `count fun`
 - [ ] Make unused imports an error
 - [ ] Have a `dev mode` for dev use and make all warnings errors in real builds
-- [ ] Add a `do!` to computations
 - [ ] Only recompile files that changed + dependencies

@@ -55,6 +55,7 @@ sealed class Token {
     object In : Token()
     object Do : Token()
     object DoDot : Token()
+    object DoBang : Token()
     object ForeignT : Token()
     object PublicT : Token()
     object PublicPlus : Token()
@@ -326,10 +327,17 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "null" -> Null
             "return" -> Return
             "do" -> {
-                if (iter.peek() == '.') {
-                    iter.next()
-                    DoDot
-                } else Do
+                when (iter.peek()) {
+                    '.' -> {
+                        iter.next()
+                        DoDot
+                    }
+                    '!' -> {
+                        iter.next()
+                        DoBang
+                    }
+                    else -> Do
+                }
             }
             "let" -> {
                 if (iter.peek() == '!') {
