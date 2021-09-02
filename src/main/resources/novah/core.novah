@@ -293,19 +293,6 @@ printfln : String -> List a -> Unit
 printfln form args = println (format form args)
 
 /**
- * Executes the action when the condition is `true`.
- * Used for side effects.
- */
-pub
-when : Boolean -> (Unit -> a) -> Unit
-when cond action =
-  if cond
-    then
-      action ()
-      ()
-    else ()
-
-/**
  * Coerces a value to a nullable.
  * Should only be used for Java interoperability
  * when a foreign imported value can be null

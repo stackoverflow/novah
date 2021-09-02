@@ -133,7 +133,9 @@ filter : (k -> v -> Boolean) -> Map k v -> Map k v
 filter pred (map : Map k v) =
   let lmap = map#linear()
   forEach lmap \k v ->
-    when (not (pred k v)) \_ -> lmap#remove(k)
+    if (not (pred k v)) then
+      lmap#remove(k)
+      ()
   lmap#forked()
 
 /**

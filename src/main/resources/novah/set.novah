@@ -161,8 +161,9 @@ filter pred (set : Set a) =
   let lset = #{}#linear()
   forEachRange 0L set#size() \idx ->
     let elem = set#nth(idx)
-    when (pred elem) \_ ->
+    if (pred elem) then
       add elem lset
+      ()
   lset#forked()
 
 /**
