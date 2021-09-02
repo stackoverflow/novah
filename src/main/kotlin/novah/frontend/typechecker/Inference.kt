@@ -387,6 +387,15 @@ object Inference {
             infer(env, level, exp.exp)
             exp.withType(exp.cast)
         }
+        is Expr.ClassConstant -> {
+            val clazz = exp.clazz.value
+            env.lookupType(clazz)
+                ?: classLoader!!.safeFindClass(clazz)
+                ?: inferError(E.undefinedType(clazz), exp.clazz.span)
+
+            val ty = TApp(TConst("java.lang.Class"), listOf(TConst(clazz)))
+            exp.withType(ty)
+        }
         is Expr.ForeignStaticField -> {
             Reflection.typeCache.clear()
             val clazz = exp.clazz.value

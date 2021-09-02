@@ -334,6 +334,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 genInstanceOf(e, mv, ctx)
                 mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
             }
+            is Expr.ClassConstant -> {
+                mv.visitLdcInsn(getType(descriptor(e.clazz)))
+            }
             is Expr.NativeStaticFieldGet -> {
                 val f = e.field
                 mv.visitFieldInsn(GETSTATIC, getInternalName(f.declaringClass), f.name, getDescriptor(f.type))
@@ -902,7 +905,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
             is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor, is Expr.Null, is Expr.Var,
-            is Expr.RecordEmpty, is Expr.Unit, is Expr.NativeStaticFieldGet -> {
+            is Expr.RecordEmpty, is Expr.Unit, is Expr.NativeStaticFieldGet, is Expr.ClassConstant -> {
             }
         }
 

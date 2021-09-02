@@ -353,7 +353,13 @@ class Desugar(private val smod: SModule) {
         is SExpr.ForeignStaticField -> {
             usedTypes += clazz.value
             val fqclass = smod.foreignTypes[clazz.value] ?: Reflection.novahToJava(clazz.value)
-            Expr.ForeignStaticField(Spanned(clazz.span, fqclass), field, span)
+            if (field.value == "class") {
+                val className = if (!fqclass.contains(".")) {
+                    val imp = imports[fqclass]
+                    (imp ?: moduleName) + ".$fqclass"
+                } else fqclass
+                Expr.ClassConstant(Spanned(clazz.span, className), span)
+            } else Expr.ForeignStaticField(Spanned(clazz.span, fqclass), field, span)
         }
         is SExpr.ForeignField -> {
             val xp = if (exp is SExpr.Parens) exp.exp else exp
