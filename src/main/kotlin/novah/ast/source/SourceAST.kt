@@ -208,7 +208,7 @@ sealed class Expr {
         override fun toString(): String = "($left $op $right)"
     }
 
-    data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr) : Expr()
+    data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr?) : Expr()
     data class Let(val letDef: LetDef, val body: Expr) : Expr()
     data class Match(val exps: List<Expr>, val cases: List<Case>) : Expr()
     data class Ann(val exp: Expr, val type: Type) : Expr()

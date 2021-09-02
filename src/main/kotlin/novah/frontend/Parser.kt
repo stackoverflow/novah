@@ -479,7 +479,8 @@ class Parser(
                 }
             }
             is Backslash -> parseLambda()
-            is IfT -> parseIf(isComputation)
+            is IfT -> parseIf()
+            is Ifbang -> parseIfBang()
             is LetT -> parseLet(false)
             is LetBang -> {
                 if (isComputation) parseLet(true)
@@ -637,7 +638,7 @@ class Parser(
             .withComment(begin.comment)
     }
 
-    private fun parseIf(isComputation: Boolean): Expr {
+    private fun parseIf(): Expr {
         val ifTk = expect<IfT>(noErr())
 
         var hasElse = false
@@ -648,23 +649,36 @@ class Parser(
 
             val thens = parseDo()
 
-            if (iter.peek().value is Else || !isComputation) {
+            if (iter.peek().value is Else) {
                 expect<Else>(withError(E.ELSE))
                 hasElse = true
             }
             cond to thens
         }
 
-        return if (hasElse) {
-            val elses = withOffside { parseDo() }
-            Expr.If(cond, thens, elses)
-                .withSpan(ifTk.span, elses.span)
-                .withComment(ifTk.comment)
-        } else {
-            Expr.IfBang(cond, thens)
-                .withSpan(ifTk.span, thens.span)
-                .withComment(ifTk.comment)
+        val elses = if (hasElse) parseDo() else null
+
+        return Expr.If(cond, thens, elses)
+            .withSpan(ifTk.span, elses?.span ?: thens.span)
+            .withComment(ifTk.comment)
+    }
+
+    private fun parseIfBang(): Expr {
+        val ifTk = expect<Ifbang>(noErr())
+
+        val (cond, thens) = withIgnoreOffside {
+            val cond = parseExpression()
+
+            expect<Then>(withError(E.THEN))
+
+            val thens = parseDo()
+
+            cond to thens
         }
+
+        return Expr.IfBang(cond, thens)
+            .withSpan(ifTk.span, thens.span)
+            .withComment(ifTk.comment)
     }
 
     private fun parseLet(isBind: Boolean): Expr {
