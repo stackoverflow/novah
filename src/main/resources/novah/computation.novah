@@ -16,12 +16,12 @@ import novah.list as List
 pub
 list :
   { bind : List a -> (a -> List b) -> List b
-  , return : c -> List c
+  , pure : c -> List c
   , zero : List d
   }
 list =
   { bind: flip List.flatMap
-  , return: \x -> [x]
+  , pure: \x -> [x]
   , zero: []
   }
 
@@ -32,12 +32,12 @@ list =
 pub
 set :
   { bind : Set a -> (a -> Set b) -> Set b
-  , return : c -> Set c
+  , pure : c -> Set c
   , zero : Set d
   }
 set =
   { bind: flip Set.flatMap
-  , return: \x -> #{x}
+  , pure: \x -> #{x}
   , zero: #{}
   }
 
@@ -48,12 +48,12 @@ set =
 pub
 linkedList :
   { bind : LinkedList a -> (a -> LinkedList b) -> LinkedList b
-  , return : c -> LinkedList c
+  , pure : c -> LinkedList c
   , zero : LinkedList d
   }
 linkedList =
   { bind: flip LinkedList.flatMap
-  , return: \x -> Cons x Nil
+  , pure: \x -> Cons x Nil
   , zero: Nil
   }
 
@@ -64,12 +64,12 @@ linkedList =
 pub
 option :
   { bind : Option a -> (a -> Option b) -> Option b
-  , return : c -> Option c
+  , pure : c -> Option c
   , zero : Option d
   }
 option =
   { bind: optBind
-  , return: Some
+  , pure: Some
   , zero: None
   }
 
@@ -80,11 +80,11 @@ option =
 pub
 result :
   { bind : Result a e -> (a -> Result b e) -> Result b e
-  , return : c -> Result c f
+  , pure : c -> Result c f
   }
 result =
   { bind: resultBind
-  , return: Ok
+  , pure: Ok
   }
 
 optBind : Option a -> (a -> Option b) -> Option b
