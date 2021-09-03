@@ -348,7 +348,6 @@ class Desugar(private val smod: SModule) {
             val converted = convertDoLets(desugared, builder)
             Expr.Do(converted.map { it.desugar(locals, tvars) }, span)
         }
-        is SExpr.IfBang -> internalError("unexpected if-bang in desugaring: $this")
         is SExpr.Null -> Expr.Null(span)
         is SExpr.TypeCast -> Expr.TypeCast(exp.desugar(locals, tvars), cast.desugar(vars = tvars.toMutableMap()), span)
         is SExpr.ForeignStaticField -> {
@@ -852,10 +851,12 @@ class Desugar(private val smod: SModule) {
     }
 
     private fun desugarComputationSyntax(exp: SExpr, builder: SExpr.Var): SExpr = when (exp) {
-        is SExpr.IfBang -> {
-            val span = exp.span
-            val elseCase = SExpr.RecordSelect(builder, listOf(Spanned(span, "zero"))).withSpan(span)
-            SExpr.If(exp.cond, desugarComputationSyntax(exp.thenCase, builder), elseCase).withSpan(span)
+        is SExpr.If -> {
+            if (exp.elseCase == null) {
+                val span = exp.span
+                val elseCase = SExpr.RecordSelect(builder, listOf(Spanned(span, "zero"))).withSpan(span)
+                SExpr.If(exp.cond, desugarComputationSyntax(exp.thenCase, builder), elseCase).withSpan(span)
+            } else exp
         }
         is SExpr.Return -> {
             val span = exp.span

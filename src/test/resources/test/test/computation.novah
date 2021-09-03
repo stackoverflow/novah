@@ -11,40 +11,40 @@ listTests =
     let l = do.list
       let! x = 1 .. 5
       let! y = 2 .. 6
-      if! isEven (x + y) then return (x <> y)
+      if isEven (x + y) then return (x <> y)
     l `shouldBe` [1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4]
 
   test "Set computations" \_ ->
     let s = do.set
       let! x = #{1, 2, 3, 4}
       let! y = #{2, 3, 4, 5}
-      if! isEven (x + y) then return (x <> y)
+      if isEven (x + y) then return (x <> y)
     s `shouldBe` #{1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4}
 
   test "LinkedList computations" \_ ->
     let l = do.linkedList
       let! x = LinkedList.range 1 5
       let! y = LinkedList.range 2 6
-      if! isEven (x + y) then return (x <> y)
+      if isEven (x + y) then return (x <> y)
     l `shouldBe` ((1 <> 3) :: (1 <> 5) :: (2 <> 2) :: (2 <> 4) :: (3 <> 3) :: (3 <> 5) :: (4 <> 2) :: (4 <> 4) :: Nil)
 
   test "Option computations" \_ ->
     let opt = do.option
       let! x = Some 3
       let! y = Some 5
-      if! isEven (x + y) then return (x <> y)
+      if isEven (x + y) then return (x <> y)
     opt `shouldBe` Some (3 <> 5)
 
     let opt2 = do.option
       let! x = Some 4
       let! y = Some 5
-      if! isEven (x + y) then return (x <> y)
+      if isEven (x + y) then return (x <> y)
     opt2 `shouldBe` None
 
     let opt3 = do.option
       let! x = None
       let! y = Some 5
-      if! isEven (x + y) then return (x <> y)
+      if isEven (x + y) then return (x <> y)
     opt3 `shouldBe` None
 
   test "Result computation" \_ ->

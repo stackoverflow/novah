@@ -233,7 +233,6 @@ sealed class Expr {
     data class TryCatch(val tryExpr: Expr, val cases: List<Case>, val finallyExp: Expr?) : Expr()
     data class While(val cond: Expr, val exps: List<Expr>) : Expr()
     data class Computation(val builder: Var, val exps: List<Expr>) : Expr()
-    data class IfBang(val cond: Expr, val thenCase: Expr) : Expr()
     data class Return(val exp: Expr) : Expr()
     data class DoBang(val exp: Expr) : Expr()
     class Null : Expr()
@@ -258,7 +257,7 @@ sealed class Expr {
     }
 
     fun isSimple(): Boolean = when (this) {
-        is If, is IfBang, is Let, is Match, is Do, is DoLet, is TryCatch, is While, is Computation -> false
+        is If, is Let, is Match, is Do, is DoLet, is TryCatch, is While, is Computation -> false
         is Ann -> exp.isSimple()
         else -> true
     }

@@ -480,7 +480,6 @@ class Parser(
             }
             is Backslash -> parseLambda()
             is IfT -> parseIf()
-            is Ifbang -> parseIfBang()
             is LetT -> parseLet()
             is LetBang -> parseLetBang()
             is DoDot -> parseComputation()
@@ -667,24 +666,6 @@ class Parser(
 
         return Expr.If(cond, thens, elses)
             .withSpan(ifTk.span, elses?.span ?: thens.span)
-            .withComment(ifTk.comment)
-    }
-
-    private fun parseIfBang(): Expr {
-        val ifTk = expect<Ifbang>(noErr())
-
-        val (cond, thens) = withIgnoreOffside {
-            val cond = parseExpression()
-
-            expect<Then>(withError(E.THEN))
-
-            val thens = parseDo()
-
-            cond to thens
-        }
-
-        return Expr.IfBang(cond, thens)
-            .withSpan(ifTk.span, thens.span)
             .withComment(ifTk.comment)
     }
 
