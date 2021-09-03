@@ -158,11 +158,6 @@ class Formatter {
                     else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}"
                 }
             }
-            is Expr.IfBang -> {
-                val simple = e.thenCase.isSimpleExpr()
-                if (simple) "if! ${show(e.cond)} then ${show(e.thenCase)}"
-                else "if! ${show(e.cond)}\n${tab}then ${show(e.thenCase)}"
-            }
             is Expr.Return -> {
                 "return ${show(e.exp)}"
             }
