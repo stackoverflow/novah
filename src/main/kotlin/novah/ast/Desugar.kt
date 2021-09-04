@@ -414,6 +414,7 @@ class Desugar(private val smod: SModule) {
             nestLambdas(lvars, Expr.ForeignMethod(lexpr, method, pars, span))
         }
         is SExpr.Return -> parserError(E.RETURN_EXPR, span)
+        is SExpr.Yield -> parserError(E.YIELD_EXPR, span)
         is SExpr.LetBang -> parserError(E.LET_BANG, span)
         is SExpr.DoBang -> parserError(E.DO_BANG, span)
     }
@@ -877,6 +878,13 @@ class Desugar(private val smod: SModule) {
             is SExpr.Return -> {
                 val span = exp.span
                 val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "return"))).withSpan(span)
+                val ret = SExpr.App(select, exp.exp).withSpan(span)
+                if (isLast) ret
+                else combiner(span, ret)
+            }
+            is SExpr.Yield -> {
+                val span = exp.span
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "yield"))).withSpan(span)
                 val ret = SExpr.App(select, exp.exp).withSpan(span)
                 if (isLast) ret
                 else combiner(span, ret)

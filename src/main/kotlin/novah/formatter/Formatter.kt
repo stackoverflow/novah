@@ -161,6 +161,9 @@ class Formatter {
             is Expr.Return -> {
                 "return ${show(e.exp)}"
             }
+            is Expr.Yield -> {
+                "yield ${show(e.exp)}"
+            }
             is Expr.App -> {
                 "${show(e.fn)} ${show(e.arg)}"
             }
