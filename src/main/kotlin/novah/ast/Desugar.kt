@@ -343,9 +343,7 @@ class Desugar(private val smod: SModule) {
             Expr.While(cond.desugar(locals, tvars), exps.map { it.desugar(locals, tvars) }, span)
         }
         is SExpr.Computation -> {
-            if (exps.last() is SExpr.DoLet) parserError(E.LET_BANG_LAST, exps.last().span)
-            val desugared = desugarComputation(exps, builder)
-            desugared.desugar(locals, tvars)
+            desugarComputation(exps, builder).desugar(locals, tvars)
         }
         is SExpr.Null -> Expr.Null(span)
         is SExpr.TypeCast -> Expr.TypeCast(exp.desugar(locals, tvars), cast.desugar(vars = tvars.toMutableMap()), span)
@@ -829,9 +827,7 @@ class Desugar(private val smod: SModule) {
                 val body = convertDoLets(exprs.drop(1))
                 val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
                 listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span, bodyExp.span))
-            } else {
-                listOf(exp) + convertDoLets(exprs.drop(1))
-            }
+            } else listOf(exp) + convertDoLets(exprs.drop(1))
         }
     }
 
@@ -841,7 +837,7 @@ class Desugar(private val smod: SModule) {
 
     private fun makeCombine(builder: SExpr.Var, span: Span, exp1: SExpr, exp2: SExpr): SExpr {
         val combine = SExpr.RecordSelect(builder, listOf(Spanned(span, "combine"))).withSpan(span)
-        return SExpr.App(SExpr.App(combine, exp1).withSpan(span), exp2).withSpan(span)
+        return SExpr.App(SExpr.App(combine, exp1).withSpan(exp1.span), exp2).withSpan(exp1.span, exp2.span)
     }
 
     private fun desugarComputation(exprs: List<SExpr>, builder: SExpr.Var): SExpr {
@@ -850,6 +846,16 @@ class Desugar(private val smod: SModule) {
 
         val isLast = exprs.size == 1
         return when (val exp = exprs[0]) {
+            is SExpr.Do -> {
+                val res = desugarComputation(exp.exps, builder)
+                if (isLast) res
+                else combiner(exp.span, res)
+            }
+            is SExpr.DoLet -> {
+                if (isLast) parserError(E.LET_BANG_LAST, exp.span)
+                val body = desugarComputation(exprs.drop(1), builder)
+                SExpr.Let(exp.letDef, body).withSpan(exp.span, body.span)
+            }
             is SExpr.LetBang -> {
                 if (isLast && exp.body == null) parserError(E.LET_BANG_LAST, exp.span)
                 val span = exp.span

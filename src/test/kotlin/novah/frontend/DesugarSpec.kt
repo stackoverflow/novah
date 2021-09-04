@@ -138,19 +138,4 @@ class DesugarSpec : StringSpec({
         ds["f15"]?.type?.simpleName() shouldBe "List Char"
         ds["f16"]?.type?.simpleName() shouldBe "List Float64"
     }
-    
-    "computation expressions" {
-        val code = """
-            import novah.computation
-            
-            foo = do.list
-              for x in 1 .. 6 do
-                for y in 7 .. 14 do
-                  if isEven (x + y) then yield (x + y)
-            
-            bar = do.list for i in 1 .. 100 do yield i * i
-        """.module()
-
-        TestUtil.compileCode(code)
-    }
 })
