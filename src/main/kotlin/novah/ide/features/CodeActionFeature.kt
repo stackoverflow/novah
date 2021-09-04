@@ -23,6 +23,7 @@ import novah.formatter.Formatter
 import novah.frontend.Span
 import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import org.eclipse.lsp4j.*
@@ -35,7 +36,7 @@ class CodeActionFeature(private val server: NovahServer) {
     private val errCache = mutableMapOf<String, CompilerProblem>()
 
     fun onCodeAction(params: CodeActionParams): CompletableFuture<MutableList<Either<Command, CodeAction>>> {
-        fun run(): MutableList<Either<Command, CodeAction>>? {
+        fun run(envRes: EnvResult): MutableList<Either<Command, CodeAction>>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
             server.logger().log("received code action request for ${file.absolutePath}")
 
@@ -43,14 +44,14 @@ class CodeActionFeature(private val server: NovahServer) {
             if (!key.isString) return null
             val err = errCache[key.asString] ?: return null
 
-            val change = server.change()?.txt
+            val change = envRes.change?.txt
 
             val action = actionFor(err, params.textDocument.uri, change) ?: return null
 
             return mutableListOf(Either.forRight(action))
         }
 
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     private fun actionFor(err: CompilerProblem, uri: String, code: String?): CodeAction? = when (err.action) {

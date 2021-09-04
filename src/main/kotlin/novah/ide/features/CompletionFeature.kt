@@ -26,6 +26,7 @@ import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
 import novah.frontend.typechecker.*
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.Environment
@@ -42,10 +43,10 @@ class CompletionFeature(private val server: NovahServer) {
 
     @Suppress("WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
     fun onCompletion(params: CompletionParams): CompletableFuture<Either<MutableList<CompletionItem>, CompletionList>> {
-        fun run(): Either<MutableList<CompletionItem>, CompletionList>? {
+        fun run(envRes: EnvResult): Either<MutableList<CompletionItem>, CompletionList>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
-            val change = server.change() ?: return null
+            val change = envRes.change ?: return null
             if (change.txt == null) return null
             val env = server.lastSuccessfulEnv() ?: return null
             val (lineC, colC) = params.position.line to params.position.character
@@ -83,7 +84,7 @@ class CompletionFeature(private val server: NovahServer) {
             }
         }
 
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     private fun complete(

@@ -20,6 +20,7 @@ import novah.data.unwrapOrElse
 import novah.formatter.Formatter
 import novah.frontend.Lexer
 import novah.frontend.Parser
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import org.eclipse.lsp4j.DocumentFormattingParams
@@ -34,8 +35,8 @@ class FormattingFeature(private val server: NovahServer) {
         val file = IdeUtil.uriToFile(params.textDocument.uri)
         server.logger().log("formatting ${file.absolutePath}")
 
-        fun formatFile(): MutableList<TextEdit>? {
-            val change = server.change()
+        fun formatFile(envRes: EnvResult): MutableList<TextEdit>? {
+            val change = envRes.change
             val txt = if (change?.txt != null && change.path == file.absolutePath) change.txt else file.readText()
             val ast = parseFile(txt)
             return if (ast == null) null
@@ -46,7 +47,7 @@ class FormattingFeature(private val server: NovahServer) {
             }
         }
 
-        return CompletableFuture.supplyAsync(::formatFile)
+        return server.runningEnv().thenApply(::formatFile)
     }
 
     private fun endPosition(lines: List<String>): Position {

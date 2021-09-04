@@ -22,6 +22,7 @@ import novah.frontend.Comment
 import novah.frontend.Lexer
 import novah.frontend.typechecker.TConst
 import novah.frontend.typechecker.Type
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.DeclRef
@@ -40,9 +41,9 @@ class HoverFeature(private val server: NovahServer) {
     private val typeVarsMap = mutableMapOf<Int, String>()
 
     fun onHover(params: HoverParams): CompletableFuture<Hover> {
-        fun run(): Hover? {
+        fun run(envRes: EnvResult): Hover? {
             val path = IdeUtil.uriToFile(params.textDocument.uri)
-            val env = server.env()
+            val env = envRes.env
             val moduleName = env.sourceMap()[path.toPath()] ?: return null
 
             val mod = env.modules()[moduleName] ?: return null
@@ -55,7 +56,7 @@ class HoverFeature(private val server: NovahServer) {
 
             return Hover(MarkupContent("markdown", contextToHover(ctx)))
         }
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     private fun contextToHover(ctx: HoverCtx): String {

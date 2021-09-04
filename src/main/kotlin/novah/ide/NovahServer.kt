@@ -37,7 +37,6 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.exists
 import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.system.exitProcess
@@ -46,12 +45,10 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     private var logger: IdeLogger? = null
     private var root: String? = null
-    private val changes: AtomicReference<FileChange?> = AtomicReference(null)
-    private var env: AtomicReference<Environment?> = AtomicReference(null)
     private var lastSuccessfulEnv: Environment? = null
-    private val buildExecutor = Executors.newSingleThreadScheduledExecutor()
     private val fileWatcher = Executors.newSingleThreadExecutor()
     private val paths = ConcurrentHashMap<String, String>()
+    private var runningEnv = CompletableFuture<EnvResult>()
 
     private var client: LanguageClient? = null
     private var errorCode = 1
@@ -102,10 +99,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         if (hasProject) fileWatcher.submit { watchClasspathChanges(root!!) }
 
         // initial build
-        build()
-
-        // start build thread
-        buildExecutor.scheduleWithFixedDelay(::buildRun, 0, 500, TimeUnit.MILLISECONDS)
+        runningEnv = CompletableFuture.supplyAsync { build(null) }
 
         // unpack stdlib
         unpackStdlib()
@@ -115,11 +109,11 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     override fun shutdown(): CompletableFuture<Any> {
         errorCode = 0
-        buildExecutor.shutdown()
+        fileWatcher.shutdown()
         try {
-            buildExecutor.awaitTermination(10, TimeUnit.SECONDS)
+            fileWatcher.awaitTermination(10, TimeUnit.SECONDS)
         } catch (_: InterruptedException) {
-            buildExecutor.shutdownNow()
+            fileWatcher.shutdownNow()
         }
         return CompletableFuture.supplyAsync(::Object)
     }
@@ -137,28 +131,15 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         this.logger = IdeLogger(client, verbose)
     }
 
-    fun env(): Environment {
-        var envv = env.get()
-        while (envv == null) {
-            Thread.sleep(300)
-            envv = env.get()
-        }
-        return envv
-    }
-
-    fun resetEnv() {
-        env.set(null)
-    }
-
     fun lastSuccessfulEnv() = lastSuccessfulEnv
 
     fun logger(): IdeLogger = logger!!
 
     fun addChange(uri: String, text: String? = null) {
-        changes.set(FileChange(uri, text))
+        runningEnv = CompletableFuture.supplyAsync { build(FileChange(uri, text)) }
     }
 
-    fun change() = changes.get()
+    fun runningEnv() = runningEnv
 
     private var diags = mutableMapOf<String, List<Diagnostic>>()
 
@@ -190,9 +171,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         }.groupBy { it.first }.mapValues { kv -> kv.value.map { it.second } }.toMutableMap()
     }
 
-    private fun build() {
-        if (root == null) return
-        val change = changes.getAndUpdate { it?.copy(built = true) }
+    private fun build(change: FileChange?): EnvResult {
         val rootPath = IdeUtil.uriToFile(root!!)
         logger().info("root: $rootPath")
         val sources = rootPath.walkTopDown().filter { it.isFile && it.extension == "novah" }
@@ -211,22 +190,17 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             diags.clear()
             saveDiagnostics(theEnv.errors())
             lastSuccessfulEnv = theEnv
+            return EnvResult(theEnv, change)
         } catch (ce: CompilationError) {
             val errors = ce.problems + theEnv.errors()
             saveDiagnostics(errors)
-            if (!errors.any { it.isFatal() }) lastSuccessfulEnv = theEnv
+            if (errors.none { it.isFatal() }) lastSuccessfulEnv = theEnv
+            return EnvResult(theEnv, change)
         } catch (e: Exception) {
             logger().error(e.stackTraceToString())
+            return EnvResult(theEnv, change)
         } finally {
-            env.set(theEnv)
-        }
-    }
-
-    private fun buildRun() {
-        val change = changes.get()
-        if (change != null && !change.built) {
-            build()
-            publishDiagnostics(File(change.path).toURI().toString())
+            if (change != null) publishDiagnostics(File(change.path).toURI().toString())
         }
     }
 
@@ -320,3 +294,5 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 }
 
 data class FileChange(val path: String, val txt: String? = null, val built: Boolean = false)
+
+data class EnvResult(val env: Environment, val change: FileChange?)

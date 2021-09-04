@@ -18,6 +18,7 @@ package novah.ide.features
 import novah.ast.canonical.Decl
 import novah.ast.canonical.show
 import novah.frontend.typechecker.TArrow
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.IdeUtil.spanToRange
 import novah.ide.NovahServer
@@ -32,18 +33,18 @@ import java.util.concurrent.CompletableFuture
 class SymbolsFeature(private val server: NovahServer) {
 
     fun onDocumentSymbols(params: DocumentSymbolParams): CompletableFuture<MutableList<Either<SymbolInformation, DocumentSymbol>>> {
-        fun run(): MutableList<Either<SymbolInformation, DocumentSymbol>>? {
+        fun run(envRes: EnvResult): MutableList<Either<SymbolInformation, DocumentSymbol>>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
-            val env = server.env()
-            server.logger().log("received symbol request for ${file.absolutePath}")
+            val env = envRes.env
+            //server.logger().log("received symbol request for ${file.absolutePath}")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
 
             return mutableListOf(Either.forRight(moduleToSymbol(mod)))
         }
 
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     private fun moduleToSymbol(mod: FullModuleEnv): DocumentSymbol {
