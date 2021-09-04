@@ -248,7 +248,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.Ann -> Expr.Ann(exp.desugar(locals, tvars), type.desugar(vars = tvars.toMutableMap()), span)
         is SExpr.Do -> {
             if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
-            val converted = convertDoLets(exps, null)
+            val converted = convertDoLets(exps)
             Expr.Do(converted.map { it.desugar(locals, tvars) }, span)
         }
         is SExpr.DoLet -> parserError(E.LET_IN, span)
@@ -344,9 +344,8 @@ class Desugar(private val smod: SModule) {
         }
         is SExpr.Computation -> {
             if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
-            val desugared = desugarSpecialComputationFunctions(exps, builder)
-            val converted = convertDoLets(desugared, builder)
-            Expr.Do(converted.map { it.desugar(locals, tvars) }, span)
+            val desugared = desugarComputation(exps, builder)
+            desugared.desugar(locals, tvars)
         }
         is SExpr.Null -> Expr.Null(span)
         is SExpr.TypeCast -> Expr.TypeCast(exp.desugar(locals, tvars), cast.desugar(vars = tvars.toMutableMap()), span)
@@ -820,54 +819,80 @@ class Desugar(private val smod: SModule) {
      * let expressions where the body is every expression
      * that comes after.
      */
-    private fun convertDoLets(exprs: List<SExpr>, builder: SExpr.Var?): List<SExpr> {
-        return if (exprs.none { it is SExpr.DoLet || it is SExpr.LetBang || it is SExpr.DoBang }) exprs
+    private fun convertDoLets(exprs: List<SExpr>): List<SExpr> {
+        return if (exprs.none { it is SExpr.DoLet }) exprs
         else {
             val exp = exprs[0]
             if (exp is SExpr.DoLet) {
-                val body = convertDoLets(exprs.drop(1), builder)
+                val body = convertDoLets(exprs.drop(1))
                 val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
                 listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span, bodyExp.span))
-            } else if (exp is SExpr.LetBang && builder != null) {
-                val body = convertDoLets(exprs.drop(1), builder)
-                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
-
-                val span = exp.span
-                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
-                val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), bodyExp).withSpan(span)
-                listOf(SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span))
-            } else if (exp is SExpr.DoBang && builder != null) {
-                val body = convertDoLets(exprs.drop(1), builder)
-                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
-
-                val span = exp.span
-                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
-                val func = SExpr.Lambda(listOf(SPattern.Unit(span)), bodyExp).withSpan(span)
-                listOf(SExpr.App(SExpr.App(select, exp.exp).withSpan(span), func).withSpan(span))
             } else {
-                listOf(exp) + convertDoLets(exprs.drop(1), builder)
+                listOf(exp) + convertDoLets(exprs.drop(1))
             }
         }
     }
 
-    private fun desugarComputationSyntax(exp: SExpr, builder: SExpr.Var): SExpr = when (exp) {
-        is SExpr.If -> {
-            if (exp.elseCase == null) {
-                val span = exp.span
-                val elseCase = SExpr.RecordSelect(builder, listOf(Spanned(span, "zero"))).withSpan(span)
-                SExpr.If(exp.cond, desugarComputationSyntax(exp.thenCase, builder), elseCase).withSpan(span)
-            } else exp
-        }
-        is SExpr.Return -> {
-            val span = exp.span
-            val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "pure"))).withSpan(span)
-            SExpr.App(select, exp.exp).withSpan(span)
-        }
-        else -> exp
+    private fun makeZero(builder: SExpr.Var, span: Span): SExpr {
+        return SExpr.RecordSelect(builder, listOf(Spanned(span, "zero"))).withSpan(span)
     }
 
-    private fun desugarSpecialComputationFunctions(exprs: List<SExpr>, builder: SExpr.Var): List<SExpr> {
-        return exprs.map { desugarComputationSyntax(it, builder) }
+    private fun makeCombine(builder: SExpr.Var, span: Span, exp1: SExpr, exp2: SExpr): SExpr {
+        val combine = SExpr.RecordSelect(builder, listOf(Spanned(span, "combine"))).withSpan(span)
+        return SExpr.App(SExpr.App(combine, exp1).withSpan(span), exp2).withSpan(span)
+    }
+
+    private fun desugarComputation(exprs: List<SExpr>, builder: SExpr.Var): SExpr {
+        fun combiner(span: Span, exp: SExpr): SExpr =
+            makeCombine(builder, span, exp, desugarComputation(exprs.drop(1), builder))
+
+        val isLast = exprs.size == 1
+        return when (val exp = exprs[0]) {
+            is SExpr.LetBang -> {
+                if (isLast) TODO("error needs a `in`")
+                val body = desugarComputation(exprs.drop(1), builder)
+
+                val span = exp.span
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
+                val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
+                SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
+            }
+            is SExpr.DoBang -> {
+                val span = exp.span
+                val body = if (isLast) makeZero(builder, span) else desugarComputation(exprs.drop(1), builder)
+
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
+                val func = SExpr.Lambda(listOf(SPattern.Unit(span)), body).withSpan(span)
+                SExpr.App(SExpr.App(select, exp.exp).withSpan(span), func).withSpan(span)
+            }
+            is SExpr.Return -> {
+                val span = exp.span
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "return"))).withSpan(span)
+                val ret = SExpr.App(select, exp.exp).withSpan(span)
+                if (isLast) ret
+                else combiner(span, ret)
+            }
+            is SExpr.If -> {
+                if (exp.elseCase == null) {
+                    val span = exp.span
+                    val elseCase = makeZero(builder, span)
+                    val then = desugarComputation(listOf(exp.thenCase), builder)
+                    val iff = SExpr.If(exp.cond, then, elseCase).withSpan(span)
+
+                    if (isLast) iff
+                    else combiner(span, iff)
+                } else {
+                    val doo = SExpr.Do(listOf(exp, makeZero(builder, exp.span)))
+                    if (isLast) doo
+                    else combiner(exp.span, doo)
+                }
+            }
+            else -> {
+                val doo = SExpr.Do(listOf(exp, makeZero(builder, exp.span)))
+                if (isLast) doo
+                else combiner(exp.span, doo)
+            }
+        }
     }
 
     private fun reportUnusedImports() {
