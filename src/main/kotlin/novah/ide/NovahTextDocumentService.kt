@@ -37,7 +37,7 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
         val uri = params.textDocument.uri
         val cleaned = IdeUtil.uriToFile(uri).toURI().toString()
         server.logger().info("opened $uri")
-        server.publishDiagnostics(cleaned)
+        server.runningEnv().thenRun { server.publishDiagnostics(cleaned) }
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
@@ -45,7 +45,6 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
         server.logger().info("changed $uri")
         val file = IdeUtil.uriToFile(uri)
         if (file.extension == "novah") {
-            server.resetEnv()
             server.addChange(file.absolutePath, params.contentChanges[0].text)
         }
     }
@@ -60,7 +59,6 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
         server.logger().info("saved $uri")
         val file = IdeUtil.uriToFile(uri)
         if (file.extension == "novah") {
-            server.resetEnv()
             server.addChange(file.absolutePath)
         }
     }

@@ -17,6 +17,7 @@ package novah.ide.features
 
 import novah.ast.canonical.Module
 import novah.frontend.Span
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import org.eclipse.lsp4j.FoldingRange
@@ -27,10 +28,10 @@ import java.util.concurrent.CompletableFuture
 class FoldingFeature(private val server: NovahServer) {
 
     fun onFolding(params: FoldingRangeRequestParams): CompletableFuture<MutableList<FoldingRange>> {
-        fun run(): MutableList<FoldingRange>? {
+        fun run(envRes: EnvResult): MutableList<FoldingRange>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
-            val env = server.env()
+            val env = envRes.env
             server.logger().log("received folding request for ${file.absolutePath}")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
@@ -38,7 +39,7 @@ class FoldingFeature(private val server: NovahServer) {
             return calcFolds(mod.ast)
         }
 
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     private fun calcFolds(ast: Module): MutableList<FoldingRange> {

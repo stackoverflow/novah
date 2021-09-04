@@ -19,6 +19,7 @@ import novah.ast.canonical.*
 import novah.frontend.Span
 import novah.frontend.typechecker.TConst
 import novah.frontend.typechecker.Type
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.Environment
@@ -33,10 +34,10 @@ class RerefencesFeature(private val server: NovahServer) {
      * Finds all references to the symbol at the cursor.
      */
     fun onReferences(params: ReferenceParams): CompletableFuture<MutableList<out Location>> {
-        fun run(): MutableList<Location>? {
+        fun run(envRes: EnvResult): MutableList<Location>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
-            val env = server.env()
+            val env = envRes.env
             val line = params.position.line + 1
             val col = params.position.character + 1
             server.logger().info("got find references request for ${file.absolutePath} at $line:$col")
@@ -48,17 +49,17 @@ class RerefencesFeature(private val server: NovahServer) {
             return findReferences(ctx, mod, env.modules())
         }
 
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     /**
      * Finds out if it's OK to rename the symbol at the cursor.
      */
     fun onPrepareRename(params: PrepareRenameParams): CompletableFuture<Either<Range, PrepareRenameResult>> {
-        fun run(): Either<Range, PrepareRenameResult>? {
+        fun run(envRes: EnvResult): Either<Range, PrepareRenameResult>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
-            val env = server.env()
+            val env = envRes.env
             val line = params.position.line + 1
             val col = params.position.character + 1
             server.logger().info("got prepare rename request for ${file.absolutePath} at $line:$col")
@@ -74,17 +75,17 @@ class RerefencesFeature(private val server: NovahServer) {
             return Either.forLeft(IdeUtil.spanToRange(ctx.span))
         }
 
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     /**
      * Renames the symbol at the cursor, including the definition.
      */
     fun onRename(params: RenameParams): CompletableFuture<WorkspaceEdit> {
-        fun run(): WorkspaceEdit? {
+        fun run(envRes: EnvResult): WorkspaceEdit? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
-            val env = server.env()
+            val env = envRes.env
             val line = params.position.line + 1
             val col = params.position.character + 1
             server.logger().info("got rename request for ${file.absolutePath} at $line:$col")
@@ -101,7 +102,7 @@ class RerefencesFeature(private val server: NovahServer) {
             return makeRename(params.newName, locations)
         }
 
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     /**

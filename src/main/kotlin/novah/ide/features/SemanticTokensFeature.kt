@@ -22,6 +22,7 @@ import novah.frontend.Span
 import novah.frontend.typechecker.TConst
 import novah.frontend.typechecker.TVar
 import novah.frontend.typechecker.Type
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import org.eclipse.lsp4j.SemanticTokens
@@ -32,18 +33,18 @@ import java.util.concurrent.CompletableFuture
 class SemanticTokensFeature(private val server: NovahServer) {
 
     fun onSemanticTokensFull(params: SemanticTokensParams): CompletableFuture<SemanticTokens> {
-        fun run(): SemanticTokens? {
+        fun run(envRes: EnvResult): SemanticTokens? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
-            val env = server.env()
-            server.logger().log("received semantic tokens request for ${file.absolutePath}")
+            val env = envRes.env
+            //server.logger().log("received semantic tokens request for ${file.absolutePath}")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
 
             return genTokens(mod.ast)
         }
 
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     private fun genTokens(ast: Module): SemanticTokens {

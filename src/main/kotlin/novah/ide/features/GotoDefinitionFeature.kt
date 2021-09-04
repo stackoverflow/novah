@@ -22,6 +22,7 @@ import novah.ast.canonical.everywhereUnit
 import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
 import novah.frontend.Span
+import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
 import novah.main.FullModuleEnv
@@ -34,10 +35,10 @@ import java.util.concurrent.CompletableFuture
 class GotoDefinitionFeature(private val server: NovahServer) {
 
     fun onDefinition(params: DefinitionParams): CompletableFuture<Either<MutableList<out Location>, MutableList<out LocationLink>>> {
-        fun run(): Either<MutableList<out Location>, MutableList<out LocationLink>>? {
+        fun run(envRes: EnvResult): Either<MutableList<out Location>, MutableList<out LocationLink>>? {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
-            val env = server.env()
+            val env = envRes.env
             server.logger().log("received go to definition request for ${file.absolutePath}")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
@@ -47,7 +48,7 @@ class GotoDefinitionFeature(private val server: NovahServer) {
             val def = findDefinition(mod.ast, line, col, env.modules())
             return if (def != null) Either.forLeft(mutableListOf(def)) else null
         }
-        return CompletableFuture.supplyAsync(::run)
+        return server.runningEnv().thenApply(::run)
     }
 
     private fun findDefinition(ast: Module, line: Int, col: Int, mods: Map<String, FullModuleEnv>): Location? {
