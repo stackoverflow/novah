@@ -529,6 +529,9 @@ class Parser(
                 val exp = parseExpression()
                 Expr.Yield(exp).withSpan(ret.span, exp.span).withComment(ret.comment)
             }
+            is For -> {
+                parseFor()
+            }
             else -> null
         }
 
@@ -715,6 +718,17 @@ class Parser(
         return Expr.LetBang(def, exp).withSpan(span).withComment(let.comment)
     }
 
+    private fun parseFor(): Expr {
+        val forr = expect<For>(noErr())
+
+        val def = withOffside { parseLetDefPattern(isFor = true) }
+        withIgnoreOffside { expect<Do>(withError(E.FOR_DO)) }
+
+        val exp = parseExpression()
+        val span = span(forr.span, exp.span)
+        return Expr.For(def, exp).withSpan(span).withComment(forr.comment)
+    }
+
     private fun parseLetDefBind(isInstance: Boolean): LetDef {
         val ident = expect<Ident>(withError(E.LET_DECL))
         val name = ident.value.v
@@ -736,10 +750,11 @@ class Parser(
         }
     }
 
-    private fun parseLetDefPattern(): LetDef {
+    private fun parseLetDefPattern(isFor: Boolean = false): LetDef {
         val pat = parsePattern(true)
         return withOffside {
-            expect<Equals>(withError(E.LET_EQUALS))
+            if (isFor) expect<In>(withError(E.FOR_IN))
+            else expect<Equals>(withError(E.LET_EQUALS))
             val exp = parseExpression()
             LetDef.DefPattern(pat, exp)
         }

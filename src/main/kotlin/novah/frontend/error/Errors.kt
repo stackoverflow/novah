@@ -95,6 +95,10 @@ object Errors {
 
     const val LET_IN = "Expected `in` after let definition."
 
+    const val FOR_IN = "Expected `in` after for pattern."
+
+    const val FOR_DO = "Expected `do` after for definition."
+
     const val CASE_OF = "Expected `of` after a case expression."
 
     const val CASE_ARROW = "Expected `->` after case pattern."
@@ -178,6 +182,8 @@ object Errors {
     const val RETURN_EXPR = "return keyword can only be used inside a computation expression."
 
     const val YIELD_EXPR = "yield keyword can only be used inside a computation expression."
+
+    const val FOR_EXPR = "for expression can only be used inside a computation expression."
 
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
