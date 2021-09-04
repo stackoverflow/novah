@@ -31,6 +31,7 @@ import novah.frontend.error.Severity
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
+import novah.main.Context
 import novah.main.Environment
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
@@ -54,18 +55,19 @@ import novah.frontend.typechecker.Type as TType
  * Converts the canonical AST to the
  * optimized version, ready for codegen
  */
-class Optimizer(private val ast: CModule) {
+class Optimizer(private val ast: CModule, private val ctx: Context) {
 
     private var haslambda = false
     private val errors = mutableListOf<CompilerProblem>()
     private val unusedImports: MutableMap<String, Span> = ast.unusedImports.toMutableMap()
+    private val patternCompiler = PatternMatchingCompiler<Pattern>(ctx)
 
     private var genVar = 0
 
     fun errors(): List<CompilerProblem> = errors
 
     fun convert(): Module {
-        PatternMatchingCompiler.addConsToCache(ast)
+        patternCompiler.addConsToCache(ast)
         val optimized = ast.convert()
         reportUnusedImports()
         return optimized
@@ -127,7 +129,7 @@ class Optimizer(private val ast: CModule) {
             }
             is CExpr.Constructor -> {
                 val ctorName = fullname(moduleName ?: ast.name.value)
-                val arity = PatternMatchingCompiler.getFromCache(ctorName)?.arity
+                val arity = ctx.ctorCache[ctorName]?.arity
                     ?: internalError("Could not find constructor $name")
                 Expr.Constructor(internalize(ctorName), arity, typ, span)
             }
@@ -168,10 +170,10 @@ class Optimizer(private val ast: CModule) {
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Match -> {
-                val match = cases.map { PatternMatchingCompiler.convert(it, ast.name.value) }
+                val match = cases.map { patternCompiler.convert(it, ast.name.value) }
                 // guarded matches are ignored
                 val matches = match.filter { !it.isGuarded }
-                val compRes = PatternMatchingCompiler<Pattern>().compile(matches)
+                val compRes = patternCompiler.compile(matches)
                 reportPatternMatch(compRes, this)
                 desugarMatch(this, typ, locals)
             }

@@ -20,10 +20,7 @@ import novah.data.mapList
 import novah.data.unwrapOrElse
 import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
-import novah.main.CompilationError
-import novah.main.Compiler
-import novah.main.FullModuleEnv
-import novah.main.Source
+import novah.main.*
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import java.io.File
@@ -95,7 +92,7 @@ object TestUtil {
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
         val compiler = compilerForCode(code, verbose)
         val ast = compiler.compile().values.last().ast
-        val opt = Optimizer(ast)
+        val opt = Optimizer(ast, Context())
         val conv = opt.convert()
         if (opt.errors().isNotEmpty()) {
             opt.errors().forEach { println(it.formatToConsole()) }
