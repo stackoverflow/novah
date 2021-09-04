@@ -26,5 +26,5 @@ jobs:
 
     - name: Test with Gradle
       run: |
-        ./gradlew clean
-        ./gradlew test
+        gradle clean
+        gradle test
