@@ -16,13 +16,13 @@ import novah.list as List
 pub
 list :
   { bind : List a -> (a -> List b) -> List b
-  , "return" : a -> List a
+  , "yield" : a -> List a
   , combine : List a -> List a -> List a
   , zero : List a
   }
 list =
   { bind: flip List.flatMap
-  , "return": \x -> [x]
+  , "yield": \x -> [x]
   , combine: \(l1 : List a) l2 -> l1 ++ l2
   , zero: []
   }
@@ -34,13 +34,13 @@ list =
 pub
 set :
   { bind : Set a -> (a -> Set b) -> Set b
-  , "return" : a -> Set a
+  , "yield" : a -> Set a
   , combine : Set a -> Set a -> Set a
   , zero : Set a
   }
 set =
   { bind: flip Set.flatMap
-  , "return": \x -> #{x}
+  , "yield": \x -> #{x}
   , combine: \(s1 : Set a) s2 -> s1 ++ s2
   , zero: #{}
   }
@@ -52,13 +52,13 @@ set =
 pub
 linkedList :
   { bind : LinkedList a -> (a -> LinkedList b) -> LinkedList b
-  , "return" : a -> LinkedList a
+  , "yield" : a -> LinkedList a
   , combine : LinkedList a -> LinkedList a -> LinkedList a
   , zero : LinkedList a
   }
 linkedList =
   { bind: flip LinkedList.flatMap
-  , "return": \x -> Cons x Nil
+  , "yield": \x -> Cons x Nil
   , combine: \(l1 : LinkedList a) l2 -> l1 ++ l2
   , zero: Nil
   }

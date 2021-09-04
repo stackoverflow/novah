@@ -234,6 +234,7 @@ sealed class Expr {
     data class While(val cond: Expr, val exps: List<Expr>) : Expr()
     data class Computation(val builder: Var, val exps: List<Expr>) : Expr()
     data class Return(val exp: Expr) : Expr()
+    data class Yield(val exp: Expr) : Expr()
     data class DoBang(val exp: Expr) : Expr()
     class Null : Expr()
     data class TypeCast(val exp: Expr, val cast: Type) : Expr()

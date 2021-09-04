@@ -146,9 +146,9 @@ class DesugarSpec : StringSpec({
             foo = do.list
               let! x = 1 .. 6
               let! y = 7 .. 14
-              if isEven (x + y) then return (x + y)
+              if isEven (x + y) then yield (x + y)
             
-            bar = do.list let! i = 1 .. 100 in return i * i
+            bar = do.list let! i = 1 .. 100 in yield i * i
         """.module()
 
         TestUtil.compileCode(code)

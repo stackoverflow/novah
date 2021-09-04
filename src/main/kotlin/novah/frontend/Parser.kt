@@ -524,6 +524,11 @@ class Parser(
                 val exp = parseExpression()
                 Expr.Return(exp).withSpan(ret.span, exp.span).withComment(ret.comment)
             }
+            is Yield -> {
+                val ret = iter.next()
+                val exp = parseExpression()
+                Expr.Yield(exp).withSpan(ret.span, exp.span).withComment(ret.comment)
+            }
             else -> null
         }
 
