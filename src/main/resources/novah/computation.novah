@@ -89,10 +89,12 @@ pub
 result :
   { bind : Result a e -> (a -> Result b e) -> Result b e
   , "return" : a -> Result a e
+  , combine : Result a e -> Result a e -> Result a e
   }
 result =
   { bind: resultBind
   , "return": Ok
+  , combine: resultCombine
   }
 
 optBind : Option a -> (a -> Option b) -> Option b
@@ -112,3 +114,9 @@ resultBind res f =
   case res of
     Ok x -> f x
     Err e -> Err e
+
+resultCombine : Result ok err -> Result ok err -> Result ok err
+resultCombine x y =
+  case x of
+    Ok _ -> x
+    Err _ -> y
