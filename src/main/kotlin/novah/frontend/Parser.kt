@@ -699,7 +699,15 @@ class Parser(
 
         val def = withOffside { parseLetDefPattern() }
 
-        return Expr.LetBang(def).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
+        if (iter.peek().value !is In) {
+            return Expr.LetBang(def, null).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
+        }
+        withIgnoreOffside { expect<In>(withError(E.LET_IN)) }
+
+        val exp = parseExpression()
+
+        val span = span(let.span, exp.span)
+        return Expr.LetBang(def, exp).withSpan(span).withComment(let.comment)
     }
 
     private fun parseLetDefBind(isInstance: Boolean): LetDef {

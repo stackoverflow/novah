@@ -116,7 +116,9 @@ object Errors {
 
     const val FOREIGN_TYPE_ALIAS = "Type has to start with a upper case letter."
 
-    const val LET_DO_LAST = "Do expression cannot end with a let definition."
+    const val LET_DO_LAST = "Do expression cannot end with a let statement."
+
+    const val LET_BANG_LAST = "Computation expression cannot end with a let or let! statement."
 
     const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
 

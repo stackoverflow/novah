@@ -147,6 +147,8 @@ class DesugarSpec : StringSpec({
               let! x = 1 .. 6
               let! y = 7 .. 14
               if isEven (x + y) then return (x + y)
+            
+            bar = do.list let! i = 1 .. 100 in return i * i
         """.module()
 
         TestUtil.compileCode(code)
