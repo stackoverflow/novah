@@ -343,7 +343,7 @@ class Desugar(private val smod: SModule) {
             Expr.While(cond.desugar(locals, tvars), exps.map { it.desugar(locals, tvars) }, span)
         }
         is SExpr.Computation -> {
-            if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
+            if (exps.last() is SExpr.DoLet) parserError(E.LET_BANG_LAST, exps.last().span)
             val desugared = desugarComputation(exps, builder)
             desugared.desugar(locals, tvars)
         }
@@ -849,13 +849,22 @@ class Desugar(private val smod: SModule) {
         val isLast = exprs.size == 1
         return when (val exp = exprs[0]) {
             is SExpr.LetBang -> {
-                if (isLast) TODO("error needs a `in`")
-                val body = desugarComputation(exprs.drop(1), builder)
-
+                if (isLast && exp.body == null) parserError(E.LET_BANG_LAST, exp.span)
                 val span = exp.span
                 val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
-                val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
-                SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
+                if (exp.body == null) {
+                    val body = desugarComputation(exprs.drop(1), builder)
+
+                    val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
+                    SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
+                } else {
+                    val body = desugarComputation(listOf(exp.body), builder)
+                    val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
+                    val res = SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
+                    
+                    if (isLast) res
+                    else combiner(span, res)
+                }
             }
             is SExpr.DoBang -> {
                 val span = exp.span
