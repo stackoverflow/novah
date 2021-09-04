@@ -215,6 +215,7 @@ sealed class Expr {
     data class Do(val exps: List<Expr>) : Expr()
     data class DoLet(val letDef: LetDef) : Expr()
     data class LetBang(val letDef: LetDef, val body: Expr?) : Expr()
+    data class For(val letDef: LetDef, val body: Expr) : Expr()
     data class Parens(val exp: Expr) : Expr() {
         override fun toString(): String = "($exp)"
     }

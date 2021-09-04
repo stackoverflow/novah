@@ -68,6 +68,7 @@ sealed class Token {
     object Null : Token()
     object Return : Token()
     object Yield : Token()
+    object For : Token()
 
     data class BoolT(val b: Boolean) : Token()
     data class CharT(val c: Char, val raw: String) : Token()
@@ -322,6 +323,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "null" -> Null
             "return" -> Return
             "yield" -> Yield
+            "for" -> For
             "do" -> {
                 when (iter.peek()) {
                     '.' -> {

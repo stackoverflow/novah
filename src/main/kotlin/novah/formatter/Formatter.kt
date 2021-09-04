@@ -142,7 +142,13 @@ class Formatter {
                 "let ${show(e.letDef)}"
             }
             is Expr.LetBang -> {
-                "let! ${show(e.letDef)}"
+                if (e.body == null)
+                    "let! ${show(e.letDef)}"
+                else
+                    "let! ${show(e.letDef)} in ${show(e.body)}"
+            }
+            is Expr.For -> {
+                "for ${show(e.letDef, isFor = true)} do ${show(e.body)}"
             }
             is Expr.DoBang -> {
                 "do! ${show(e.exp)}"
@@ -269,13 +275,14 @@ class Formatter {
         is LiteralPattern.Float64Literal -> show(p.e)
     }
 
-    private fun show(l: LetDef): String {
+    private fun show(l: LetDef, isFor: Boolean = false): String {
+        val sep = if (isFor) "in" else "="
         val prefix = when (l) {
             is LetDef.DefBind -> {
                 val typ = if (l.type != null) "${l.name} : ${show(l.type)}\n$tab" else ""
-                "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
+                "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " $sep"
             }
-            is LetDef.DefPattern -> "${show(l.pat)} ="
+            is LetDef.DefPattern -> "${show(l.pat)} $sep"
         }
         return if (l.expr.isSimpleExpr()) "$prefix ${show(l.expr)}"
         else prefix + withIndent { tab + show(l.expr) }

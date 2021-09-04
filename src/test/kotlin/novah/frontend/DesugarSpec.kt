@@ -144,11 +144,11 @@ class DesugarSpec : StringSpec({
             import novah.computation
             
             foo = do.list
-              let! x = 1 .. 6
-              let! y = 7 .. 14
-              if isEven (x + y) then yield (x + y)
+              for x in 1 .. 6 do
+                for y in 7 .. 14 do
+                  if isEven (x + y) then yield (x + y)
             
-            bar = do.list let! i = 1 .. 100 in yield i * i
+            bar = do.list for i in 1 .. 100 do yield i * i
         """.module()
 
         TestUtil.compileCode(code)

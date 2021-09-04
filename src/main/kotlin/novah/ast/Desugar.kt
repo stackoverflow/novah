@@ -417,6 +417,7 @@ class Desugar(private val smod: SModule) {
         is SExpr.Yield -> parserError(E.YIELD_EXPR, span)
         is SExpr.LetBang -> parserError(E.LET_BANG, span)
         is SExpr.DoBang -> parserError(E.DO_BANG, span)
+        is SExpr.For -> parserError(E.FOR_EXPR, span)
     }
 
     private fun SCase.desugar(locals: List<String>, tvars: Map<String, Type>): Case {
@@ -866,6 +867,16 @@ class Desugar(private val smod: SModule) {
                     if (isLast) res
                     else combiner(span, res)
                 }
+            }
+            is SExpr.For -> {
+                val span = exp.span
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "for"))).withSpan(span)
+                val body = desugarComputation(listOf(exp.body), builder)
+                val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
+                val res = SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
+
+                if (isLast) res
+                else combiner(span, res)
             }
             is SExpr.DoBang -> {
                 val span = exp.span
