@@ -724,7 +724,7 @@ class Parser(
         val def = withOffside { parseLetDefPattern(isFor = true) }
         withIgnoreOffside { expect<Do>(withError(E.FOR_DO)) }
 
-        val exp = parseExpression()
+        val exp = parseDo()
         val span = span(forr.span, exp.span)
         return Expr.For(def, exp).withSpan(span).withComment(forr.comment)
     }
