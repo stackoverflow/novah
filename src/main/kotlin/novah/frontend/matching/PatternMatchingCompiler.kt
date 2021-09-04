@@ -59,12 +59,14 @@ typealias Match<R> = List<MatchRule<R>>
 
 data class PatternCompilationResult<R>(val exhaustive: Boolean, val redundantMatches: List<List<R>>)
 
-class PatternMatchingCompiler<R> {
+class PatternMatchingCompiler<R>(private val ctx: novah.main.Context) {
 
     private var inexhaustive = false
     private val redundantMatches = mutableListOf<List<R>>()
 
     fun compile(match: Match<R>): PatternCompilationResult<R> {
+        inexhaustive = false
+        redundantMatches.clear()
         for (m in match) {
             redundantMatches += m.rhs
         }
@@ -193,6 +195,61 @@ class PatternMatchingCompiler<R> {
         return builddsc(rest, Term.Pos(ce.con, ce.terms.reversed() + w.dscs.prepend(dsc)), work)
     }
 
+    fun addConsToCache(mod: Module) {
+        for (dd in mod.decls.filterIsInstance<Decl.TypeDecl>()) {
+            val span = dd.dataCtors.size
+            for (c in dd.dataCtors) {
+                val name = "${mod.name.value}.${c.name.value}"
+                if (ctx.ctorCache.containsKey(name)) break
+                ctx.ctorCache[name] = Ctor(c.name.value, c.args.size, span)
+            }
+        }
+    }
+
+    fun convert(c: Case, modName: String): MatchRule<Pattern> {
+        val pat = if (c.patterns.size == 1) convertPattern(c.patterns[0], modName)
+        else {
+            val ctor = mkMultiCtor(c.patterns.size)
+            Pat.PCon(ctor, c.patterns.map { convertPattern(it, modName) })
+        }
+        return MatchRule(pat, c.patterns, c.guard != null)
+    }
+
+    private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {
+        is Pattern.Wildcard -> Pat.PVar("_")
+        is Pattern.Var -> Pat.PVar(p.v.name)
+        is Pattern.Ctor -> {
+            val name = p.ctor.fullname(p.ctor.moduleName ?: modName)
+            Pat.PCon(ctx.ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
+        }
+        is Pattern.LiteralP -> {
+            val con = when (val l = p.lit) {
+                is LiteralPattern.BoolLiteral -> if (l.e.v) trueCtor else falseCtor
+                is LiteralPattern.CharLiteral -> mkPrimCtor(l.e.v.toString())
+                is LiteralPattern.StringLiteral -> mkPrimCtor(l.e.v)
+                is LiteralPattern.Int32Literal -> mkPrimCtor(l.e.v.toString())
+                is LiteralPattern.Int64Literal -> mkPrimCtor(l.e.v.toString())
+                is LiteralPattern.Float32Literal -> mkPrimCtor(l.e.v.toString())
+                is LiteralPattern.Float64Literal -> mkPrimCtor(l.e.v.toString())
+            }
+            Pat.PCon(con, emptyList())
+        }
+        is Pattern.Record -> {
+            val pats = p.labels.values().flatten().map { convertPattern(it, modName) }
+            Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
+        }
+        is Pattern.ListP -> {
+            if (p.elems.isEmpty()) Pat.PCon(listEmptyCtor, emptyList())
+            else Pat.PCon(mkListCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
+        }
+        is Pattern.ListHeadTail -> {
+            Pat.PCon(listHeadTailCtor, listOf(convertPattern(p.head, modName), convertPattern(p.tail, modName)))
+        }
+        is Pattern.Named -> convertPattern(p.pat, modName)
+        is Pattern.Unit -> Pat.PVar("()")
+        is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.test.show()), emptyList())
+    }
+
     companion object {
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
@@ -203,68 +260,6 @@ class PatternMatchingCompiler<R> {
         private fun mkListCtor(arity: Int) = Ctor("list$arity", arity, Integer.MAX_VALUE)
         private fun mkTypeTestCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkMultiCtor(arity: Int) = Ctor("multi$arity", arity, 1)
-
-        private val ctorCache = mutableMapOf<String, Ctor>()
-
-        fun addConsToCache(mod: Module) {
-            for (dd in mod.decls.filterIsInstance<Decl.TypeDecl>()) {
-                val span = dd.dataCtors.size
-                for (c in dd.dataCtors) {
-                    val name = "${mod.name.value}.${c.name.value}"
-                    if (ctorCache.containsKey(name)) break
-                    ctorCache[name] = Ctor(c.name.value, c.args.size, span)
-                }
-            }
-        }
-
-        fun getFromCache(name: String): Ctor? = ctorCache[name]
-
-        fun resetCache() {
-            ctorCache.clear()
-        }
-
-        fun convert(c: Case, modName: String): MatchRule<Pattern> {
-            val pat = if (c.patterns.size == 1) convertPattern(c.patterns[0], modName)
-            else {
-                val ctor = mkMultiCtor(c.patterns.size)
-                Pat.PCon(ctor, c.patterns.map { convertPattern(it, modName) })
-            }
-            return MatchRule(pat, c.patterns, c.guard != null)
-        }
-
-        private fun convertPattern(p: Pattern, modName: String): Pat = when (p) {
-            is Pattern.Wildcard -> Pat.PVar("_")
-            is Pattern.Var -> Pat.PVar(p.v.name)
-            is Pattern.Ctor -> {
-                val name = p.ctor.fullname(p.ctor.moduleName ?: modName)
-                Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
-            }
-            is Pattern.LiteralP -> {
-                val con = when (val l = p.lit) {
-                    is LiteralPattern.BoolLiteral -> if (l.e.v) trueCtor else falseCtor
-                    is LiteralPattern.CharLiteral -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.StringLiteral -> mkPrimCtor(l.e.v)
-                    is LiteralPattern.Int32Literal -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.Int64Literal -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.Float32Literal -> mkPrimCtor(l.e.v.toString())
-                    is LiteralPattern.Float64Literal -> mkPrimCtor(l.e.v.toString())
-                }
-                Pat.PCon(con, emptyList())
-            }
-            is Pattern.Record -> {
-                val pats = p.labels.values().flatten().map { convertPattern(it, modName) }
-                Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
-            }
-            is Pattern.ListP -> {
-                if (p.elems.isEmpty()) Pat.PCon(listEmptyCtor, emptyList())
-                else Pat.PCon(mkListCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
-            }
-            is Pattern.ListHeadTail -> {
-                Pat.PCon(listHeadTailCtor, listOf(convertPattern(p.head, modName), convertPattern(p.tail, modName)))
-            }
-            is Pattern.Named -> convertPattern(p.pat, modName)
-            is Pattern.Unit -> Pat.PVar("()")
-            is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.test.show()), emptyList())
-        }
     }
+        
 }

@@ -54,6 +54,8 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     private val sourceMap = mutableMapOf<Path, String>()
 
     private val errors = mutableSetOf<CompilerProblem>()
+    
+    private val ctx = Context()
 
     private val classLoader: NovahClassLoader
     private val sourceLoader: SourceCodeLoader
@@ -164,7 +166,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     fun generateCode(output: File, dryRun: Boolean = false) {
 
         val optASTs = modules.values.map { menv ->
-            val optimizer = Optimizer(menv.ast)
+            val optimizer = Optimizer(menv.ast, ctx)
             val opt = optimizer.convert()
             errors += optimizer.errors()
             opt
