@@ -1,11 +1,11 @@
 module [33mtest[0m
 at src/test/resources/failure/types/undefined type.novah:3:13 - 3:18
 
-  Undefined type Undef
+  Undefined type test.Undef
   
   Make sure the type is imported: `import some.module (MyType)`
   Or if it's a foreign type: `foreign import java.io.File`
 
-while checking type Unit -> Undef
+while checking type Unit -> test.Undef
 in declaration f
 

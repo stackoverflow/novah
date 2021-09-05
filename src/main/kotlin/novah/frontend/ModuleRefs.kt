@@ -31,7 +31,7 @@ import novah.ast.source.Type as SType
 typealias VarRef = String
 typealias ModuleName = String
 
-fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<CompilerProblem> {
+fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>, env: Env): List<CompilerProblem> {
     val visible = { (_, tvis): Map.Entry<String, DeclRef> -> tvis.visibility == Visibility.PUBLIC }
     val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
 
@@ -43,7 +43,6 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
         CompilerProblem(msg, span, mod.sourceName, mod.name.value, null, Severity.WARN)
     }
 
-    val env = Typechecker.env
     val resolved = mutableMapOf<VarRef, ModuleName>()
     val resolvedTypealiases = mutableListOf<Decl.TypealiasDecl>()
     val errors = mutableListOf<CompilerProblem>()
@@ -161,7 +160,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>): List<Compi
 /**
  * Resolves all java imports in this module.
  */
-fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProblem> {
+fun resolveForeignImports(mod: Module, cl: NovahClassLoader, tc: Typechecker): List<CompilerProblem> {
     val errors = mutableListOf<CompilerProblem>()
 
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
@@ -169,7 +168,6 @@ fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProbl
     }
 
     val typealiases = mutableMapOf<String, String>()
-    val env = Typechecker.env
 
     for (type in mod.foreigns) {
         val fqType = type.type
@@ -179,7 +177,7 @@ fun resolveForeignImports(mod: Module, cl: NovahClassLoader): List<CompilerProbl
             continue
         }
 
-        env.extendType(fqType, collectType(clazz))
+        tc.env.extendType(fqType, collectType(tc, clazz))
         if (type.alias != null) {
             if (mod.resolvedImports.containsKey(type.alias))
                 errors += makeError(type.span)(Errors.duplicatedImport(type.alias))

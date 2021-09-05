@@ -47,7 +47,7 @@ import novah.frontend.error.Errors as E
 /**
  * Converts a source AST to the canonical spanned AST
  */
-class Desugar(private val smod: SModule) {
+class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
 
     private val imports = smod.resolvedImports
 
@@ -496,7 +496,7 @@ class Desugar(private val smod: SModule) {
                         var v = vars[name]
                         if (v != null) v.clone().span(span)
                         else {
-                            v = Typechecker.newGenVar(name).span(span)
+                            v = typeChecker.newGenVar(name).span(span)
                             vars[name] = v
                             v
                         }

@@ -30,7 +30,7 @@ import novah.data.unwrapOrElse
 import novah.frontend.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
-import novah.frontend.typechecker.Inference
+import novah.frontend.matching.Ctor
 import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
 import novah.optimize.Optimization
@@ -54,8 +54,8 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     private val sourceMap = mutableMapOf<Path, String>()
 
     private val errors = mutableSetOf<CompilerProblem>()
-    
-    private val ctx = Context()
+
+    private val ctorCache = mutableMapOf<String, Ctor>()
 
     private val classLoader: NovahClassLoader
     private val sourceLoader: SourceCodeLoader
@@ -63,7 +63,6 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     init {
         classLoader = NovahClassLoader(classpath)
         sourceLoader = SourceCodeLoader(sourcepath)
-        Inference.classLoader = classLoader
     }
 
     /**
@@ -135,27 +134,27 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
         val orderedMods = modGraph.topoSort()
         for (modNode in orderedMods) {
             val mod = modNode.data
-            Typechecker.reset()
-            val importErrs = resolveImports(mod, modules)
-            val foreignErrs = resolveForeignImports(mod, classLoader)
+            val typeChecker = Typechecker(classLoader)
+            val importErrs = resolveImports(mod, modules, typeChecker.env)
+            val foreignErrs = resolveForeignImports(mod, classLoader, typeChecker)
             errors += importErrs
             errors += foreignErrs
             if (shouldThrow(errors)) throwErrors()
 
             if (verbose) echo("Typechecking ${mod.name.value}")
 
-            val desugar = Desugar(mod)
+            val desugar = Desugar(mod, typeChecker)
             val canonical = desugar.desugar().unwrapOrElse { throwAllErrors(it + desugar.errors()) }
             errors += desugar.errors()
             if (shouldThrow(errors)) throwErrors()
 
-            val menv = Typechecker.infer(canonical).unwrapOrElse { throwAllErrors(it + Inference.errors()) }
-            errors += Inference.errors()
+            val menv = typeChecker.infer(canonical).unwrapOrElse { throwAllErrors(it + typeChecker.infer.errors()) }
+            errors += typeChecker.infer.errors()
             if (shouldThrow(errors)) throwErrors()
 
             val taliases = mod.decls.filterIsInstance<Decl.TypealiasDecl>()
             modules[mod.name.value] =
-                FullModuleEnv(menv, canonical, taliases, Typechecker.typeVars(), mod.comment, isStdlib)
+                FullModuleEnv(menv, canonical, taliases, typeChecker.typeVars(), mod.comment, isStdlib)
         }
         return modules
     }
@@ -166,7 +165,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
     fun generateCode(output: File, dryRun: Boolean = false) {
 
         val optASTs = modules.values.map { menv ->
-            val optimizer = Optimizer(menv.ast, ctx)
+            val optimizer = Optimizer(menv.ast, ctorCache)
             val opt = optimizer.convert()
             errors += optimizer.errors()
             opt

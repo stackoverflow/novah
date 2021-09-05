@@ -216,8 +216,7 @@ sealed class Type {
 
         fun go(t: Type, nested: Boolean = false, topLevel: Boolean = false): String = when (t) {
             is TConst -> {
-                val isCurrent = Typechecker.context?.mod?.name?.value?.let { t.name.startsWith(it) } ?: false
-                val shouldQualify = !t.name.startsWith("prim.") && !isCurrent
+                val shouldQualify = !t.name.startsWith("prim.")
                 if (qualified && shouldQualify) t.name else t.name.split('.').last()
             }
             is TApp -> {

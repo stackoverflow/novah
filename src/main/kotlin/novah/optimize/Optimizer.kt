@@ -28,10 +28,10 @@ import novah.frontend.Span
 import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Severity
+import novah.frontend.matching.Ctor
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
-import novah.main.Context
 import novah.main.Environment
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
@@ -55,12 +55,12 @@ import novah.frontend.typechecker.Type as TType
  * Converts the canonical AST to the
  * optimized version, ready for codegen
  */
-class Optimizer(private val ast: CModule, private val ctx: Context) {
+class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<String, Ctor>) {
 
     private var haslambda = false
     private val errors = mutableListOf<CompilerProblem>()
     private val unusedImports: MutableMap<String, Span> = ast.unusedImports.toMutableMap()
-    private val patternCompiler = PatternMatchingCompiler<Pattern>(ctx)
+    private val patternCompiler = PatternMatchingCompiler<Pattern>(ctorCache)
 
     private var genVar = 0
 
@@ -129,7 +129,7 @@ class Optimizer(private val ast: CModule, private val ctx: Context) {
             }
             is CExpr.Constructor -> {
                 val ctorName = fullname(moduleName ?: ast.name.value)
-                val arity = ctx.ctorCache[ctorName]?.arity
+                val arity = ctorCache[ctorName]?.arity
                     ?: internalError("Could not find constructor $name")
                 Expr.Constructor(internalize(ctorName), arity, typ, span)
             }

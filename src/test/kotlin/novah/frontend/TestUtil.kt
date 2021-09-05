@@ -92,7 +92,7 @@ object TestUtil {
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
         val compiler = compilerForCode(code, verbose)
         val ast = compiler.compile().values.last().ast
-        val opt = Optimizer(ast, Context())
+        val opt = Optimizer(ast, mutableMapOf())
         val conv = opt.convert()
         if (opt.errors().isNotEmpty()) {
             opt.errors().forEach { println(it.formatToConsole()) }

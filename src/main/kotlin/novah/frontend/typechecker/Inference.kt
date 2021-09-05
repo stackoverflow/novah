@@ -25,24 +25,19 @@ import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.Type.Companion.nestArrows
-import novah.frontend.typechecker.Typechecker.context
-import novah.frontend.typechecker.Typechecker.env
-import novah.frontend.typechecker.Typechecker.instantiate
-import novah.frontend.typechecker.Typechecker.newGenVar
-import novah.frontend.typechecker.Typechecker.newVar
-import novah.frontend.typechecker.Unification.unify
-import novah.frontend.typechecker.Unification.unifySimple
 import novah.main.*
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import novah.frontend.error.Errors as E
 
-object Inference {
+class Inference(private val tc: Typechecker, private val classLoader: NovahClassLoader) {
 
     private val implicitsToCheck = mutableListOf<Expr>()
     private val errors = mutableSetOf<CompilerProblem>()
-
-    var classLoader: NovahClassLoader? = null
+    
+    private val env = tc.env
+    private val uni = tc.uni
+    private val instances = InstanceSearch(tc)
 
     fun errors(): Set<CompilerProblem> = errors
 
@@ -57,7 +52,7 @@ object Inference {
 
         // add the fixpoint operator to the context for recursive functions
         // TODO: add this to the env as primitive
-        val vvar = newGenVar()
+        val vvar = tc.newGenVar()
         env.extend("\$fix", TArrow(listOf(TArrow(listOf(vvar), vvar)), vvar))
 
         val datas = ast.decls.filterIsInstance<Decl.TypeDecl>()
@@ -79,7 +74,7 @@ object Inference {
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
-                Typechecker.checkWellFormed(env.lookup(dc.name.value)!!, dc.span)
+                tc.checkWellFormed(env.lookup(dc.name.value)!!, dc.span)
             }
         }
 
@@ -94,7 +89,7 @@ object Inference {
 
         for (decl in vals) {
             implicitsToCheck.clear()
-            context?.apply { this.decl = decl }
+            tc.context?.apply { this.decl = decl }
             val name = decl.name.value
             val isAnnotated = decl.exp is Expr.Ann
             try {
@@ -106,7 +101,7 @@ object Inference {
                     inferRecursive(name, decl.exp, newEnv, 0)
                 } else infer(newEnv, 0, decl.exp)
 
-                if (implicitsToCheck.isNotEmpty()) InstanceSearch.instanceSearch(implicitsToCheck)
+                if (implicitsToCheck.isNotEmpty()) instances.instanceSearch(implicitsToCheck)
 
                 val genTy = generalize(-1, ty)
                 env.extend(name, genTy)
@@ -119,8 +114,8 @@ object Inference {
                 }
             } catch (ie: InferenceError) {
                 decl.typeError = true
-                errors += CompilerProblem(ie.msg, ie.span, ast.sourceName, ast.name.value, context?.copy())
-                context?.types?.clear()
+                errors += CompilerProblem(ie.msg, ie.span, ast.sourceName, ast.name.value, tc.context?.copy())
+                tc.context?.types?.clear()
             }
         }
 
@@ -136,24 +131,24 @@ object Inference {
         is Expr.Bool -> exp.withType(tBoolean)
         is Expr.StringE -> exp.withType(tString)
         is Expr.Unit -> exp.withType(tUnit)
-        is Expr.Null -> exp.withType(instantiate(level, tNullable))
+        is Expr.Null -> exp.withType(tc.instantiate(level, tNullable))
         is Expr.Var -> {
             val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(instantiate(level, ty))
+            exp.withType(tc.instantiate(level, ty))
         }
         is Expr.Constructor -> {
             val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(instantiate(level, ty))
+            exp.withType(tc.instantiate(level, ty))
         }
         is Expr.ImplicitVar -> {
             val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
-            exp.withType(instantiate(level, ty))
+            exp.withType(tc.instantiate(level, ty))
         }
         is Expr.Lambda -> {
             val binder = exp.binder
             checkShadow(env, binder.name, binder.span)
             // if the binder is annotated, use it
-            val par = if (binder.type != null) binder.type!! else newVar(level)
+            val par = if (binder.type != null) binder.type!! else tc.newVar(level)
             val param = if (binder.isImplicit) TImplicit(par) else par
             val newEnv = env.fork().extend(binder.name, param)
             if (binder.isImplicit) newEnv.extendInstance(binder.name, param, true)
@@ -184,7 +179,7 @@ object Inference {
             } while (paramTypes[0] is TImplicit && exp.arg !is Expr.ImplicitVar)
             val fullArgTy = infer(env, level, exp.arg)
             val (argTy, implicits) = peelImplicits(fullArgTy)
-            unify(params.last(), argTy, exp.arg.span)
+            uni.unify(params.last(), argTy, exp.arg.span)
 
             if (params.size > 1) {
                 exp.implicitContext = ImplicitContext(params.dropLast(1), env.fork())
@@ -197,7 +192,7 @@ object Inference {
             exp.withType(retTy)
         }
         is Expr.Ann -> {
-            context?.apply { types.push(exp.annType) }
+            tc.context?.apply { types.push(exp.annType) }
             val type = exp.annType
             val expr = exp.exp
             // this is a little `checking mode` for some base conversions
@@ -226,21 +221,21 @@ object Inference {
                 }
                 else -> {
                     validateType(type, env, expr.span)
-                    unify(type, infer(env, level, expr), expr.span)
+                    uni.unify(type, infer(env, level, expr), expr.span)
                     if (expr is Expr.Lambda && type is TArrow)
                         validateImplicitArgs(expr, type)
                     type
                 }
             }
-            context?.apply { types.pop() }
+            tc.context?.apply { types.pop() }
             expr.withType(resTy)
             exp.withType(resTy)
         }
         is Expr.If -> {
-            unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
+            uni.unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
             val thenTy = infer(env, level, exp.thenCase)
             val elseTy = infer(env, level, exp.elseCase)
-            unify(thenTy, elseTy, exp.span)
+            uni.unify(thenTy, elseTy, exp.span)
             exp.withType(thenTy)
         }
         is Expr.Do -> {
@@ -252,7 +247,7 @@ object Inference {
         }
         is Expr.Match -> {
             val expTys = exp.exps.map { infer(env, level, it) }
-            val resType = newVar(level)
+            val resType = tc.newVar(level)
 
             exp.cases.forEach { case ->
                 val vars = case.patterns.flatMapIndexed { i, pat ->
@@ -268,53 +263,53 @@ object Inference {
                 } else env
 
                 if (case.guard != null) {
-                    unify(tBoolean, infer(newEnv, level, case.guard), case.patternSpan())
+                    uni.unify(tBoolean, infer(newEnv, level, case.guard), case.patternSpan())
                 }
 
                 val ty = infer(newEnv, level, case.exp)
-                unify(resType, ty, case.exp.span)
+                uni.unify(resType, ty, case.exp.span)
             }
             exp.withType(resType)
         }
         is Expr.RecordEmpty -> exp.withType(TRecord(TRowEmpty()))
         is Expr.RecordSelect -> {
-            val rest = newVar(level)
-            val field = newVar(level)
+            val rest = tc.newVar(level)
+            val field = tc.newVar(level)
             val param = TRecord(TRowExtend(singletonPMap(exp.label.value, field), rest))
-            unify(param, infer(env, level, exp.exp), exp.span)
+            uni.unify(param, infer(env, level, exp.exp), exp.span)
             exp.withType(field)
         }
         is Expr.RecordRestrict -> {
-            val rest = newVar(level)
-            val field = newVar(level)
+            val rest = tc.newVar(level)
+            val field = tc.newVar(level)
             val param = TRecord(TRowExtend(singletonPMap(exp.label, field), rest))
             val returnTy = TRecord(rest)
-            unify(param, infer(env, level, exp.exp), exp.span)
+            uni.unify(param, infer(env, level, exp.exp), exp.span)
             exp.withType(returnTy)
         }
         is Expr.RecordUpdate -> {
             val field = infer(env, level, exp.value)
-            val rest = newVar(level)
+            val rest = tc.newVar(level)
             val recTy = TRecord(TRowExtend(singletonPMap(exp.label.value, field), rest))
-            unify(recTy, infer(env, level, exp.exp), exp.span)
+            uni.unify(recTy, infer(env, level, exp.exp), exp.span)
             exp.withType(recTy)
         }
         is Expr.RecordExtend -> {
             val labelTys = exp.labels.mapList { infer(env, level, it) }
-            val rest = newVar(level)
-            unify(TRecord(rest), infer(env, level, exp.exp), exp.span)
+            val rest = tc.newVar(level)
+            uni.unify(TRecord(rest), infer(env, level, exp.exp), exp.span)
             val ty = TRecord(TRowExtend(labelTys, rest))
             exp.withType(ty)
         }
         is Expr.RecordMerge -> {
-            val rest1 = newVar(level)
-            val rest2 = newVar(level)
+            val rest1 = tc.newVar(level)
+            val rest2 = tc.newVar(level)
             val param1 = TRecord(TRowExtend(LabelMap.empty(), rest1))
             val param2 = TRecord(TRowExtend(LabelMap.empty(), rest2))
-            unify(param1, infer(env, level, exp.exp1), exp.span)
-            unify(param2, infer(env, level, exp.exp2), exp.span)
-            val (labels1, row1) = Unification.matchRowType(rest1)
-            val (labels2, row2) = Unification.matchRowType(rest2)
+            uni.unify(param1, infer(env, level, exp.exp1), exp.span)
+            uni.unify(param2, infer(env, level, exp.exp2), exp.span)
+            val (labels1, row1) = uni.matchRowType(rest1)
+            val (labels2, row2) = uni.matchRowType(rest2)
             val row = when {
                 row1 is TRowEmpty -> row2
                 row2 is TRowEmpty -> row1
@@ -324,29 +319,29 @@ object Inference {
             exp.withType(ty)
         }
         is Expr.ListLiteral -> {
-            val ty = newVar(level)
+            val ty = tc.newVar(level)
             exp.exps.forEach { e ->
-                unify(ty, infer(env, level, e), e.span)
+                uni.unify(ty, infer(env, level, e), e.span)
             }
             val res = TApp(TConst(primList), listOf(ty))
             exp.withType(res)
         }
         is Expr.SetLiteral -> {
-            val ty = newVar(level)
+            val ty = tc.newVar(level)
             exp.exps.forEach { e ->
-                unify(ty, infer(env, level, e), e.span)
+                uni.unify(ty, infer(env, level, e), e.span)
             }
             val res = TApp(TConst(primSet), listOf(ty))
             exp.withType(res)
         }
         is Expr.Throw -> {
             val ty = infer(env, level, exp.exp)
-            val res = classLoader!!.isException(ty.typeNameOrEmpty())
+            val res = classLoader.isException(ty.typeNameOrEmpty())
             if (!res) {
                 inferError(E.notException(ty.show()), exp.span)
             }
             // throw returns anything
-            val ret = newVar(level)
+            val ret = tc.newVar(level)
             exp.withType(ret)
         }
         is Expr.TryCatch -> {
@@ -369,14 +364,14 @@ object Inference {
                 } else env
 
                 val ty = infer(newEnv, level, case.exp)
-                unify(resTy, ty, case.exp.span)
+                uni.unify(resTy, ty, case.exp.span)
             }
             // the result type of the finally expression is discarded
             if (exp.finallyExp != null) infer(env, level, exp.finallyExp)
             exp.withType(resTy)
         }
         is Expr.While -> {
-            unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
+            uni.unify(tBoolean, infer(env, level, exp.cond), exp.cond.span)
             exp.exps.forEach { e -> infer(env, level, e) }
             // while always returns unit
             exp.withType(tUnit)
@@ -390,7 +385,7 @@ object Inference {
         is Expr.ClassConstant -> {
             val clazz = exp.clazz.value
             env.lookupType(clazz)
-                ?: classLoader!!.safeFindClass(clazz)
+                ?: classLoader.safeFindClass(clazz)
                 ?: inferError(E.undefinedType(clazz), exp.clazz.span)
 
             val ty = TApp(TConst("java.lang.Class"), listOf(TConst(clazz)))
@@ -399,7 +394,7 @@ object Inference {
         is Expr.ForeignStaticField -> {
             Reflection.typeCache.clear()
             val clazz = exp.clazz.value
-            val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.clazz.span)
+            val jclass = classLoader.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.clazz.span)
 
             val field = Reflection.findField(jclass, exp.fieldName.value)
                 ?: inferError(E.fieldNotFound(exp.fieldName.value, clazz), exp.span)
@@ -410,7 +405,7 @@ object Inference {
                 inferError(E.nonPublicField(exp.fieldName.value, clazz), exp.fieldName.span)
             }
 
-            val ty = Reflection.collectType(field.genericType, level)
+            val ty = Reflection.collectType(tc, field.genericType, level)
             exp.field = field
             exp.withType(ty)
         }
@@ -418,7 +413,7 @@ object Inference {
             Reflection.typeCache.clear()
             val objTy = infer(env, level, exp.exp).realType()
             val clazz = Reflection.findJavaType(objTy) ?: inferError(E.invalidJavaType(objTy.show()), exp.exp.span)
-            val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.exp.span)
+            val jclass = classLoader.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.exp.span)
 
             val field = Reflection.findField(jclass, exp.fieldName.value)
                 ?: inferError(E.fieldNotFound(exp.fieldName.value, clazz), exp.span)
@@ -427,7 +422,7 @@ object Inference {
                 inferError(E.nonPublicField(exp.fieldName.value, clazz), exp.fieldName.span)
             }
 
-            val ty = Reflection.collectType(field.genericType, level)
+            val ty = Reflection.collectType(tc, field.genericType, level)
             exp.field = field
             exp.withType(ty)
         }
@@ -436,7 +431,7 @@ object Inference {
             if (Reflection.isImutable(exp.field.field!!))
                 inferError(E.immutableField(exp.field.fieldName.value, exp.field.clazz.value), exp.field.span)
             val argTy = infer(env, level, exp.value)
-            unify(fieldTy, argTy, exp.span)
+            uni.unify(fieldTy, argTy, exp.span)
             exp.withType(fieldTy)
             tUnit
         }
@@ -447,7 +442,7 @@ object Inference {
                 inferError(E.immutableField(exp.field.fieldName.value, clazz), exp.field.span)
             }
             val argTy = infer(env, level, exp.value)
-            unify(fieldTy, argTy, exp.span)
+            uni.unify(fieldTy, argTy, exp.span)
             exp.withType(fieldTy)
             tUnit
         }
@@ -455,7 +450,7 @@ object Inference {
             Reflection.typeCache.clear()
             val clazz = exp.clazz.value
             val argCount = exp.args.size
-            val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.clazz.span)
+            val jclass = classLoader.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.clazz.span)
             val method = exp.methodName
 
             if (method.value == "new") { // it's a constructor
@@ -467,7 +462,7 @@ object Inference {
                     ?: inferError(E.methodDidNotUnify(method.value, clazz), method.span)
                 if (!Reflection.isPublic(found)) inferError(E.nonPublicCtor(clazz), method.span)
 
-                val ty = Reflection.collectType(found.declaringClass, level)
+                val ty = Reflection.collectType(tc, found.declaringClass, level)
                 exp.ctor = found
                 exp.withType(ty)
             } else { // it's a method
@@ -481,7 +476,7 @@ object Inference {
                     inferError(E.nonPublicMethod(method.value, clazz), method.span)
                 }
 
-                val ty = Reflection.collectType(found.genericReturnType, level)
+                val ty = Reflection.collectType(tc, found.genericReturnType, level)
                 exp.method = found
                 exp.withType(ty)
             }
@@ -491,7 +486,7 @@ object Inference {
             val objTy = infer(env, level, exp.exp).realType()
             val clazz = Reflection.findJavaType(objTy) ?: inferError(E.invalidJavaType(objTy.show()), exp.exp.span)
             val argCount = exp.args.size
-            val jclass = classLoader!!.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.exp.span)
+            val jclass = classLoader.safeFindClass(clazz) ?: inferError(E.undefinedType(clazz), exp.exp.span)
 
             val methods = Reflection.findNonStaticMethods(jclass, exp.methodName.value, argCount)
             if (methods.isEmpty())
@@ -504,7 +499,7 @@ object Inference {
                 inferError(E.nonPublicMethod(exp.methodName.value, clazz), exp.methodName.span)
             }
 
-            val ty = Reflection.collectType(found.genericReturnType, level)
+            val ty = Reflection.collectType(tc, found.genericReturnType, level)
             exp.method = found
             exp.withType(ty)
         }
@@ -515,12 +510,12 @@ object Inference {
     private fun inferpattern(env: Env, level: Level, pat: Pattern, ty: Type): List<PatternVar> {
         val res = when (pat) {
             is Pattern.LiteralP -> {
-                unify(ty, infer(env, level, pat.lit.e), pat.span)
+                uni.unify(ty, infer(env, level, pat.lit.e), pat.span)
                 emptyList()
             }
             is Pattern.Wildcard -> emptyList()
             is Pattern.Unit -> {
-                unify(ty, tUnit, pat.span)
+                uni.unify(ty, tUnit, pat.span)
                 emptyList()
             }
             is Pattern.Var -> listOf(PatternVar(pat.v.name, ty, pat.span))
@@ -528,7 +523,7 @@ object Inference {
                 val cty = infer(env, level, pat.ctor)
 
                 val (ctorTypes, ret) = peelArgs(listOf(), cty)
-                unify(ret, ty, pat.ctor.span)
+                uni.unify(ret, ty, pat.ctor.span)
 
                 if (ctorTypes.size - pat.fields.size != 0)
                     inferError(E.wrongArityCtorPattern(pat.ctor.name, pat.fields.size, ctorTypes.size), pat.span)
@@ -544,28 +539,28 @@ object Inference {
             }
             is Pattern.Record -> {
                 if (pat.labels.isEmpty()) {
-                    unify(TRecord(newVar(level)), ty, pat.span)
+                    uni.unify(TRecord(tc.newVar(level)), ty, pat.span)
                     return emptyList()
                 }
 
                 val vars = mutableListOf<PatternVar>()
                 val tys: LabelMap<Type> = pat.labels.mapList { p ->
-                    val rowTy = newVar(level)
+                    val rowTy = tc.newVar(level)
                     vars += inferpattern(env, level, p, rowTy)
                     rowTy
                 }
-                unify(TRecord(TRowExtend(tys, newVar(level))), ty, pat.span)
+                uni.unify(TRecord(TRowExtend(tys, tc.newVar(level))), ty, pat.span)
                 vars
             }
             is Pattern.ListP -> {
                 if (pat.elems.isEmpty()) {
-                    unify(TApp(TConst(primList), listOf(newVar(level))), ty, pat.span)
+                    uni.unify(TApp(TConst(primList), listOf(tc.newVar(level))), ty, pat.span)
                     return emptyList()
                 }
 
                 val vars = mutableListOf<PatternVar>()
-                val elemTy = newVar(level)
-                unify(TApp(TConst(primList), listOf(elemTy)), ty, pat.span)
+                val elemTy = tc.newVar(level)
+                uni.unify(TApp(TConst(primList), listOf(elemTy)), ty, pat.span)
 
                 pat.elems.forEach { p ->
                     vars += inferpattern(env, level, p, elemTy)
@@ -574,9 +569,9 @@ object Inference {
             }
             is Pattern.ListHeadTail -> {
                 val vars = mutableListOf<PatternVar>()
-                val elemTy = newVar(level)
+                val elemTy = tc.newVar(level)
                 val listTy = TApp(TConst(primList), listOf(elemTy))
-                unify(listTy, ty, pat.span)
+                uni.unify(listTy, ty, pat.span)
 
                 vars += inferpattern(env, level, pat.head, elemTy)
                 vars += inferpattern(env, level, pat.tail, listTy)
@@ -642,8 +637,8 @@ object Inference {
         t is TVar && t.tvar is TypeVar.Link -> matchFunType(numParams, (t.tvar as TypeVar.Link).type, span)
         t is TVar && t.tvar is TypeVar.Unbound -> {
             val unb = t.tvar as TypeVar.Unbound
-            val params = (1..numParams).map { newVar(unb.level) }.reversed()
-            val retur = newVar(unb.level)
+            val params = (1..numParams).map { tc.newVar(unb.level) }.reversed()
+            val retur = tc.newVar(unb.level)
             t.tvar = TypeVar.Link(TArrow(params, retur).span(t.span))
             params to retur
         }
@@ -662,16 +657,16 @@ object Inference {
 
     private fun unifyMethods(methods: List<Method>, tys: List<Type>, level: Int, span: Span): Method? {
         if (methods.size == 1) {
-            val mtys = methods[0].genericParameterTypes.map { Reflection.collectType(it, level) }
+            val mtys = methods[0].genericParameterTypes.map { Reflection.collectType(tc, it, level) }
             return if (unifyForeignPars(mtys, tys, span)) methods[0] else null
         }
         return methods.find { method ->
-            val mtys = method.genericParameterTypes.map { Reflection.collectType(it, level) }
+            val mtys = method.genericParameterTypes.map { Reflection.collectType(tc, it, level) }
             try {
                 // we can't commit to the unification because this method has many overloads,
                 // so we clone the types until we find a match and reunify the matching types
-                mtys.zip(tys).forEach { (mty, ty) -> unifySimple(mty.clone(), ty.clone(), span) }
-                mtys.zip(tys).forEach { (mty, ty) -> unifySimple(mty, ty, span) }
+                mtys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty.clone(), ty.clone(), span) }
+                mtys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty, ty, span) }
                 true
             } catch (_: Unification.UnifyException) {
                 false
@@ -686,15 +681,15 @@ object Inference {
         span: Span
     ): Constructor<*>? {
         if (ctors.size == 1) {
-            val mtys = ctors[0].genericParameterTypes.map { Reflection.collectType(it, level) }
+            val mtys = ctors[0].genericParameterTypes.map { Reflection.collectType(tc, it, level) }
             return if (unifyForeignPars(mtys, tys, span)) ctors[0] else null
         }
         return ctors.find { ctor ->
-            val mtys = ctor.genericParameterTypes.map { Reflection.collectType(it, level) }
+            val mtys = ctor.genericParameterTypes.map { Reflection.collectType(tc, it, level) }
             try {
                 // see `unifyMethods` for an explanation
-                mtys.zip(tys).forEach { (mty, ty) -> unifySimple(mty.clone(), ty.clone(), span) }
-                mtys.zip(tys).forEach { (mty, ty) -> unifySimple(mty, ty, span) }
+                mtys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty.clone(), ty.clone(), span) }
+                mtys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty, ty, span) }
                 true
             } catch (_: Unification.UnifyException) {
                 false
@@ -704,7 +699,7 @@ object Inference {
 
     private fun unifyForeignPars(ftys: List<Type>, tys: List<Type>, span: Span): Boolean {
         return try {
-            ftys.zip(tys).forEach { (mty, ty) -> unifySimple(mty, ty, span) }
+            ftys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty, ty, span) }
             true
         } catch (_: Unification.UnifyException) {
             false
@@ -774,7 +769,7 @@ object Inference {
 
         return if (d.tyVars.isEmpty()) raw to emptyMap()
         else {
-            val varsMap = d.tyVars.map { it to newGenVar() }
+            val varsMap = d.tyVars.map { it to tc.newGenVar() }
             val map = mutableMapOf<String, TVar>()
             varsMap.forEach { (name, vvar) -> map[name] = vvar }
             val vars = varsMap.map { it.second }

@@ -19,13 +19,10 @@ import novah.Util.splitAt
 import novah.ast.canonical.Expr
 import novah.frontend.Span
 import novah.frontend.error.Errors
-import novah.frontend.typechecker.Inference.generalize
-import novah.frontend.typechecker.Typechecker.instantiate
-import novah.frontend.typechecker.Unification.unifySimple
 
-object InstanceSearch {
+class InstanceSearch(private val tc: Typechecker) {
 
-    private const val MAX_DEPTH = 5
+    private val uni = tc.uni
 
     fun instanceSearch(apps: List<Expr>) {
         for (app in apps) {
@@ -40,18 +37,18 @@ object InstanceSearch {
         if (depth > MAX_DEPTH) inferError(Errors.maxSearchDepth(ty.show()), span)
 
         val candidates = findCandidates(env, ty, span)
-        val genTy = generalize(-1, ty)
+        val genTy = tc.infer.generalize(-1, ty)
 
         fun checkImplicit(name: String, impType: Type): Expr? {
             return try {
                 val (imps, ret) = peelImplicits(impType)
                 if (imps.isNotEmpty()) {
-                    unifySimple(ret, genTy, span)
+                    uni.unifySimple(ret, genTy, span)
                     val founds = imps.map { t -> find(env, t, depth + 1, span) }
                     val v = mkVar(name, impType, span)
                     nestApps(listOf(v) + founds)
                 } else {
-                    unifySimple(impType, genTy, span)
+                    uni.unifySimple(impType, genTy, span)
                     mkVar(name, impType, span)
                 }
             } catch (_: Unification.UnifyException) {
@@ -61,7 +58,7 @@ object InstanceSearch {
 
         val res = candidates.mapNotNull { (name, ienv) ->
             checkImplicit(name, ienv.type) ?: if (!ienv.isLambdaVar) {
-                checkImplicit(name, instantiate(0, ienv.type))
+                checkImplicit(name, tc.instantiate(0, ienv.type))
             } else null
         }
 
@@ -132,5 +129,9 @@ object InstanceSearch {
         val idx = name.lastIndexOf('.')
         val (mod, nam) = if (idx != -1) name.splitAt(idx) else null to name
         return Expr.Var(nam, span, mod).apply { this.type = ty }
+    }
+
+    companion object {
+        private const val MAX_DEPTH = 5
     }
 }

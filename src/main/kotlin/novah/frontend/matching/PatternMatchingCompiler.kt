@@ -59,7 +59,7 @@ typealias Match<R> = List<MatchRule<R>>
 
 data class PatternCompilationResult<R>(val exhaustive: Boolean, val redundantMatches: List<List<R>>)
 
-class PatternMatchingCompiler<R>(private val ctx: novah.main.Context) {
+class PatternMatchingCompiler<R>(private val ctorCache: MutableMap<String, Ctor>) {
 
     private var inexhaustive = false
     private val redundantMatches = mutableListOf<List<R>>()
@@ -200,8 +200,8 @@ class PatternMatchingCompiler<R>(private val ctx: novah.main.Context) {
             val span = dd.dataCtors.size
             for (c in dd.dataCtors) {
                 val name = "${mod.name.value}.${c.name.value}"
-                if (ctx.ctorCache.containsKey(name)) break
-                ctx.ctorCache[name] = Ctor(c.name.value, c.args.size, span)
+                if (ctorCache.containsKey(name)) break
+                ctorCache[name] = Ctor(c.name.value, c.args.size, span)
             }
         }
     }
@@ -220,7 +220,7 @@ class PatternMatchingCompiler<R>(private val ctx: novah.main.Context) {
         is Pattern.Var -> Pat.PVar(p.v.name)
         is Pattern.Ctor -> {
             val name = p.ctor.fullname(p.ctor.moduleName ?: modName)
-            Pat.PCon(ctx.ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
+            Pat.PCon(ctorCache[name]!!, p.fields.map { convertPattern(it, modName) })
         }
         is Pattern.LiteralP -> {
             val con = when (val l = p.lit) {
