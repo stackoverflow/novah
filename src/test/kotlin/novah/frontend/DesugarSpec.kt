@@ -24,6 +24,8 @@ import novah.ast.source.Visibility
 import novah.frontend.TestUtil.module
 import novah.frontend.TestUtil.parseString
 import novah.frontend.TestUtil.simpleName
+import novah.frontend.typechecker.Typechecker
+import novah.main.NovahClassLoader
 
 class DesugarSpec : StringSpec({
 
@@ -50,7 +52,7 @@ class DesugarSpec : StringSpec({
         """.trimIndent()
 
         val ast = parseString(code)
-        val dast = Desugar(ast).desugar().unwrap()
+        val dast = Desugar(ast, Typechecker(NovahClassLoader(null))).desugar().unwrap()
 
         val tds = dast.decls.filterIsInstance<Decl.TypeDecl>()
 

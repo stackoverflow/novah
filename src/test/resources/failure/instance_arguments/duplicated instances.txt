@@ -3,7 +3,7 @@ at src/test/resources/failure/instance_arguments/duplicated instances.novah:16:1
 
   Found more than one possible instance for type
   
-      View Int32
+      test.View Int32
   
   Make sure there's no overlapping instances in the context
   or pass the argument explicitly.

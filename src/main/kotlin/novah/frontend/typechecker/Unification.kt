@@ -20,7 +20,7 @@ import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Errors
 
-object Unification {
+class Unification(private val typeChecker: Typechecker) {
 
     fun unify(t1: Type, t2: Type, span: Span) {
         try {
@@ -37,7 +37,7 @@ object Unification {
             unificationError(Errors.typesDontMatch(t1.show(), t2.show(), reason), span)
         }
     }
-    
+
     fun unifySimple(t1: Type, t2: Type, span: Span) {
         innerUnify(t1, t2, span)
     }
@@ -150,10 +150,10 @@ object Unification {
             !empty1 && empty2 -> innerUnify(restTy1, TRowExtend(missing1, restTy2), span)
             !empty1 && !empty2 -> {
                 when {
-                    restTy1 is TRowEmpty -> innerUnify(restTy1, TRowExtend(missing1, Typechecker.newVar(0)), span)
+                    restTy1 is TRowEmpty -> innerUnify(restTy1, TRowExtend(missing1, typeChecker.newVar(0)), span)
                     restTy1 is TVar && restTy1.tvar is TypeVar.Unbound -> {
                         val tv = restTy1.tvar as TypeVar.Unbound
-                        val restRow = Typechecker.newVar(tv.level)
+                        val restRow = typeChecker.newVar(tv.level)
                         innerUnify(restTy2, TRowExtend(missing2, restRow), span)
                         if (restTy1.tvar is TypeVar.Link) unificationError(Errors.RECURSIVE_ROWS, span)
                         innerUnify(restTy1, TRowExtend(missing1, restRow), span)

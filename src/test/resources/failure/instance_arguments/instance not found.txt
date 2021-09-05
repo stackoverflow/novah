@@ -3,7 +3,7 @@ at src/test/resources/failure/instance_arguments/instance not found.novah:8:11 -
 
   Could not find instance for type
   
-      View Int32
+      test.View Int32
   
   Consider adding a type annotation
   or pass the argument explicitly.

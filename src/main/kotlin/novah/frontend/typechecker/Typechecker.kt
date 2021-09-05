@@ -24,17 +24,20 @@ import novah.frontend.error.Errors
 import novah.frontend.error.Severity
 import novah.main.CompilationError
 import novah.main.ModuleEnv
+import novah.main.NovahClassLoader
 import java.util.*
 
-object Typechecker {
+class Typechecker(classLoader: NovahClassLoader) {
     private var currentId = 0
 
-    var env = Env.new()
-        private set
+    val env = Env.new()
 
     var context: TypingContext? = null
         private set
 
+    val uni = Unification(this)
+    val infer = Inference(this, classLoader)
+    
     /**
      * A map of the internal type variable ids to
      * user given type variable names.
@@ -42,12 +45,6 @@ object Typechecker {
     private val typeVarMap = mutableMapOf<Int, String>()
 
     private fun nextId(): Int = ++currentId
-
-    fun reset() {
-        env = Env.new()
-        currentId = 0
-        typeVarMap.clear()
-    }
 
     fun newVar(level: Level) = TVar(TypeVar.Unbound(nextId(), level))
     fun newGenVar(name: String? = null): TVar {
@@ -61,7 +58,7 @@ object Typechecker {
     fun infer(mod: Module): Result<ModuleEnv, Set<CompilerProblem>> {
         context = TypingContext(mod)
         return try {
-            Ok(Inference.infer(mod))
+            Ok(infer.infer(mod))
         } catch (ie: InferenceError) {
             val sev = Severity.FATAL
             val err = CompilerProblem(ie.msg, ie.span, mod.sourceName, mod.name.value, context?.copy(), severity = sev)
