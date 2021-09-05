@@ -37,8 +37,8 @@ class CodeActionFeature(private val server: NovahServer) {
 
     fun onCodeAction(params: CodeActionParams): CompletableFuture<MutableList<Either<Command, CodeAction>>> {
         fun run(envRes: EnvResult): MutableList<Either<Command, CodeAction>>? {
-            val file = IdeUtil.uriToFile(params.textDocument.uri)
-            server.logger().log("received code action request for ${file.absolutePath}")
+            //val file = IdeUtil.uriToFile(params.textDocument.uri)
+            //server.logger().log("received code action request for ${file.absolutePath}")
 
             val key = params.context.diagnostics.getOrNull(0)?.data as? JsonPrimitive ?: return null
             if (!key.isString) return null

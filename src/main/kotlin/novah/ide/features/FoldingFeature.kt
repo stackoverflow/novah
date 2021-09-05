@@ -32,7 +32,7 @@ class FoldingFeature(private val server: NovahServer) {
             val file = IdeUtil.uriToFile(params.textDocument.uri)
 
             val env = envRes.env
-            server.logger().log("received folding request for ${file.absolutePath}")
+            //server.logger().log("received folding request for ${file.absolutePath}")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
 
