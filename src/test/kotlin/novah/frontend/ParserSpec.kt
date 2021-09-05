@@ -203,13 +203,4 @@ class ParserSpec : StringSpec({
             des.desugar()
         }
     }
-
-    "Exported definitions have correct visibility" {
-        val ast = parseResource("Example.novah")
-
-        //ast.exportList shouldBe listOf("Maybe", "num", "doub", "x", "stuff", "id", "ex", "doIt", "fact")
-
-        println(fmt.format(ast))
-        //println(ast.show())
-    }
 })
