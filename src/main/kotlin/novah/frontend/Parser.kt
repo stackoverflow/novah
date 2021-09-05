@@ -1420,10 +1420,12 @@ class Parser(
      */
     private fun fastForward() {
         var peek = iter.peek()
-        while (peek.value !is EOF && peek.offside() != 1) {
+        if (peek.value is EOF) return
+
+        do {
             iter.next()
             peek = iter.peek()
-        }
+        } while (peek.value !is EOF && peek.offside() != 1)
     }
 
     companion object {
