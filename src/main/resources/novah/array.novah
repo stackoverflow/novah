@@ -116,10 +116,10 @@ forEachIndexed arr f =
  * Runtime: O(n)
  */
 pub
-map : (a -> b) -> Array a -> Array a
+map : (a -> b) -> Array a -> Array Object
 map f (arr : Array a) =
   let len = size arr
-  let res = emptyCopy arr
+  let res = arrayOf Object#-class len
   forEachRange 0L (int64 len) \idx ->
     let i = int idx
     aset i (f (aget i arr) as Object) res
