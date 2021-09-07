@@ -13,7 +13,7 @@ foreign import java.lang.Exception
 foreign import java.lang.Throwable
 foreign import novah.Core
 
-import novah.list (forEach)
+import novah.list (forEach, toTypedArray)
 import novah.set as Set
 
 pub
@@ -78,7 +78,7 @@ withTable = forEach
 runTests : List Suite -> TestResult
 runTests suites =
   let total = atom 0
-  let stats = arrayOf [0, 0, 0]
+  let stats = toTypedArray Int#-class [0, 0, 0]
   let addStats v =
     aupdate 0 (_ + (v ! 0L)) stats
     aupdate 1 (_ + (v ! 1L)) stats

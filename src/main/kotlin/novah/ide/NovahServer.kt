@@ -144,7 +144,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     fun publishDiagnostics(uri: String) {
         val diag = diags[uri] ?: listOf()
-        logger().log("publishing diagnostics for $uri")
+        //logger().log("publishing diagnostics for $uri")
         val params = PublishDiagnosticsParams(uri, diag)
         client!!.publishDiagnostics(params)
     }
@@ -172,7 +172,6 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     private fun build(change: FileChange?): EnvResult {
         val rootPath = IdeUtil.uriToFile(root!!)
-        logger().info("root: $rootPath")
         val sources = rootPath.walkTopDown().filter { it.isFile && it.extension == "novah" }
             .map {
                 val path = Path.of(it.absolutePath)
@@ -192,7 +191,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         } catch (ce: CompilationError) {
             val errors = ce.problems + theEnv.errors()
             saveDiagnostics(errors)
-            if (errors.none { it.isFatal() }) lastSuccessfulEnv = theEnv
+            if (errors.none { it.isErrorOrFatal() }) lastSuccessfulEnv = theEnv
             return EnvResult(theEnv, change)
         } catch (e: Exception) {
             logger().error(e.stackTraceToString())

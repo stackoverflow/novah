@@ -97,7 +97,8 @@ getBytes (str : String) = str#getBytes()
  */
 pub
 join : String -> List String -> String
-join delimiter list = String#join(delimiter as CharSequence, arrayOf list as Array CharSequence)
+join delimiter list =
+  String#join(delimiter as CharSequence, List.toTypedArray CharSequence#-class (list as List CharSequence))
 
 /**
  * Returns this string with all leading and trailing white spaces removed.

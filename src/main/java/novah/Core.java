@@ -23,9 +23,11 @@ import io.lacuna.bifurcan.Set;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 import java.util.stream.Collectors;
@@ -284,6 +286,11 @@ public class Core {
 
     public static Object[] mkObjectArray(int size) {
         return new Object[size];
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T[] mkArray(Class<T> clazz, int size) {
+        return (T[]) Array.newInstance(clazz, size);
     }
 
     public static List<Byte> fromByteArray(byte[] arr) {
@@ -729,6 +736,18 @@ public class Core {
         return f::apply;
     }
 
+    public static <T, R> Runnable makeRunnable(Function<T, R> f) {
+        return () -> f.apply(null);
+    }
+
+    public static <T, R> Callable<R> makeCallable(Function<T, R> f) {
+        return () -> f.apply(null);
+    }
+
+    public static <T, R> Supplier<R> makeSupplier(Function<T, R> f) {
+        return () -> f.apply(null);
+    }
+
     public static <T> Predicate<T> makePredicate(Function<T, Boolean> f) {
         return f::apply;
     }
@@ -742,6 +761,10 @@ public class Core {
     }
 
     public static <T> ToIntFunction<T> makeToIntFunction(Function<T, Integer> f) {
+        return f::apply;
+    }
+
+    public static <R> IntFunction<R> makeIntFunction(Function<Integer, R> f) {
         return f::apply;
     }
 

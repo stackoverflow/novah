@@ -36,8 +36,8 @@ forEach (stream : Stream a) f = stream#forEach(Core#makeConsumer(f) as Consumer 
  * Collects this Stream into an Array.
  */
 pub
-toArray : Stream a -> Array a
-toArray (st : Stream a) = st#toArray() as Array a
+toArray : Stream a -> Array Object
+toArray (st : Stream a) = st#toArray()
 
 /**
  * Returns the size of this stream.

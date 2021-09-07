@@ -384,11 +384,10 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         }
         is Expr.ClassConstant -> {
             val clazz = exp.clazz.value
-            env.lookupType(clazz)
-                ?: classLoader.safeFindClass(clazz)
+            val classTy = env.lookupType(javaToNovah(clazz))
                 ?: inferError(E.undefinedType(clazz), exp.clazz.span)
 
-            val ty = TApp(TConst("java.lang.Class"), listOf(TConst(clazz)))
+            val ty = TApp(TConst("java.lang.Class"), listOf(classTy))
             exp.withType(ty)
         }
         is Expr.ForeignStaticField -> {

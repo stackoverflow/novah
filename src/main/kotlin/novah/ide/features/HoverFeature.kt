@@ -63,7 +63,7 @@ class HoverFeature(private val server: NovahServer) {
         return when (ctx) {
             is ModuleCtx -> {
                 val name = ctx.name
-                val source = if (ctx.alias != null) "module $name as ${ctx.alias}" else "module $name"
+                val source = if (ctx.alias != null) "module $name\nas ${ctx.alias}" else "module $name"
                 makeHover(source, ctx.mod.comment)
             }
             is ImportDeclCtx -> {
@@ -160,6 +160,11 @@ class HoverFeature(private val server: NovahServer) {
             }
             return null
         }
+        
+        // search module itself
+        if (ast.name.span.matches(line, col)) {
+            return ModuleCtx(ast.name.value, null, ast)
+        }
 
         // search imports
         for (imp in ast.imports) {
@@ -216,7 +221,7 @@ class HoverFeature(private val server: NovahServer) {
                                 }
                             } else if (ownRef != null) {
                                 ctx = ImportDeclCtx(e.name, ast.name.value, ownRef, ownMod.typeVarsMap)
-                            } else if (!e.name.startsWith("var$")) {
+                            } else if (!e.name.startsWith("var$") && e.type != null) {
                                 ctx = LocalRefCtx(e.name, e.type!!)
                             }
                         }
@@ -229,7 +234,7 @@ class HoverFeature(private val server: NovahServer) {
                                 }
                             } else if (ownRef != null) {
                                 ctx = ImportDeclCtx(e.name, ast.name.value, ownRef, ownMod.typeVarsMap)
-                            } else if (!e.name.startsWith("var$")) {
+                            } else if (!e.name.startsWith("var$") && e.type != null) {
                                 ctx = LocalRefCtx(e.name, e.type!!)
                             }
                         }
@@ -276,9 +281,9 @@ class HoverFeature(private val server: NovahServer) {
                             }
                         }
                         is Expr.ForeignStaticField -> {
-                            if (e.fieldName.span.matches(line, col))
+                            if (e.fieldName.span.matches(line, col) && e.field != null)
                                 ctx = FieldCtx(e.field!!)
-                            if (e.clazz.span.matches(line, col))
+                            if (e.clazz.span.matches(line, col) && e.field != null)
                                 ctx = ClassCtx(e.field!!.declaringClass)
                         }
                         is Expr.ForeignField -> {
@@ -286,18 +291,18 @@ class HoverFeature(private val server: NovahServer) {
                                 ctx = FieldCtx(e.field!!)
                         }
                         is Expr.ForeignStaticMethod -> {
-                            if (e.methodName.span.matches(line, col)) {
+                            if (e.methodName.span.matches(line, col) && e.method != null) {
                                 ctx = if (e.method != null) MethodCtx(e.method!!)
                                 else CtorCtx(e.ctor!!)
                             }
-                            if (e.clazz.span.matches(line, col)) {
+                            if (e.clazz.span.matches(line, col) && e.method != null) {
                                 val name = if (e.method != null) e.method!!.declaringClass
                                 else e.ctor!!.declaringClass
                                 ctx = ClassCtx(name)
                             }
                         }
                         is Expr.ForeignMethod -> {
-                            if (e.methodName.span.matches(line, col))
+                            if (e.methodName.span.matches(line, col) && e.method != null)
                                 ctx = MethodCtx(e.method!!)
                         }
                         is Expr.RecordSelect -> {

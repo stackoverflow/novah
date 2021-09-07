@@ -10,6 +10,7 @@ foreign import novah.Core
 foreign import novah.collections.Record
 foreign import java.util.concurrent.atomic.AtomicReference
 foreign import java.lang.AssertionError
+foreign import java.lang.Class
 foreign import java.lang.Math
 foreign import java.lang.System
 
@@ -270,12 +271,11 @@ aupdate : Int32 -> (a -> a) -> Array a -> Unit
 aupdate index updateFn arr = Core#setArray(index, updateFn Core#getArray(index, arr), arr)
 
 /**
- * Converts a list of some type `a` to an Array of `a`.
- * Runtime: O(n)
+ * Creates an array of the specified class and size.
  */
 pub
-arrayOf : List a -> Array a
-arrayOf vec = (vec as IList a)#toArray() as Array a
+arrayOf : Class a -> Int32 -> Array a
+arrayOf clazz len = Core#mkArray(clazz, len)
 
 /**
  * Returns a formatted string using the specified format string and arguments.
@@ -283,7 +283,7 @@ arrayOf vec = (vec as IList a)#toArray() as Array a
  */
 pub
 format : String -> List a -> String
-format str list = String#format(str, arrayOf list as Array Object)
+format str (list : List a) = String#format(str, list#toArray())
 
 /**
  * Prints the formated string to stdout.
@@ -539,6 +539,10 @@ pub instance
 showBoolean : Show Boolean
 showBoolean = Show toString
 
+pub instance
+showObject : Show Object
+showObject = Show toString
+
 showOpt : Show a -> Option a -> String
 showOpt (Show sh) =
   case _ of
@@ -669,6 +673,10 @@ equalsNullable (Equals eq) x y =
 pub instance
 eqNullable : {{ Equals a }} -> Equals (Nullable a)
 eqNullable {{eq}} = Equals (equalsNullable eq)
+
+pub instance
+eqObject : Equals Object
+eqObject = Equals \(x : Object) y -> x#equals(y)
 
 /**
  * Compare if the two records are equals

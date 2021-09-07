@@ -968,7 +968,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             E.unusedVariables(unusedVars.keys.toList()),
             unusedVars.values.first(),
             smod.sourceName,
-            moduleName
+            moduleName,
+            severity = Severity.WARN
         )
         errors += err
     }
