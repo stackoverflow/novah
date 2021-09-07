@@ -25,6 +25,7 @@ import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.path
 import novah.main.CompilationError
 import novah.main.Compiler
+import novah.main.Options
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -48,6 +49,11 @@ class CompileCommand : CliktCommand(name = "compile", help = "Compile source fil
 
     private val sourcepath by option("-sp", "--sourcepath", help = "Where to find novah sources")
 
+    private val devMode by option(
+        "-d", "--dev",
+        help = "Run the compiler in dev mode: no optimizations will be applied and some errors will be warnings."
+    ).flag(default = false)
+
     private val srcs by argument(help = "Source files").path(mustExist = true, canBeDir = false).multiple()
 
     override fun run() {
@@ -64,13 +70,13 @@ class CompileCommand : CliktCommand(name = "compile", help = "Compile source fil
         }
         if (verbose) echo("compiling files to $out")
 
-        val compiler = Compiler.new(srcs.asSequence(), classpath, sourcepath, verbose)
+        val compiler = Compiler.new(srcs.asSequence(), classpath, sourcepath, Options(verbose, devMode))
         try {
             val warns = compiler.run(out)
             Compiler.printWarnings(warns, ::echo)
             echo("Success")
-        } catch (ce: CompilationError) {
-            val allErrs = compiler.errors() + ce.problems
+        } catch (_: CompilationError) {
+            val allErrs = compiler.errors()
             Compiler.printErrors(allErrs, ::echo)
             echo("Failure", err = true)
             exitProcess(1)

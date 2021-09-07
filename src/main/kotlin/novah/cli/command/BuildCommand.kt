@@ -23,6 +23,7 @@ import novah.cli.Deps
 import novah.cli.DepsProcessor
 import novah.main.CompilationError
 import novah.main.Compiler
+import novah.main.Options
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -43,6 +44,11 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
         help = "Print information about the process"
     ).flag(default = false)
 
+    private val devMode by option(
+        "-d", "--dev",
+        help = "Run the compiler in dev mode: no optimizations will be applied and some errors will be warnings."
+    ).flag(default = false)
+
     private val config by requireObject<Map<String, Deps>>()
 
     override fun run() {
@@ -53,13 +59,13 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
         val deps = config["deps"] ?: return
         val out = deps.output ?: DepsProcessor.defaultOutput
 
-        val compiler = Compiler.new(emptySequence(), classpath, sourcepath, verbose)
+        val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode))
         try {
             val warns = compiler.run(File(out), check)
             Compiler.printWarnings(warns, ::echo)
             echo("Success")
-        } catch (ce: CompilationError) {
-            val allErrs = compiler.errors() + ce.problems
+        } catch (_: CompilationError) {
+            val allErrs = compiler.errors()
             Compiler.printErrors(allErrs, ::echo)
             echo("Failure", err = true)
             exitProcess(1)

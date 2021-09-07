@@ -15,8 +15,6 @@
 - [ ] Test java field setter
 - [ ] Write tests for the core library functions
 - [ ] Add String.replace* functions and `count fun`
-- [ ] Make unused imports an error
-- [ ] Have a `dev mode` for dev use and make all warnings errors in real builds
 - [ ] Only recompile files that changed + dependencies
 - [ ] Auto complete literal list, set in IDE: `[]#size()`
 - [ ] Create computation expression for (lazy) async

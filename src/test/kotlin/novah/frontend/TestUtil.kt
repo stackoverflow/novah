@@ -69,15 +69,15 @@ object TestUtil {
         return out
     }
 
-    fun compilerFor(path: String, verbose: Boolean = false): Compiler {
+    fun compilerFor(path: String, verbose: Boolean = false, devMode: Boolean = true): Compiler {
         val sources = File("src/test/resources/$path").walkBottomUp().filter { it.extension == "novah" }
             .map { it.toPath() }
-        return Compiler.new(sources, null, null, verbose)
+        return Compiler.new(sources, null, null, Options(verbose, devMode))
     }
 
-    private fun compilerForCode(code: String, verbose: Boolean = false): Compiler {
+    private fun compilerForCode(code: String, verbose: Boolean = false, devMode: Boolean = true): Compiler {
         val sources = listOf(Source.SString(Path.of("namespace"), code)).asSequence()
-        return Compiler(sources, null, null, verbose)
+        return Compiler(sources, null, null, Options(verbose, devMode))
     }
     
     fun compileCode(code: String, verbose: Boolean = false): FullModuleEnv {
