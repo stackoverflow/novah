@@ -335,7 +335,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitMethodInsn(INVOKESTATIC, BOOL_CLASS, "valueOf", "(Z)L$BOOL_CLASS;", false)
             }
             is Expr.ClassConstant -> {
-                mv.visitLdcInsn(getType(descriptor(e.clazz)))
+                mv.visitLdcInsn(e.type.pars[0].type)
             }
             is Expr.NativeStaticFieldGet -> {
                 val f = e.field
@@ -998,7 +998,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         if (d.name != "main" || d.visibility == Visibility.PRIVATE) return false
         val typ = d.exp.type
         if (typ.type.internalName != FUNCTION_CLASS && typ.pars.size != 2) return false
-        return typ.pars[0].type == ARRAY_TYPE && typ.pars[0].pars[0].type.descriptor == STRING_DESC
+        return typ.pars[0].type.className == "java.lang.String[]"
                 && typ.pars[1].type.internalName == UNIT_CLASS
     }
 
@@ -1008,8 +1008,6 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         private val ctorCache = mutableMapOf<String, DataConstructor>()
 
         private val arrayOfStringClazz = Clazz(getType(Array<String>::class.java))
-
-        private val ARRAY_TYPE = getType(Array::class.java)
 
         private fun intExp(n: Int): Expr.Int32 = Expr.Int32(n, Clazz(INT_TYPE), Span.empty())
     }

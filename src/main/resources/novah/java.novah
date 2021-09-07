@@ -5,15 +5,19 @@ module novah.java
 
 foreign import java.lang.AssertionError
 foreign import java.lang.Class
+foreign import java.lang.Runnable
 foreign import java.lang.System
 foreign import java.util.Iterator
 foreign import java.util.Comparator
+foreign import java.util.concurrent.Callable
 foreign import java.util.function.Consumer
 foreign import java.util.function.Predicate
 foreign import java.util.function.BiPredicate
 foreign import java.util.function.BiFunction
 foreign import java.util.function.BinaryOperator
+foreign import java.util.function.Supplier
 foreign import java.util.function.UnaryOperator
+foreign import java.util.function.IntFunction
 foreign import java.util.function.ToLongFunction
 foreign import java.util.function.ToIntFunction
 foreign import novah.Core
@@ -86,8 +90,29 @@ toComparator cmp =
  * Creates a `java.util.function.Consumer` out of this function, ignoring the result.
  */
 pub
-consumer : (a -> b) -> Consumer a
+consumer : (a -> Unit) -> Consumer a
 consumer f = Core#makeConsumer(f)
+
+/**
+ * Creates a `java.lang.Runnable` out of this function, ignoring the result.
+ */
+pub
+runnable : (Unit -> Unit) -> Runnable
+runnable f = Core#makeRunnable(f)
+
+/**
+ * Creates a `java.util.concurrent.Callable` out of this function.
+ */
+pub
+callable : (Unit -> a) -> Callable a
+callable f = Core#makeCallable(f)
+
+/**
+ * Creates a `java.util.function.Supplier` out of this function.
+ */
+pub
+supplier : (Unit -> a) -> Supplier a
+supplier f = Core#makeSupplier(f)
 
 /**
  * Creates a `java.util.function.Predicate` out of this function.
@@ -107,15 +132,22 @@ bipredicate f = Core#makeBiPredicate(f)
  * Creates a `java.util.function.ToLongFunction` out of this function.
  */
 pub
-toLong : (a -> Int64) -> ToLongFunction a
-toLong f = Core#makeToLongFunction(f)
+toLongFunction : (a -> Int64) -> ToLongFunction a
+toLongFunction f = Core#makeToLongFunction(f)
 
 /**
  * Creates a `java.util.function.ToIntFunction` out of this function.
  */
 pub
-toInt : (a -> Int32) -> ToIntFunction a
-toInt f = Core#makeToIntFunction(f)
+toIntFunction : (a -> Int32) -> ToIntFunction a
+toIntFunction f = Core#makeToIntFunction(f)
+
+/**
+ * Creates a `java.util.function.IntFunction` out of this function.
+ */
+pub
+intFunction : (Int32 -> a) -> IntFunction a
+intFunction f = Core#makeIntFunction(f)
 
 /**
  * Creates a `java.util.function.BinaryOperator` out of this function.

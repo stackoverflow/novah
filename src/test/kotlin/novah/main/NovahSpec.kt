@@ -23,7 +23,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class NovahSpec : StringSpec({
-    
+
     fun compileStdlibTests() {
         val compiler = TestUtil.compilerFor("test")
         compiler.run(TestUtil.cleanAndGetOutDir())
@@ -40,15 +40,15 @@ class NovahSpec : StringSpec({
 
             process.waitFor(10, TimeUnit.MINUTES)
             process.exitValue()
-        } catch(e: IOException) {
+        } catch (e: IOException) {
             e.printStackTrace()
             3
         }
     }
-    
+
     fun runStdlibTests(): Int =
         runCommand("java -cp output test.main.\$Module", File("."))
-    
+
     "run standard library tests" {
         compileStdlibTests()
         runStdlibTests() shouldBe 0

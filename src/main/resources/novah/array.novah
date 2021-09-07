@@ -3,7 +3,7 @@
  */
 module novah.array
 
-foreign import java.lang.System
+//foreign import java.lang.System
 foreign import java.util.Arrays
 foreign import java.util.Comparator
 foreign import java.util.stream.Stream
@@ -26,13 +26,13 @@ size arr = Core#getArrayLength(arr)
  */
 pub
 stream : Array a -> Stream a
-stream arr = Arrays#stream(arr as Array Object) as Stream a
+stream (arr : Array a) = Arrays#stream(arr) as Stream a
 
 /**
  * Collects this stream into an array.
  */
 pub
-fromStream : Stream a -> Array a
+fromStream : Stream a -> Array Object
 fromStream = Stream.toArray
 
 /**
@@ -105,13 +105,13 @@ forEach arr f =
  * Runtime: O(n)
  */
 pub
-map : (a -> b) -> Array a -> Array b
+map : (a -> b) -> Array a -> Array Object
 map f arr =
   let len = size arr
-  let res = objectArray len as Array b
+  let res = objectArray len
   forEachRange 0L (int64 len) \idx ->
     let i = int idx
-    aset i (f (aget i arr)) res
+    aset i (f (aget i arr) as Object) res
   res
 
 /**
@@ -119,7 +119,7 @@ map f arr =
  * Runtime: O(n)
  */
 pub
-filter : (a -> Boolean) -> Array a -> Array a
+filter : (a -> Boolean) -> Array a -> Array Object
 filter f arr = stream arr |> Stream.filter f |> fromStream
 
 /**
@@ -143,10 +143,10 @@ sort {{Ord _ ord}} arr = sortBy ord.compare arr
  * Runtime: O(n)
  */
 pub
-reverse : Array a -> Array a
-reverse arr =
+reverse : Array a -> Array Object
+reverse (arr : Array a) =
   let len = size arr |> int64
-  let res = objectArray (int len) as Array a
+  let res = objectArray (int len)
   forEachRange 0L len \idx ->
     let i = int (len - idx - 1L)
     let elem = aget (int idx) arr
@@ -224,7 +224,7 @@ booleanArray : Int -> BooleanArray
 booleanArray len = Core#mkBooleanArray(len)
 
 /**
- * Creates an Object array of the specified size.
+ * Creates an object array of the specified size.
  */
 pub
 objectArray : Int -> Array Object
@@ -233,9 +233,9 @@ objectArray len = Core#mkObjectArray(len)
 /**
  * Returns a copy of this array.
  */
-pub
-copy : Array a -> Array a
-copy arr =
-  let dest = objectArray (size arr)
-  System#arraycopy(arr as Object, 0, dest as Object, 0, size arr)
-  dest as Array a
+//pub
+//copy : Array a -> Array a
+//copy arr =
+//  let dest = objectArray (size arr)
+//  System#arraycopy(arr as Object, 0, dest as Object, 0, size arr)
+//  dest as Array a

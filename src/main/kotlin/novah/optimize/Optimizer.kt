@@ -240,11 +240,16 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             else Clazz(getPrimitiveTypeName(this))
         }
         is TApp -> {
-            val conv = type.convert()
-            if (conv.type.className == primNullable) {
-                types[0].convert()
+            if (type is TConst && type.name == primArray) {
+                val of = types[0].convert()
+                Clazz(getPrimitiveArrayTypeName(of.type))
             } else {
-                Clazz(conv.type, types.map { it.convert() })
+                val conv = type.convert()
+                if (conv.type.className == primNullable) {
+                    types[0].convert()
+                } else {
+                    Clazz(conv.type, types.map { it.convert() })
+                }
             }
         }
         // the only functions that can have more than 1 argument are native ones
@@ -582,6 +587,10 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             primList -> LIST_TYPE
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
+        }
+
+        private fun getPrimitiveArrayTypeName(of: Type): Type {
+            return Type.getType("[${of.descriptor}")
         }
 
         private fun internalize(name: String) = name.replace('.', '/')

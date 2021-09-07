@@ -5,6 +5,7 @@
  */
 module novah.list
 
+foreign import java.lang.Class
 foreign import java.util.Arrays
 foreign import java.util.Comparator
 foreign import java.util.stream.Stream
@@ -12,7 +13,7 @@ foreign import io.lacuna.bifurcan.IList
 foreign import io.lacuna.bifurcan.Map
 foreign import novah.Core
 
-import novah.java (toComparator)
+import novah.java (toComparator, intFunction)
 import novah.stream as S
 import novah.option as O
 
@@ -123,6 +124,32 @@ isNotEmpty : List a -> Boolean
 isNotEmpty (list : List a) = list#size() != 0L
 
 /**
+ * Converts this list into a typed array.
+ * Runtime: O(n)
+ */
+pub
+toTypedArray : Class a -> List a -> Array a
+toTypedArray clazz list =
+  let maker i = Core#mkArray(clazz, i)
+  (list as IList a)#toArray(intFunction maker)
+
+/**
+ * Converts this list into an object array.
+ * Runtime: O(n)
+ */
+pub
+toArray : List a -> Array Object
+toArray list = (list as IList a)#toArray()
+
+/**
+ * Converts this array into a list.
+ * Runtime: O(n)
+ */
+pub
+fromArray : Array a -> List a
+fromArray arr = List#"of"(arr)
+
+/**
  * Returns a list of the elements that match the given predicate.
  * Runtime: O(n)
  */
@@ -171,10 +198,10 @@ sortBy cmp =
     [] -> []
     [_] as list -> list
     list ->
-      let arr = arrayOf list
+      let arr = toArray list
       let comp = toComparator cmp
       Arrays#sort(arr, comp as Comparator Object)
-      List#"of"(arr)
+      List#"of"(arr) as List a
 
 /**
  * Sorts this list according to the element's Ord instance.
@@ -351,7 +378,7 @@ every pred list = Core#listEvery(pred, list)
 pub
 any : (a -> Boolean) -> List a -> Boolean
 any pred list =
-  let res = arrayOf [false]
+  let res = toTypedArray Boolean#-class [false]
   forEachBreak 0L (size list) \i ->
     if list ! i |> pred
       then
@@ -359,23 +386,6 @@ any pred list =
         -1
       else 0
   aget 0 res
-
-/**
- * Converts this list into an array.
- * This is an alias to the `arrayOf` function in the core namespace.
- * Runtime: O(n)
- */
-pub
-toArray : List a -> Array a
-toArray = arrayOf
-
-/**
- * Converts this array into a list.
- * Runtime: O(n)
- */
-pub
-fromArray : Array a -> List a
-fromArray arr = List#"of"(arr)
 
 /**
  * Converts this byte array to a list of bytes.

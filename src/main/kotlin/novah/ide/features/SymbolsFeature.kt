@@ -61,7 +61,7 @@ class SymbolsFeature(private val server: NovahServer) {
                         if (decl.signature?.type is TArrow) SymbolKind.Function else SymbolKind.Variable,
                         spanToRange(decl.span),
                         spanToRange(decl.name.span),
-                        decl.signature?.type?.show(true, typeVarsMap = mod.typeVarsMap)
+                        decl.signature?.type?.show(qualified = false, typeVarsMap = mod.typeVarsMap)
                     )
                 }
             }

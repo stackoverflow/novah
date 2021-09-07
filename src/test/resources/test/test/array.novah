@@ -1,10 +1,14 @@
 module test.array
 
+import novah.list (toArray, toTypedArray)
 import novah.stream as Stream
 import novah.test
 
-a : List a -> Array a
-a = arrayOf
+a : List a -> Array Object
+a = toArray
+
+ia : List Int -> Array Int
+ia = toTypedArray Int#-class
 
 arrayTests : Unit
 arrayTests =
@@ -16,20 +20,20 @@ arrayTests =
     same `shouldBe` arr
 
   test "Array writing functions" \_ ->
-    let arr = a [1, 2, 3]
+    let arr = ia [1, 2, 3]
     aset 1 5 arr
-    arr `shouldBe` a [1, 5, 3]
+    arr `shouldBe` ia [1, 5, 3]
     aupdate 2 (_ + 5) arr
-    arr `shouldBe` a [1, 5, 8]
+    arr `shouldBe` ia [1, 5, 8]
 
   test "Array traversing functions" \_ ->
-    let arr = a [1, 2, 3]
+    let arr = ia [1, 2, 3]
     Array.map (_ + 1) arr `shouldBe` a [2, 3, 4]
     Array.filter isOdd arr `shouldBe` a [1, 3]
     Array.find isEven arr `shouldBe` Some 2
-    let sarr = a [4, 1, 3, 5, 2]
+    let sarr = ia [4, 1, 3, 5, 2]
     Array.sort sarr
-    sarr `shouldBe` a [1, 2, 3, 4, 5]
+    sarr `shouldBe` ia [1, 2, 3, 4, 5]
     Array.reverse arr `shouldBe` a [3, 2, 1]
     let rarr = a [1, 2, 3, 4]
     Array.reversed rarr

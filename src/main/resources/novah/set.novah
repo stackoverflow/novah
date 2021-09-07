@@ -25,7 +25,7 @@ import novah.list as List
 pub
 new : {{ Equals a }} -> Option (a -> Int64) -> Set a
 new {{Equals eq}} hashFn =
-  let hash = Option.map J.toLong hashFn ?: Maps#-"DEFAULT_HASH_CODE"
+  let hash = Option.map J.toLongFunction hashFn ?: Maps#-"DEFAULT_HASH_CODE"
   Set#new(hash, J.bipredicate eq)
 
 /**
@@ -255,7 +255,7 @@ every pred set = Core#setEvery(pred, set)
 pub
 any : (a -> Boolean) -> Set a -> Boolean
 any pred set =
-  let res = arrayOf [false]
+  let res = List.toTypedArray Boolean#-class [false]
   forEachBreak 0L (size set) \i ->
     if unsafeNth i set |> pred
       then

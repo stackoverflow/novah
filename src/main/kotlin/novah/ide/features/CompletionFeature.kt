@@ -434,7 +434,8 @@ class CompletionFeature(private val server: NovahServer) {
                 val comp = CompletionItem(it.name)
                 comp.kind = CompletionItemKind.Field
                 comp.detail = it.genericType.typeName
-                comp.insertText = "-${it.name}"
+                val text = if (it.name[0].isUpperCase()) "\"${it.name}\"" else it.name
+                comp.insertText = "-$text"
                 comps += comp
             }
         }
@@ -448,7 +449,8 @@ class CompletionFeature(private val server: NovahServer) {
                 comp.detail = details
                 var i = 1
                 val format = m.parameterTypes.joinToString { "\${${i++}:${it.simpleName}}" }
-                comp.insertText = "${m.name}($format)"
+                val method = if (m.name[0].isUpperCase()) "\"${m.name}\"" else m.name
+                comp.insertText = "$method($format)"
                 comp.insertTextFormat = InsertTextFormat.Snippet
                 comps += comp
             }
