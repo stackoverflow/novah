@@ -19,5 +19,5 @@
 - [ ] Have a `dev mode` for dev use and make all warnings errors in real builds
 - [ ] Only recompile files that changed + dependencies
 - [ ] Auto complete literal list, set in IDE: `[]#size()`
-- [ ] Create an async module with computation expression
+- [ ] Create computation expression for (lazy) async
 - [ ] Don't auto import functions from same module in LSP
