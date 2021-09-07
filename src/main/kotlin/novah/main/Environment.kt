@@ -30,6 +30,7 @@ import novah.data.unwrapOrElse
 import novah.frontend.*
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Errors
+import novah.frontend.error.Severity
 import novah.frontend.matching.Ctor
 import novah.frontend.typechecker.Type
 import novah.frontend.typechecker.Typechecker
@@ -49,7 +50,7 @@ import novah.ast.canonical.Module as TypedModule
  * The environment where a full compilation
  * process takes place.
  */
-class Environment(classpath: String?, sourcepath: String?, private val verbose: Boolean) {
+class Environment(classpath: String?, sourcepath: String?, private val opts: Options) {
     private val modules = mutableMapOf<String, FullModuleEnv>()
     private val sourceMap = mutableMapOf<Path, String>()
 
@@ -91,7 +92,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
             if (path.toString() in alreadySeenPaths) continue
             alreadySeenPaths += path.toString()
 
-            if (verbose) echo("Parsing $path")
+            if (opts.verbose) echo("Parsing $path")
 
             source.withIterator { iter ->
                 val lexer = Lexer(iter)
@@ -117,7 +118,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
 
         if (modMap.isEmpty()) {
             if (errors.any { it.isErrorOrFatal() }) throwErrors()
-            if (verbose) echo("No files to compile")
+            if (opts.verbose) echo("No files to compile")
             return modules
         }
 
@@ -141,7 +142,7 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
             errors += foreignErrs
             if (shouldThrow(errors)) throwErrors()
 
-            if (verbose) echo("Typechecking ${mod.name.value}")
+            if (opts.verbose) echo("Typechecking ${mod.name.value}")
 
             val desugar = Desugar(mod, typeChecker)
             val canonical = desugar.desugar().unwrapOrElse { throwAllErrors(it + desugar.errors()) }
@@ -171,11 +172,20 @@ class Environment(classpath: String?, sourcepath: String?, private val verbose: 
             opt
         }
 
-        if (errors.any { it.isErrorOrFatal() }) throwErrors(errors)
+        if (opts.devMode) {
+            if (errors.any { it.isErrorOrFatal() }) throwErrors(errors)
+        } else if (errors.isNotEmpty()) {
+            // in normal mode every warning is an error
+            val errs = errors.map {
+                if (it.severity == Severity.WARN) it.copy(severity = Severity.ERROR) else it
+            }.toSet()
+            throwErrors(errs)
+        }
 
         if (!dryRun) {
             optASTs.forEach { opt ->
-                val optAST = Optimization.run(opt)
+                // no optimizations are run in dev mode
+                val optAST = if (opts.devMode) opt else Optimization.run(opt)
                 val codegen = Codegen(optAST) { dirName, fileName, bytes ->
                     val dir = output.resolve(dirName)
                     dir.mkdirs()

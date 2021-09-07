@@ -22,6 +22,7 @@ import novah.ide.IdeUtil.spanToRange
 import novah.ide.features.SemanticTokensFeature
 import novah.main.CompilationError
 import novah.main.Environment
+import novah.main.Options
 import novah.main.Source
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
@@ -180,7 +181,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             }
         logger().info("compiling project")
 
-        val theEnv = Environment(paths["classpath"], paths["sourcepath"], verbose = false)
+        val theEnv = Environment(paths["classpath"], paths["sourcepath"], Options(verbose = false, devMode = true))
         try {
             theEnv.parseSources(sources.asSequence())
             theEnv.generateCode(File("."), dryRun = true)
@@ -188,8 +189,8 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             saveDiagnostics(theEnv.errors())
             lastSuccessfulEnv = theEnv
             return EnvResult(theEnv, change)
-        } catch (ce: CompilationError) {
-            val errors = ce.problems + theEnv.errors()
+        } catch (_: CompilationError) {
+            val errors = theEnv.errors()
             saveDiagnostics(errors)
             if (errors.none { it.isErrorOrFatal() }) lastSuccessfulEnv = theEnv
             return EnvResult(theEnv, change)

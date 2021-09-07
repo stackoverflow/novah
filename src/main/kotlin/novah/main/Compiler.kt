@@ -23,9 +23,9 @@ import java.io.Reader
 import java.nio.file.Files
 import java.nio.file.Path
 
-class Compiler(private val sources: Sequence<Source>, classpath: String?, sourcepath: String?, verbose: Boolean) {
+class Compiler(private val sources: Sequence<Source>, classpath: String?, sourcepath: String?, opts: Options) {
 
-    private val env = Environment(classpath, sourcepath, verbose)
+    private val env = Environment(classpath, sourcepath, opts)
 
     fun compile(): Map<String, FullModuleEnv> = env.parseSources(sources)
 
@@ -40,9 +40,9 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
     fun getModules() = env.modules()
 
     companion object {
-        fun new(sources: Sequence<Path>, classpath: String?, sourcepath: String?, verbose: Boolean): Compiler {
+        fun new(sources: Sequence<Path>, classpath: String?, sourcepath: String?, opts: Options): Compiler {
             val entries = sources.map { path -> Source.SPath(path) }
-            return Compiler(entries, classpath, sourcepath, verbose)
+            return Compiler(entries, classpath, sourcepath, opts)
         }
         
         fun printWarnings(warns: Set<CompilerProblem>, echo: (String) -> Unit) {
@@ -68,6 +68,8 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
         }
     }
 }
+
+class Options(val verbose: Boolean = false, val devMode: Boolean = false)
 
 sealed class Source(val path: Path) {
     class SPath(path: Path) : Source(path)
