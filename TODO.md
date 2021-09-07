@@ -21,4 +21,3 @@
 - [ ] Auto complete literal list, set in IDE: `[]#size()`
 - [ ] Create an async module with computation expression
 - [ ] Don't auto import functions from same module in LSP
-- [ ] Fix Array.copy

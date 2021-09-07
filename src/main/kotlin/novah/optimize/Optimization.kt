@@ -126,10 +126,6 @@ object Optimization {
                         if (from.type == to.type || to.type == OBJECT_TYPE) arg
                         else Expr.Cast(arg, to, e.span)
                     }
-                    // optimize `arrayOf [...]` to a literal array
-                    fn is Var && fn.fullname() == "$coreMod.arrayOf" && arg is Expr.ListLiteral -> {
-                        Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars), e.span)
-                    }
                     // optimize `format "..." [...]` to `String.format "..." <literal-array>` 
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.format" && arg is Expr.ListLiteral -> {
                         val arr = Expr.ArrayLiteral(arg.exps, Clazz(ARRAY_TYPE, arg.type.pars), e.span)

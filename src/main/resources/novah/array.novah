@@ -3,7 +3,7 @@
  */
 module novah.array
 
-//foreign import java.lang.System
+foreign import java.lang.System
 foreign import java.util.Arrays
 foreign import java.util.Comparator
 foreign import java.util.stream.Stream
@@ -100,15 +100,26 @@ forEach arr f =
     f (aget (int idx) arr)
 
 /**
+ * Runs function f for every index and element of this array, ignoring the result.
+ * Runtime: O(n)
+ */
+pub
+forEachIndexed : Array a -> (Int32 -> a -> b) -> Unit
+forEachIndexed arr f =
+  forEachRange 0L (int64 (size arr)) \idx ->
+    let i = int idx
+    f i (aget i arr)
+
+/**
  * Maps function f over all elements of this array
  * returning an array of the same size.
  * Runtime: O(n)
  */
 pub
-map : (a -> b) -> Array a -> Array Object
-map f arr =
+map : (a -> b) -> Array a -> Array a
+map f (arr : Array a) =
   let len = size arr
-  let res = objectArray len
+  let res = emptyCopy arr
   forEachRange 0L (int64 len) \idx ->
     let i = int idx
     aset i (f (aget i arr) as Object) res
@@ -143,10 +154,10 @@ sort {{Ord _ ord}} arr = sortBy ord.compare arr
  * Runtime: O(n)
  */
 pub
-reverse : Array a -> Array Object
+reverse : Array a -> Array a
 reverse (arr : Array a) =
   let len = size arr |> int64
-  let res = objectArray (int len)
+  let res = emptyCopy arr
   forEachRange 0L len \idx ->
     let i = int (len - idx - 1L)
     let elem = aget (int idx) arr
@@ -224,18 +235,23 @@ booleanArray : Int -> BooleanArray
 booleanArray len = Core#mkBooleanArray(len)
 
 /**
- * Creates an object array of the specified size.
- */
-pub
-objectArray : Int -> Array Object
-objectArray len = Core#mkObjectArray(len)
-
-/**
  * Returns a copy of this array.
  */
-//pub
-//copy : Array a -> Array a
-//copy arr =
-//  let dest = objectArray (size arr)
-//  System#arraycopy(arr as Object, 0, dest as Object, 0, size arr)
-//  dest as Array a
+pub
+copy : Array a -> Array a
+copy arr =
+  let dest = emptyCopy arr
+  System#arraycopy(arr as Object, 0, dest as Object, 0, size arr)
+  dest
+
+/**
+ * Returns a new array of the same size and type as the supplied array.
+ */
+pub
+emptyCopy : Array a -> Array a
+emptyCopy arr =
+  if isEmpty arr
+    then arr
+    else
+      let elem = aget 0 arr as Object
+      arrayOf elem#getClass() (size arr) as Array a

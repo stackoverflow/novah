@@ -284,10 +284,6 @@ public class Core {
         return new boolean[size];
     }
 
-    public static Object[] mkObjectArray(int size) {
-        return new Object[size];
-    }
-
     @SuppressWarnings("unchecked")
     public static <T> T[] mkArray(Class<T> clazz, int size) {
         return (T[]) Array.newInstance(clazz, size);
