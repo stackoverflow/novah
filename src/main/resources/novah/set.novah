@@ -9,6 +9,7 @@ foreign import io.lacuna.bifurcan.ISet
 foreign import io.lacuna.bifurcan.Map
 foreign import io.lacuna.bifurcan.Maps
 foreign import novah.Core
+foreign import novah.Ref
 
 import novah.stream as S
 import novah.java as J
@@ -78,15 +79,6 @@ nth index (set : Set a) =
   if index < 0L || index >= len
     then None
     else Some set#nth(index)
-
-/**
- * Returns the value at index for this set.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: ~O(1)
- */
-pub
-unsafeNth : Int64 -> Set a -> a
-unsafeNth index (set : Set a) = set#nth(index)
 
 /**
  * Returns the union of these 2 sets.
@@ -255,14 +247,43 @@ every pred set = Core#setEvery(pred, set)
 pub
 any : (a -> Boolean) -> Set a -> Boolean
 any pred set =
-  let res = List.toTypedArray Boolean#-class [false]
+  let res = Ref#new(false)
   forEachBreak 0L (size set) \i ->
-    if unsafeNth i set |> pred
+    if set#nth(i) |> pred
       then
-        aset 0 true res
+        res#-val <- true
         -1
       else 0
-  aget 0 res
+  res#-val
+
+
+/**
+ * Returns the number of elements matching the given predicate.
+ * Runtime: O(n)
+ */
+pub
+count : (a -> Boolean) -> Set a -> Int64
+count pred set =
+  let counter = Ref#new(0L)
+  forEach set \elem ->
+    if pred elem then counter#update(_ + 1L)
+  counter#-val
+
+/**
+ * Returns the smallest number in the set, if the list is not empty.
+ * Runtime: O(n)
+ */
+pub
+min : {{ NumberOps a }} -> Set a -> Option a
+min {{NumberOps ops}} = reduce (\n n2 -> ops.min n n2)
+
+/**
+ * Returns the biggest number in the set, if the list is not empty.
+ * Runtime: O(n)
+ */
+pub
+max : {{ NumberOps a }} -> Set a -> Option a
+max {{NumberOps ops}} = reduce (\n n2 -> ops.max n n2)
 
 /**
  * Returns true if every element in the list is contained in the set.
