@@ -11,3 +11,5 @@ regexTests =
     Re.findAll re "some 123 and 890." `shouldBe` [["123"], ["890"]]
     Re.matches re "some 123 and 890." `shouldBe` false
     Re.matches re "123456" `shouldBe` true
+    Re.replaceFirst re "fox" "123 some 456" `shouldBe` "fox some 456"
+    Re.replaceAll re "fox" "123 some 456" `shouldBe` "fox some fox"

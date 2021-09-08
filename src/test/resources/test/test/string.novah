@@ -39,3 +39,15 @@ stringTests =
     String.remove isVowel "exquisite" `shouldBe` "xqst"
     String.find isVowel "fox" `shouldBe` Some 'o'
     String.find (_ == 'z') "fox" `shouldBe` None
+    String.count (_ == 'a') "banana" `shouldBe` 3
+    String.replaceChar 'a' 'o' "banana" `shouldBe` "bonono"
+    String.replace "the" "some" "the bad and the ugly" `shouldBe` "some bad and some ugly"
+    let bigStr = """
+      some Indented
+      Lines
+        Here
+    """
+    let expected = """some Indented
+Lines
+  Here"""
+    String.stripIndent bigStr `shouldBe` expected

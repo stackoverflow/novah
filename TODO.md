@@ -12,10 +12,9 @@
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
 - [ ] Auto complete foreign imports
 - [ ] Some way to package novah source for distribution
-- [ ] Test java field setter
 - [ ] Write tests for the core library functions
-- [ ] Add String.replace* functions and `count fun`
 - [ ] Only recompile files that changed + dependencies
 - [ ] Auto complete literal list, set in IDE: `[]#size()`
 - [ ] Create computation expression for (lazy) async
 - [ ] Don't auto import functions from same module in LSP
+- [ ] Typechecker cannot correlate a java class' variable with its methods/fields (add to caveats)

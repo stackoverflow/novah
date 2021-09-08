@@ -17,6 +17,7 @@ package novah.main
 
 import com.github.ajalt.clikt.output.TermUi
 import novah.Core
+import novah.Ref
 import novah.collections.Record
 import java.io.File
 import java.net.MalformedURLException
@@ -39,6 +40,7 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
 
     override fun findClass(name: String): Class<*> {
         if (name == "novah.Core") return Core::class.java
+        if (name == "novah.Ref") return Ref::class.java
         if (name == "novah.collections.Record") return Record::class.java
         if (name.startsWith("io.lacuna.bifurcan")) return Class.forName(name)
         return classLoader.loadClass(name)

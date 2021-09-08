@@ -95,3 +95,23 @@ matches pat str =
 pub
 matchesString : String -> String -> Boolean
 matchesString re str = matches (new re) str
+
+/**
+ * Replaces the first occurrence of this regex with the
+ * given replacement.
+ */
+pub
+replaceFirst : Pattern -> String -> String -> String
+replaceFirst pat repl input =
+  let mat = matcher pat input
+  mat#replaceFirst(repl)
+
+/**
+ * Replaces all occurrences of this regex with the
+ * given replacement.
+ */
+pub
+replaceAll : Pattern -> String -> String -> String
+replaceAll pat repl input =
+  let mat = matcher pat input
+  mat#replaceAll(repl)

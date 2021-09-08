@@ -58,6 +58,10 @@ listTests =
     List.mapIndexed (\idx i -> if idx < 2L then i * 2 else i * 3) list `shouldBe` [2, 4, 9]
     List.filterIndexed (\idx _ -> idx < 2L) list `shouldBe` [1, 2]
     List.groupBy isEven [1, 2, 3, 4, 5] `shouldBe` Map.new [true <> [2, 4], false <> [1, 3, 5]]
+    List.count isOdd [1, 2, 3, 4, 5] `shouldBe` 3L
+    List.min [6, 2, 5, 9, 0, 4] `shouldBe` Some 0
+    List.min ([] : List Int32) `shouldBe` None
+    List.max [6, 2, 5, 9, 0, 4] `shouldBe` Some 9
 
   test "Linear list functions" \_ ->
     let list = [1, 2, 3]

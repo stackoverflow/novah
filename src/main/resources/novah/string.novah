@@ -6,6 +6,7 @@ module novah.string
 import novah.list as List
 
 foreign import java.lang.CharSequence
+foreign import novah.Ref
 
 /**
  * Returns true if this string is empty or only contains whitespace codepoints.
@@ -15,11 +16,25 @@ isBlank : String -> Boolean
 isBlank (s : String) = s#isBlank()
 
 /**
+ * Returns true if this string is not empty or only contains whitespace codepoints.
+ */
+pub
+isNotBlank : String -> Boolean
+isNotBlank (s : String) = not s#isBlank()
+
+/**
  * Returns true if this string is empty.
  */
 pub
 isEmpty : String -> Boolean
 isEmpty (s : String) = s#isEmpty()
+
+/**
+ * Returns true if this string is not empty.
+ */
+pub
+isNotEmpty : String -> Boolean
+isNotEmpty (s : String) = not s#isEmpty()
 
 /**
  * Returns the size of this string.
@@ -71,7 +86,7 @@ containsChar : Char -> String -> Boolean
 containsChar char (str : String) = str#contains(toString char as CharSequence)
 
 /**
- * Returns a sub string from the given string
+ * Returns a substring from the given string
  * starting at begin (inclusive) and ending in end (exclusive).
  */
 pub
@@ -79,7 +94,7 @@ substring : Int32 -> Int32 -> String -> String
 substring begin end (str : String) = str#substring(begin, end)
 
 /**
- * Returns a sub string from the given string starting from begin.
+ * Returns a substring from the given string starting from begin.
  */
 pub
 startFrom : Int32 -> String -> String
@@ -238,6 +253,22 @@ find : (Char -> Boolean) -> String -> Option Char
 find pred str = List.find pred (toList str)
 
 /**
+ * Finds the first index in this string to which predicate returns true.
+ */
+pub
+findIndex : (Char -> Boolean) -> String -> Int32
+findIndex pred str =
+  let list = toList str
+  let ref = Ref#new(-1)
+  forEachBreak 0L (List.size list) \idx ->
+    if pred (list ! idx)
+      then
+        ref#-val <- (int idx)
+        -1
+      else 0
+  ref#-val
+
+/**
  * Drops the first n chars from this string.
  */
 pub
@@ -274,3 +305,46 @@ dropWhile pred str =
   toList str
     |> List.dropWhile pred
     |> fromList
+
+/**
+ * Replaces all occurrences of old char with new.
+ */
+pub
+replaceChar : Char -> Char -> String -> String
+replaceChar old new (str : String) = str#replace(old, new)
+
+/**
+ * Replaces all substrings of this string that matches target with the given replacement. 
+ */
+pub
+replace : String -> String -> String -> String
+replace target repl (str : String) = str#replace(target as CharSequence, repl as CharSequence)
+
+/**
+ * Returns the number of characters matching the given predicate.
+ * Runtime: O(n)
+ */
+pub
+count : (Char -> Boolean) -> String -> Int32
+count pred str =
+  toList str |> List.count pred |> int
+
+/**
+ * Finds the smallest common indentation of all lines in this string
+ * and removes it.
+ * Blank lines will be removed.
+ * Does not preserve line endings.
+ */
+pub
+stripIndent : String -> String
+stripIndent str =
+  let lines = splitLines str |> List.filter isNotBlank
+  let indent =
+    lines
+      |> List.map (findIndex (\(c : Char) -> not Char#isWhitespace(c)))
+      |> List.min
+  
+  case indent of
+    None -> str
+    Some num ->
+      lines |> List.map (startFrom num) |> join "\n"

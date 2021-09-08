@@ -2,7 +2,7 @@
 
 - [ ] Rewrite the compiler in novah itself
 - [ ] REPL
-- [ ] Add JSON support to the error reporter
+- [ ] Website
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
 - [X] IDE support (WIP)
 - [X] LSP implemented in the compiler (WIP)
