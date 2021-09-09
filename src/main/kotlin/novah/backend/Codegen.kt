@@ -449,14 +449,19 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLdcInsn(e.label)
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "dissoc", "($STRING_DESC)$RECORD_DESC", false)
             }
-            is Expr.RecordSet -> {
+            is Expr.RecordUpdate -> {
                 genExpr(e.expr, mv, ctx)
                 if (e.expr.type.type.internalName != RECORD_CLASS)
                     mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
                 mv.visitLdcInsn(e.label)
                 genExpr(e.value, mv, ctx)
-                val descriptor = "(${STRING_DESC}$OBJECT_DESC)$RECORD_DESC"
-                mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "set", descriptor, false)
+                if (e.isSet) {
+                    val descriptor = "(${STRING_DESC}$OBJECT_DESC)$RECORD_DESC"
+                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "set", descriptor, false)
+                } else {
+                    val descriptor = "(${STRING_DESC}$FUNCTION_DESC)$RECORD_DESC"
+                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "update", descriptor, false)
+                }
             }
             is Expr.RecordExtend -> {
                 val shouldLinearize = e.labels.size() > MAP_LINEAR_THRESHOLD
@@ -870,7 +875,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordSelect -> go(exp.expr)
             is Expr.RecordRestrict -> go(exp.expr)
-            is Expr.RecordSet -> {
+            is Expr.RecordUpdate -> {
                 go(exp.expr)
                 go(exp.value)
             }

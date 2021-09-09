@@ -180,7 +180,9 @@ sealed class Expr {
     data class RecordSelect(val exp: Expr, val labels: List<Spanned<String>>) : Expr()
     data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val labels: List<String>) : Expr()
-    data class RecordSet(val exp: Expr, val labels: List<Spanned<String>>, val value: Expr) : Expr()
+    data class RecordUpdate(val exp: Expr, val labels: List<Spanned<String>>, val value: Expr, val isSet: Boolean) :
+        Expr()
+
     data class RecordMerge(val exp1: Expr, val exp2: Expr) : Expr()
     data class ListLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
@@ -257,6 +259,7 @@ sealed class Pattern(open val span: Span) {
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
     data class ImplicitPattern(val pat: Pattern, override val span: Span) : Pattern(span)
+
     // those last patterns will de desugared during desugar phase
     data class Parens(val pattern: Pattern, override val span: Span) : Pattern(span)
     data class TypeAnnotation(val pat: Var, val type: Type, override val span: Span) : Pattern(span)

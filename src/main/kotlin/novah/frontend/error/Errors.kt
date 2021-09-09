@@ -50,7 +50,7 @@ object Errors {
 
     const val RECORD_COLON = "Expected `:` after record label."
 
-    const val RECORD_EQUALS = "Expected `=` after record labels in update expression."
+    const val RECORD_EQUALS = "Expected `=` or `->` after record labels in set/update expression."
 
     const val RECORD_MERGE = "Cannot merge records with unknown labels."
 
