@@ -152,62 +152,20 @@ data class DataConstructor(
 }
 
 sealed class Expr {
-    data class Int32(val v: Int, val text: String) : Expr() {
-        override fun toString(): String = text
-    }
-
-    data class Int64(val v: Long, val text: String) : Expr() {
-        override fun toString(): String = text
-    }
-
-    data class Float32(val v: Float, val text: String) : Expr() {
-        override fun toString(): String = text
-    }
-
-    data class Float64(val v: Double, val text: String) : Expr() {
-        override fun toString(): String = text
-    }
-
-    data class StringE(val v: String, val raw: String, val multi: Boolean = false) : Expr() {
-        override fun toString(): String = "\"$raw\""
-    }
-
-    data class CharE(val v: Char, val raw: String) : Expr() {
-        override fun toString(): String = "'$raw'"
-    }
-
-    data class Bool(val v: Boolean) : Expr() {
-        override fun toString(): String = "$v"
-    }
-
-    data class Var(val name: String, val alias: String? = null) : Expr() {
-        override fun toString(): String = if (alias != null) "$alias.$name" else name
-    }
-
-    data class Operator(val name: String, val isPrefix: Boolean, val alias: String? = null) : Expr() {
-        override fun toString(): String = if (alias != null) "$alias.$name" else name
-    }
-
-    data class ImplicitVar(val name: String, val alias: String? = null) : Expr() {
-        override fun toString(): String = if (alias != null) "{{$alias.$name}}" else "{{$name}}"
-    }
-
-    data class Constructor(val name: String, val alias: String? = null) : Expr() {
-        override fun toString(): String = if (alias != null) "$alias.$name" else name
-    }
-
-    data class Lambda(val patterns: List<Pattern>, val body: Expr) : Expr() {
-        override fun toString(): String = "\\" + patterns.joinToString(" ") + " -> $body"
-    }
-
-    data class App(val fn: Expr, val arg: Expr) : Expr() {
-        override fun toString(): String = "($fn $arg)"
-    }
-
-    data class BinApp(val op: Expr, val left: Expr, val right: Expr) : Expr() {
-        override fun toString(): String = "($left $op $right)"
-    }
-
+    data class Int32(val v: Int, val text: String) : Expr()
+    data class Int64(val v: Long, val text: String) : Expr()
+    data class Float32(val v: Float, val text: String) : Expr()
+    data class Float64(val v: Double, val text: String) : Expr()
+    data class StringE(val v: String, val raw: String, val multi: Boolean = false) : Expr()
+    data class CharE(val v: Char, val raw: String) : Expr()
+    data class Bool(val v: Boolean) : Expr()
+    data class Var(val name: String, val alias: String? = null) : Expr()
+    data class Operator(val name: String, val isPrefix: Boolean, val alias: String? = null) : Expr()
+    data class ImplicitVar(val name: String, val alias: String? = null) : Expr()
+    data class Constructor(val name: String, val alias: String? = null) : Expr()
+    data class Lambda(val patterns: List<Pattern>, val body: Expr) : Expr()
+    data class App(val fn: Expr, val arg: Expr) : Expr()
+    data class BinApp(val op: Expr, val left: Expr, val right: Expr) : Expr()
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr?) : Expr()
     data class Let(val letDef: LetDef, val body: Expr) : Expr()
     data class Match(val exps: List<Expr>, val cases: List<Case>) : Expr()
@@ -216,10 +174,7 @@ sealed class Expr {
     data class DoLet(val letDef: LetDef) : Expr()
     data class LetBang(val letDef: LetDef, val body: Expr?) : Expr()
     data class For(val letDef: LetDef, val body: Expr) : Expr()
-    data class Parens(val exp: Expr) : Expr() {
-        override fun toString(): String = "($exp)"
-    }
-
+    data class Parens(val exp: Expr) : Expr()
     class Unit : Expr()
     class RecordEmpty : Expr()
     data class RecordSelect(val exp: Expr, val labels: List<Spanned<String>>) : Expr()

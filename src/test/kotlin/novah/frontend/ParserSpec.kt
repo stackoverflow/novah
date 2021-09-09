@@ -40,9 +40,6 @@ class ParserSpec : StringSpec({
 
     val fmt = Formatter()
 
-    fun Module.byName(name: String) =
-        decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp?.toString()
-
     fun Module.findApp(name: String): Expr =
         decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp!!
 
@@ -63,32 +60,6 @@ class ParserSpec : StringSpec({
     }
 
     "Parser correctly parses operators" {
-        val ast = parseResource("Operators.novah")
-
-        val x = "((w || (r && x)) || p)"
-        val fl = "((((a >> b) >> c)) 1)"
-        val fr = "(((a << (b << c))) 1)"
-        val l1 = "(3 + (((7 ^ 4) * 6) * 9))"
-        val l2 = "(((3 ^ ((7 * 4))) * 6) + 9)"
-        val r1 = "((bla 3) $ ((df 4) $ pa))"
-        val r2 = "(3 :: (5 :: (7 :: Nil)))"
-        val ap = "(((fn 3) 4) 5)"
-        val a2 = "(fn ((fn2 8)))"
-        val co = "(((fn 'x') y) (((Some ((3 + 4))) 1)))"
-
-        ast.byName("x") shouldBe x
-        ast.byName("fl") shouldBe fl
-        ast.byName("fr") shouldBe fr
-        ast.byName("l1") shouldBe l1
-        ast.byName("l2") shouldBe l2
-        ast.byName("r1") shouldBe r1
-        ast.byName("r2") shouldBe r2
-        ast.byName("ap") shouldBe ap
-        ast.byName("a2") shouldBe a2
-        ast.byName("co") shouldBe co
-    }
-
-    "Parser correctly unparses operators" {
         val ast = parseResource("Operators.novah")
 
         val x = "w || r && x || p"
