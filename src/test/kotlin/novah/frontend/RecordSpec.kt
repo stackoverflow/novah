@@ -128,7 +128,7 @@ class RecordSpec : StringSpec({
         user?.type?.simpleName() shouldBe "{ ssn : String, name : String, age : Option Int32 }"
     }
 
-    "record update" {
+    "record set" {
         val code = """
             rec = { name: "Snuffles", age: 20 }
             

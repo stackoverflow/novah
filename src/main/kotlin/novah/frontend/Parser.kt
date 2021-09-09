@@ -1034,7 +1034,7 @@ class Parser(
                 Expr.RecordEmpty().withSpan(begin.span, end.span).withComment(begin.comment)
             } else if (nex is Dot) {
                 iter.next()
-                parseRecordUpdate(begin)
+                parseRecordSet(begin)
             } else if (nex is Op && nex.op == "-") {
                 iter.next()
                 parseRecordRestriction(begin)
@@ -1065,14 +1065,14 @@ class Parser(
         return label to exp
     }
 
-    private fun parseRecordUpdate(begin: Spanned<Token>): Expr {
+    private fun parseRecordSet(begin: Spanned<Token>): Expr {
         val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
         expect<Equals>(withError(E.RECORD_EQUALS))
         val value = parseExpression()
-        expect<Pipe>(withError(E.pipeExpected("record update")))
+        expect<Pipe>(withError(E.pipeExpected("record set")))
         val record = parseExpression()
-        val end = expect<RBracket>(withError(E.rbracketExpected("record update")))
-        return Expr.RecordUpdate(record, labels.map { Spanned(it.second.span, it.first) }, value)
+        val end = expect<RBracket>(withError(E.rbracketExpected("record set")))
+        return Expr.RecordSet(record, labels.map { Spanned(it.second.span, it.first) }, value)
             .withSpan(begin.span, end.span).withComment(begin.comment)
     }
 
