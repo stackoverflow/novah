@@ -16,8 +16,10 @@ pub
 type Id = Id String
 
 pub
+baz : (a -> b) -> LinkedList a -> LinkedList b
 baz = map
 
+baz2 : LinkedList Int32
 baz2 = 1 :: Nil
 
 nf : String -> File
@@ -65,11 +67,6 @@ foo pred list =
     [] -> 0
     [x] if pred x -> x
     _ -> -1
-
-bar : Int
-bar =
-  let arr = arrayOf [3, 4, 5, 6]
-  Array.size arr
 
 pub
 main : Array String -> Unit
