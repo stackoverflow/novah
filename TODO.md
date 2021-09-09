@@ -17,6 +17,9 @@
 - [ ] Create computation expression for (lazy) async
 - [ ] Typechecker cannot correlate a java class' variable with its methods/fields (add to caveats)
 - [ ] Some way to package novah source for distribution
+- [ ] Syntactic sugar for record update `{ .label -> function | record }`
+- [ ] Syntactic sugar for list update `{ .label.[1] = value | record }`
+- [ ] Syntactic sugar for set update `{ .label.#{1} = value | record }`
 
 ## LSP / IDE
 
