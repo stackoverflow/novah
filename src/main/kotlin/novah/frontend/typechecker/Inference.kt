@@ -287,10 +287,16 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             uni.unify(param, infer(env, level, exp.exp), exp.span)
             exp.withType(returnTy)
         }
-        is Expr.RecordSet -> {
+        is Expr.RecordUpdate -> {
             val field = infer(env, level, exp.value)
             val rest = tc.newVar(level)
-            val recTy = TRecord(TRowExtend(singletonPMap(exp.label.value, field), rest))
+            val recTy = if (exp.isSet) {
+                TRecord(TRowExtend(singletonPMap(exp.label.value, field), rest))
+            } else {
+                val actualField = tc.newVar(level)
+                uni.unify(field, TArrow(listOf(actualField), actualField), exp.value.span)
+                TRecord(TRowExtend(singletonPMap(exp.label.value, actualField), rest))
+            }
             uni.unify(recTy, infer(env, level, exp.exp), exp.span)
             exp.withType(recTy)
         }

@@ -148,6 +148,26 @@ class RecordSpec : StringSpec({
                 "{ address : { country : { number : Int32 | t3 } | t2 } | t1 } -> Int32 -> { address : { country : { number : Int32 | t3 } | t2 } | t1 }"
     }
 
+    "record update" {
+        val code = """
+            rec = { name: "Snuffles", age: 20 }
+            
+            nested = { address: { country: { number: 10 } } }
+            
+            update r namer = { .name -> namer | r }
+            
+            update2 r = { .address.country.number -> _ + 10 | r }
+            
+            x = update rec String.upperCase
+            y = update2 nested
+        """.module()
+
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["update"]?.type?.simpleName() shouldBe "{ name : t2 | t1 } -> (t2 -> t2) -> { name : t2 | t1 }"
+        ds["update2"]?.type?.simpleName() shouldBe
+                "{ address : { country : { number : Int32 | t3 } | t2 } | t1 } -> { address : { country : { number : Int32 | t3 } | t2 } | t1 }"
+    }
+
     "record merge" {
         val code = """
             rec = { name: "Bill", age: 10 }

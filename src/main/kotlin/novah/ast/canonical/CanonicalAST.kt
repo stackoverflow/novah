@@ -121,8 +121,13 @@ sealed class Expr(open val span: Span) {
     data class RecordSelect(val exp: Expr, val label: Spanned<String>, override val span: Span) : Expr(span)
     data class RecordExtend(val labels: LabelMap<Expr>, val exp: Expr, override val span: Span) : Expr(span)
     data class RecordRestrict(val exp: Expr, val label: String, override val span: Span) : Expr(span)
-    data class RecordSet(val exp: Expr, val label: Spanned<String>, val value: Expr, override val span: Span) :
-        Expr(span)
+    data class RecordUpdate(
+        val exp: Expr,
+        val label: Spanned<String>,
+        val value: Expr,
+        val isSet: Boolean,
+        override val span: Span
+    ) : Expr(span)
 
     data class RecordMerge(val exp1: Expr, val exp2: Expr, override val span: Span) : Expr(span)
     data class ListLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
@@ -267,7 +272,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.Do -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.RecordSelect -> f(e.copy(exp = go(e.exp)))
         is Expr.RecordRestrict -> f(e.copy(exp = go(e.exp)))
-        is Expr.RecordSet -> f(e.copy(exp = go(e.exp), value = go(e.value)))
+        is Expr.RecordUpdate -> f(e.copy(exp = go(e.exp), value = go(e.value)))
         is Expr.RecordExtend -> f(e.copy(exp = go(e.exp), labels = e.labels.mapList(::go)))
         is Expr.RecordMerge -> f(e.copy(exp1 = go(e.exp1), exp2 = go(e.exp2)))
         is Expr.ListLiteral -> f(e.copy(exps = e.exps.map(::go)))
@@ -366,7 +371,7 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
                 f(e)
                 go(e.exp)
             }
-            is Expr.RecordSet -> {
+            is Expr.RecordUpdate -> {
                 f(e)
                 go(e.value)
                 go(e.exp)

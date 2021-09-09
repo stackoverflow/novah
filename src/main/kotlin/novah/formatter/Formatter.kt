@@ -207,7 +207,7 @@ class Formatter {
             is Expr.RecordEmpty -> "{}"
             is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".") { it.value }}"
             is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
-            is Expr.RecordSet -> {
+            is Expr.RecordUpdate -> {
                 "{ .${e.labels.joinToString(".") { showLabel(it.value) }} = ${show(e.value)} | ${show(e.exp)} }"
             }
             is Expr.RecordExtend -> {

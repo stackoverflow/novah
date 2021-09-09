@@ -284,7 +284,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 nestLambdas(listOf(Binder(v, span)), nestRecordRestrictions(Expr.Var(v, span), labels, span))
             } else nestRecordRestrictions(exp.desugar(locals, tvars), labels, span)
         }
-        is SExpr.RecordSet -> {
+        is SExpr.RecordUpdate -> {
             val lvars = mutableListOf<Binder>()
             val lvalue = if (value is SExpr.Underscore) {
                 val v = newVar()
@@ -298,7 +298,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 Expr.Var(v, span)
             } else exp.desugar(locals, tvars)
 
-            nestLambdas(lvars, nestRecordSets(lexpr, labels, lvalue, span))
+            nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue, isSet, span))
         }
         is SExpr.RecordMerge -> {
             val lvars = mutableListOf<Binder>()
@@ -639,12 +639,25 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], span), labels.drop(1), span)
     }
 
-    private fun nestRecordSets(exp: Expr, labels: List<Spanned<String>>, value: Expr, span: Span): Expr {
+    private fun nestRecordUpdates(
+        exp: Expr,
+        labels: List<Spanned<String>>,
+        value: Expr,
+        isSet: Boolean,
+        span: Span
+    ): Expr {
         return if (labels.isEmpty()) exp
         else {
             val tail = labels.drop(1)
+            val shouldSet = isSet || tail.isNotEmpty()
             val select = if (tail.isEmpty()) value else Expr.RecordSelect(exp, labels[0], value.span)
-            Expr.RecordSet(exp, labels[0], nestRecordSets(select, labels.drop(1), value, span), span)
+            Expr.RecordUpdate(
+                exp,
+                labels[0],
+                nestRecordUpdates(select, labels.drop(1), value, isSet, span),
+                shouldSet,
+                span
+            )
         }
     }
 
@@ -869,7 +882,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     val body = desugarComputation(listOf(exp.body), builder)
                     val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
                     val res = SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
-                    
+
                     if (isLast) res
                     else combiner(span, res)
                 }

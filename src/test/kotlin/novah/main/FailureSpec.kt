@@ -57,7 +57,7 @@ class FailureSpec : StringSpec({
         }
     }
 
-    "duplicate modules fail" {
+    "!duplicate modules fail" {
         val compiler = TestUtil.compilerFor("multimodulefail/duplicatedmodules")
 
         val error = """
