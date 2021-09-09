@@ -180,7 +180,7 @@ sealed class Expr {
     data class RecordSelect(val exp: Expr, val labels: List<Spanned<String>>) : Expr()
     data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val labels: List<String>) : Expr()
-    data class RecordUpdate(val exp: Expr, val labels: List<Spanned<String>>, val value: Expr) : Expr()
+    data class RecordSet(val exp: Expr, val labels: List<Spanned<String>>, val value: Expr) : Expr()
     data class RecordMerge(val exp1: Expr, val exp2: Expr) : Expr()
     data class ListLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()

@@ -185,8 +185,8 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             )
             is CExpr.RecordSelect -> Expr.RecordSelect(exp.convert(locals), label.value, typ, span)
             is CExpr.RecordRestrict -> Expr.RecordRestrict(exp.convert(locals), label, typ, span)
-            is CExpr.RecordUpdate -> {
-                Expr.RecordUpdate(exp.convert(locals), label.value, value.convert(locals), typ, span)
+            is CExpr.RecordSet -> {
+                Expr.RecordSet(exp.convert(locals), label.value, value.convert(locals), typ, span)
             }
             is CExpr.RecordMerge -> Expr.RecordMerge(exp1.convert(locals), exp2.convert(locals), typ, span)
             is CExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.convert(locals) }, typ, span)

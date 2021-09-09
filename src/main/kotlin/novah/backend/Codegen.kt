@@ -449,7 +449,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLdcInsn(e.label)
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORD_CLASS, "dissoc", "($STRING_DESC)$RECORD_DESC", false)
             }
-            is Expr.RecordUpdate -> {
+            is Expr.RecordSet -> {
                 genExpr(e.expr, mv, ctx)
                 if (e.expr.type.type.internalName != RECORD_CLASS)
                     mv.visitTypeInsn(CHECKCAST, RECORD_CLASS)
@@ -870,7 +870,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.RecordSelect -> go(exp.expr)
             is Expr.RecordRestrict -> go(exp.expr)
-            is Expr.RecordUpdate -> {
+            is Expr.RecordSet -> {
                 go(exp.expr)
                 go(exp.value)
             }

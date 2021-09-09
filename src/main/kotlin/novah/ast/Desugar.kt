@@ -284,7 +284,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 nestLambdas(listOf(Binder(v, span)), nestRecordRestrictions(Expr.Var(v, span), labels, span))
             } else nestRecordRestrictions(exp.desugar(locals, tvars), labels, span)
         }
-        is SExpr.RecordUpdate -> {
+        is SExpr.RecordSet -> {
             val lvars = mutableListOf<Binder>()
             val lvalue = if (value is SExpr.Underscore) {
                 val v = newVar()
@@ -298,7 +298,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 Expr.Var(v, span)
             } else exp.desugar(locals, tvars)
 
-            nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue, span))
+            nestLambdas(lvars, nestRecordSets(lexpr, labels, lvalue, span))
         }
         is SExpr.RecordMerge -> {
             val lvars = mutableListOf<Binder>()
@@ -639,12 +639,12 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         else nestRecordRestrictions(Expr.RecordRestrict(exp, labels[0], span), labels.drop(1), span)
     }
 
-    private fun nestRecordUpdates(exp: Expr, labels: List<Spanned<String>>, value: Expr, span: Span): Expr {
+    private fun nestRecordSets(exp: Expr, labels: List<Spanned<String>>, value: Expr, span: Span): Expr {
         return if (labels.isEmpty()) exp
         else {
             val tail = labels.drop(1)
             val select = if (tail.isEmpty()) value else Expr.RecordSelect(exp, labels[0], value.span)
-            Expr.RecordUpdate(exp, labels[0], nestRecordUpdates(select, labels.drop(1), value, span), span)
+            Expr.RecordSet(exp, labels[0], nestRecordSets(select, labels.drop(1), value, span), span)
         }
     }
 

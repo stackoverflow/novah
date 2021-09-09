@@ -168,7 +168,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
     data class RecordRestrict(val expr: Expr, val label: String, override val type: Clazz, override val span: Span) :
         Expr(type, span)
 
-    data class RecordUpdate(
+    data class RecordSet(
         val expr: Expr,
         val label: String,
         val value: Expr,
@@ -226,7 +226,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.RecordExtend -> f(e.copy(labels = e.labels.mapList(::go), expr = go(e.expr)))
         is Expr.RecordSelect -> f(e.copy(expr = go(e.expr)))
         is Expr.RecordRestrict -> f(e.copy(expr = go(e.expr)))
-        is Expr.RecordUpdate -> f(e.copy(expr = go(e.expr), value = go(e.value)))
+        is Expr.RecordSet -> f(e.copy(expr = go(e.expr), value = go(e.value)))
         is Expr.RecordMerge -> f(e.copy(exp1 = go(e.exp1), exp2 = go(e.exp2)))
         is Expr.ListLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
