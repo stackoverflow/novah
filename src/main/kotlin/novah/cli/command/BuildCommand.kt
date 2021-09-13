@@ -59,6 +59,9 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
         val deps = config["deps"] ?: return
         val out = deps.output ?: DepsProcessor.defaultOutput
 
+        val javaPaths = deps.javaPaths
+        if (!javaPaths.isNullOrEmpty()) runJavac(javaPaths, al, out)
+
         val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode))
         try {
             val warns = compiler.run(File(out), check)
@@ -69,6 +72,30 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
             Compiler.printErrors(allErrs, ::echo)
             echo("Failure", err = true)
             exitProcess(1)
+        }
+    }
+
+    private fun runJavac(paths: Set<String>, alias: String, out: String) {
+        val argsfile = File(".cpcache/$alias.argsfile")
+
+        val sources = mutableSetOf<String>()
+        paths.forEach { path ->
+            File(path).walkTopDown().forEach { file ->
+                if (file.extension == "java") {
+                    sources += file.absolutePath
+                }
+            }
+        }
+        if (sources.isEmpty()) return
+
+        val srcFile = File.createTempFile("novahsources", null)
+        srcFile.writeText(sources.joinToString(" "))
+
+        val cmd = "javac @${argsfile.path} -d $out @${srcFile.path}"
+        val exit = RunCommand.runCommand(cmd)
+        if (exit != 0) {
+            echo("Failed to compile java sources", err = true)
+            exitProcess(exit)
         }
     }
 

@@ -28,14 +28,15 @@ data class MvnRepo(val url: String)
 
 data class Coord(
     @JsonProperty("mvn/version") val version: String,
-    val exclusions: List<String>? = null
+    val exclusions: List<String>?
 )
 
-data class Alias(val extraPaths: List<String>?, val extraDeps: Map<String, Coord>?, val main: String?)
+data class Alias(val extraPaths: Set<String>?, val extraDeps: Map<String, Coord>?, val main: String?)
 
 data class Deps(
-    val paths: List<String>,
+    val paths: Set<String>,
     val deps: Map<String, Coord>,
+    val javaPaths: Set<String>?,
     @JsonProperty("mvn/repos") val mvnRepos: Map<String, MvnRepo>?,
     val aliases: Map<String, Alias>?,
     val main: String?,
@@ -56,15 +57,14 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
         // resolve top level deps
         val srccp = deps.paths.joinToString(File.pathSeparator) { File(it).absolutePath }
         val mvncp = resolveDeps(null, deps.deps, deps.mvnRepos) ?: return
-        saveClasspath(defaultAlias, mvncp)
+
+        saveClasspath(defaultAlias, out, mvncp)
         saveSourcepath(defaultAlias, srccp)
         saveArgsfile(defaultAlias, out, mvncp)
 
         // resolve alias deps
-        if (deps.aliases != null) {
-            deps.aliases.forEach { (name, alias) ->
-                runAlias(deps, name, alias, mvncp, out)
-            }
+        deps.aliases?.forEach { (name, alias) ->
+            runAlias(deps, name, alias, mvncp, out)
         }
     }
 
@@ -76,14 +76,14 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
         saveSourcepath(name, srccp)
         if (alias.extraDeps == null || alias.extraDeps.isEmpty()) {
             // no need to resolve dependencies
-            saveClasspath(name, mvncp)
+            saveClasspath(name, out, mvncp)
             saveArgsfile(name, out, mvncp)
         } else {
             val deps2 = mutableMapOf<String, Coord>()
             deps2.putAll(deps.deps)
             deps2.putAll(alias.extraDeps)
             val mvncp2 = resolveDeps(name, deps2, deps.mvnRepos) ?: return
-            saveClasspath(name, mvncp2)
+            saveClasspath(name, out, mvncp2)
             saveArgsfile(name, out, mvncp2)
         }
     }
@@ -110,8 +110,9 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
         }
     }
 
-    private fun saveClasspath(alias: String, classpath: String) {
-        File(".cpcache/$alias.classpath").writeText(classpath, Charsets.UTF_8)
+    private fun saveClasspath(alias: String, out: String, classpath: String) {
+        val cp = if (classpath.isBlank()) out else out + File.pathSeparator + classpath
+        File(".cpcache/$alias.classpath").writeText(cp, Charsets.UTF_8)
     }
 
     private fun saveSourcepath(alias: String, sourcepath: String) {
@@ -185,7 +186,7 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
                     }
                 }
                 Ok(deps)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 Err("There was an error parsing the `novah.json` file. Make sure the file is valid")
             }
         }
