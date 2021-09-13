@@ -74,18 +74,21 @@ class RunCommand : CliktCommand(name = "run", help = "Run the main module if one
 
         var cmd = "java @${argsfile.path} $mainFun.\$Module"
         if (args.isNotEmpty()) cmd = args.joinToString(" ", prefix = "$cmd ")
-        runCommand(cmd)
+        val exit = runCommand(cmd)
+        exitProcess(exit)
     }
 
-    private fun runCommand(command: String) {
-        val parts = command.split("\\s".toRegex())
-        val process = ProcessBuilder(*parts.toTypedArray())
-            .directory(null)
-            .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-            .redirectError(ProcessBuilder.Redirect.INHERIT)
-            .start()
+    companion object {
+        fun runCommand(command: String): Int {
+            val parts = command.split("\\s".toRegex())
+            val process = ProcessBuilder(*parts.toTypedArray())
+                .directory(null)
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                .redirectError(ProcessBuilder.Redirect.INHERIT)
+                .start()
 
-        process.waitFor()
-        exitProcess(process.exitValue())
+            process.waitFor()
+            return process.exitValue()
+        }
     }
 }
