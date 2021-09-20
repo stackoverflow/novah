@@ -178,6 +178,7 @@ class Parser(
             val aliased = imports.filter { it.alias() != null }.map { it.module.value }.toSet()
 
             if (!aliased.contains(ARRAY_MODULE)) imports += arrayImport
+            if (!aliased.contains(IO_MODULE)) imports += ioImport
             if (!aliased.contains(JAVA_MODULE)) imports += javaImport
             if (!aliased.contains(LIST_MODULE)) imports += listImport
             if (!aliased.contains(MATH_MODULE)) imports += mathImport
