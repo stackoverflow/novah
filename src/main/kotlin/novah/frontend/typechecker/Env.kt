@@ -75,6 +75,7 @@ class Env private constructor(
 const val PRIM = "prim"
 const val CORE_MODULE = "novah.core"
 const val ARRAY_MODULE = "novah.array"
+const val IO_MODULE = "novah.io"
 const val JAVA_MODULE = "novah.java"
 const val LIST_MODULE = "novah.list"
 const val MATH_MODULE = "novah.math"
@@ -94,6 +95,7 @@ private fun spanned(name: String) = Spanned(espan, name)
 val primImport = Import.Raw(spanned(PRIM), espan, auto = true)
 val coreImport = Import.Raw(spanned(CORE_MODULE), espan, auto = true)
 val arrayImport = Import.Raw(spanned(ARRAY_MODULE), espan, "Array", auto = true)
+val ioImport = Import.Raw(spanned(IO_MODULE), espan, "IO", auto = true)
 val javaImport = Import.Raw(spanned(JAVA_MODULE), espan, "Java", auto = true)
 val listImport = Import.Raw(spanned(LIST_MODULE), espan, "List", auto = true)
 val mathImport = Import.Raw(spanned(MATH_MODULE), espan, "Math", auto = true)

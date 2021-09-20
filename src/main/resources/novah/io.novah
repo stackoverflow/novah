@@ -1,0 +1,60 @@
+module novah.io
+
+import novah.list as List
+
+foreign import java.io.File
+foreign import java.nio.charset.Charset
+foreign import java.nio.file.Files
+foreign import java.nio.file.Path
+
+/**
+ * Creates a new file from the specified path.
+ */
+pub
+newFile : String -> File
+newFile (path: String) = File#new(path)
+
+/**
+ * Returns a file which represents a child of the given directory.
+ */
+pub
+child : File -> String -> File
+child (dir : File) child_ = File#new(dir, child_)
+
+/**
+ * Returns a path by joining the first path with
+ * the list of paths using the platform separator.
+ */
+pub
+pathOf : String -> List String -> Path
+pathOf first paths =
+  Path#"of"(first, List.toTypedArray String#-class paths)
+
+/**
+ * Returns the path of this file.
+ */
+pub
+fileToPath : File -> Path
+fileToPath (file : File) = file#toPath()
+
+/**
+ * Reads the contents of the file using the UTF-8 charset.
+ */
+pub
+readTextFromPath : Path -> String
+readTextFromPath path = Files#readString(path)
+
+/**
+ * Reads the contents of the file using the given charset.
+ */
+pub
+readTextWithCharset : Path -> Charset -> String
+readTextWithCharset path charset = Files#readString(path, charset)
+
+/**
+ * Reads the contents of this file using the UTF-8 charset.
+ */
+pub
+readText : File -> String
+readText (file : File) =
+  Files#readString(file#toPath())

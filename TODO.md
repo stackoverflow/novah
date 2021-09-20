@@ -17,6 +17,8 @@
 - [ ] Create computation expression for (lazy) async
 - [ ] Typechecker cannot correlate a java class' variable with its methods/fields (add to caveats)
 - [ ] Some way to package novah source for distribution
+- [ ] Fix lexing of multiline comments `/***/`
+- [ ] How to handle `AutoCloseable` interface
 
 ## LSP / IDE
 
