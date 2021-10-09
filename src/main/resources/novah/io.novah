@@ -3,9 +3,20 @@ module novah.io
 import novah.list as List
 
 foreign import java.io.File
+foreign import java.lang.CharSequence
 foreign import java.nio.charset.Charset
+foreign import java.nio.charset.StandardCharsets
 foreign import java.nio.file.Files
+foreign import java.nio.file.OpenOption
 foreign import java.nio.file.Path
+foreign import java.nio.file.StandardOpenOption
+
+/**
+ * The UTF-8 charset.
+ */
+pub
+utf8 : Charset
+utf8 = StandardCharsets#-"UTF_8"
 
 /**
  * Creates a new file from the specified path.
@@ -38,6 +49,37 @@ fileToPath : File -> Path
 fileToPath (file : File) = file#toPath()
 
 /**
+ * Possible file open options.
+ * Look at `java.nio.file.StandardOpenOption` for more information.
+ */
+pub+
+type FileOpenOption
+  = Read
+  | Write
+  | Append
+  | TruncateExisting
+  | Create
+  | CreateNew
+  | DeleteOnClose
+  | Sparse
+  | Sync
+  | Dsync
+
+fopToOp : FileOpenOption -> StandardOpenOption
+fopToOp =
+  case _ of
+    Read -> StandardOpenOption#-"READ"
+    Write -> StandardOpenOption#-"WRITE"
+    Append -> StandardOpenOption#-"APPEND"
+    TruncateExisting -> StandardOpenOption#-"TRUNCATE_EXISTING"
+    Create -> StandardOpenOption#-"CREATE"
+    CreateNew -> StandardOpenOption#-"CREATE_NEW"
+    DeleteOnClose -> StandardOpenOption#-"DELETE_ON_CLOSE"
+    Sparse -> StandardOpenOption#-"SPARSE"
+    Sync -> StandardOpenOption#-"SYNC"
+    Dsync -> StandardOpenOption#-"DSYNC"
+
+/**
  * Reads the contents of the file using the UTF-8 charset.
  */
 pub
@@ -58,3 +100,31 @@ pub
 readText : File -> String
 readText (file : File) =
   Files#readString(file#toPath())
+
+/**
+ * Writes the given string to the specified path using the given charset.
+ * Returns the path.
+ */
+pub
+writeTextToPath : Path -> String -> Charset -> List FileOpenOption -> Path
+writeTextToPath path text charset options =
+  let ops = List.map fopToOp options |> List.toTypedArray StandardOpenOption#-class
+  Files#writeString(path, text as CharSequence, charset, ops as Array OpenOption)
+
+/**
+ * Writes the given string to the specified file using the UTF-8 charset.
+ * Returns the path.
+ */
+pub
+writeText : File -> String -> Path
+writeText (file: File) text =
+  writeTextToPath file#toPath() text utf8 [Write, Create]
+
+/**
+ * Appends the given string to the specified file using the UTF-8 charset.
+ * Returns the path.
+ */
+pub
+appendText : File -> String -> Path
+appendText (file : File) text =
+  writeTextToPath file#toPath() text utf8 [Append, Create]
