@@ -75,6 +75,10 @@ pub
 withTable : List { | r } -> ({ | r } -> Unit) -> Unit
 withTable = forEach
 
+/**
+ * Run the specified tests.
+ */
+pub
 runTests : List Suite -> TestResult
 runTests suites =
   let total = atom 0
