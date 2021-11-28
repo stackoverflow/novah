@@ -19,6 +19,7 @@
 - [ ] Some way to package novah source for distribution
 - [ ] Fix lexing of multiline comments `/***/`
 - [ ] How to handle `AutoCloseable` interface
+- [ ] Two comments one after another will always pick the first as doc
 
 ## LSP / IDE
 

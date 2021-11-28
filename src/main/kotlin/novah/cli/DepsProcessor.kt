@@ -48,7 +48,7 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
     fun run(deps: Deps) {
         val cache = ensureCache() ?: return
         if (!isResolveNeeded(cache)) {
-            echo("No changes since last run: skipping", false)
+            echo("Skipping dependency resolution", false)
             return
         }
         deleteOldAliases(cache)
