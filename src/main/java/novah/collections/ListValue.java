@@ -27,8 +27,8 @@ import java.util.Objects;
  * too much performance impact.
  */
 public class ListValue {
-    final Object value;
-    final ListValue next;
+    public final Object value;
+    public final ListValue next;
 
     public ListValue(Object val, ListValue next) {
         value = val;
