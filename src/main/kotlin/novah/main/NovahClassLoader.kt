@@ -89,7 +89,10 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
 
             try {
                 return if (path.endsWith(".jar")) URL("jar:file:${f.absolutePath}!/")
-                else URL("file:${f.absolutePath}")
+                else {
+                    val apath = if (f.absolutePath.endsWith("/")) f.absolutePath else "${f.absolutePath}/"
+                    URL("file:$apath")
+                }
             } catch (m: MalformedURLException) {
                 TermUi.echo("Error while parsing classpath item `$path`", err = true)
                 throw m
