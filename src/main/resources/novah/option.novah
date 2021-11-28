@@ -83,6 +83,19 @@ toNullable =
     None -> null
 
 /**
+ * Receives a default value, a function `f` and a possible null value.
+ * If the value is null returns the default value, otherwise returns
+ * f applied to the value.
+ */
+pub
+caseNull : b -> (a -> b) -> Nullable a -> b
+caseNull def f nul =
+  if nul === null then
+    def
+  else
+    f (nul as a)
+
+/**
  * Transforms a `java.util.Optional` into an option.
  */
 pub
