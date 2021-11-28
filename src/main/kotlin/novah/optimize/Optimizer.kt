@@ -367,7 +367,12 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                     is LiteralPattern.BoolLiteral -> eqBoolean
                     is LiteralPattern.StringLiteral -> eqString
                 }
-                PatternResult(Expr.NativeStaticMethod(method, listOf(exp, p.lit.e.convert(locals)), boolType, exp.span))
+                val lit = p.lit.e.convert(locals)
+                if (p.lit is LiteralPattern.StringLiteral) {
+                    PatternResult(Expr.NativeMethod(method, lit, listOf(exp), boolType, exp.span))
+                } else {
+                    PatternResult(Expr.NativeStaticMethod(method, listOf(exp, lit), boolType, exp.span))
+                }
             }
             is Pattern.Ctor -> {
                 val conds = mutableListOf<Expr>()
