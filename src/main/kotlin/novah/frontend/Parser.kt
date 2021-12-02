@@ -186,6 +186,7 @@ class Parser(
             if (!aliased.contains(SET_MODULE)) imports += setImport
             if (!aliased.contains(STRING_MODULE)) imports += stringImport
             if (!aliased.contains(MAP_MODULE)) imports += mapImport
+            if (!aliased.contains(NUMBER_MODULE)) imports += numberImport
             if (!aliased.contains(REGEX_MODULE)) imports += regexImport
             if (!aliased.contains(RESULT_MODULE)) imports += resultImport
         }

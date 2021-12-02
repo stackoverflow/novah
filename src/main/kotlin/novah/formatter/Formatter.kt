@@ -261,7 +261,7 @@ class Formatter {
         is Pattern.Ctor -> show(p.ctor) + p.fields.joinToStr(" ", prefix = " ") { show(it) }
         is Pattern.LiteralP -> show(p.lit)
         is Pattern.Parens -> "(${show(p.pattern)})"
-        is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }}"
+        is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }} }"
         is Pattern.ListP -> "[${p.elems.joinToString { show(it) }}]"
         is Pattern.ListHeadTail -> "[${show(p.head)} :: ${show(p.tail)}]"
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"

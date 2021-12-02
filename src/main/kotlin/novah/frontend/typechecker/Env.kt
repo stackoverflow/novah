@@ -83,6 +83,7 @@ const val OPTION_MODULE = "novah.option"
 const val SET_MODULE = "novah.set"
 const val STRING_MODULE = "novah.string"
 const val MAP_MODULE = "novah.map"
+const val NUMBER_MODULE = "novah.number"
 const val REGEX_MODULE = "novah.regex"
 const val RESULT_MODULE = "novah.result"
 
@@ -103,6 +104,7 @@ val optionImport = Import.Raw(spanned(OPTION_MODULE), espan, "Option", auto = tr
 val setImport = Import.Raw(spanned(SET_MODULE), espan, "Set", auto = true)
 val stringImport = Import.Raw(spanned(STRING_MODULE), espan, "String", auto = true)
 val mapImport = Import.Raw(spanned(MAP_MODULE), espan, "Map", auto = true)
+val numberImport = Import.Raw(spanned(NUMBER_MODULE), espan, "Number", auto = true)
 val regexImport = Import.Raw(spanned(REGEX_MODULE), espan, "Re", auto = true)
 val resultImport = Import.Raw(spanned(RESULT_MODULE), espan, "Result", auto = true)
 
