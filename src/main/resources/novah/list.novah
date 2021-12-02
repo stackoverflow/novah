@@ -17,6 +17,7 @@ foreign import novah.Ref
 import novah.java (toComparator, intFunction)
 import novah.stream as S
 import novah.option as O
+import novah.math as Math
 
 /**
  * Returns a stream for this list.
@@ -91,6 +92,14 @@ nth index (list : List a) =
 pub
 size : List a -> Int64
 size (list : List a) = list#size()
+
+/**
+ * Returns the index of the last element of this list or -1 if the list is empty.
+ * Runtime: O(1)
+ */
+pub
+lastIndex : List a -> Int64
+lastIndex (list : List a) = list#size() - 1L
 
 /**
  * Returns the first element of this list if it's not empty.
@@ -266,7 +275,9 @@ slice from to (list : List a) = list#slice(from, to)
  */
 pub
 take : Int64 -> List a -> List a
-take n = slice 0L n
+take n (list : List a) =
+  let actualN = Math.min n list#size()
+  slice 0L actualN list
 
 /**
  * Drops the first n elements of this list and returns it.
@@ -274,7 +285,9 @@ take n = slice 0L n
  */
 pub
 drop : Int64 -> List a -> List a
-drop n (list : List a) = slice n list#size() list
+drop n (list : List a) =
+  let actualN = Math.min n list#size()
+  slice actualN list#size() list
 
 /**
  * Keeps taking elements of this list while the predicate holds.
@@ -564,6 +577,74 @@ groupBy f list =
   
   forEach list grouper
   m#forked()
+
+/**
+ * Returns the list partitioned in lists of size n and going forward by step.
+ * Ex:
+ * ```novah
+ * partitionStep 3L 2L [1, 2, 3, 4, 5, 6, 7, 8]
+ * // => [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+ * ```
+ */
+pub
+partitionStep : Int64 -> Int64 -> List a -> List (List a)
+partitionStep n step list =
+  let go listt acc =
+    if size listt < n then
+      acc
+    else
+      let prefix = take n listt
+      go (drop step listt) (addLast prefix acc)
+
+  go list []
+
+/**
+ * Returns the list partitioned in lists of size n and going forward by step.
+ * May include sub lists smaller than n if there's some leftovers.
+ * Ex:
+ * ```novah
+ * partitionAllStep 3L 2L [1, 2, 3, 4, 5, 6, 7, 8]
+ * // => [[1, 2, 3], [3, 4, 5], [5, 6, 7], [7, 8]]
+ * ```
+ */
+pub
+partitionAllStep : Int64 -> Int64 -> List a -> List (List a)
+partitionAllStep n step list =
+  let go listt acc =
+    if isEmpty listt then
+      acc
+    else
+      let prefix = take n listt
+      go (drop step listt) (addLast prefix acc)
+
+  go list []
+
+/**
+ * Returns the list partitioned in lists of size n.
+ * Ex:
+ * ```novah
+ * partition 3L [1, 2, 3, 4, 5, 6, 7, 8]
+ * // => [[1, 2, 3], [4, 5, 6]]
+ * ```
+ */
+pub
+partition : Int64 -> List a -> List (List a)
+partition n =
+  partitionStep n n
+
+/**
+ * Returns the list partitioned in lists of size n.
+ * May include sub lists smaller than n if there's some leftovers.
+ * Ex:
+ * ```novah
+ * partitionAll 3L [1, 2, 3, 4, 5, 6, 7, 8]
+ * // => [[1, 2, 3], [4, 5, 6], [7, 8]]
+ * ```
+ */
+pub
+partitionAll : Int64 -> List a -> List (List a)
+partitionAll n =
+  partitionAllStep n n
 
 /**
  * Creates a linear (mutable) version of the given list and applies the function to it.

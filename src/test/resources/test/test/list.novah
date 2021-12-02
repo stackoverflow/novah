@@ -23,11 +23,15 @@ listTests =
     List.contains 4 list `shouldBe` true
     List.slice 1L 3L list `shouldBe` [2, 3]
     List.take 2L list `shouldBe` [1, 2]
+    List.take 4L [1, 2] `shouldBe` [1, 2]
     List.drop 2L list `shouldBe` [3, 4]
+    List.drop 6L list `shouldBe` []
     List.takeWhile (_ < 3) list `shouldBe` [1, 2]
     List.dropWhile (_ < 3) list `shouldBe` [3, 4]
     List.tail list `shouldBe` Some [2, 3, 4]
     List.size list `shouldBe` 4L
+    List.lastIndex list `shouldBe` 3L
+    List.lastIndex [] `shouldBe` -1L
     (list ++ [5, 6]) `shouldBe` [1, 2, 3, 4, 5, 6]
 
   test "List writing functions" \_ ->
@@ -62,6 +66,10 @@ listTests =
     List.min [6, 2, 5, 9, 0, 4] `shouldBe` Some 0
     List.min ([] : List Int32) `shouldBe` None
     List.max [6, 2, 5, 9, 0, 4] `shouldBe` Some 9
+    List.partitionStep 2L 3L [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5]]
+    List.partitionAllStep 2L 3L [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5], [7]]
+    List.partition 2L [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4]]
+    List.partitionAll 2L [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4], [5]]
 
   test "Linear list functions" \_ ->
     let list = [1, 2, 3]
