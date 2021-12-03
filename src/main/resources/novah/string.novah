@@ -330,6 +330,18 @@ count pred str =
   toList str |> List.count pred |> int
 
 /**
+ * Returns a list of all the indices from the input string.
+ * Ex:
+ * ```novah
+ * indices "abc" // => [0, 1, 2]
+ * ```
+ */
+pub
+indices : String -> List Int32
+indices str =
+  0 .. (size str)
+
+/**
  * Finds the smallest common indentation of all lines in this string
  * and removes it.
  * Blank lines will be removed.

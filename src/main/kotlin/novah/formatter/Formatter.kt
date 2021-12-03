@@ -237,13 +237,15 @@ class Formatter {
             }
             is Expr.Null -> "null"
             is Expr.TypeCast -> show(e.exp) + " as " + show(e.cast)
-            is Expr.ForeignStaticField -> "${e.clazz}#-${e.field}"
-            is Expr.ForeignField -> "${show(e.exp)}#-${e.field}"
+            is Expr.ForeignStaticField -> "${e.clazz.value}#-${e.field.value}"
+            is Expr.ForeignField -> "${show(e.exp)}#-${e.field.value}"
             is Expr.ForeignStaticMethod -> {
-                "${e.clazz}#${e.method}" + e.args.joinToString(", ", prefix = "(", postfix = ")") { show(it) }
+                val prefix = "${e.clazz.value}#${e.method.value}"
+                prefix + e.args.joinToString(", ", prefix = "(", postfix = ")") { show(it) }
             }
             is Expr.ForeignMethod -> {
-                "${show(e.exp)}#${e.method}" + e.args.joinToString(", ", prefix = "(", postfix = ")") { show(it) }
+                val prefix = "${show(e.exp)}#${e.method.value}"
+                prefix + e.args.joinToString(", ", prefix = "(", postfix = ")") { show(it) }
             }
         }
     }
