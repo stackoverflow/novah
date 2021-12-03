@@ -647,6 +647,30 @@ partitionAll n =
   partitionAllStep n n
 
 /**
+ * Returns a list consisting of the given element repeated n times.
+ * Runtime: O(n)
+ */
+pub
+repeat : Int64 -> a -> List a
+repeat n x =
+  let lin = []#linear()
+  forEachRange 0L n \_ ->
+    addLast x lin
+  lin#forked()
+
+/**
+ * Returns a list of all the indices from the input list.
+ * Ex:
+ * ```novah
+ * indices ["a", "b", "c"] // => [0, 1, 2]
+ * ```
+ */
+pub
+indices : List a -> List Int64
+indices list =
+  0L .. (size list)
+
+/**
  * Creates a linear (mutable) version of the given list and applies the function to it.
  * Returns a forked (persistent) version of the returned linear list.
  * This function should be used when lots of expensive mutating operations have to be run on a list

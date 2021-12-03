@@ -70,6 +70,8 @@ listTests =
     List.partitionAllStep 2L 3L [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5], [7]]
     List.partition 2L [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4]]
     List.partitionAll 2L [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4], [5]]
+    List.repeat 5L "a" `shouldBe` ["a", "a", "a", "a", "a"]
+    List.indices [9, 8, 7, 6] `shouldBe` [0L, 1L, 2L, 3L]
 
   test "Linear list functions" \_ ->
     let list = [1, 2, 3]
