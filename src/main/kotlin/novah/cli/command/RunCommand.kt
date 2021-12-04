@@ -15,7 +15,6 @@
  */
 package novah.cli.command
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
@@ -28,8 +27,6 @@ import kotlin.system.exitProcess
 
 class RunCommand : CliktCommand(name = "run", help = "Run the main module if one is defined") {
 
-    private val mapper = jacksonObjectMapper()
-
     private val alias by option("-a", "--alias", help = "Alias to turn on")
 
     private val main by option(
@@ -40,7 +37,7 @@ class RunCommand : CliktCommand(name = "run", help = "Run the main module if one
     private val args by argument(help = "Arguments will be passed to JVM. You can pass multiple ones after --").multiple()
 
     override fun run() {
-        val depsRes = DepsProcessor.readNovahFile(mapper)
+        val depsRes = DepsProcessor.readNovahFile()
         if (depsRes is Err) {
             echo(depsRes.err)
             return
