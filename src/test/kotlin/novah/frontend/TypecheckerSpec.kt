@@ -266,4 +266,15 @@ class TypecheckerSpec : StringSpec({
         val res = TestUtil.compileCode(code).env.decls
         res["x"]?.type?.simpleName() shouldBe "LinkedList Int32"
     }
+
+    "shadowing of qualified vars work" {
+        val code = """
+            bla : Int64
+            bla =
+              let count = 2
+              List.count identity [true]
+        """.module()
+
+        TestUtil.compileCode(code)
+    }
 })
