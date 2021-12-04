@@ -52,6 +52,9 @@ class NewCommand : CliktCommand(name = "new", help = "Create a Novah project") {
             testDir.resolve("main.novah").writeText(testFile(), Charsets.UTF_8)
         }
 
+        val gitignore = projectDir.resolve(".gitignore")
+        gitignore.writeText(gitignore(), Charsets.UTF_8)
+
         if (verbose) echo("creating deps file...")
         val project = projectDir.resolve("novah.json")
         project.writeText(defaultProjectJson(), Charsets.UTF_8)
@@ -101,6 +104,11 @@ class NewCommand : CliktCommand(name = "new", help = "Create a Novah project") {
             main _ =
               runTests [myTest]
               ()
+        """.trimIndent()
+
+        private fun gitignore() = """
+            .cpcache/
+            output/
         """.trimIndent()
     }
 }
