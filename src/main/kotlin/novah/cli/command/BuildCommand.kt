@@ -59,8 +59,11 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
         val deps = config["deps"] ?: return
         val out = deps.output ?: DepsProcessor.defaultOutput
 
-        val javaPaths = deps.javaPaths
-        if (!javaPaths.isNullOrEmpty()) runJavac(javaPaths, al, out)
+        val javaPaths = File(".cpcache/$al.javasourcepath")
+        if (javaPaths.exists()) {
+            val paths = javaPaths.readText(Charsets.UTF_8).split(File.pathSeparator).toSet()
+            if (paths.isNotEmpty()) runJavac(paths, al, out)
+        }
 
         val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode))
         try {

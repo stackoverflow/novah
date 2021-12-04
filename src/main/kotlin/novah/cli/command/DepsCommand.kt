@@ -15,7 +15,6 @@
  */
 package novah.cli.command
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.findOrSetObject
 import com.github.ajalt.clikt.parameters.options.flag
@@ -30,8 +29,6 @@ class DepsCommand : CliktCommand(
     invokeWithoutSubcommand = true
 ) {
 
-    private val mapper = jacksonObjectMapper()
-
     private val verbose by option(
         "-v", "--verbose",
         help = "Print information about the process"
@@ -40,7 +37,7 @@ class DepsCommand : CliktCommand(
     private val config by findOrSetObject { mutableMapOf<String, Deps>() }
     
     override fun run() {
-        val depsRes = DepsProcessor.readNovahFile(mapper)
+        val depsRes = DepsProcessor.readNovahFile()
         if (depsRes is Err) {
             echo(depsRes.err, false)
             return

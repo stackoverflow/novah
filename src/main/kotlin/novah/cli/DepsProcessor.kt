@@ -16,7 +16,7 @@
 package novah.cli
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import novah.cli.maven.Maven
 import novah.data.Err
@@ -27,9 +27,14 @@ import java.io.File
 data class MvnRepo(val url: String)
 
 data class Coord(
-    @JsonProperty("mvn/version") val version: String,
-    val exclusions: List<String>?
-)
+    @JsonProperty("mvn/version") val version: String?,
+    val exclusions: List<String>?,
+    @JsonProperty("git/version") val gitVersion: String?,
+) {
+    fun isValid() = (version != null) xor (gitVersion != null)
+
+    fun isMaven() = version != null
+}
 
 data class Alias(val extraPaths: Set<String>?, val extraDeps: Map<String, Coord>?, val main: String?)
 
@@ -55,58 +60,127 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
 
         val out = deps.output ?: defaultOutput
         // resolve top level deps
-        val srccp = deps.paths.joinToString(File.pathSeparator) { File(it).absolutePath }
-        val mvncp = resolveDeps(null, deps.deps, deps.mvnRepos) ?: return
+        val (mvncp, spaths, jspaths) = resolveDeps(null, deps.deps, deps.mvnRepos) ?: return
+        val srccp = deps.paths.map { File(it).absolutePath } + spaths
+        val jsrccp = (deps.javaPaths ?: setOf()).map { File(it).absolutePath } + jspaths
 
         saveClasspath(defaultAlias, out, mvncp)
-        saveSourcepath(defaultAlias, srccp)
+        saveSourcepath(defaultAlias, srccp.joinToString(File.pathSeparator))
+        if (jsrccp.isNotEmpty())
+            saveJavaSourcepath(defaultAlias, jsrccp.joinToString(File.pathSeparator))
         saveArgsfile(defaultAlias, out, mvncp)
 
         // resolve alias deps
         deps.aliases?.forEach { (name, alias) ->
-            runAlias(deps, name, alias, mvncp, out)
+            runAlias(deps, name, alias, mvncp, srccp.toSet(), jsrccp.toSet(), out)
         }
     }
 
-    private fun runAlias(deps: Deps, name: String, alias: Alias, mvncp: String, out: String) {
+    private fun runAlias(
+        deps: Deps,
+        name: String,
+        alias: Alias,
+        mvncp: String,
+        srcPaths: Set<String>,
+        jsrcPaths: Set<String>,
+        out: String
+    ) {
         if (alias.extraPaths == null && alias.extraDeps == null) return
 
-        val allPaths = deps.paths + (alias.extraPaths ?: listOf())
-        val srccp = allPaths.joinToString(File.pathSeparator) { File(it).absolutePath }
-        saveSourcepath(name, srccp)
+        var allPaths = srcPaths + (alias.extraPaths ?: listOf()).map { File(it).absolutePath }
         if (alias.extraDeps == null || alias.extraDeps.isEmpty()) {
             // no need to resolve dependencies
             saveClasspath(name, out, mvncp)
             saveArgsfile(name, out, mvncp)
+            saveSourcepath(name, allPaths.joinToString(File.pathSeparator))
+            if (jsrcPaths.isNotEmpty())
+                saveJavaSourcepath(name, jsrcPaths.joinToString(File.pathSeparator))
         } else {
             val deps2 = mutableMapOf<String, Coord>()
             deps2.putAll(deps.deps)
             deps2.putAll(alias.extraDeps)
-            val mvncp2 = resolveDeps(name, deps2, deps.mvnRepos) ?: return
+            val (mvncp2, spaths, jspaths) = resolveDeps(name, deps2, deps.mvnRepos) ?: return
             saveClasspath(name, out, mvncp2)
             saveArgsfile(name, out, mvncp2)
+
+            allPaths = allPaths + spaths
+            saveSourcepath(name, allPaths.joinToString(File.pathSeparator))
+
+            val javapaths = jsrcPaths + jspaths
+            if (javapaths.isNotEmpty())
+                saveJavaSourcepath(name, javapaths.joinToString(File.pathSeparator))
         }
     }
 
-    private fun resolveDeps(alias: String?, deps: Map<String, Coord>, repos: Map<String, MvnRepo>?): String? {
+    private data class Paths(val mavencp: String, val sourcepaths: Set<String>, val javasourcepaths: Set<String>)
+
+    private fun resolveDeps(alias: String?, deps: Map<String, Coord>, repos: Map<String, MvnRepo>?): Paths? {
         if (alias != null) log("resolving dependencies for alias $alias")
         else log("Resolving dependencies")
 
-        return when (val res = Maven.resolveDeps(deps, repos, alias)) {
-            is Ok -> {
-                log("Generating classpath file")
-                when (val mvncp = Maven.makeClasspath(res.value)) {
-                    is Ok -> mvncp.value
-                    is Err -> {
-                        echo(mvncp.err, true)
-                        null
+        try {
+            val (mvndeps, gitdeps) = collectDeps(deps)
+
+            return when (val res = Maven.resolveDeps(mvndeps, repos, alias)) {
+                is Ok -> {
+                    log("Generating classpath file")
+                    when (val mvncp = Maven.makeClasspath(res.value)) {
+                        is Ok -> {
+                            val (spaths, jspaths) = Git.makeSourcepaths(gitdeps)
+                            Paths(mvncp.value, spaths, jspaths)
+                        }
+                        is Err -> {
+                            echo(mvncp.err, true)
+                            null
+                        }
                     }
                 }
+                is Err -> {
+                    echo("Could not resolve dependencies: ${res.err.message}", true)
+                    null
+                }
             }
-            is Err -> {
-                echo("Could not resolve dependencies: ${res.err.message}", true)
-                null
+        } catch (re: RuntimeException) {
+            echo(re.message!!, true)
+            return null
+        }
+    }
+
+    // Recursively resolve git dependencies and collect the maven ones
+    private fun collectDeps(
+        deps: Map<String, Coord>,
+        seen: MutableSet<String> = mutableSetOf()
+    ): Pair<Map<String, Coord>, List<GitDeps>> {
+        val maven = mutableMapOf<String, Coord>()
+        val git = mutableListOf<GitDeps>()
+
+        for ((dep, version) in deps) {
+            if (version.isMaven()) maven[dep] = version
+            else {
+                seen += dep
+                val folderRes = Git.fetchDependency(dep, version.gitVersion!!)
+                if (folderRes is Ok) {
+                    val folder = folderRes.unwrap()
+                    val deps2 = readDeps(folder)
+                    if (deps2 != null) {
+                        git += GitDeps(folder, deps2)
+                        val (mvns, gits) = collectDeps(deps2.deps, seen)
+                        maven.putAll(mvns)
+                        git.addAll(gits)
+                    } else throw RuntimeException("Could not read deps file for dependency $dep")
+                } else throw RuntimeException("Could not fetch git dependency")
             }
+        }
+
+        return maven to git
+    }
+
+    private fun readDeps(folder: File): Deps? {
+        val file = folder.resolve("novah.json")
+        if (!file.exists()) return null
+        return when (val res = readNovahFile(file)) {
+            is Ok -> res.value
+            is Err -> null
         }
     }
 
@@ -117,6 +191,10 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
 
     private fun saveSourcepath(alias: String, sourcepath: String) {
         File(".cpcache/$alias.sourcepath").writeText(sourcepath, Charsets.UTF_8)
+    }
+
+    private fun saveJavaSourcepath(alias: String, sourcepath: String) {
+        File(".cpcache/$alias.javasourcepath").writeText(sourcepath, Charsets.UTF_8)
     }
 
     private fun saveArgsfile(alias: String, out: String, classpath: String) {
@@ -170,8 +248,9 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
         const val defaultAlias = "\$default"
         const val defaultOutput = "output"
 
-        fun readNovahFile(mapper: ObjectMapper): Result<Deps, String> {
-            val file = File("./novah.json")
+        private val mapper = jacksonObjectMapper()
+
+        fun readNovahFile(file: File = File("./novah.json")): Result<Deps, String> {
             if (!file.exists()) return Err("No `novah.json` file found at the root of the project: exiting")
 
             return try {
@@ -185,6 +264,11 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
                         return Err("Invalid source path name: $defaultAlias")
                     }
                 }
+                for (entry in deps.deps) {
+                    if (!entry.value.isValid()) {
+                        return Err("A dependency requires either a maven version or a git version (but not both")
+                    }
+                }
                 Ok(deps)
             } catch (_: Exception) {
                 Err("There was an error parsing the `novah.json` file. Make sure the file is valid")
@@ -192,3 +276,5 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
         }
     }
 }
+
+data class GitDeps(val folder: File, val deps: Deps)

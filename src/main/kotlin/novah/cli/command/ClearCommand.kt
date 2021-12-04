@@ -15,7 +15,6 @@
  */
 package novah.cli.command
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.ajalt.clikt.core.CliktCommand
 import novah.cli.DepsProcessor
 import novah.data.Err
@@ -23,10 +22,8 @@ import java.io.File
 
 class ClearCommand : CliktCommand(name = "clear", help = "Clear the output directory") {
 
-    private val mapper = jacksonObjectMapper()
-    
     override fun run() {
-        val depsRes = DepsProcessor.readNovahFile(mapper)
+        val depsRes = DepsProcessor.readNovahFile()
         if (depsRes is Err) {
             echo(depsRes.err)
             return
