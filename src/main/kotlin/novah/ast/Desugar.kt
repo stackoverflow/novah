@@ -175,7 +175,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             declVars += name
             if (alias == null) unusedVars.remove(name)
             usedVars += name
-            if (name in locals) Expr.Var(name, span)
+            if (alias == null && name in locals) Expr.Var(name, span)
             else {
                 if (alias != null) checkAlias(alias, span)
                 val importedModule = imports[fullname()]
