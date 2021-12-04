@@ -53,64 +53,84 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
 
     override fun run() {
         val al = alias ?: DepsProcessor.defaultAlias
-        val classpath = getClasspath(al, "classpath") ?: return
-        val sourcepath = getClasspath(al, "sourcepath") ?: return
-
         val deps = config["deps"] ?: return
-        val out = deps.output ?: DepsProcessor.defaultOutput
 
-        val javaPaths = File(".cpcache/$al.javasourcepath")
-        if (javaPaths.exists()) {
-            val paths = javaPaths.readText(Charsets.UTF_8).split(File.pathSeparator).toSet()
-            if (paths.isNotEmpty()) runJavac(paths, al, out)
-        }
-
-        val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode))
-        try {
-            val warns = compiler.run(File(out), check)
-            Compiler.printWarnings(warns, ::echo)
-            echo("Success")
-        } catch (_: CompilationError) {
-            val allErrs = compiler.errors()
-            Compiler.printErrors(allErrs, ::echo)
-            echo("Failure", err = true)
-            exitProcess(1)
-        }
+        build(al, deps, verbose, devMode, check, ::echo, ::echo)
     }
 
-    private fun runJavac(paths: Set<String>, alias: String, out: String) {
-        val argsfile = File(".cpcache/$alias.argsfile")
+    companion object {
 
-        val sources = mutableSetOf<String>()
-        paths.forEach { path ->
-            File(path).walkTopDown().forEach { file ->
-                if (file.extension == "java") {
-                    sources += file.absolutePath
+        fun build(
+            alias: String,
+            deps: Deps,
+            verbose: Boolean,
+            devMode: Boolean,
+            check: Boolean,
+            echo: (String) -> Unit,
+            echoErr: (String, Boolean) -> Unit
+        ) {
+            val classpath = getClasspath(alias, "classpath", echoErr) ?: return
+            val sourcepath = getClasspath(alias, "sourcepath", echoErr) ?: return
+
+            val out = deps.output ?: DepsProcessor.defaultOutput
+
+            val javaPaths = File(".cpcache/$alias.javasourcepath")
+            if (javaPaths.exists()) {
+                val paths = javaPaths.readText(Charsets.UTF_8).split(File.pathSeparator).toSet()
+                if (paths.isNotEmpty()) {
+                    if (!runJavac(paths, alias, out)) {
+                        echoErr("Failed to compile java sources", true)
+                        exitProcess(-1)
+                    }
                 }
             }
-        }
-        if (sources.isEmpty()) return
 
-        val srcFile = File.createTempFile("novahsources", null)
-        srcFile.writeText(sources.joinToString(" "))
-
-        val cmd = "javac @${argsfile.path} -d $out @${srcFile.path}"
-        val exit = RunCommand.runCommand(cmd)
-        if (exit != 0) {
-            echo("Failed to compile java sources", err = true)
-            exitProcess(exit)
-        }
-    }
-
-    private fun getClasspath(alias: String, type: String): String? {
-        val cp = File(".cpcache/$alias.$type")
-        if (!cp.exists()) {
-            if (alias == DepsProcessor.defaultAlias) {
-                echo("No classpath found. Run the `deps` command first to generate a classpath")
-            } else echo("No classpath found for alias $alias. Run the `deps` command first to generate a classpath")
-            return null
+            val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode))
+            try {
+                val warns = compiler.run(File(out), check)
+                Compiler.printWarnings(warns, echo)
+                echo("Success")
+            } catch (_: CompilationError) {
+                val allErrs = compiler.errors()
+                Compiler.printErrors(allErrs, echoErr)
+                echoErr("Failure", true)
+                exitProcess(1)
+            }
         }
 
-        return cp.readText(Charsets.UTF_8)
+        private fun runJavac(paths: Set<String>, alias: String, out: String): Boolean {
+            val argsfile = File(".cpcache/$alias.argsfile")
+
+            val sources = mutableSetOf<String>()
+            paths.forEach { path ->
+                File(path).walkTopDown().forEach { file ->
+                    if (file.extension == "java") {
+                        sources += file.absolutePath
+                    }
+                }
+            }
+            if (sources.isEmpty()) return true
+
+            val srcFile = File.createTempFile("novahsources", null)
+            srcFile.writeText(sources.joinToString(" "))
+
+            val cmd = "javac @${argsfile.path} -d $out @${srcFile.path}"
+            val exit = RunCommand.runCommand(cmd)
+            return exit == 0
+        }
+
+        private fun getClasspath(alias: String, type: String, echo: (String, Boolean) -> Unit): String? {
+            val cp = File(".cpcache/$alias.$type")
+            if (!cp.exists()) {
+                if (alias == DepsProcessor.defaultAlias) {
+                    echo("No classpath found. Run the `deps` command first to generate a classpath", true)
+                } else {
+                    echo("No classpath found for alias $alias. Run the `deps` command first to generate a classpath", true)
+                }
+                return null
+            }
+
+            return cp.readText(Charsets.UTF_8)
+        }
     }
 }
