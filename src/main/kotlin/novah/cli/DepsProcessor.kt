@@ -245,7 +245,7 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
 
     companion object {
 
-        const val defaultAlias = "\$default"
+        const val defaultAlias = "default"
         const val defaultOutput = "output"
 
         private val mapper = jacksonObjectMapper()
@@ -258,6 +258,10 @@ class DepsProcessor(private val verbose: Boolean, private val echo: (String, Boo
                 val deps = mapper.readValue<Deps>(json)
                 if (deps.paths.isEmpty()) {
                     return Err("No source paths defined for project")
+                }
+                for ((name, _) in deps.aliases ?: emptyMap()) {
+                    if (name == defaultAlias)
+                        return Err("Invalid alias name $name")
                 }
                 for (path in deps.paths) {
                     if (path == defaultAlias) {
