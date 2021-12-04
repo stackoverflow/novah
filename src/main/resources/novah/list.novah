@@ -191,12 +191,60 @@ filterIndexed f (list : List a) =
   llist#forked()
 
 /**
+ * Returns a list of the elements that do not match the given predicate.
+ * Does the opposite of `filter`.
+ * Runtime: O(n)
+ */
+pub
+remove : (a -> Boolean) -> List a -> List a
+remove f (list : List a) =
+  let llist = []#linear()
+  forEachRange 0L list#size() \idx ->
+    let elem = list ! idx
+    if not (f elem) then
+      addLast elem llist
+      ()
+  llist#forked()
+
+/**
+ * Returns a list of the elements that does not match the given predicate.
+ * Also receives the index of the list as parameter.
+ * Runtime: O(n)
+ */
+pub
+removeIndexed : (Int64 -> a -> Boolean) -> List a -> List a
+removeIndexed f (list : List a) =
+  let llist = []#linear()
+  forEachRange 0L list#size() \idx ->
+    let elem = list ! idx
+    if not (f idx elem) then
+      addLast elem llist
+      ()
+  llist#forked()
+
+/**
  * Returns the first occurrence of elem in this list for which the predicate returns true.
  * Runtime: O(n)
  */
 pub
 find : (a -> Boolean) -> List a -> Option a
-find pred list = Core#findList(pred, list) |> O.fromOptional
+find pred list =
+  Core#findList(pred, list) |> O.fromOptional
+
+/**
+ * Returns the first index in this list for which the predicate returns true.
+ * Runtime: O(n)
+ */
+pub
+findIndex : (a -> Boolean) -> List a -> Option Int64
+findIndex pred list =
+  let res = Ref#new(None)
+  forEachBreak 0L (size list) \i ->
+    if list ! i |> pred then
+      res#-val <- Some i
+      -1
+    else 0
+  res#-val
 
 /**
  * Sorts this list according to the comparing function.
