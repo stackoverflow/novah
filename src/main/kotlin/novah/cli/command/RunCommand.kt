@@ -18,6 +18,7 @@ package novah.cli.command
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import novah.cli.DepsProcessor
 import novah.cli.DepsProcessor.Companion.defaultAlias
@@ -33,6 +34,11 @@ class RunCommand : CliktCommand(name = "run", help = "Run the main module if one
         "-m", "--main",
         help = "Use a different main function instead of the one defined in the project file"
     )
+
+    private val build by option(
+        "-b", "--build",
+        help = "Build the project before running"
+    ).flag(default = false)
 
     private val args by argument(help = "Arguments will be passed to JVM. You can pass multiple ones after --").multiple()
 
@@ -56,6 +62,11 @@ class RunCommand : CliktCommand(name = "run", help = "Run the main module if one
         }
 
         val al = alias ?: defaultAlias
+
+        if (build) {
+            BuildCommand.build(al, deps, verbose = false, devMode = false, check = false, echo = {}, echoErr = ::echo)
+        }
+
         val argsfile = File(".cpcache/$al.argsfile")
         if (!argsfile.exists()) {
             if (alias == null) {
