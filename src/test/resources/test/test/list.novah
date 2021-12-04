@@ -47,7 +47,9 @@ listTests =
     let list = [1, 2, 3]
     List.map (_ + 1) list `shouldBe` [2, 3, 4]
     List.filter isOdd list `shouldBe` [1, 3]
+    List.remove isOdd list `shouldBe` [2]
     List.find isOdd list `shouldBe` Some 1
+    List.findIndex isEven list `shouldBe` Some 1L
     List.sort [4, 1, 3, 5, 2] `shouldBe` [1, 2, 3, 4, 5]
     List.foldl (-) 0 list `shouldBe` -6
     List.foldr (-) 0 list `shouldBe` 2
@@ -61,6 +63,7 @@ listTests =
     List.reverse list `shouldBe` [3, 2, 1]
     List.mapIndexed (\idx i -> if idx < 2L then i * 2 else i * 3) list `shouldBe` [2, 4, 9]
     List.filterIndexed (\idx _ -> idx < 2L) list `shouldBe` [1, 2]
+    List.removeIndexed (\idx _ -> idx < 2L) list `shouldBe` [3]
     List.groupBy isEven [1, 2, 3, 4, 5] `shouldBe` Map.new [true <> [2, 4], false <> [1, 3, 5]]
     List.count isOdd [1, 2, 3, 4, 5] `shouldBe` 3L
     List.min [6, 2, 5, 9, 0, 4] `shouldBe` Some 0

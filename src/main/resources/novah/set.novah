@@ -4,6 +4,7 @@
  */
 module novah.set
 
+foreign import java.lang.Iterable
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.ISet
 foreign import io.lacuna.bifurcan.Map
@@ -312,6 +313,16 @@ groupBy f set =
   
   forEach set grouper
   m#forked()
+
+/**
+ * Returns a set with the same elements as the list,
+ * with duplicates removed.
+ * Runtime: O(n)
+ */
+pub
+fromList : List a -> Set a
+fromList list =
+  Set#from(list as Iterable a)
 
 /**
  * Creates a linear (mutable) version of the given set and applies the function to it.
