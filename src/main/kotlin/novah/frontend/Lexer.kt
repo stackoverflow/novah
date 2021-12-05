@@ -514,7 +514,12 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     private fun multiLineComment(): String {
-        acceptMany("*")
+        val stars = acceptMany("*")
+        if (stars.length > 1 && iter.peek() == '/') {
+            iter.next()
+            return ""
+        }
+
         val builder = StringBuilder()
         var last = ' '
 
