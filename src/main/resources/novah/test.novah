@@ -84,9 +84,9 @@ runTests suites =
   let total = atom 0
   let stats = toTypedArray Int#-class [0, 0, 0]
   let addStats v =
-    aupdate 0 (_ + (v ! 0L)) stats
-    aupdate 1 (_ + (v ! 1L)) stats
-    aupdate 2 (_ + (v ! 2L)) stats
+    aupdate 0 (_ + (v ! 0)) stats
+    aupdate 1 (_ + (v ! 1)) stats
+    aupdate 2 (_ + (v ! 2)) stats
       
   let runSuite = case _ of
     Test desc fun -> check desc fun |> addStats

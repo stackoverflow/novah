@@ -189,8 +189,8 @@ int64 (i : Int32) = i#longValue()
  * Runtime: ~O(1)
  */
 pub
-(!) : List a -> Int64 -> a
-(!) (list : List a) index = list#nth(index)
+(!) : List a -> Int32 -> a
+(!) (list : List a) (index : Int32) = list#nth(index#longValue())
 
 /**
  * Sets the value of this list at the specified index to x.
@@ -198,8 +198,8 @@ pub
  * Runtime: ~O(1)
  */
 pub
-setAt : Int64 -> a -> List a -> List a
-setAt index x (list : List a) = list#set(index, x)
+setAt : Int32 -> a -> List a -> List a
+setAt (index : Int32) x (list : List a) = list#set(index#longValue(), x)
 
 /**
  * Updates the value of this list at the specified index by applying function f to the old value.
@@ -207,8 +207,8 @@ setAt index x (list : List a) = list#set(index, x)
  * Runtime: ~O(1)
  */
 pub
-updateAt : Int64 -> (a -> a) -> List a -> List a
-updateAt index f (list : List a) = list#set(index, f (list ! index))
+updateAt : Int32 -> (a -> a) -> List a -> List a
+updateAt (index : Int32) f (list : List a) = list#set(index#longValue(), f (list ! index))
 
 /**
  * Appends x to the beginning of this list.
@@ -1173,23 +1173,26 @@ showAtom {{Show sh}} = Show \atm -> format "(Atom %s)" [sh (deref atm)]
  * This is a specialized version of `List.forEach (begin .. end) f`.
  */
 pub
-forEachRange : Int64 -> Int64 -> (Int64 -> a) -> Unit
-forEachRange begin end f = Core#eachRange(begin, end, 1, f)
+forEachRange : Int32 -> Int32 -> (Int32 -> a) -> Unit
+forEachRange begin end f =
+  Core#eachRange(begin, end, 1, f)
 
 /**
  * Executes the function starting at begin (inclusive) ending in end (exclusive) with the specified step.
  */
 pub
-forEachStep : Int64 -> Int64 -> Int32 -> (Int64 -> a) -> Unit
-forEachStep begin end step f = Core#eachRange(begin, end, step, f)
+forEachStep : Int32 -> Int32 -> Int32 -> (Int32 -> a) -> Unit
+forEachStep begin end step f =
+  Core#eachRange(begin, end, step, f)
 
 /**
  * Executes the function for every number from begin (inclusive) to end (exclusive).
  * The for breaks if the function returns a number < 0.
  */
 pub
-forEachBreak : Int64 -> Int64 -> (Int64 -> Int32) -> Unit
-forEachBreak begin end f = Core#eachRangeBreak(begin, end, f)
+forEachBreak : Int32 -> Int32 -> (Int32 -> Int32) -> Unit
+forEachBreak begin end f =
+  Core#eachRangeBreak(begin, end, f)
 
 /**
  * Types that can generate a list over a range.

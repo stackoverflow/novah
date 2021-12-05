@@ -260,10 +260,10 @@ findIndex : (Char -> Boolean) -> String -> Int32
 findIndex pred str =
   let list = toList str
   let ref = Ref#new(-1)
-  forEachBreak 0L (List.size list) \idx ->
+  forEachBreak 0 (List.size list) \idx ->
     if pred (list ! idx)
       then
-        ref#-val <- (int idx)
+        ref#-val <- idx
         -1
       else 0
   ref#-val
@@ -327,7 +327,7 @@ replace target repl (str : String) = str#replace(target as CharSequence, repl as
 pub
 count : (Char -> Boolean) -> String -> Int32
 count pred str =
-  toList str |> List.count pred |> int
+  toList str |> List.count pred
 
 /**
  * Returns a list of all the indices from the input string.

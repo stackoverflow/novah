@@ -269,7 +269,7 @@ class TypecheckerSpec : StringSpec({
 
     "shadowing of qualified vars work" {
         val code = """
-            bla : Int64
+            bla : Int32
             bla =
               let count = 2
               List.count identity [true]
