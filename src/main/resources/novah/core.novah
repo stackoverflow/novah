@@ -1217,39 +1217,56 @@ pub
 pub instance
 rangeInt32 : Range Int32
 rangeInt32 =
+  let inclusive (begin : Int32) end =
+    let e = if begin < end then end + 1 else end - 1
+    Core#listIntRange(begin, e)
   Range
     { range: \begin end -> Core#listIntRange(begin, end)
-    , rangeInclusive: \begin end -> Core#listIntRange(begin, end + 1)
+    , rangeInclusive: inclusive
     }
 
 pub instance
 rangeInt64 : Range Int64
 rangeInt64 =
+  let inclusive (begin : Int64) end =
+    let e = if begin < end then end + 1L else end - 1L
+    Core#listLongRange(begin, e)
   Range
     { range: \begin end -> Core#listLongRange(begin, end)
-    , rangeInclusive: \begin end -> Core#listLongRange(begin, end + 1L)
+    , rangeInclusive: inclusive
     }
 
 pub instance
 rangeFloat32 : Range Float32
 rangeFloat32 =
+  let inclusive (begin : Float32) end =
+    let e = if begin < end then end + 1.0F else end - 1.0F
+    Core#listFloatRange(begin, e)
   Range
     { range: \begin end -> Core#listFloatRange(begin, end)
-    , rangeInclusive: \begin end -> Core#listFloatRange(begin, end + 1.0F)
+    , rangeInclusive: inclusive
     }
 
 pub instance
 rangeFloat64 : Range Float64
 rangeFloat64 =
+  let inclusive (begin : Float64) end =
+    let e = if begin < end then end + 1.0 else end - 1.0
+    Core#listDoubleRange(begin, e)
   Range
     { range: \begin end -> Core#listDoubleRange(begin, end)
-    , rangeInclusive: \begin end -> Core#listDoubleRange(begin, end + 1.0)
+    , rangeInclusive: inclusive
     }
 
 pub instance
 rangeChar : Range Char
 rangeChar =
+  let inclusive (begin : Char) end =
+    let b = Core#charToInt(begin)
+    let eend = Core#charToInt(end)
+    let e = if b < eend then eend + 1 else eend - 1
+    Core#listCharRange(begin, Core#intToChar(e))
   Range
     { range: \begin end -> Core#listCharRange(begin, end)
-    , rangeInclusive: \begin end -> Core#listCharRange(begin, Core#intToChar(Core#charToInt(end) + 1))
+    , rangeInclusive: inclusive
     }
