@@ -25,6 +25,7 @@ import novah.optimize.Optimizer.Companion.eqFloat
 import novah.optimize.Optimizer.Companion.eqInt
 import novah.optimize.Optimizer.Companion.eqLong
 import novah.optimize.Optimizer.Companion.eqString
+import org.objectweb.asm.Type
 
 object Optimization {
 
@@ -90,6 +91,8 @@ object Optimization {
         "java.lang.Double",
     )
 
+    private val longClass = Clazz(Type.LONG_TYPE)
+
     private const val coreMod = "novah/core/\$Module"
 
     /**
@@ -138,7 +141,8 @@ object Optimization {
                     }
                     // optimize list access
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.\$bang" -> {
-                        Expr.NativeMethod(vecNth, fn.arg, listOf(arg), e.type, e.span)
+                        val toLongFn = Expr.NativeMethod(toLong, arg, listOf(), longClass, arg.span)
+                        Expr.NativeMethod(vecNth, fn.arg, listOf(toLongFn), e.type, e.span)
                     }
                     // optimize == for some types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
@@ -317,6 +321,7 @@ object Optimization {
     private val bitShiftRightLong = Core::class.java.methods.find { it.name == "bitShiftRightLong" }!!
     private val unsignedBitShiftRightLong = Core::class.java.methods.find { it.name == "unsignedBitShiftRightLong" }!!
     private val negate = Core::class.java.methods.find { it.name == "not" }!!
+    private val toLong = java.lang.Integer::class.java.methods.find { it.name == "longValue" }!!
 }
 
 private typealias App = Expr.App

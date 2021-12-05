@@ -628,26 +628,26 @@ public class Core {
         return i % i2;
     }
 
-    public static <T> void eachRange(long begin, long end, int step, Function<Long, T> f) {
+    public static <T> void eachRange(int begin, int end, int step, Function<Integer, T> f) {
         if (begin <= end) {
-            for (long i = begin; i < end; i += step) {
+            for (int i = begin; i < end; i += step) {
                 f.apply(i);
             }
         } else {
-            for (long i = begin; i > end; i -= step) {
+            for (int i = begin; i > end; i -= step) {
                 f.apply(i);
             }
         }
     }
 
-    public static void eachRangeBreak(long begin, long end, Function<Long, Integer> f) {
+    public static void eachRangeBreak(int begin, int end, Function<Integer, Integer> f) {
         if (begin <= end) {
-            for (long i = begin; i < end; i++) {
+            for (int i = begin; i < end; i++) {
                 var res = f.apply(i);
                 if (res < 0) break;
             }
         } else {
-            for (long i = begin; i > end; i--) {
+            for (int i = begin; i > end; i--) {
                 var res = f.apply(i);
                 if (res < 0) break;
             }

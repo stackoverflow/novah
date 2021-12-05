@@ -72,8 +72,8 @@ pub
 find : (a -> Boolean) -> Array a -> Option a
 find pred arr =
   let atm = atom None
-  forEachBreak 0L (int64 (size arr)) \i ->
-    let elem = aget (int i) arr
+  forEachBreak 0 (size arr) \i ->
+    let elem = aget i arr
     if pred elem
       then
         reset (Some elem) atm
@@ -96,8 +96,8 @@ contains {{Equals eq}} elem arr = find (\x -> eq x elem) arr |> Option.isSome
 pub
 forEach : Array a -> (a -> b) -> Unit
 forEach arr f =
-  forEachRange 0L (int64 (size arr)) \idx ->
-    f (aget (int idx) arr)
+  forEachRange 0 (size arr) \idx ->
+    f (aget idx arr)
 
 /**
  * Runs function f for every index and element of this array, ignoring the result.
@@ -106,9 +106,8 @@ forEach arr f =
 pub
 forEachIndexed : Array a -> (Int32 -> a -> b) -> Unit
 forEachIndexed arr f =
-  forEachRange 0L (int64 (size arr)) \idx ->
-    let i = int idx
-    f i (aget i arr)
+  forEachRange 0 (size arr) \idx ->
+    f idx (aget idx arr)
 
 /**
  * Maps function f over all elements of this array
@@ -120,8 +119,7 @@ map : (a -> b) -> Array a -> Array Object
 map f (arr : Array a) =
   let len = size arr
   let res = arrayOf Object#-class len
-  forEachRange 0L (int64 len) \idx ->
-    let i = int idx
+  forEachRange 0 len \i ->
     aset i (f (aget i arr) as Object) res
   res
 
@@ -156,11 +154,11 @@ sort {{Ord _ ord}} arr = sortBy ord.compare arr
 pub
 reverse : Array a -> Array a
 reverse (arr : Array a) =
-  let len = size arr |> int64
+  let len = size arr
   let res = emptyCopy arr
-  forEachRange 0L len \idx ->
-    let i = int (len - idx - 1L)
-    let elem = aget (int idx) arr
+  forEachRange 0 len \idx ->
+    let i = len - idx - 1
+    let elem = aget idx arr
     aset i elem res
   res
 
@@ -172,8 +170,7 @@ pub
 reversed : Array a -> Unit
 reversed arr =
   let len = size arr
-  forEachRange 0L (len / 2 |> int64) \ii ->
-    let i = int ii
+  forEachRange 0 (len / 2) \i ->
     let temp = aget i arr
     aset i (aget (len - i - 1) arr) arr
     aset (len - i - 1) temp arr

@@ -14,24 +14,24 @@ listTests =
 
   test "List reading functions" \_ ->
     let list = [1, 2, 3, 4]
-    (list ! 2L) `shouldBe` 3
-    List.nth 2L list `shouldBe` Some 3
+    (list ! 2) `shouldBe` 3
+    List.nth 2 list `shouldBe` Some 3
     List.first list `shouldBe` Some 1
     List.last list `shouldBe` Some 4
     List.isEmpty list `shouldBe` false
     List.isNotEmpty list `shouldBe` true
     List.contains 4 list `shouldBe` true
-    List.slice 1L 3L list `shouldBe` [2, 3]
-    List.take 2L list `shouldBe` [1, 2]
-    List.take 4L [1, 2] `shouldBe` [1, 2]
-    List.drop 2L list `shouldBe` [3, 4]
-    List.drop 6L list `shouldBe` []
+    List.slice 1 3 list `shouldBe` [2, 3]
+    List.take 2 list `shouldBe` [1, 2]
+    List.take 4 [1, 2] `shouldBe` [1, 2]
+    List.drop 2 list `shouldBe` [3, 4]
+    List.drop 6 list `shouldBe` []
     List.takeWhile (_ < 3) list `shouldBe` [1, 2]
     List.dropWhile (_ < 3) list `shouldBe` [3, 4]
     List.tail list `shouldBe` Some [2, 3, 4]
-    List.size list `shouldBe` 4L
-    List.lastIndex list `shouldBe` 3L
-    List.lastIndex [] `shouldBe` -1L
+    List.size list `shouldBe` 4
+    List.lastIndex list `shouldBe` 3
+    List.lastIndex [] `shouldBe` -1
     (list ++ [5, 6]) `shouldBe` [1, 2, 3, 4, 5, 6]
 
   test "List writing functions" \_ ->
@@ -40,8 +40,8 @@ listTests =
     addLast 4 list `shouldBe` [1, 2, 3, 4]
     removeFirst list `shouldBe` [2, 3]
     removeLast list `shouldBe` [1, 2]
-    setAt 1L 5 list `shouldBe` [1, 5, 3]
-    updateAt 1L (_ + 1) list `shouldBe` [1, 3, 3]
+    setAt 1 5 list `shouldBe` [1, 5, 3]
+    updateAt 1 (_ + 1) list `shouldBe` [1, 3, 3]
 
   test "List traversing functions" \_ ->
     let list = [1, 2, 3]
@@ -49,7 +49,7 @@ listTests =
     List.filter isOdd list `shouldBe` [1, 3]
     List.remove isOdd list `shouldBe` [2]
     List.find isOdd list `shouldBe` Some 1
-    List.findIndex isEven list `shouldBe` Some 1L
+    List.findIndex isEven list `shouldBe` Some 1
     List.sort [4, 1, 3, 5, 2] `shouldBe` [1, 2, 3, 4, 5]
     List.foldl (-) 0 list `shouldBe` -6
     List.foldr (-) 0 list `shouldBe` 2
@@ -61,20 +61,20 @@ listTests =
     List.any (_ < 3) list `shouldBe` true
     List.any (_ < 0) list `shouldBe` false
     List.reverse list `shouldBe` [3, 2, 1]
-    List.mapIndexed (\idx i -> if idx < 2L then i * 2 else i * 3) list `shouldBe` [2, 4, 9]
-    List.filterIndexed (\idx _ -> idx < 2L) list `shouldBe` [1, 2]
-    List.removeIndexed (\idx _ -> idx < 2L) list `shouldBe` [3]
+    List.mapIndexed (\idx i -> if idx < 2 then i * 2 else i * 3) list `shouldBe` [2, 4, 9]
+    List.filterIndexed (\idx _ -> idx < 2) list `shouldBe` [1, 2]
+    List.removeIndexed (\idx _ -> idx < 2) list `shouldBe` [3]
     List.groupBy isEven [1, 2, 3, 4, 5] `shouldBe` Map.new [true <> [2, 4], false <> [1, 3, 5]]
-    List.count isOdd [1, 2, 3, 4, 5] `shouldBe` 3L
+    List.count isOdd [1, 2, 3, 4, 5] `shouldBe` 3
     List.min [6, 2, 5, 9, 0, 4] `shouldBe` Some 0
     List.min ([] : List Int32) `shouldBe` None
     List.max [6, 2, 5, 9, 0, 4] `shouldBe` Some 9
-    List.partitionStep 2L 3L [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5]]
-    List.partitionAllStep 2L 3L [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5], [7]]
-    List.partition 2L [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4]]
-    List.partitionAll 2L [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4], [5]]
-    List.repeat 5L "a" `shouldBe` ["a", "a", "a", "a", "a"]
-    List.indices [9, 8, 7, 6] `shouldBe` [0L, 1L, 2L, 3L]
+    List.partitionStep 2 3 [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5]]
+    List.partitionAllStep 2 3 [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5], [7]]
+    List.partition 2 [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4]]
+    List.partitionAll 2 [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4], [5]]
+    List.repeat 5 "a" `shouldBe` ["a", "a", "a", "a", "a"]
+    List.indices [9, 8, 7, 6] `shouldBe` [0, 1, 2, 3]
 
   test "Linear list functions" \_ ->
     let list = [1, 2, 3]
@@ -82,5 +82,5 @@ listTests =
       List.withLinear list \l ->
         addFirst 0 l
         addLast 4 l
-        setAt 2L 5 l
+        setAt 2 5 l
     lin `shouldBe` [0, 1, 5, 3, 4]

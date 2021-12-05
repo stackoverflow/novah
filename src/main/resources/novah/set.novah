@@ -51,8 +51,9 @@ remove x (set : Set a) = set#remove(x)
  * Runtime: O(1)
  */
 pub
-size : Set a -> Int64
-size (set : Set a) = set#size()
+size : Set a -> Int32
+size (set : Set a) =
+  set#size()#intValue()
 
 /**
  * Returns true if this set is empty.
@@ -74,12 +75,12 @@ isNotEmpty (set : Set a) = set#size() != 0L
  * Runtime: ~O(1)
  */
 pub
-nth : Int64 -> Set a -> Option a
+nth : Int32 -> Set a -> Option a
 nth index (set : Set a) =
-  let len = set#size()
-  if index < 0L || index >= len
+  let len = set#size()#intValue()
+  if index < 0 || index >= len
     then None
-    else Some set#nth(index)
+    else Some set#nth(index#longValue())
 
 /**
  * Returns the union of these 2 sets.
@@ -128,8 +129,8 @@ fromStream st =
 pub
 forEach : Set a -> (a -> b) -> Unit
 forEach (set : Set a) f =
-  forEachRange 0L set#size() \idx ->
-    f set#nth(idx)
+  forEachRange 0 set#size()#intValue() \(idx : Int32) ->
+    f set#nth(idx#longValue())
 
 /**
  * Maps function f over all elements of this set
@@ -140,8 +141,8 @@ pub
 map : (a -> b) -> Set a -> Set b
 map f (set : Set a) =
   let lset = #{}#linear()
-  forEachRange 0L set#size() \idx ->
-    add (f set#nth(idx)) lset
+  forEachRange 0 set#size()#intValue() \(idx : Int32) ->
+    add (f set#nth(idx#longValue())) lset
   lset#forked()
 
 /**
@@ -152,8 +153,8 @@ pub
 filter : (a -> Boolean) -> Set a -> Set a
 filter pred (set : Set a) =
   let lset = #{}#linear()
-  forEachRange 0L set#size() \idx ->
-    let elem = set#nth(idx)
+  forEachRange 0 set#size()#intValue() \(idx : Int32) ->
+    let elem = set#nth(idx#longValue())
     if (pred elem) then
       add elem lset
       ()
@@ -168,14 +169,14 @@ pub
 find : (a -> Boolean) -> Set a -> Option a
 find pred (set : Set a) =
   let lset = #{}#linear()
-  forEachBreak 0L set#size() \idx ->
-    let elem = set#nth(idx)
+  forEachBreak 0 set#size()#intValue() \(idx : Int32) ->
+    let elem = set#nth(idx#longValue())
     if pred elem
       then
         add elem lset
         -1
       else 0
-  nth 0L lset
+  nth 0 lset
 
 /**
  * Returns true if the element is inside the set.
@@ -249,8 +250,8 @@ pub
 any : (a -> Boolean) -> Set a -> Boolean
 any pred set =
   let res = Ref#new(false)
-  forEachBreak 0L (size set) \i ->
-    if set#nth(i) |> pred
+  forEachBreak 0 (size set) \(i : Int32) ->
+    if set#nth(i#longValue()) |> pred
       then
         res#-val <- true
         -1
@@ -263,11 +264,11 @@ any pred set =
  * Runtime: O(n)
  */
 pub
-count : (a -> Boolean) -> Set a -> Int64
+count : (a -> Boolean) -> Set a -> Int32
 count pred set =
-  let counter = Ref#new(0L)
+  let counter = Ref#new(0)
   forEach set \elem ->
-    if pred elem then counter#update(_ + 1L)
+    if pred elem then counter#update(_ + 1)
   counter#-val
 
 /**
