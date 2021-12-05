@@ -16,12 +16,10 @@
 - [ ] Auto complete literal list, set in IDE: `[]#size()`
 - [ ] Create computation expression for (lazy) async
 - [ ] Typechecker cannot correlate a java class' variable with its methods/fields (add to caveats)
-- [ ] Some way to package novah source for distribution
 - [ ] Fix lexing of multiline comments `/***/`
 - [ ] How to handle `AutoCloseable` interface
 - [ ] Two comments one after another will always pick the first as doc
-- [ ] A file with only a `module somemodule` doesn't compile
-- [ ] Set allow duplicates for many types: `#{[1], [1]}`
+- [ ] Allow let functions to work with implicits: `let fun {{_}} x y = x + y`
 
 ## LSP / IDE
 
