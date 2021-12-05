@@ -201,6 +201,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
+                    if (next.comment != null) return next
                     comment = Comment(comm, endSpan)
                     return next.copy(comment = comment)
                 }
@@ -209,6 +210,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
+                    if (next.comment != null) return next
                     comment = Comment(comm, endSpan, isMulti = true)
                     return next.copy(comment = comment)
                 }

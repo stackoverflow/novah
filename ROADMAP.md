@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Rewrite the compiler in novah itself
+- [ ] Rewrite the compiler in novah itself (?)
 - [ ] REPL
 - [ ] Website
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
