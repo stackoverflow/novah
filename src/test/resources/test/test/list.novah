@@ -75,6 +75,9 @@ listTests =
     List.partitionAll 2 [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4], [5]]
     List.repeat 5 "a" `shouldBe` ["a", "a", "a", "a", "a"]
     List.indices [9, 8, 7, 6] `shouldBe` [0, 1, 2, 3]
+    List.zip [1, 2, 3, 4, 5] ["a", "b", "c"] `shouldBe` [1 <> "a", 2 <> "b", 3 <> "c"]
+    List.zipWith (+) [1, 2, 3, 4, 5] [10, 11, 12] `shouldBe` [11, 13, 15]
+    List.unzip [1 <> "a", 2 <> "b", 3 <> "c"] `shouldBe` (Tuple [1, 2, 3] ["a", "b", "c"])
 
   test "Linear list functions" \_ ->
     let list = [1, 2, 3]

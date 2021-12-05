@@ -727,6 +727,64 @@ indices list =
   0 .. (size list)
 
 /**
+ * Zips the two lists together.
+ * The resulting list will be as big as the smallest one.
+ * Ex:
+ * ```novah
+ * zip [1, 2, 3, 4, 5] ["a", "b", "c"]
+ * // => [1 <> "a", 2 <> "b", 3 <> "c"]
+ * ```
+ * Runtime: O(n)
+ */
+pub
+zip : List a -> List b -> List (Tuple a b)
+zip l1 l2 =
+  let length = if size l1 > size l2 then size l2 else size l1
+  let lin = []#linear()
+  forEachRange 0 length \i ->
+    addLast ((l1 ! i) <> (l2 ! i)) lin
+  lin#forked()
+
+/**
+ * Zips the two lists together according to the function.
+ * The resulting list will be as big as the smallest one.
+ * Ex:
+ * ```novah
+ * zipWith (+) [1, 2, 3, 4, 5] [10, 11, 12]
+ * // => [11, 13, 15]
+ * ```
+ * Runtime: O(n)
+ */
+pub
+zipWith : (a -> b -> c) -> List a -> List b -> List c
+zipWith fun l1 l2 =
+  let length = if size l1 > size l2 then size l2 else size l1
+  let lin = []#linear()
+  forEachRange 0 length \i ->
+    addLast (fun (l1 ! i) (l2 ! i)) lin
+  lin#forked()
+
+/**
+ * Unzips a list into two lists.
+ * The opposite of `zip`.
+ * Ex:
+ * ```novah
+ * unzip [1 <> "a", 2 <> "b", 3 <> "c"]
+ * // => [1, 2, 3, 4, 5] <> ["a", "b", "c"]
+ * ```
+ * Runtime: O(n)
+ */
+pub
+unzip : List (Tuple a b) -> Tuple (List a) (List b)
+unzip list =
+  let lin = []#linear()
+  let lin2 = []#linear()
+  forEach list \(Tuple x x2) ->
+    addLast x lin
+    addLast x2 lin2
+  lin#forked() <> lin2#forked()
+
+/**
  * Creates a linear (mutable) version of the given list and applies the function to it.
  * Returns a forked (persistent) version of the returned linear list.
  * This function should be used when lots of expensive mutating operations have to be run on a list
