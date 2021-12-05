@@ -20,6 +20,7 @@
 - [ ] Fix lexing of multiline comments `/***/`
 - [ ] How to handle `AutoCloseable` interface
 - [ ] Two comments one after another will always pick the first as doc
+- [ ] A file with only a `module somemodule` doesn't compile
 
 ## LSP / IDE
 
