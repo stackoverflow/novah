@@ -108,10 +108,19 @@ class InstanceArgumentsSpec : StringSpec({
             
             main3 () = L.map view [3, 4, 5]
             
-            printx : {{ View a }} -> Option a -> String
-            printx {{s}} o = view o
+            printx {{_}} o = view o
         """.module()
 
-        TestUtil.compileCode(code).env.decls
+        TestUtil.compileCode(code)
+    }
+
+    "implicit let functions" {
+        val code = """
+            example =
+              let fun {{_}} x y = x + y
+              fun 2 3
+        """.module()
+
+        TestUtil.compileCode(code)
     }
 })
