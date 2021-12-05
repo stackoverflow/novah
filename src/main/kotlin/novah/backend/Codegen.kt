@@ -986,7 +986,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             "(Ljava/lang/Object;)Ljava/lang/Object;",
             true
         )
-        
+
         main.visitInsn(POP)
         main.visitInsn(RETURN)
 
