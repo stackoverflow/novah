@@ -1,0 +1,8 @@
+module [33mtest[0m
+at src/test/resources/failure/recursive let.novah:5:7 - 5:8
+
+  Let variables cannot be recursive.
+
+while checking type Unit -> Int32
+in declaration main
+

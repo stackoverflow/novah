@@ -1,0 +1,6 @@
+module test
+
+main : Unit -> Int32
+main () =
+  let x = x + 1
+  x
