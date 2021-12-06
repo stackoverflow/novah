@@ -26,6 +26,11 @@ mapTests =
     Map.filter (\_ v -> isOdd v) map `shouldBe` Map.new ["a" <> 1, "c" <> 3]
     Map.every (\_ v -> isOdd v) map `shouldBe` false
     (Map.toList map |> Set.fromList) `shouldBe` #{"a" <> 1, "b" <> 2, "c" <> 3}
+    let folder acc (k : Int) v =
+      if isEven k then
+        acc + v + 0
+      else acc - v
+    Map.foldl folder 0 (Map.new [1 <> 2, 2 <> 3, 3 <> 4, 4 <> 5]) `shouldBe` 2
 
   test "Linear map functions" \_ ->
     let map = Map.new ["a" <> 1, "b" <> 2, "c" <> 3]

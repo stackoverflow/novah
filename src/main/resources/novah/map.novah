@@ -8,6 +8,7 @@ foreign import io.lacuna.bifurcan.Maps
 foreign import io.lacuna.bifurcan.IMap
 foreign import io.lacuna.bifurcan.IEntry
 foreign import novah.Core
+foreign import novah.Ref
 
 import novah.java as Java
 import novah.option as Option
@@ -137,6 +138,14 @@ filter pred (map : Map k v) =
       lmap#remove(k)
       ()
   lmap#forked()
+
+pub
+foldl : (b -> k -> v -> b) -> b -> Map k v -> b
+foldl fun init map =
+  let val = Ref#new(init)
+  forEach map \k v ->
+    val#update(\acc -> fun acc k v)
+  val#-val
 
 /**
  * Returns true if the predicate is true for every entry in this map.
