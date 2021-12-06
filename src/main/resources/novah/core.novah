@@ -1086,6 +1086,22 @@ pub
 (<>) : a -> b -> Tuple a b
 (<>) = Tuple
 
+/**
+ * Returns the first element of this tuple.
+ * Runtime: O(1)
+ */
+pub
+fst : Tuple a b -> a
+fst (Tuple x _) = x
+
+/**
+ * Returns the second element of this tuple.
+ * Runtime: O(1)
+ */
+pub
+snd : Tuple a b -> b
+snd (Tuple _ x) = x
+
 equalsTuple : Equals a -> Equals b -> Tuple a b -> Tuple a b -> Boolean
 equalsTuple (Equals eq1) (Equals eq2) (Tuple x y) (Tuple x2 y2) = eq1 x x2 && eq2 y y2
 

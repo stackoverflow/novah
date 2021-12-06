@@ -150,6 +150,19 @@ pub instance
 concatMap : Concat (Map k v)
 concatMap = Concat merge
 
+/**
+ * Returns a list containing every key/value pair from this map.
+ * Runtime: O(n)
+ */
+pub
+toList : Map k v -> List (Tuple k v)
+toList map =
+  let lin = []#linear()
+  forEach map \k v ->
+    addLast (k <> v) lin
+    ()
+  lin#forked()
+
 pub instance
 eqMap : {{ Equals k }} -> {{ Equals v }} -> Equals (Map k v)
 eqMap {{Equals eqk}} {{Equals eqv}} = Equals \x y -> Core#equalsMap(x, y, eqk, eqv)
