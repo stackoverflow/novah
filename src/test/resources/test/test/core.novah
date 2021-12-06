@@ -1,0 +1,66 @@
+module test.core
+
+import novah.test
+
+intArray : List Int -> Array Int
+intArray l = List.toTypedArray Int32#-class l
+
+coreTests : Unit
+coreTests =
+  test "Core base functions" \_ ->
+    not true `shouldBe` false
+    not false `shouldBe` true
+    List.map identity [2, 3, 4] `shouldBe` [2, 3, 4]
+    let minus = flip (-) : Int -> Int -> Int
+    (1 `minus` 4) `shouldBe` 3
+    const 0 1 `shouldBe` 0
+    (10 |> _ + 1 |> _ * 2) `shouldBe` 22
+    (_ * 2 <| _ + 1 <| 10) `shouldBe` 22
+    (_ + 1 >> _ * 2) 10 `shouldBe` 22
+    (_ + 1 << _ * 2) 10 `shouldBe` 21
+    let x = 1
+    (x === x) `shouldBe` true
+    ([1] === [1]) `shouldBe` false
+    (x !== x) `shouldBe` false
+    ([1] !== [1]) `shouldBe` true
+    (true && false) `shouldBe` false
+    (true && true) `shouldBe` true
+    (true || false) `shouldBe` true
+    (false || false) `shouldBe` false
+    int 125L `shouldBe` 125
+    int64 125 `shouldBe` 125L
+    format "%s and %s" [5, 6] `shouldBe` "5 and 6"
+    (Some 3 ?: 7) `shouldBe` 3
+    (None ?: 7) `shouldBe` 7
+    (1 .. 5) `shouldBe` [1, 2, 3, 4]
+    (1 ... 5) `shouldBe` [1, 2, 3, 4, 5]
+
+  test "Core list functions" \_ ->
+    ([1, 2] ! 1) `shouldBe` 2
+    setAt 0 6 [1] `shouldBe` [6]
+    updateAt 0 (_ + 1) [1] `shouldBe` [2]
+    addFirst 6 [1] `shouldBe` [6, 1]
+    addLast 6 [1] `shouldBe` [1, 6]
+    removeFirst [1, 2] `shouldBe` [2]
+    removeLast [1, 2] `shouldBe` [1]
+
+  test "Core array functions" \_ ->
+    let arr = intArray [1, 2, 3]
+    aget 1 arr `shouldBe` 2
+    aset 1 6 arr
+    arr `shouldBe` intArray [1, 6, 3]
+    aupdate 1 (_ + 10) arr
+    arr `shouldBe` intArray [1, 16, 3]
+
+  test "Core concat class" \_ ->
+    ("the" ++ "lazy" ++ "fox") `shouldBe` "thelazyfox"
+    ([1, 2] ++ [3, 4]) `shouldBe` [1, 2, 3, 4]
+    (#{1, 2} ++ #{3, 4}) `shouldBe` #{1, 2, 3, 4}
+    (Some "abc" ++ Some "def") `shouldBe` Some "abcdef"
+    (Some "abc" ++ None) `shouldBe` None
+
+  test "Core tuples" \_ ->
+    let tup = 3 <> true
+    tup `shouldBe` Tuple 3 true
+    fst tup `shouldBe` 3
+    snd tup `shouldBe` true
