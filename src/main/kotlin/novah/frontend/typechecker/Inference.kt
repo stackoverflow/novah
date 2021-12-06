@@ -161,19 +161,13 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             val name = exp.letDef.binder.name
             checkShadow(env, name, exp.letDef.binder.span)
 
-            val topImplicits = implicitsToCheck
-            implicitsToCheck = mutableListOf()
             val varTy = if (exp.letDef.recursive) {
                 inferRecursive(name, exp.letDef.expr, env, level + 1)
             } else infer(env, level + 1, exp.letDef.expr)
-            // we need to try resolve implicits here for the let body
-            try {
-                if (implicitsToCheck.isNotEmpty()) instances.instanceSearch(implicitsToCheck)
-            } catch(_: InferenceError) {
-                topImplicits.addAll(implicitsToCheck)
-            }
-            implicitsToCheck = topImplicits
 
+            if (exp.letDef.recursive && varTy.realType() !is TArrow) {
+                inferError(E.RECURSIVE_LET, exp.letDef.binder.span)
+            }
             val genTy = generalize(level, varTy)
             val newEnv = env.fork().extend(name, genTy)
             if (exp.letDef.isInstance) newEnv.extendInstance(name, genTy)

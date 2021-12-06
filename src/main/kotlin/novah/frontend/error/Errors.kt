@@ -185,6 +185,8 @@ object Errors {
 
     const val FOR_EXPR = "for expression can only be used inside a computation expression."
 
+    const val RECURSIVE_LET = "Let variables cannot be recursive."
+
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
         
