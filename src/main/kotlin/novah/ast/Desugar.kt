@@ -340,7 +340,9 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             Expr.TryCatch(tryExpr.desugar(locals, tvars), cases.map { it.desugar(locals, tvars) }, fin, span)
         }
         is SExpr.While -> {
-            Expr.While(cond.desugar(locals, tvars), exps.map { it.desugar(locals, tvars) }, span)
+            if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
+            val converted = convertDoLets(exps)
+            Expr.While(cond.desugar(locals, tvars), converted.map { it.desugar(locals, tvars) }, span)
         }
         is SExpr.Computation -> {
             desugarComputation(exps, builder).desugar(locals, tvars)
