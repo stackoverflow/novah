@@ -17,7 +17,6 @@
 - [ ] Create computation expression for (lazy) async
 - [ ] Typechecker cannot correlate a java class' variable with its methods/fields (add to caveats)
 - [ ] How to handle `AutoCloseable` interface
-- [ ] Allow let functions to work with implicits: `let fun {{_}} x y = x + y`
 
 ## LSP / IDE
 
