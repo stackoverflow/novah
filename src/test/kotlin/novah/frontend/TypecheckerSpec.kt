@@ -277,4 +277,24 @@ class TypecheckerSpec : StringSpec({
 
         TestUtil.compileCode(code)
     }
+
+    "statements can have multiple expressions" {
+        val code = """
+            foreign import java.lang.Exception
+            
+            fun () =
+              while true do
+                let x = 1
+                x
+            
+            fun2 () =
+              try
+                let x = 1
+                x
+              catch
+                :? Exception -> 2
+        """.module()
+
+        TestUtil.compileCode(code)
+    }
 })

@@ -113,14 +113,4 @@ class InstanceArgumentsSpec : StringSpec({
 
         TestUtil.compileCode(code)
     }
-
-    "implicit let functions" {
-        val code = """
-            example =
-              let fun {{_}} x y = x + y
-              fun 2 3
-        """.module()
-
-        TestUtil.compileCode(code)
-    }
 })
