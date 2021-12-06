@@ -32,7 +32,7 @@ import novah.frontend.error.Errors as E
 
 class Inference(private val tc: Typechecker, private val classLoader: NovahClassLoader) {
 
-    private var implicitsToCheck = mutableListOf<Expr>()
+    private val implicitsToCheck = mutableListOf<Expr>()
     private val errors = mutableSetOf<CompilerProblem>()
     
     private val env = tc.env
@@ -160,7 +160,6 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         is Expr.Let -> {
             val name = exp.letDef.binder.name
             checkShadow(env, name, exp.letDef.binder.span)
-
             val varTy = if (exp.letDef.recursive) {
                 inferRecursive(name, exp.letDef.expr, env, level + 1)
             } else infer(env, level + 1, exp.letDef.expr)
