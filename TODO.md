@@ -11,7 +11,6 @@
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
 - [ ] Auto complete foreign imports
-- [ ] Write tests for the core library functions
 - [ ] Only recompile files that changed + dependencies
 - [ ] Auto complete literal list, set in IDE: `[]#size()`
 - [ ] Create computation expression for (lazy) async
