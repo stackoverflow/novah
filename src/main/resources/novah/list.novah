@@ -799,7 +799,8 @@ unzip list =
  *   -> [0, 1, 2, 3, 4]
  */
 pub
-withLinear : List a -> (List a -> List a) -> List a
+withLinear : List a -> (List a -> b) -> List a
 withLinear (list : List a) f =
-  let lin = f list#linear()
+  let lin = list#linear()
+  f lin
   (lin : List a)#forked()

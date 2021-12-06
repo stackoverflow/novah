@@ -182,7 +182,8 @@ eqMap {{Equals eqk}} {{Equals eqv}} = Equals \x y -> Core#equalsMap(x, y, eqk, e
  *   -> {"a" 1, "c" 3, "d" 4}
  */
 pub
-withLinear : Map k v -> (Map k v -> Map k v) -> Map k v
+withLinear : Map k v -> (Map k v -> b) -> Map k v
 withLinear (map : Map k v) f =
-  let lin = (f map#linear())
+  let lin = map#linear()
+  f lin
   (lin : Map k v)#forked()

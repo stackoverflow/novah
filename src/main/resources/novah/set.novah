@@ -340,7 +340,8 @@ fromList list =
  *   -> #{2, 3, 4}
  */
 pub
-withLinear : Set a -> (Set a -> Set a) -> Set a
+withLinear : Set a -> (Set a -> b) -> Set a
 withLinear (set : Set a) f =
-  let lin = f set#linear()
+  let lin = set#linear()
+  f lin
   (lin : Set a)#forked()
