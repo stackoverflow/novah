@@ -871,20 +871,6 @@ pub
 (%) : {{ NumberOps a }} -> a -> a -> a
 (%) {{NumberOps r}} x y = r.remainder x y
 
-/**
- * Returns true if this number is odd.
- */
-pub
-isOdd : {{ NumberOps a }} -> a -> Boolean
-isOdd {{NumberOps r}} x = not (r.even x)
-
-/**
- * Returns true if this number is even.
- */
-pub
-isEven : {{ NumberOps a }} -> a -> Boolean
-isEven {{NumberOps r}} x = r.even x
-
 pub instance
 numberOpsInt32 : NumberOps Int32
 numberOpsInt32 =

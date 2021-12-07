@@ -33,8 +33,8 @@ setTests =
   test "Set traversing functions" \_ ->
     let set = #{1, 2, 3}
     Set.map (_ + 1) set `shouldBe` #{2, 3, 4}
-    Set.filter isOdd set `shouldBe` #{1, 3}
-    Set.find isOdd set `shouldBe` Some 1
+    Set.filter Math.isOdd set `shouldBe` #{1, 3}
+    Set.find Math.isOdd set `shouldBe` Some 1
     Set.foldl (-) 0 set `shouldBe` -6
     Set.reduce (+) set `shouldBe` Some 6
     Set.flatten #{#{1, 2}, #{3, 4}, #{5, 6}} `shouldBe` #{1, 2, 3, 4, 5, 6}
@@ -43,8 +43,8 @@ setTests =
     Set.every (_ < 3) set `shouldBe` false
     Set.any (_ < 3) set `shouldBe` true
     Set.any (_ < 0) set `shouldBe` false
-    Set.groupBy isEven #{1, 2, 3, 4, 5} `shouldBe` Map.new [true <> #{2, 4}, false <> #{1, 3, 5}]
-    Set.count isEven #{1, 2, 3, 4, 5, 6} `shouldBe` 3
+    Set.groupBy Math.isEven #{1, 2, 3, 4, 5} `shouldBe` Map.new [true <> #{2, 4}, false <> #{1, 3, 5}]
+    Set.count Math.isEven #{1, 2, 3, 4, 5, 6} `shouldBe` 3
     Set.min #{6, 2, 5, 9, 0, 4} `shouldBe` Some 0
     Set.min (#{} : Set Int32) `shouldBe` None
     Set.max #{6, 2, 5, 9, 0, 4} `shouldBe` Some 9
