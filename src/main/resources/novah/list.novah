@@ -507,7 +507,6 @@ minOf : {{ NumberOps b }} -> (a -> b) -> List a -> Option b
 minOf {{NumberOps ops}} fn =
   case _ of
     [] -> None
-    [x] -> Some (fn x)
     [x :: xs] ->
       let val = Ref#new(fn x)
       forEach xs \e ->
@@ -551,7 +550,6 @@ maxOf : {{ NumberOps b }} -> (a -> b) -> List a -> Option b
 maxOf {{NumberOps ops}} fn =
   case _ of
     [] -> None
-    [x] -> Some (fn x)
     [x :: xs] ->
       let val = Ref#new(fn x)
       forEach xs \e ->

@@ -1026,6 +1026,6 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
 
     companion object {
         fun collectVars(exp: Expr): List<String> =
-            exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.name) else emptyList() }
+            exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.fullname()) else emptyList() }
     }
 }
