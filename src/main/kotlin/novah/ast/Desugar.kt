@@ -242,7 +242,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     Binder(v, it.span) to Expr.Var(v, it.span)
                 } else null to it.desugar(locals, tvars)
             }
-            val match = Expr.Match(args.map { it.second }, cases.map { it.desugar(locals, tvars) }, span)
+            val match = Expr.Match(args.map { it.second }, cases.map { it.desugar(locals, tvars) }, false, span)
             nestLambdas(args.mapNotNull { it.first }, match)
         }
         is SExpr.Ann -> Expr.Ann(exp.desugar(locals, tvars), type.desugar(vars = tvars.toMutableMap()), span)
@@ -590,7 +590,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     } else {
                         val v = newVar()
                         val vars = listOf(Expr.Var(v, pat.span))
-                        val expr = Expr.Match(vars, listOf(Case(listOf(pat.pat.desugar(locals, tvars)), exp)), exp.span)
+                        val expr =
+                            Expr.Match(vars, listOf(Case(listOf(pat.pat.desugar(locals, tvars)), exp)), false, exp.span)
                         Expr.Lambda(
                             Binder(v, pat.span, true),
                             nestLambdaPatterns(pats.drop(1), expr, locals, tvars),
@@ -613,7 +614,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 else -> {
                     val vars = pats.map { Expr.Var(newVar(), it.span) }
                     val span = Span.new(pat.span, exp.span)
-                    val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals, tvars) }, exp)), span)
+                    val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals, tvars) }, exp)), false, span)
                     nestLambdas(vars.map { Binder(it.name, it.span) }, expr)
                 }
             }
@@ -627,7 +628,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             }
             is SLetDef.DefPattern -> {
                 val case = Case(listOf(ld.pat.desugar(locals, tvars)), exp)
-                Expr.Match(listOf(ld.expr.desugar(locals, tvars)), listOf(case), span)
+                Expr.Match(listOf(ld.expr.desugar(locals, tvars)), listOf(case), true, span)
             }
         }
 
