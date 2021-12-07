@@ -475,7 +475,44 @@ count pred list =
  */
 pub
 min : {{ NumberOps a }} -> List a -> Option a
-min {{NumberOps ops}} = reduce (\n n2 -> ops.min n n2)
+min {{NumberOps ops}} =
+  reduce (\n n2 -> ops.min n n2)
+
+/**
+ * Returns the smallest number in the list, or the default value.
+ * Runtime: O(n)
+ */
+pub
+minOr : {{ NumberOps a }} -> a -> List a -> a
+minOr {{NumberOps ops}} default list =
+  reduce (\n n2 -> ops.min n n2) list ?: default
+
+/**
+ * Returns the smallest element in the list according to the
+ * given function, if the list is not empty.
+ * Runtime: O(n)
+ */
+pub
+minBy : {{ Ord b }} -> (a -> b) -> List a -> Option a
+minBy {{_}} fn =
+  reduce (\n n2 -> if (fn n) <= (fn n2) then n else n2)
+
+/**
+ * Returns the smallest element returned by applying the
+ * function to every element in the list, if the list is not empty.
+ * Runtime: O(n)
+ */
+pub
+minOf : {{ NumberOps b }} -> (a -> b) -> List a -> Option b
+minOf {{NumberOps ops}} fn =
+  case _ of
+    [] -> None
+    [x] -> Some (fn x)
+    [x :: xs] ->
+      let val = Ref#new(fn x)
+      forEach xs \e ->
+        val#-val <- ops.min val#-val (fn e)
+      Some val#-val
 
 /**
  * Returns the biggest number in the list, if the list is not empty.
@@ -484,6 +521,61 @@ min {{NumberOps ops}} = reduce (\n n2 -> ops.min n n2)
 pub
 max : {{ NumberOps a }} -> List a -> Option a
 max {{NumberOps ops}} = reduce (\n n2 -> ops.max n n2)
+
+/**
+ * Returns the biggest number in the list, or the default value.
+ * Runtime: O(n)
+ */
+pub
+maxOr : {{ NumberOps a }} -> a -> List a -> a
+maxOr {{NumberOps ops}} default list =
+  reduce (\n n2 -> ops.max n n2) list ?: default
+
+/**
+ * Returns the biggest element in the list according to the
+ * given function, if the list is not empty.
+ * Runtime: O(n)
+ */
+pub
+maxBy : {{ Ord b }} -> (a -> b) -> List a -> Option a
+maxBy {{_}} fn =
+  reduce (\n n2 -> if (fn n) >= (fn n2) then n else n2)
+
+/**
+ * Returns the biggest element returned by applying the
+ * function to every element in the list, if the list is not empty.
+ * Runtime: O(n)
+ */
+pub
+maxOf : {{ NumberOps b }} -> (a -> b) -> List a -> Option b
+maxOf {{NumberOps ops}} fn =
+  case _ of
+    [] -> None
+    [x] -> Some (fn x)
+    [x :: xs] ->
+      let val = Ref#new(fn x)
+      forEach xs \e ->
+        val#-val <- ops.max val#-val (fn e)
+      Some val#-val
+
+/**
+ * Returns the sum of all elements in this list.
+ * Runtime: O(n)
+ */
+pub
+sum : {{ Plus a }} -> {{ NumberOps a }} -> List a -> a
+sum {{Plus plus}} {{NumberOps ops}} =
+  foldl plus ops.zero
+
+/**
+ * Returns the sum of all elements by first applying the
+ * function to every element in this list.
+ * Runtime: O(n)
+ */
+pub
+sumBy : {{ Plus b }} -> {{ NumberOps b }} -> (a -> b) -> List a -> b
+sumBy {{Plus plus}} {{NumberOps ops}} fn =
+  foldl (\acc x -> plus acc (fn x)) ops.zero
 
 /**
  * Converts this byte array to a list of bytes.

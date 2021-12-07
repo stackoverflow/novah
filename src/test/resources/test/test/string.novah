@@ -26,6 +26,8 @@ stringTests =
     String.splitLines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
     String.nth 3 "exquisite" `shouldBe` Some 'u'
     String.nth 9 "exquisite" `shouldBe` None
+    String.charAt 3 "exquisite" `shouldBe` 'u'
+    String.charAt 6 "exquisite" `shouldBe` 'i'
     String.substring 2 5 "exquisite" `shouldBe` "qui"
     String.startFrom 3 "exquisite" `shouldBe` "uisite"
     String.split "\\d" "sum2plus2equals6" `shouldBe` ["sum", "plus", "equals"]
