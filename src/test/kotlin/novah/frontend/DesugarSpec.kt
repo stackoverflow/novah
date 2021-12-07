@@ -140,4 +140,45 @@ class DesugarSpec : StringSpec({
         ds["f15"]?.type?.simpleName() shouldBe "List Char"
         ds["f16"]?.type?.simpleName() shouldBe "List Float64"
     }
+
+    "statements can have multiple expressions" {
+        val code = """
+            foreign import java.lang.Exception
+            
+            fun () =
+              while true do
+                let x = 1
+                x
+            
+            fun2 () =
+              try
+                let x = 1
+                x
+              catch
+                :? Exception -> 2
+        """.module()
+
+        TestUtil.compileCode(code)
+    }
+
+    "shadowing of qualified vars work" {
+        val code = """
+            bla : Int32
+            bla =
+              let count = 2
+              List.count identity [true]
+        """.module()
+
+        TestUtil.compileCode(code)
+    }
+
+    "variables and fully qualified variables do not collide" {
+        val code = """
+            fun =
+              let size = List.size []
+              size
+        """.module()
+
+        TestUtil.compileCode(code)
+    }
 })
