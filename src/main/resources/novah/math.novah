@@ -34,6 +34,13 @@ max : {{ NumberOps a }} -> a -> a -> a
 max {{NumberOps ops}} x y = ops.max x y
 
 /**
+ * Returns the absolute value of the input.
+ */
+pub
+abs : {{ NumberOps a }} -> a -> a
+abs {{NumberOps ops}} x = ops.abs x
+
+/**
  * Returns n clamped between min and max.
  */
 pub

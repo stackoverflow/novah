@@ -44,6 +44,13 @@ not : Boolean -> Boolean
 not b = Core#not(b)
 
 /**
+ * Returns the exclusive disjunction of p and q.
+ */
+pub
+xor : Boolean -> Boolean -> Boolean
+xor p q = Core#xor(p, q)
+
+/**
  * Returns its argument unmodified.
  */
 pub
@@ -854,6 +861,7 @@ opaque type NumberOps a =
   , even: a -> Boolean
   , min: a -> a -> a
   , max: a -> a -> a
+  , abs: a -> a
   }
 
 /**
@@ -886,6 +894,7 @@ numberOpsInt32 =
     , even: \x -> Core#intRemainder(x, 2) == 0
     , min: \(x : Int32) y -> Math#min(x, y)
     , max: \(x : Int32) y -> Math#max(x, y)
+    , abs: \(x : Int32) -> Math#abs(x)
     }
 
 pub instance
@@ -897,6 +906,7 @@ numberOpsInt64 =
     , even: \x -> Core#longRemainder(x, 2L) == 0L
     , min: \(x : Int64) y -> Math#min(x, y)
     , max: \(x : Int64) y -> Math#max(x, y)
+    , abs: \(x : Int64) -> Math#abs(x)
     }
 
 pub instance
@@ -908,6 +918,7 @@ numberOpsFloat32 =
     , even: \x -> Core#floatRemainder(x, 2F) == 0F
     , min: \(x : Float32) y -> Math#min(x, y)
     , max: \(x : Float32) y -> Math#max(x, y)
+    , abs: \(x : Float32) -> Math#abs(x)
     }
 
 pub instance
@@ -919,6 +930,7 @@ numberOpsFloat64 =
     , even: \x -> Core#doubleRemainder(x, 2.0) == 0.0
     , min: \(x : Float64) y -> Math#min(x, y)
     , max: \(x : Float64) y -> Math#max(x, y)
+    , abs: \(x : Float64) -> Math#abs(x)
     }
 
 /**

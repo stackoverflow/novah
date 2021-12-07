@@ -10,6 +10,10 @@ coreTests =
   test "Core base functions" \_ ->
     not true `shouldBe` false
     not false `shouldBe` true
+    xor true true `shouldBe` false
+    xor true false `shouldBe` true
+    xor false true `shouldBe` true
+    xor false false `shouldBe` false
     List.map identity [2, 3, 4] `shouldBe` [2, 3, 4]
     let minus = flip (-) : Int -> Int -> Int
     (1 `minus` 4) `shouldBe` 3

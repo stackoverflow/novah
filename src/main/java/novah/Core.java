@@ -548,6 +548,10 @@ public class Core {
         return cond1 || cond2;
     }
 
+    public static boolean xor(boolean cond1, boolean cond2) {
+        return cond1 ^ cond2;
+    }
+
     public static int bitAndInt(int b1, int b2) {
         return b1 & b2;
     }
