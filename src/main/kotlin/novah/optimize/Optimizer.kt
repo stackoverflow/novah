@@ -170,11 +170,15 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Match -> {
-                val match = cases.map { patternCompiler.convert(it, ast.name.value) }
-                // guarded matches are ignored
-                val matches = match.filter { !it.isGuarded }
-                val compRes = patternCompiler.compile(matches)
-                reportPatternMatch(compRes, this)
+                // don't report warnings on pattern matches in let definitions
+                // so we can do things like `let [x :: xs] = 1 .. 10`
+                if (!isLet) {
+                    val match = cases.map { patternCompiler.convert(it, ast.name.value) }
+                    // guarded matches are ignored
+                    val matches = match.filter { !it.isGuarded }
+                    val compRes = patternCompiler.compile(matches)
+                    reportPatternMatch(compRes, this)
+                }
                 desugarMatch(this, typ, locals)
             }
             is CExpr.Unit -> Expr.Unit(typ, span)
