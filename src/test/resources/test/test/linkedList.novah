@@ -40,8 +40,8 @@ linkedListTests =
             LT -> GT
             EQ -> EQ
     LinkedList.map (_ + 1) l `shouldBe` fv [2, 3, 4]
-    LinkedList.filter isOdd l `shouldBe` fv [1, 3]
-    LinkedList.find isEven l `shouldBe` Some 2
+    LinkedList.filter Math.isOdd l `shouldBe` fv [1, 3]
+    LinkedList.find Math.isEven l `shouldBe` Some 2
     LinkedList.find (_ == 11) l `shouldBe` None
     LinkedList.sortBy revSort (fv [4, 1, 3, 5, 2]) `shouldBe` fv [5, 4, 3, 2, 1]
     LinkedList.sort (fv [4, 1, 3, 5, 2]) `shouldBe` fv [1, 2, 3, 4, 5]

@@ -41,6 +41,20 @@ abs : {{ NumberOps a }} -> a -> a
 abs {{NumberOps ops}} x = ops.abs x
 
 /**
+ * Returns true if this number is odd.
+ */
+pub
+isOdd : {{ NumberOps a }} -> a -> Boolean
+isOdd {{NumberOps r}} x = not (r.even x)
+
+/**
+ * Returns true if this number is even.
+ */
+pub
+isEven : {{ NumberOps a }} -> a -> Boolean
+isEven {{NumberOps r}} x = r.even x
+
+/**
  * Returns n clamped between min and max.
  */
 pub
