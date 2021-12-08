@@ -51,6 +51,7 @@ listTests =
     List.find Math.isOdd list `shouldBe` Some 1
     List.findIndex Math.isEven list `shouldBe` Some 1
     List.sort [4, 1, 3, 5, 2] `shouldBe` [1, 2, 3, 4, 5]
+    List.sortBy String.size ["abcde", "def", "v", "tyui"] `shouldBe` ["v", "def", "tyui", "abcde"]
     List.foldl (-) 0 list `shouldBe` -6
     List.foldr (-) 0 list `shouldBe` 2
     List.reduce (+) list `shouldBe` Some 6
