@@ -44,27 +44,19 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
             val entries = sources.map { path -> Source.SPath(path) }
             return Compiler(entries, classpath, sourcepath, opts)
         }
-        
+
         fun printWarnings(warns: Set<CompilerProblem>, echo: (String) -> Unit) {
-            if (warns.isNotEmpty()) {
-                val label = if (warns.size > 1) "Warnings" else "Warning"
-                echo("${CompilerProblem.YELLOW}$label:${CompilerProblem.RESET}\n")
-                warns.forEach { echo(it.formatToConsole()) }
-            }
+            if (warns.isEmpty()) return
+            val label = if (warns.size > 1) "Warnings" else "Warning"
+            echo("${CompilerProblem.YELLOW}$label:${CompilerProblem.RESET}\n")
+            warns.forEach { echo(it.formatToConsole()) }
         }
-        
+
         fun printErrors(errors: Set<CompilerProblem>, echo: (String, Boolean) -> Unit) {
-            val (errs, warns) = errors.partition { it.severity == Severity.ERROR }
-            if (warns.isNotEmpty()) {
-                val label = if (warns.size > 1) "Warnings" else "Warning"
-                echo("${CompilerProblem.YELLOW}$label:${CompilerProblem.RESET}\n", false)
-                warns.forEach { echo(it.formatToConsole(), false) }
-            }
-            if (errs.isNotEmpty()) {
-                val label = if (errs.size > 1) "Errors" else "Error"
-                echo("${CompilerProblem.RED}$label:${CompilerProblem.RESET}\n", true)
-                errs.forEach { echo(it.formatToConsole(), true) }
-            }
+            if (errors.isEmpty()) return
+            val label = if (errors.size > 1) "Errors" else "Error"
+            echo("${CompilerProblem.RED}$label:${CompilerProblem.RESET}\n", true)
+            errors.forEach { echo(it.formatToConsole(), true) }
         }
     }
 }
