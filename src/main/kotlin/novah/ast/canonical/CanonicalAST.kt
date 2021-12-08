@@ -113,7 +113,7 @@ sealed class Expr(open val span: Span) {
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
-    data class Match(val exps: List<Expr>, val cases: List<Case>, val isLet: Boolean, override val span: Span) :
+    data class Match(val exps: List<Expr>, val cases: List<Case>, val warn: Boolean, override val span: Span) :
         Expr(span)
 
     data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)

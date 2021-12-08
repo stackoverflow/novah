@@ -242,7 +242,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     Binder(v, it.span) to Expr.Var(v, it.span)
                 } else null to it.desugar(locals, tvars)
             }
-            val match = Expr.Match(args.map { it.second }, cases.map { it.desugar(locals, tvars) }, false, span)
+            val match = Expr.Match(args.map { it.second }, cases.map { it.desugar(locals, tvars) }, true, span)
             nestLambdas(args.mapNotNull { it.first }, match)
         }
         is SExpr.Ann -> Expr.Ann(exp.desugar(locals, tvars), type.desugar(vars = tvars.toMutableMap()), span)
@@ -628,7 +628,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             }
             is SLetDef.DefPattern -> {
                 val case = Case(listOf(ld.pat.desugar(locals, tvars)), exp)
-                Expr.Match(listOf(ld.expr.desugar(locals, tvars)), listOf(case), true, span)
+                Expr.Match(listOf(ld.expr.desugar(locals, tvars)), listOf(case), false, span)
             }
         }
 
