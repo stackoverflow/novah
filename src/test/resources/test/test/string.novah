@@ -23,7 +23,7 @@ stringTests =
     String.stript "  string    " `shouldBe` "  string"
     String.repeat 3 "nein!" `shouldBe` "nein!nein!nein!"
     String.capitalize "nAMe" `shouldBe` "Name"
-    String.splitLines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
+    String.lines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
     String.nth 3 "exquisite" `shouldBe` Some 'u'
     String.nth 9 "exquisite" `shouldBe` None
     String.charAt 3 "exquisite" `shouldBe` 'u'
@@ -34,6 +34,7 @@ stringTests =
     String.indexOf "x" "exquisite" `shouldBe` 1
     String.indexOf "z" "exquisite" `shouldBe` -1
     String.toList "fox" `shouldBe` ['f', 'o', 'x']
+    String.toSet "banana" `shouldBe` #{'b', 'a', 'n'}
     String.fromList ['f', 'o', 'x'] `shouldBe` "fox"
     String.map (\c -> if c == 'o' then 'a' else c) "fox" `shouldBe` ['f', 'a', 'x']
     String.mapString (\c -> if c == 'o' then 'a' else c) "fox" `shouldBe` "fax"

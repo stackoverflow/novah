@@ -4,6 +4,7 @@
 module novah.string
 
 import novah.list as List
+import novah.set as Set
 
 foreign import java.lang.CharSequence
 foreign import novah.Ref
@@ -166,13 +167,6 @@ split : String -> String -> List String
 split regex (str : String) = str#split(regex) |> List.fromArray
 
 /**
- * Split this string at new lines.
- */
-pub
-splitLines : String -> List String
-splitLines (str : String) = List#"of"(str#split("""[\r|\n]+"""))
-
-/**
  * Returns the character at the specified index if it exists.
  * Runtime: O(1)
  */
@@ -213,6 +207,14 @@ toList (str : String) =
   str#toCharArray() |> List.fromCharArray
 
 /**
+ * Returns a set of all the characters in this string.
+ * Runtime: O(n)
+ */
+pub
+toSet : String -> Set Char
+toSet = toList >> Set.fromList
+
+/**
  * Returns a string from a list of chars.
  * Runtime: O(n)
  */
@@ -226,7 +228,8 @@ fromList (list : List Char) = String#new(List.toCharArray list)
  */
 pub
 map : (Char -> b) -> String -> List b
-map f str = List.map f (toList str)
+map f str =
+  List.map f (toList str)
 
 /**
  * Maps a function over every char in this string
@@ -235,7 +238,8 @@ map f str = List.map f (toList str)
  */
 pub
 mapString : (Char -> Char) -> String -> String
-mapString f str = map f str |> fromList
+mapString f str =
+  List.map f (toList str) |> fromList
 
 /**
  * Filters chars of this string with the given predicate.
@@ -261,7 +265,8 @@ remove pred str =
  */
 pub
 find : (Char -> Boolean) -> String -> Option Char
-find pred str = List.find pred (toList str)
+find pred str =
+  List.find pred (toList str)
 
 /**
  * Finds the first index in this string to which predicate returns true.
@@ -353,6 +358,15 @@ indices str =
   0 .. (size str)
 
 /**
+ * Returns a list of the lines in this string, separated by line terminators.
+ * Runtime: O(n)
+ */
+pub
+lines : String -> List String
+lines (str : String) =
+  str#lines() |> List.fromStream
+
+/**
  * Parses this string to an int in base 10.
  * **Unsafe**: will throw an exception for invalid strings.
  * `Number.parseInt` is recommended instead of this function.
@@ -421,13 +435,13 @@ toFloat64 str =
 pub
 stripIndent : String -> String
 stripIndent str =
-  let lines = splitLines str |> List.filter isNotBlank
+  let ls = lines str |> List.filter isNotBlank
   let indent =
-    lines
+    ls
       |> List.map (findIndex (\(c : Char) -> not Char#isWhitespace(c)))
       |> List.min
   
   case indent of
     None -> str
     Some num ->
-      lines |> List.map (startFrom num) |> join "\n"
+      ls |> List.map (startFrom num) |> join "\n"

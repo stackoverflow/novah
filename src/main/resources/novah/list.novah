@@ -255,8 +255,8 @@ findIndex pred list =
  * Sorts this list according to the comparing function.
  */
 pub
-sortBy : (a -> a -> Ordering) -> List a -> List a
-sortBy cmp =
+sortWith : (a -> a -> Ordering) -> List a -> List a
+sortWith cmp =
   case _ of
     [] -> []
     [_] as list -> list
@@ -271,7 +271,16 @@ sortBy cmp =
  */
 pub
 sort : {{ Ord a }} -> List a -> List a
-sort {{Ord _ ord}} = sortBy ord.compare
+sort {{Ord _ ord}} = sortWith ord.compare
+
+/**
+ * Sorts this list based on the natural sort order of
+ * the values returned by the function.
+ */
+pub
+sortBy : {{ Ord b }} -> (a -> b) -> List a -> List a
+sortBy {{Ord _ ord}} fun =
+  sortWith (\x y -> ord.compare (fun x) (fun y))
 
 /**
  * An alias to `addFirst`.
