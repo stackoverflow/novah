@@ -7,7 +7,7 @@ foreign import java.lang.AssertionError
 foreign import java.util.Optional
 
 /**
- * Maps a function over this option if it has a value.
+ * Maps the function over this option if it has a value.
  * Runtime: O(1)
  */
 pub
@@ -15,6 +15,18 @@ map : (a -> b) -> Option a -> Option b
 map f =
   case _ of
     Some x -> Some (f x)
+    None -> None
+
+/**
+ * Maps the function over this option if it has a value,
+ * but don't wrap the result in another option.
+ * Runtime: O(1)
+ */
+pub
+flatMap : (a -> Option b) -> Option a -> Option b
+flatMap f opt =
+  case opt of
+    Some x -> f x
     None -> None
 
 /**

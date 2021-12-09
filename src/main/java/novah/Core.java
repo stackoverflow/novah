@@ -445,6 +445,11 @@ public class Core {
         return list.size() != 0;
     }
 
+    public static <T> T listGet(int index, List<T> list) {
+        long idx = index >= 0 ? index : list.size() + index;
+        return list.nth(idx);
+    }
+
     public static <T> boolean equalsList(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
         if (v1.hashCode() == v2.hashCode()) return true;

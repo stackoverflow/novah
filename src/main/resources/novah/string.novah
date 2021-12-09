@@ -277,7 +277,7 @@ findIndex pred str =
   let list = toList str
   let ref = Ref#new(-1)
   forEachBreak 0 (List.size list) \idx ->
-    if pred (list ! idx)
+    if pred list.[idx]
       then
         ref#-val <- idx
         -1

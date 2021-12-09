@@ -196,6 +196,7 @@ object Errors {
         Record values: { name: _ }, { age: 10 | _ }
         Record restrictions: { - name | _ }
         Record merges: { + _, rec }
+        List access: _.[1], list.[_]
         Ifs: if _ then 1 else 0, if check then _ else _
         Cases: case _ of ...
         Foreign fields: (_ : MyClass)#-field

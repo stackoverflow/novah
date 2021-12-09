@@ -191,15 +191,6 @@ int64 : Int32 -> Int64
 int64 (i : Int32) = i#longValue()
 
 /**
- * Returns the value at index for this list.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: ~O(1)
- */
-pub
-(!) : List a -> Int32 -> a
-(!) (list : List a) (index : Int32) = list#nth(index#longValue())
-
-/**
  * Sets the value of this list at the specified index to x.
  * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: ~O(1)
@@ -215,7 +206,7 @@ setAt (index : Int32) x (list : List a) = list#set(index#longValue(), x)
  */
 pub
 updateAt : Int32 -> (a -> a) -> List a -> List a
-updateAt (index : Int32) f (list : List a) = list#set(index#longValue(), f (list ! index))
+updateAt (index : Int32) f (list : List a) = list#set(index#longValue(), f list.[index])
 
 /**
  * Appends x to the beginning of this list.
@@ -326,6 +317,35 @@ pub
   case opt of
     Some x -> x
     None -> def
+
+/**
+ * Threads optional values together stopping as soon as
+ * the option is empty.
+ * This is a flipped version of `Option.flatMap`.
+ * Ex.:
+ * ```novah
+ * List.nth 1 [[1, 2], [3, 4]] ? List.nth 5 ?: 0
+ * ```
+ */
+pub
+(?) : Option a -> (a -> Option b) -> Option b
+(?) opt fun = case opt of
+  Some x -> fun x
+  None -> None
+
+/**
+ * Maps the function inside the option if it's not empty.
+ * This is a flipped version of `Option.map`.
+ * Ex.:
+ * ```novah
+ * Some [1, 2, 3] ?? List.size
+ * ```
+ */
+pub
+(??) : Option a -> (a -> b) -> Option b
+(??) opt fun = case opt of
+  Some x -> Some (fun x)
+  None -> None
 
 /**
  * The type of things that can be concatenated.
@@ -1108,7 +1128,7 @@ eqTuple : {{ Equals a }} -> {{ Equals b }} -> Equals (Tuple a b)
 eqTuple {{eq1}} {{eq2}} = Equals (equalsTuple eq1 eq2)
 
 showTup : Show a -> Show b -> Tuple a b -> String
-showTup (Show s1) (Show s2) (Tuple x y) = format "(Tuple %s %s)" [s1 x, s2 y]
+showTup (Show s1) (Show s2) (Tuple x y) = format "(%s, %s)" [s1 x, s2 y]
 
 pub instance
 showTuple : {{ Show a }} -> {{ Show b }} -> Show (Tuple a b)

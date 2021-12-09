@@ -326,6 +326,17 @@ fromList list =
   Set#from(list as Iterable a)
 
 /**
+ * Returns a list of all elements in this set.
+ * Runtime: O(n)
+ */
+pub
+toList : Set a -> List a
+toList set =
+  let lin = []#linear()
+  forEach set \e -> addLast e lin
+  lin#forked()
+
+/**
  * Creates a linear (mutable) version of the given set and applies the function to it.
  * Returns a forked (persistent) version of the returned linear set.
  * This function should be used when lots of expensive mutating operations have to be run on a set

@@ -344,6 +344,14 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             val res = TApp(TConst(primSet), listOf(ty))
             exp.withType(res)
         }
+        is Expr.ListIndex -> {
+            val indexType = infer(env, level, exp.index)
+            uni.unify(indexType, tInt32, exp.index.span)
+            val listType = infer(env, level, exp.exp)
+            val ty = tc.newVar(level)
+            uni.unify(listType, TApp(TConst(primList), listOf(ty)), exp.exp.span)
+            exp.withType(ty)
+        }
         is Expr.Throw -> {
             val ty = infer(env, level, exp.exp)
             val res = classLoader.isException(ty.typeNameOrEmpty())

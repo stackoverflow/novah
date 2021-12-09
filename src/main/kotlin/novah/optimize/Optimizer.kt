@@ -195,6 +195,9 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is CExpr.RecordMerge -> Expr.RecordMerge(exp1.convert(locals), exp2.convert(locals), typ, span)
             is CExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.convert(locals) }, typ, span)
             is CExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.convert(locals) }, typ, span)
+            is CExpr.ListIndex -> {
+                Expr.NativeStaticMethod(listGet, listOf(index.convert(locals), exp.convert(locals)), typ, span)
+            }
             is CExpr.Throw -> Expr.Throw(exp.convert(locals), span)
             is CExpr.TryCatch -> {
                 val catches = cases.map {
@@ -640,5 +643,6 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         val eqString = String::class.java.methods.find { it.name == "equals" }!!
         val newRecFun: Constructor<*> = RecFunction::class.java.constructors.first()
         val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
+        val listGet = Core::class.java.methods.find { it.name == "listGet" }!!
     }
 }

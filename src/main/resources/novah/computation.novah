@@ -6,6 +6,7 @@ module novah.computation
 
 import novah.linkedList (LinkedList(..))
 import novah.linkedList as LinkedList
+import novah.option as Option
 import novah.set as Set
 import novah.list as List
 
@@ -75,7 +76,7 @@ option :
   , zero : Option a
   }
 option =
-  { bind: optBind
+  { bind: flip Option.flatMap
   , "return": Some
   , combine: optCombine
   , zero: None
@@ -96,12 +97,6 @@ result =
   , "return": Ok
   , combine: resultCombine
   }
-
-optBind : Option a -> (a -> Option b) -> Option b
-optBind opt f =
-  case opt of
-    Some x -> f x
-    None -> None
 
 optCombine : Option a -> Option a -> Option a
 optCombine x y =
