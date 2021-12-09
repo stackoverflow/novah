@@ -31,9 +31,3 @@ at src/test/resources/failure/variables/unused variables.novah:5:1 - 5:15
   
       t7 -> Int32
 
-
-module [33mtest[0m
-at src/test/resources/failure/variables/unused variables.novah:3:4 - 3:10
-
-  A case expression could not be determined to cover all inputs.
-

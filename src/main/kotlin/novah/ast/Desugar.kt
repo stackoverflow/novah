@@ -318,6 +318,23 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         }
         is SExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
         is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
+        is SExpr.ListIndex -> {
+            val lvars = mutableListOf<Binder>()
+            val list = if (exp is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else exp.desugar(locals, tvars)
+
+            val idx = if (index is SExpr.Underscore) {
+                val v = newVar()
+                lvars += Binder(v, span)
+                Expr.Var(v, span)
+            } else index.desugar(locals, tvars)
+
+            val idxExp = Expr.ListIndex(list, idx, span)
+            nestLambdas(lvars, idxExp)
+        }
         is SExpr.BinApp -> {
             if (op is SExpr.Operator && op.name == "<-") {
                 desugarSetter(left.desugar(locals, tvars), right.desugar(locals, tvars), span)
