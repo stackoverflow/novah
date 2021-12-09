@@ -546,17 +546,16 @@ class Parser(
     private tailrec fun parseSelection(exp: Expr): Expr = when (iter.peek().value) {
         is Dot -> {
             iter.next()
-            val res = if (iter.peek().value == LSBracket) {
-                iter.next()
-                val index = parseExpression()
-                val end = expect<RSBracket>(withError(E.rsbracketExpected("list index")))
-                Expr.ListIndex(exp, index).withSpan(exp.span, end.span)
-            } else {
-                val label = parseLabel()
-                Expr.RecordSelect(exp, listOf(Spanned(label.second.span, label.first)))
-                    .withSpan(exp.span, label.second.span)
-            }
+            val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
+            val res = Expr.RecordSelect(exp, labels.map { Spanned(it.second.span, it.first) })
+                .withSpan(exp.span, labels.last().second.span)
             parseSelection(res)
+        }
+        is DotBracket -> {
+            iter.next()
+            val index = parseExpression()
+            val end = expect<RSBracket>(withError(E.rsbracketExpected("list index")))
+            Expr.ListIndex(exp, index).withSpan(exp.span, end.span)
         }
         is Hash -> {
             iter.next()
