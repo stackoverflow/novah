@@ -555,7 +555,8 @@ class Parser(
             iter.next()
             val index = parseExpression()
             val end = expect<RSBracket>(withError(E.rsbracketExpected("list index")))
-            Expr.ListIndex(exp, index).withSpan(exp.span, end.span)
+            val res = Expr.ListIndex(exp, index).withSpan(exp.span, end.span)
+            parseSelection(res)
         }
         is Hash -> {
             iter.next()
