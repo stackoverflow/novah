@@ -163,7 +163,7 @@ object Optimization {
                     }
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
                             && arg.type.isString() -> {
-                        Expr.NativeStaticMethod(eqString, listOf(fn.arg, arg), e.type, e.span)
+                        Expr.NativeMethod(eqString, arg, listOf(fn.arg), e.type, e.span)
                     }
                     // optimize > for some types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gt"
