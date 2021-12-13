@@ -280,12 +280,105 @@ min : {{ NumberOps a }} -> Set a -> Option a
 min {{NumberOps ops}} = reduce (\n n2 -> ops.min n n2)
 
 /**
+ * Returns the smallest number in the set, or the default value.
+ * Runtime: O(n)
+ */
+pub
+minOr : {{ NumberOps a }} -> a -> Set a -> a
+minOr {{NumberOps ops}} default set =
+  reduce (\n n2 -> ops.min n n2) set ?: default
+
+/**
+ * Returns the smallest element in the set according to the
+ * given function, if the set is not empty.
+ * Runtime: O(n)
+ */
+pub
+minBy : {{ Ord b }} -> (a -> b) -> Set a -> Option a
+minBy {{_}} fn =
+  reduce (\n n2 -> if (fn n) <= (fn n2) then n else n2)
+
+/**
+ * Returns the smallest element returned by applying the
+ * function to every element in the set, if the set is not empty.
+ * Runtime: O(n)
+ */
+pub
+minOf : {{ NumberOps b }} -> (a -> b) -> Set a -> Option b
+minOf {{NumberOps ops}} fn set =
+  if isEmpty set then
+    None
+  else
+    let first = set#nth(0L)
+    let rest = remove first set
+    let val = Ref#new(fn first)
+    forEach rest \e ->
+      val#-val <- ops.min val#-val (fn e)
+    Some val#-val
+
+/**
  * Returns the biggest number in the set, if the list is not empty.
  * Runtime: O(n)
  */
 pub
 max : {{ NumberOps a }} -> Set a -> Option a
 max {{NumberOps ops}} = reduce (\n n2 -> ops.max n n2)
+
+/**
+ * Returns the biggest number in the set, or the default value.
+ * Runtime: O(n)
+ */
+pub
+maxOr : {{ NumberOps a }} -> a -> Set a -> a
+maxOr {{NumberOps ops}} default set =
+  reduce (\n n2 -> ops.max n n2) set ?: default
+
+/**
+ * Returns the biggest element in the set according to the
+ * given function, if the set is not empty.
+ * Runtime: O(n)
+ */
+pub
+maxBy : {{ Ord b }} -> (a -> b) -> Set a -> Option a
+maxBy {{_}} fn =
+  reduce (\n n2 -> if (fn n) >= (fn n2) then n else n2)
+
+/**
+ * Returns the biggest element returned by applying the
+ * function to every element in the set, if the set is not empty.
+ * Runtime: O(n)
+ */
+pub
+maxOf : {{ NumberOps b }} -> (a -> b) -> Set a -> Option b
+maxOf {{NumberOps ops}} fn set =
+  if isEmpty set then
+    None
+  else
+    let first = set#nth(0L)
+    let rest = remove first set
+    let val = Ref#new(fn first)
+    forEach rest \e ->
+      val#-val <- ops.max val#-val (fn e)
+    Some val#-val
+
+/**
+ * Returns the sum of all elements in this set.
+ * Runtime: O(n)
+ */
+pub
+sum : {{ Plus a }} -> {{ NumberOps a }} -> Set a -> a
+sum {{Plus plus}} {{NumberOps ops}} =
+  foldl plus ops.zero
+
+/**
+ * Returns the sum of all elements by first applying the
+ * function to every element in this set.
+ * Runtime: O(n)
+ */
+pub
+sumOf : {{ Plus b }} -> {{ NumberOps b }} -> (a -> b) -> Set a -> b
+sumOf {{Plus plus}} {{NumberOps ops}} fn =
+  foldl (\acc x -> plus acc (fn x)) ops.zero
 
 /**
  * Returns true if every element in the list is contained in the set.
