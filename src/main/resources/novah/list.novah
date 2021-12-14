@@ -47,6 +47,15 @@ forEach (list : List a) f =
   forEachRange 0 list#size()#intValue() \idx -> f list.[idx]
 
 /**
+ * Runs function f for every index and element of this list, ignoring the result.
+ * Runtime: O(n)
+ */
+pub
+forEachIndexed : List a -> (Int32 -> a -> b) -> Unit
+forEachIndexed (list : List a) fun =
+  forEachRange 0 list#size()#intValue() \i -> fun i list.[i]
+
+/**
  * Maps function f over all elements of this list
  * returning a list of the same size.
  * Runtime: O(n)
