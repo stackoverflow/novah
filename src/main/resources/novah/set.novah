@@ -133,6 +133,16 @@ forEach (set : Set a) f =
     f set#nth(idx#longValue())
 
 /**
+ * Runs function f for every index and element of this set, ignoring the result.
+ * Runtime: O(n)
+ */
+pub
+forEachIndexed : Set a -> (Int32 -> a -> b) -> Unit
+forEachIndexed (set : Set a) f =
+  forEachRange 0 set#size()#intValue() \(idx : Int32) ->
+    f idx set#nth(idx#longValue())
+
+/**
  * Maps function f over all elements of this set
  * returning a set of the same size.
  * Runtime: O(n)
