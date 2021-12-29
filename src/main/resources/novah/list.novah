@@ -10,7 +10,6 @@ foreign import java.util.Arrays
 foreign import java.util.Comparator
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.IList
-foreign import io.lacuna.bifurcan.Map
 foreign import novah.Core
 foreign import novah.Ref
 

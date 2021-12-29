@@ -15,6 +15,7 @@
  */
 package novah.optimize
 
+import io.lacuna.bifurcan.Map
 import novah.Core
 import novah.RecFunction
 import novah.Util.internalError
@@ -597,6 +598,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             primBooleanArray -> Type.getType(BooleanArray::class.java)
             primCharArray -> Type.getType(CharArray::class.java)
             primList -> LIST_TYPE
+            primMap -> Type.getType(Map::class.java)
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
         }
