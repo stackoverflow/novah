@@ -3,7 +3,6 @@
  */
 module novah.map
 
-foreign import io.lacuna.bifurcan.Map
 foreign import io.lacuna.bifurcan.Maps
 foreign import io.lacuna.bifurcan.IMap
 foreign import io.lacuna.bifurcan.IEntry
@@ -196,3 +195,11 @@ withLinear (map : Map k v) f =
   let lin = map#linear()
   f lin
   (lin : Map k v)#forked()
+
+/**
+ * Creates a map out of a list based on the given function.
+ * Runtime: O(n)
+ */
+pub
+associate : (a -> Tuple k v) -> List a -> Map k v
+associate fun = List.map fun >> new

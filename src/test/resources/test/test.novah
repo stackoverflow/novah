@@ -3,7 +3,6 @@ module test
 import novah.linkedList (map, LinkedList(Nil), ::)
 
 foreign import java.io.File
-foreign import io.lacuna.bifurcan.Map
 
 typealias Opt a = Option a
 

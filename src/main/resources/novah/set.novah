@@ -7,7 +7,6 @@ module novah.set
 foreign import java.lang.Iterable
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.ISet
-foreign import io.lacuna.bifurcan.Map
 foreign import io.lacuna.bifurcan.Maps
 foreign import novah.Core
 foreign import novah.Ref

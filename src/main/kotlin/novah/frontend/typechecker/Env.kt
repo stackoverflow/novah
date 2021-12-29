@@ -122,6 +122,7 @@ const val primObject = "$PRIM.Object"
 const val primList = "$PRIM.List"
 const val primSet = "$PRIM.Set"
 const val primArray = "$PRIM.Array"
+const val primMap = "$PRIM.Map"
 const val primByteArray = "$PRIM.ByteArray"
 const val primInt16Array = "$PRIM.Int16Array"
 const val primInt32Array = "$PRIM.Int32Array"
@@ -146,6 +147,7 @@ val tUnit = TConst(primUnit)
 val tList = tapp(primList, -1)
 val tSet = tapp(primSet, -2)
 val tArray = tapp(primArray, -3)
+val tMap = tapp(primMap, -4, -5)
 val tByteArray = TConst(primByteArray)
 val tInt16Array = TConst(primInt16Array)
 val tInt32Array = TConst(primInt32Array)
@@ -154,7 +156,7 @@ val tFloat32Array = TConst(primFloat32Array)
 val tFloat64Array = TConst(primFloat64Array)
 val tBooleanArray = TConst(primBooleanArray)
 val tCharArray = TConst(primCharArray)
-val tNullable = tapp(primNullable, -4)
+val tNullable = tapp(primNullable, -6)
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -171,6 +173,7 @@ val primTypes = mapOf(
     primList to tList,
     primSet to tSet,
     primArray to tArray,
+    primMap to tMap,
     primByteArray to tByteArray,
     primInt16Array to tInt16Array,
     primInt32Array to tInt32Array,
@@ -210,6 +213,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     "java.lang.Object" -> primObject
     "io.lacuna.bifurcan.List" -> primList
     "io.lacuna.bifurcan.Set" -> primSet
+    "io.lacuna.bifurcan.Map" -> primMap
     else -> {
         if (jname.endsWith("[]")) {
             when (jname.substring(0, jname.length - 2)) {
@@ -241,6 +245,7 @@ fun findJavaType(novahType: String) = when (novahType) {
     primObject -> "java.lang.Object"
     primList -> "io.lacuna.bifurcan.List"
     primSet -> "io.lacuna.bifurcan.Set"
+    primMap -> "io.lacuna.bifurcan.Map"
     primArray -> "java.lang.Object[]"
     primByteArray -> "byte[]"
     primInt16Array -> "short[]"
@@ -277,6 +282,7 @@ val primModuleEnv = ModuleEnv(
         "Object" to tdecl(tObject),
         "List" to tdecl(tList),
         "Set" to tdecl(tSet),
+        "Map" to tdecl(tMap),
         "Array" to tdecl(tArray),
         "ByteArray" to tdecl(tByteArray),
         "Int16Array" to tdecl(tInt16Array),
@@ -324,6 +330,7 @@ val primModule = Module(
             |Equivalent to `io.lacuna.bifurcan.List`.""".trimMargin()
         ),
         primType("Set", "A persistent, immutable set of values.\nEquivalent to `io.lacuna.bifurcan.Set`."),
+        primType("Map", "A persistent, immutable map of key and values.\nEquivalent to `io.lacuna.bifurcan.Map`."),
     ),
     emptyMap(),
     emptyList(),
