@@ -40,6 +40,12 @@ class RunCommand : CliktCommand(name = "run", help = "Run the main module if one
         help = "Build the project before running"
     ).flag(default = false)
 
+    private val devMode by option(
+        "-d", "--dev",
+        help = "Run the compiler in dev mode: no optimizations will be applied and some errors will be warnings." +
+                " This is only applicable if --build is supplied."
+    ).flag(default = false)
+
     private val args by argument(help = "Arguments will be passed to JVM. You can pass multiple ones after --").multiple()
 
     override fun run() {
@@ -64,7 +70,7 @@ class RunCommand : CliktCommand(name = "run", help = "Run the main module if one
         val al = alias ?: defaultAlias
 
         if (build) {
-            BuildCommand.build(al, deps, verbose = false, devMode = false, check = false, echo = {}, echoErr = ::echo)
+            BuildCommand.build(al, deps, verbose = false, devMode = devMode, check = false, echo = {}, echoErr = ::echo)
         }
 
         val argsfile = File(".cpcache/$al.argsfile")
