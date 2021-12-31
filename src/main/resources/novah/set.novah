@@ -126,20 +126,20 @@ fromStream st =
  * Runtime: O(n)
  */
 pub
-forEach : Set a -> (a -> b) -> Unit
+forEach : Set a -> (a -> Unit) -> Unit
 forEach (set : Set a) f =
-  forEachRange 0 set#size()#intValue() \(idx : Int32) ->
-    f set#nth(idx#longValue())
+  forEachRange (0L .> set#size()) \idx ->
+    f set#nth(idx)
 
 /**
  * Runs function f for every index and element of this set, ignoring the result.
  * Runtime: O(n)
  */
 pub
-forEachIndexed : Set a -> (Int32 -> a -> b) -> Unit
+forEachIndexed : Set a -> (Int32 -> a -> Unit) -> Unit
 forEachIndexed (set : Set a) f =
-  forEachRange 0 set#size()#intValue() \(idx : Int32) ->
-    f idx set#nth(idx#longValue())
+  forEachRange (0L .> set#size()) \(idx : Int64) ->
+    f idx#intValue() set#nth(idx)
 
 /**
  * Maps function f over all elements of this set
@@ -150,8 +150,9 @@ pub
 map : (a -> b) -> Set a -> Set b
 map f (set : Set a) =
   let lset = #{}#linear()
-  forEachRange 0 set#size()#intValue() \(idx : Int32) ->
-    add (f set#nth(idx#longValue())) lset
+  forEachRange (0L .> set#size()) \idx ->
+    add (f set#nth(idx)) lset
+    ()
   lset#forked()
 
 /**
@@ -162,8 +163,8 @@ pub
 filter : (a -> Boolean) -> Set a -> Set a
 filter pred (set : Set a) =
   let lset = #{}#linear()
-  forEachRange 0 set#size()#intValue() \(idx : Int32) ->
-    let elem = set#nth(idx#longValue())
+  forEachRange (0L .> set#size()) \idx ->
+    let elem = set#nth(idx)
     if (pred elem) then
       add elem lset
       ()
@@ -413,6 +414,7 @@ groupBy f set =
     let key = f elem
     let entry = m#get(key, #{})
     m#put(key, add elem entry)
+    ()
   
   forEach set grouper
   m#forked()
@@ -435,7 +437,9 @@ pub
 toList : Set a -> List a
 toList set =
   let lin = []#linear()
-  forEach set \e -> addLast e lin
+  forEach set \e ->
+    addLast e lin
+    ()
   lin#forked()
 
 /**

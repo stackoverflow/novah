@@ -41,18 +41,18 @@ fromStream st =
  * Runtime: O(n)
  */
 pub
-forEach : List a -> (a -> b) -> Unit
+forEach : List a -> (a -> Unit) -> Unit
 forEach (list : List a) f =
-  forEachRange 0 list#size()#intValue() \idx -> f list.[idx]
+  forEachRange (0L .> list#size()) \idx -> f list#nth(idx)
 
 /**
  * Runs function f for every index and element of this list, ignoring the result.
  * Runtime: O(n)
  */
 pub
-forEachIndexed : List a -> (Int32 -> a -> b) -> Unit
+forEachIndexed : List a -> (Int32 -> a -> Unit) -> Unit
 forEachIndexed (list : List a) fun =
-  forEachRange 0 list#size()#intValue() \i -> fun i list.[i]
+  forEachRange (0 .> list#size()#intValue()) \i -> fun i list.[i]
 
 /**
  * Maps function f over all elements of this list
@@ -63,8 +63,9 @@ pub
 map : (a -> b) -> List a -> List b
 map f (list : List a) =
   let llist = []#linear()
-  forEachRange 0 list#size()#intValue() \idx ->
-    addLast (f list.[idx]) llist
+  forEachRange (0L .> list#size()) \idx ->
+    addLast (f list#nth(idx)) llist
+    ()
   llist#forked()
 
 /**
@@ -77,8 +78,9 @@ pub
 mapIndexed : (Int32 -> a -> b) -> List a -> List b
 mapIndexed f (list : List a) =
   let llist = []#linear()
-  forEachRange 0 list#size()#intValue() \idx ->
+  forEachRange (0 .> list#size()#intValue()) \idx ->
     addLast (f idx list.[idx]) llist
+    ()
   llist#forked()
 
 /**
@@ -189,8 +191,8 @@ pub
 filter : (a -> Boolean) -> List a -> List a
 filter f (list : List a) =
   let llist = []#linear()
-  forEachRange 0 list#size()#intValue() \idx ->
-    let elem = list.[idx]
+  forEachRange (0L .> list#size()) \idx ->
+    let elem = list#nth(idx)
     if (f elem) then
       addLast elem llist
       ()
@@ -205,7 +207,7 @@ pub
 filterIndexed : (Int32 -> a -> Boolean) -> List a -> List a
 filterIndexed f (list : List a) =
   let llist = []#linear()
-  forEachRange 0 list#size()#intValue() \idx ->
+  forEachRange (0 .> list#size()#intValue()) \idx ->
     let elem = list.[idx]
     if (f idx elem) then
       addLast elem llist
@@ -221,8 +223,8 @@ pub
 remove : (a -> Boolean) -> List a -> List a
 remove f (list : List a) =
   let llist = []#linear()
-  forEachRange 0 list#size()#intValue() \idx ->
-    let elem = list.[idx]
+  forEachRange (0L .> list#size()) \idx ->
+    let elem = list#nth(idx)
     if not (f elem) then
       addLast elem llist
       ()
@@ -237,7 +239,7 @@ pub
 removeIndexed : (Int32 -> a -> Boolean) -> List a -> List a
 removeIndexed f (list : List a) =
   let llist = []#linear()
-  forEachRange 0 list#size()#intValue() \idx ->
+  forEachRange (0 .> list#size()#intValue()) \idx ->
     let elem = list.[idx]
     if not (f idx elem) then
       addLast elem llist
@@ -454,8 +456,9 @@ pub
 reverse : List a -> List a
 reverse (list : List a) =
   let llist = []#linear()
-  forEachRange 0 list#size()#intValue() \i ->
-    addFirst list.[i] llist
+  forEachRange (0L .> list#size()) \i ->
+    addFirst list#nth(i) llist
+    ()
   llist#forked()
 
 /**
@@ -745,6 +748,7 @@ groupBy f list =
     let key = f elem
     let entry = m#get(key, [])
     m#put(key, addLast elem entry)
+    ()
   
   forEach list grouper
   m#forked()
@@ -825,8 +829,9 @@ pub
 repeat : Int32 -> a -> List a
 repeat n x =
   let lin = []#linear()
-  forEachRange 0 n \_ ->
+  forEachRange (0 .> n) \_ ->
     addLast x lin
+    ()
   lin#forked()
 
 /**
@@ -856,8 +861,9 @@ zip : List a -> List b -> List (Tuple a b)
 zip l1 l2 =
   let length = if size l1 > size l2 then size l2 else size l1
   let lin = []#linear()
-  forEachRange 0 length \i ->
+  forEachRange (0 .> length) \i ->
     addLast (l1.[i] <> l2.[i]) lin
+    ()
   lin#forked()
 
 /**
@@ -875,8 +881,9 @@ zipWith : (a -> b -> c) -> List a -> List b -> List c
 zipWith fun l1 l2 =
   let length = if size l1 > size l2 then size l2 else size l1
   let lin = []#linear()
-  forEachRange 0 length \i ->
+  forEachRange (0 .> length) \i ->
     addLast (fun l1.[i] l2.[i]) lin
+    ()
   lin#forked()
 
 /**
@@ -897,6 +904,7 @@ unzip list =
   forEach list \(Tuple x x2) ->
     addLast x lin
     addLast x2 lin2
+    ()
   lin#forked() <> lin2#forked()
 
 /**

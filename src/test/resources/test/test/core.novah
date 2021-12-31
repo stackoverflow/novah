@@ -38,6 +38,9 @@ coreTests =
     (None ?: 7) `shouldBe` 7
     (1 .. 5) `shouldBe` [1, 2, 3, 4]
     (1 ... 5) `shouldBe` [1, 2, 3, 4, 5]
+    inRange 567000 (1 .> 2000000000) `shouldBe` true
+    inRange 3 (range 1 10 2) `shouldBe` true
+    inRange 3 (range 1 10 3) `shouldBe` false
 
   test "Core list functions" \_ ->
     [1, 2].[1] `shouldBe` 2
