@@ -392,7 +392,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                 conds += Expr.InstanceOf(exp, ctorType, p.span)
 
                 val (fieldTypes, _) = peelArgs(Environment.findConstructor(name)!!)
-                val expectedFieldTypes = exp.type.pars
+                val expectedFieldTypes = p.fields.map { it.type!!.convert() }
 
                 p.fields.forEachIndexed { i, pat ->
                     val idx = i + 1
