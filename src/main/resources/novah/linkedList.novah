@@ -310,8 +310,8 @@ reduce f =
  * Runtime: O(n)
  */
 pub
-range : Int32 -> Int32 -> LinkedList Int32
-range begin end =
+rangeTo : Int32 -> Int32 -> LinkedList Int32
+rangeTo begin end =
   let op = if begin <= end then (_ + 1) else (_ - 1)
   let go b e acc =
     if b == e

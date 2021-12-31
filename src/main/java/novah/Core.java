@@ -637,13 +637,61 @@ public class Core {
         return i % i2;
     }
 
-    public static <T> void eachRange(int begin, int end, int step, Function<Integer, T> f) {
+    public static <T> void eachRangeInt(int begin, int end, int step, Function<Integer, T> f) {
         if (begin <= end) {
-            for (int i = begin; i < end; i += step) {
+            for (var i = begin; i < end; i += step) {
                 f.apply(i);
             }
         } else {
-            for (int i = begin; i > end; i -= step) {
+            for (var i = begin; i > end; i -= step) {
+                f.apply(i);
+            }
+        }
+    }
+
+    public static <T> void eachRangeLong(long begin, long end, long step, Function<Long, T> f) {
+        if (begin <= end) {
+            for (var i = begin; i < end; i += step) {
+                f.apply(i);
+            }
+        } else {
+            for (var i = begin; i > end; i -= step) {
+                f.apply(i);
+            }
+        }
+    }
+
+    public static <T> void eachRangeFloat(float begin, float end, float step, Function<Float, T> f) {
+        if (begin <= end) {
+            for (var i = begin; i < end; i += step) {
+                f.apply(i);
+            }
+        } else {
+            for (var i = begin; i > end; i -= step) {
+                f.apply(i);
+            }
+        }
+    }
+
+    public static <T> void eachRangeDouble(double begin, double end, double step, Function<Double, T> f) {
+        if (begin <= end) {
+            for (var i = begin; i < end; i += step) {
+                f.apply(i);
+            }
+        } else {
+            for (var i = begin; i > end; i -= step) {
+                f.apply(i);
+            }
+        }
+    }
+
+    public static <T> void eachRangeChar(char begin, char end, char step, Function<Character, T> f) {
+        if (begin <= end) {
+            for (var i = begin; i < end; i += step) {
+                f.apply(i);
+            }
+        } else {
+            for (var i = begin; i > end; i -= step) {
                 f.apply(i);
             }
         }

@@ -22,10 +22,10 @@ linkedListTests =
     LinkedList.drop 2 l `shouldBe` (3 :: 4 :: Nil)
     LinkedList.takeWhile (_ < 3) l `shouldBe` (1 :: 2 :: Nil)
     LinkedList.dropWhile (_ < 3) l `shouldBe` (3 :: 4 :: Nil)
-    LinkedList.range 1 5 `shouldBe` fv [1, 2, 3, 4]
+    LinkedList.rangeTo 1 5 `shouldBe` fv [1, 2, 3, 4]
     LinkedList.fromList [1, 2, 3, 4] `shouldBe` (1 :: 2 :: 3 :: 4 :: Nil)
     LinkedList.size l `shouldBe` 4
-    (l ++ (5 :: 6 :: Nil)) `shouldBe` LinkedList.range 1 7
+    (l ++ (5 :: 6 :: Nil)) `shouldBe` LinkedList.rangeTo 1 7
 
   test "List writing functions" \_ ->
     let l = fv [1, 2, 3]
