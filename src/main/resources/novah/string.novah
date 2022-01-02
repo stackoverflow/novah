@@ -45,6 +45,14 @@ size : String -> Int32
 size (s : String) = s#length()
 
 /**
+ * Returns the index of the last element of this string or -1 if the string is empty.
+ * Runtime: O(1)
+ */
+pub
+lastIndex : String -> Int32
+lastIndex (s : String) = s#length() - 1
+
+/**
  * Returns a lower case version of this string.
  */
 pub
@@ -240,6 +248,16 @@ pub
 mapString : (Char -> Char) -> String -> String
 mapString f str =
   List.map f (toList str) |> fromList
+
+/**
+ * Executes this function for every character in the string.
+ * Runtime: O(n)
+ */
+pub
+forEach : String -> (Char -> Unit) -> Unit
+forEach str fun =
+  forEachRange (0 .> size str) \idx ->
+    fun (charAt idx str)
 
 /**
  * Filters chars of this string with the given predicate.
