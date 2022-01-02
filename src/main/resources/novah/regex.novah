@@ -10,11 +10,11 @@ foreign import java.util.regex.Pattern
 import novah.list as List
 
 /**
- * Compiles this string into a regular expression.
+ * Compiles this string and flags into a regular expression.
  */
 pub
-new : String -> Pattern
-new pat = Pattern#compile(pat)
+new : String -> Int32 -> Pattern
+new pat flags = Pattern#compile(pat, flags)
 
 /**
  * Returns a matcher for the given regex and string.
@@ -49,15 +49,6 @@ find pat str =
     else []
 
 /**
- * Returns the first match of this regex for the given string.
- * Returns an empty list if there was no match.
- * The regex will be compiled first.
- */
-pub
-findString : String -> String -> List String
-findString re str = find (new re) str
-
-/**
  * Returns all the matches of this regex for the given string.
  * Returns an empty list if there was no match.
  */
@@ -71,15 +62,6 @@ findAll pat str =
   seq#forked()
 
 /**
- * Returns all the matches of this regex for the given string.
- * Returns an empty list if there was no match.
- * The regex will be compiled first.
- */
-pub
-findAllString : String -> String -> List (List String)
-findAllString re str = findAll (new re) str
-
-/**
  * Returns true if this regex matches the whole input string.
  */
 pub
@@ -87,14 +69,6 @@ matches : Pattern -> String -> Boolean
 matches pat str =
   let mat = matcher pat str
   mat#matches()
-
-/**
- * Returns true if this regex matches the whole input string.
- * The regex will be compiled first.
- */
-pub
-matchesString : String -> String -> Boolean
-matchesString re str = matches (new re) str
 
 /**
  * Replaces the first occurrence of this regex with the
