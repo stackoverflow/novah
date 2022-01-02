@@ -11,6 +11,7 @@ stringTests =
     String.isBlank "  " `shouldBe` true
     String.isEmpty "  " `shouldBe` false
     String.size "abc" `shouldBe` 3
+    String.lastIndex "abc" `shouldBe` 2
     String.lowerCase "Some NaMe" `shouldBe` "some name"
     String.upperCase "Some NaMe" `shouldBe` "SOME NAME"
     String.startsWith "some" "some body" `shouldBe` true
