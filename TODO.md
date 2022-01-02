@@ -18,6 +18,9 @@
 - [ ] How to handle `AutoCloseable` interface
 - [ ] Add `Ord` requirement to `NumberOps`
 - [ ] List patterns warn if used together (a fix the new pattern matching compiler)
+- [ ] Add literal regex patterns: `#"\d+ - \w"`
+- [ ] Pattern matched lambda parameters with same name as the function don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
+- [ ] No warning on import unqualified function but using it qualified
 
 ## LSP / IDE
 

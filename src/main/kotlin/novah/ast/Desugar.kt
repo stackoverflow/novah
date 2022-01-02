@@ -26,6 +26,7 @@ import novah.data.*
 import novah.frontend.ParserError
 import novah.frontend.Span
 import novah.frontend.Spanned
+import novah.frontend.error.Action
 import novah.frontend.error.CompilerProblem
 import novah.frontend.error.Severity
 import novah.frontend.typechecker.*
@@ -963,8 +964,18 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
     }
 
     private fun reportUnusedImports() {
+        val duplicates = mutableListOf<DeclarationRef>()
         // normal imports
         for (imp in smod.imports.filter { !it.isAuto() }) {
+            //duplicates
+            val decls = mutableSetOf<String>()
+            if (imp is Import.Exposing && imp.alias() == null) {
+                for (def in imp.defs) {
+                    if (def.name !in decls) decls += def.name
+                    else duplicates += def
+                }
+            }
+
             if (imp.module.value !in usedImports) {
                 unusedImports[imp.module.value] = imp.span()
                 continue
@@ -993,6 +1004,18 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         for (imp in smod.foreigns) {
             val name = imp.name()
             if (name !in usedTypes) unusedImports[name] = imp.span
+        }
+
+        for (dup in duplicates) {
+            val warn = CompilerProblem(
+                E.duplicatedImport(dup.name),
+                dup.span,
+                smod.sourceName,
+                smod.name.value,
+                severity = Severity.WARN,
+                action = Action.UnusedImport(dup.name)
+            )
+            errors += warn
         }
     }
 

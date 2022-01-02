@@ -1,0 +1,5 @@
+module [33mtest[0m
+at src/test/resources/warning/duplicated import.novah:3:26 - 3:30
+
+  Another import with name size is already in scope.
+
