@@ -1,0 +1,6 @@
+module test
+
+import novah.list (size, size, map)
+
+foo : List Int32
+foo = map size [[]]
