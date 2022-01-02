@@ -75,6 +75,7 @@ sealed class Token {
     data class CharT(val c: Char, val raw: String) : Token()
     data class StringT(val s: String, val raw: String) : Token()
     data class MultilineStringT(val s: String) : Token()
+    data class PatternStringT(val s: String) : Token()
     data class IntT(val v: Int, val text: String) : Token()
     data class LongT(val v: Long, val text: String) : Token()
     data class FloatT(val v: Float, val text: String) : Token()
@@ -235,6 +236,10 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                         iter.next()
                         HashDash
                     }
+                    '"' -> {
+                        iter.next()
+                        patternString()
+                    }
                     else -> Hash
                 }
             }
@@ -249,21 +254,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     number(tk, true)
                 } else operator(c)
             }
-            '`' -> {
-                val op = ident(null)
-                if (op is Ident) {
-                    if (op.v.isEmpty()) {
-                        lexError("Expected identifier after `.", Span.new(startLine, startColumn, iter.position()))
-                    }
-                    if (accept("`") == null) {
-                        lexError(
-                            "Expected closing ` after operator application.",
-                            Span.new(startLine, startColumn, iter.position())
-                        )
-                    }
-                    Op(op.v, isPrefix = true)
-                } else lexError("Invalid operator application.", Span.new(startLine, startColumn, iter.position()))
-            }
+            '`' -> Op(backtickOperator(), isPrefix = true)
             else -> {
                 when {
                     c.isDigit() -> number(c)
@@ -278,6 +269,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     private val validEscapes = setOf('t', 'b', 'n', 'r', 'u', '\'', '\"', '\\')
+    private val escapes = setOf('\t', '\b', '\n', '\r')
 
     private fun char(): Token {
         val c = iter.next()
@@ -397,6 +389,32 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         }
         val str = bld.toString()
         return MultilineStringT(str.substring(0, str.length - 2))
+    }
+
+    private fun patternString(): Token {
+        val bld = StringBuilder()
+        var c = iter.next()
+        while (c != '"') {
+            if (c == '\n') {
+                lexError("Newline is not allowed inside pattern strings.")
+            }
+            bld.append(c)
+            c = iter.next()
+        }
+        return PatternStringT(bld.toString())
+    }
+
+    private fun backtickOperator(): String {
+        val bld = StringBuilder()
+        var c = iter.next()
+        while (c != '`') {
+            if (c in escapes) {
+                lexError("Invalid character in backtick operator.")
+            }
+            bld.append(c)
+            c = iter.next()
+        }
+        return bld.toString()
     }
 
     private fun number(init: Char, negative: Boolean = false): Token {

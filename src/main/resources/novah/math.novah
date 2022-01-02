@@ -10,14 +10,14 @@ foreign import java.lang.Math
  */
 pub
 e : Float64
-e = Math#-"E"
+e = Math#-`E`
 
 /**
  * The ratio of the circumference of a circle to its diameter.
  */
 pub
 pi : Float64
-pi = Math#-"PI"
+pi = Math#-`PI`
 
 /**
  * Returns the smaller of two numbers.

@@ -34,7 +34,7 @@ new list =
 pub
 newEq : {{ Equals k }} -> Option (k -> Int64) -> Map k v
 newEq {{Equals eq}} hashFn =
-  let hash = Option.map Java.toLongFunction hashFn ?: Maps#-"DEFAULT_HASH_CODE"
+  let hash = Option.map Java.toLongFunction hashFn ?: Maps#-`DEFAULT_HASH_CODE`
   Map#new(hash, Java.bipredicate eq)
 
 /**

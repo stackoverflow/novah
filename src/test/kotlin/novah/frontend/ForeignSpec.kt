@@ -27,7 +27,7 @@ class ForeignSpec : StringSpec({
             
             foreign import java.lang.Math
             
-            foo = Math#-"PI"
+            foo = Math#-`PI`
             
             bar = String#valueOf(2)
             

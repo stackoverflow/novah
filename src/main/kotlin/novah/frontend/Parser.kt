@@ -458,7 +458,7 @@ class Parser(
                     }
                     peek is Hash -> {
                         iter.next()
-                        val (methodName, tk) = parseLabel()
+                        val (methodName, tk) = parseJavaName()
                         val (args, end) = parseArglist("foreign static method")
                         val method = Spanned(tk.span, methodName)
                         val clazz = Spanned(uident.span, uident.value.v)
@@ -468,7 +468,7 @@ class Parser(
                     }
                     peek is HashDash -> {
                         iter.next()
-                        val (fieldName, tk) = parseLabel()
+                        val (fieldName, tk) = parseJavaName()
                         val field = Spanned(tk.span, fieldName)
                         val clazz = Spanned(uident.span, uident.value.v)
                         Expr.ForeignStaticField(clazz, field)
@@ -560,7 +560,7 @@ class Parser(
         }
         is Hash -> {
             iter.next()
-            val (methodName, tk) = parseLabel()
+            val (methodName, tk) = parseJavaName()
             val (args, end) = parseArglist("foreign method")
             val method = Spanned(tk.span, methodName)
             val res = Expr.ForeignMethod(exp, method, args).withSpan(exp.span, end).withComment(exp.comment)
@@ -568,7 +568,7 @@ class Parser(
         }
         is HashDash -> {
             iter.next()
-            val (fieldName, tk) = parseLabel()
+            val (fieldName, tk) = parseJavaName()
             val field = Spanned(tk.span, fieldName)
             val res = Expr.ForeignField(exp, field).withSpan(exp.span, tk.span).withComment(exp.comment)
             parseSelection(res)
@@ -1019,6 +1019,17 @@ class Parser(
         } else {
             val tk = expect<StringT>(withError(E.RECORD_LABEL))
             tk.value.s to tk
+        }
+    }
+
+    private fun parseJavaName(): Pair<String, Spanned<Token>> {
+        return if (iter.peek().value is Ident) {
+            val tk = expect<Ident>(noErr())
+            tk.value.v to tk
+        } else {
+            val tk = expect<Op>(withError(E.RECORD_LABEL))
+            if (!tk.value.isPrefix) throwError(E.RECORD_LABEL to tk.span)
+            tk.value.op to tk
         }
     }
 

@@ -26,7 +26,7 @@ import novah.list as List
 pub
 new : {{ Equals a }} -> Option (a -> Int64) -> Set a
 new {{Equals eq}} hashFn =
-  let hash = Option.map J.toLongFunction hashFn ?: Maps#-"DEFAULT_HASH_CODE"
+  let hash = Option.map J.toLongFunction hashFn ?: Maps#-`DEFAULT_HASH_CODE`
   Set#new(hash, J.bipredicate eq)
 
 /**
