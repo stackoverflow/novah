@@ -80,7 +80,9 @@ listTests =
     List.maxBy List.size [[1, 2, 3], [5], [6, 7]] `shouldBe` Some [1, 2, 3]
     List.maxOf List.size [[1, 2, 3], [5], [6, 7]] `shouldBe` Some 3
     List.sum [5, 6, 7, 8] `shouldBe` 26
-    List.sumOf List.size [[1, 2, 3], [5], [6, 7]] `shouldBe` 6
+    List.sumOf List.size [[1, 2, 3], [4, 5], [6, 7]] `shouldBe` 7
+    List.product [5, 6, 7, 8] `shouldBe` 1680
+    List.productOf List.size [[1, 2, 3], [4, 5], [6, 7]] `shouldBe` 12
     List.partitionStep 2 3 [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5]]
     List.partitionAllStep 2 3 [1, 2, 3, 4, 5, 6, 7] `shouldBe` [[1, 2], [4, 5], [7]]
     List.partition 2 [1, 2, 3, 4, 5] `shouldBe` [[1, 2], [3, 4]]
