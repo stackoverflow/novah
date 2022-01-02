@@ -174,8 +174,10 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.Var -> {
             declVars += name
-            if (alias == null) unusedVars.remove(name)
-            usedVars += name
+            if (alias == null) {
+                unusedVars.remove(name)
+                usedVars += name
+            }
             if (alias == null && name in locals) Expr.Var(name, span)
             else {
                 if (alias != null) checkAlias(alias, span)
@@ -192,15 +194,17 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         }
         is SExpr.Operator -> {
             if (name == "<-") parserError(E.notAField(), span)
-            if (alias == null) unusedVars.remove(name)
-            usedVars += name
+            if (alias == null) {
+                unusedVars.remove(name)
+                usedVars += name
+            }
             if (alias != null) checkAlias(alias, span)
             val importedModule = imports[fullname()]
             if (importedModule != null) usedImports += importedModule
             Expr.Var(name, span, importedModule, isOp = true)
         }
         is SExpr.Constructor -> {
-            usedVars += name
+            if (alias == null) usedVars += name
             if (alias != null) checkAlias(alias, span)
             val importedModule = imports[fullname()]
             if (importedModule != null) usedImports += importedModule

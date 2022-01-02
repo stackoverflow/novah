@@ -1,6 +1,6 @@
 module test
 
-foreign import java.io.File
+import novah.list (size, map)
 
-foo : String
-foo = ""
+foo : List Int32
+foo = map List.size []
