@@ -420,6 +420,7 @@ class Parser(
             is DoubleT -> parseFloat64()
             is StringT -> parseString()
             is MultilineStringT -> parseMultilineString()
+            is PatternStringT -> parsePatternString()
             is CharT -> parseChar()
             is BoolT -> parseBool()
             is Ident -> parseVar()
@@ -604,6 +605,11 @@ class Parser(
     private fun parseMultilineString(): Expr {
         val str = expect<MultilineStringT>(withError(E.literalExpected("multiline string")))
         return Expr.StringE(str.value.s, str.value.s, multi = true).withSpanAndComment(str)
+    }
+
+    private fun parsePatternString(): Expr {
+        val str = expect<PatternStringT>(withError(E.literalExpected("pattern string")))
+        return Expr.PatternLiteral(str.value.s).withSpanAndComment(str)
     }
 
     private fun parseChar(): Expr {

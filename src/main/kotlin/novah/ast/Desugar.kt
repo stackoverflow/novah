@@ -172,6 +172,11 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.StringE -> Expr.StringE(v, span)
         is SExpr.CharE -> Expr.CharE(v, span)
         is SExpr.Bool -> Expr.Bool(v, span)
+        is SExpr.PatternLiteral -> {
+            val clazz = Spanned(span, "java.util.regex.Pattern")
+            val method = Spanned(span, "compile")
+            Expr.ForeignStaticMethod(clazz, method, listOf(Expr.StringE(regex, span)), span)
+        }
         is SExpr.Var -> {
             declVars += name
             if (alias == null) {

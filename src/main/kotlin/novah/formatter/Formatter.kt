@@ -200,6 +200,7 @@ class Formatter {
             is Expr.Float32 -> e.text
             is Expr.Float64 -> e.text
             is Expr.StringE -> if (e.multi) "\"\"\"${e.v}\"\"\"" else "\"${e.raw}\""
+            is Expr.PatternLiteral -> "#\"${e.regex}\""
             is Expr.CharE -> "'${e.raw}'"
             is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
