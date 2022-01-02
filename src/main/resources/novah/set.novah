@@ -71,15 +71,17 @@ isNotEmpty (set : Set a) = set#size() != 0L
 
 /**
  * Returns some value at index for this set if it exists or none.
+ * Negative numbers will start from the end of the set.
  * Runtime: ~O(1)
  */
 pub
 nth : Int32 -> Set a -> Option a
 nth index (set : Set a) =
+  let i = if index >= 0 then index else set#size()#intValue() + index
   let len = set#size()#intValue()
-  if index < 0 || index >= len
+  if i < 0 || i >= len
     then None
-    else Some set#nth(index#longValue())
+    else Some set#nth(i#longValue())
 
 /**
  * Returns the union of these 2 sets.

@@ -95,15 +95,17 @@ mapSome f = map f >> removeNones
 /**
  * Returns some value at index for this list if it exists or none.
  * This is a safe version of the list index operator: `list.[index]`.
+ * Negative numbers will start from the end of the list.
  * Runtime: ~O(1)
  */
 pub
 nth : Int32 -> List a -> Option a
 nth index (list : List a) =
+  let i = if index >= 0 then index else list#size()#intValue() + index
   let len = list#size()#intValue()
-  if index < 0 || index >= len
+  if i < 0 || i >= len
     then None
-    else Some list.[index]
+    else Some list.[i]
 
 /**
  * Returns the size of this list.
@@ -904,6 +906,26 @@ zipWith fun l1 l2 =
     addLast (fun l1.[i] l2.[i]) lin
     ()
   lin#forked()
+
+/**
+ * Zips all lists together. The resulting list will
+ * as big as the smallest sub list.
+ * Ex:
+ * ```novah
+ * zipAll [[1, 2, 3], [4, 5], [6, 7, 8]]
+ * // => [[1, 4, 6], [2, 5, 7]]
+ * ```
+ * Runtime: O(n*m)
+ */
+pub
+zipAll : List (List a) -> List (List a)
+zipAll list =
+  let len = (map size list |> min) ?: 0
+  let res = []#linear()
+  forEachRange (0 .> len) \i ->
+    addLast (map _.[i] list) res
+    ()
+  res#forked()
 
 /**
  * Unzips a list into two lists.

@@ -15,6 +15,7 @@ setTests =
   test "Set reading functions" \_ ->
     let set = #{1, 2, 3, 4}
     Set.nth 2 set `shouldBe` Some 3
+    Set.nth -1 set `shouldBe` Some 4
     Set.isEmpty set `shouldBe` false
     Set.isNotEmpty set `shouldBe` true
     Set.contains 4 set `shouldBe` true
