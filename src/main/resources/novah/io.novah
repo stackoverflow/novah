@@ -16,7 +16,7 @@ foreign import java.nio.file.StandardOpenOption
  */
 pub
 utf8 : Charset
-utf8 = StandardCharsets#-"UTF_8"
+utf8 = StandardCharsets#-`UTF_8`
 
 /**
  * Creates a new file from the specified path.
@@ -39,7 +39,7 @@ child (dir : File) child_ = File#new(dir, child_)
 pub
 pathOf : String -> List String -> Path
 pathOf first paths =
-  Path#"of"(first, List.toTypedArray String#-class paths)
+  Path#`of`(first, List.toTypedArray String#-class paths)
 
 /**
  * Returns the path of this file.
@@ -68,16 +68,16 @@ type FileOpenOption
 fopToOp : FileOpenOption -> StandardOpenOption
 fopToOp =
   case _ of
-    Read -> StandardOpenOption#-"READ"
-    Write -> StandardOpenOption#-"WRITE"
-    Append -> StandardOpenOption#-"APPEND"
-    TruncateExisting -> StandardOpenOption#-"TRUNCATE_EXISTING"
-    Create -> StandardOpenOption#-"CREATE"
-    CreateNew -> StandardOpenOption#-"CREATE_NEW"
-    DeleteOnClose -> StandardOpenOption#-"DELETE_ON_CLOSE"
-    Sparse -> StandardOpenOption#-"SPARSE"
-    Sync -> StandardOpenOption#-"SYNC"
-    Dsync -> StandardOpenOption#-"DSYNC"
+    Read -> StandardOpenOption#-`READ`
+    Write -> StandardOpenOption#-`WRITE`
+    Append -> StandardOpenOption#-`APPEND`
+    TruncateExisting -> StandardOpenOption#-`TRUNCATE_EXISTING`
+    Create -> StandardOpenOption#-`CREATE`
+    CreateNew -> StandardOpenOption#-`CREATE_NEW`
+    DeleteOnClose -> StandardOpenOption#-`DELETE_ON_CLOSE`
+    Sparse -> StandardOpenOption#-`SPARSE`
+    Sync -> StandardOpenOption#-`SYNC`
+    Dsync -> StandardOpenOption#-`DSYNC`
 
 /**
  * Reads the contents of the file using the UTF-8 charset.

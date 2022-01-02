@@ -181,7 +181,7 @@ toArray list = (list as IList a)#toArray()
  */
 pub
 fromArray : Array a -> List a
-fromArray arr = List#"of"(arr)
+fromArray arr = List#`of`(arr)
 
 /**
  * Returns a list of the elements that match the given predicate.
@@ -283,7 +283,7 @@ sortWith cmp =
       let arr = toArray list
       let comp = toComparator cmp
       Arrays#sort(arr, comp as Comparator Object)
-      List#"of"(arr) as List a
+      List#`of`(arr) as List a
 
 /**
  * Sorts this list according to the element's Ord instance.

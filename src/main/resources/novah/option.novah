@@ -122,4 +122,4 @@ toOptional : Option a -> Optional a
 toOptional =
   case _ of
     None -> Optional#empty()
-    Some x -> Optional#"of"(x)
+    Some x -> Optional#`of`(x)

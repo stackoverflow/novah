@@ -22,7 +22,7 @@ empty _ = Stream#empty()
  */
 pub
 from : a -> Stream a
-from x = Stream#"of"(x)
+from x = Stream#`of`(x)
 
 /**
  * Runs function f for every element of this Stream, ignoring the result.
