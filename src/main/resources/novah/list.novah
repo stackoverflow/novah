@@ -589,9 +589,9 @@ maxOf {{NumberOps ops}} fn =
  * Runtime: O(n)
  */
 pub
-sum : {{ Plus a }} -> {{ NumberOps a }} -> List a -> a
-sum {{Plus plus}} {{NumberOps ops}} =
-  foldl plus ops.zero
+sum : {{ Plus a }} -> List a -> a
+sum {{Plus p}} =
+  foldl p.plus p.identity
 
 /**
  * Returns the sum of all elements by first applying the
@@ -599,9 +599,28 @@ sum {{Plus plus}} {{NumberOps ops}} =
  * Runtime: O(n)
  */
 pub
-sumOf : {{ Plus b }} -> {{ NumberOps b }} -> (a -> b) -> List a -> b
-sumOf {{Plus plus}} {{NumberOps ops}} fn =
-  foldl (\acc x -> plus acc (fn x)) ops.zero
+sumOf : {{ Plus b }} -> (a -> b) -> List a -> b
+sumOf {{Plus p}} fn =
+  foldl (\acc x -> p.plus acc (fn x)) p.identity
+
+/**
+ * Returns the product of all elements in this list.
+ * Runtime: O(n)
+ */
+pub
+product : {{ Mult a }} -> List a -> a
+product {{Mult m}} =
+  foldl m.mult m.identity
+
+/**
+ * Returns the product of all elements by first applying the
+ * function to every element in this list.
+ * Runtime: O(n)
+ */
+pub
+productOf : {{ Mult b }} -> (a -> b) -> List a -> b
+productOf {{Mult m}} fn =
+  foldl (\acc x -> m.mult acc (fn x)) m.identity
 
 /**
  * Converts this byte array to a list of bytes.

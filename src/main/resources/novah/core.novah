@@ -388,30 +388,49 @@ concatOption {{ap}} = Concat (concatOption_ ap)
  * using the + operator.
  */
 pub+
-opaque type Plus a = a -> a -> a
+opaque type Plus a =
+  { plus : a -> a -> a
+  , identity : a
+  }
 
 /**
  * Adds x and y.
  */
 pub
 (+) : {{ Plus a }} -> a -> a -> a
-(+) {{Plus plus}} x y = plus x y
+(+) {{Plus plus}} x y = plus.plus x y
 
 pub instance
 plusInt32 : Plus Int32
-plusInt32 = Plus \(x : Int32) y -> Core#sum(x, y)
+plusInt32 =
+  Plus
+    { plus: \(x : Int32) y -> Core#sum(x, y)
+    , identity: 0
+    }
 
 pub instance
 plusInt64 : Plus Int64
-plusInt64 = Plus \(x : Int64) y -> Core#sum(x, y)
+plusInt64 =
+  Plus
+    { plus: \(x : Int64) y -> Core#sum(x, y)
+    , identity: 0L
+    }
 
 pub instance
 plusFloat32 : Plus Float32
-plusFloat32 = Plus \(x : Float32) y -> Core#sum(x, y)
+plusFloat32 =
+  Plus
+    { plus: \(x : Float32) y -> Core#sum(x, y)
+    , identity: 0.0F
+    }
 
 pub instance
 plusFloat64 : Plus Float64
-plusFloat64 = Plus \(x : Float64) y -> Core#sum(x, y)
+plusFloat64 =
+  Plus
+    { plus: \(x : Float64) y -> Core#sum(x, y)
+    , identity: 0.0
+    }
 
 /**
  * The type of things that can be subtracted
@@ -448,30 +467,49 @@ minusFloat64 = Minus \(x : Float64) y -> Core#sub(x, y)
  * using the * operator.
  */
 pub+
-opaque type Mult a = a -> a -> a
+opaque type Mult a =
+  { mult : a -> a -> a
+  , identity : a
+  }
 
 /**
  * Multiplies x and y.
  */
 pub
 (*) : {{ Mult a }} -> a -> a -> a
-(*) {{Mult mult}} x y = mult x y
+(*) {{Mult mult}} x y = mult.mult x y
 
 pub instance
 multInt32 : Mult Int32
-multInt32 = Mult \(x : Int32) y -> Core#mult(x, y)
+multInt32 =
+  Mult
+    { mult: \(x : Int32) y -> Core#mult(x, y)
+    , identity: 1
+    }
 
 pub instance
 multInt64 : Mult Int64
-multInt64 = Mult \(x : Int64) y -> Core#mult(x, y)
+multInt64 =
+  Mult
+    { mult: \(x : Int64) y -> Core#mult(x, y)
+    , identity: 1L
+    }
 
 pub instance
 multFloat32 : Mult Float32
-multFloat32 = Mult \(x : Float32) y -> Core#mult(x, y)
+multFloat32 =
+  Mult
+    { mult: \(x : Float32) y -> Core#mult(x, y)
+    , identity: 1.0F
+    }
 
 pub instance
 multFloat64 : Mult Float64
-multFloat64 = Mult \(x : Float64) y -> Core#mult(x, y)
+multFloat64 =
+  Mult
+    { mult: \(x : Float64) y -> Core#mult(x, y)
+    , identity: 1.0
+    }
 
 /**
  * The type of things that can be divided
@@ -878,7 +916,6 @@ ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption
 pub+
 opaque type NumberOps a =
   { remainder : a -> a -> a
-  , zero : a
   , even: a -> Boolean
   , min: a -> a -> a
   , max: a -> a -> a
@@ -897,7 +934,6 @@ numberOpsInt32 : NumberOps Int32
 numberOpsInt32 =
   NumberOps
     { remainder: \x y -> Core#intRemainder(x, y)
-    , zero: 0
     , even: \x -> Core#intRemainder(x, 2) == 0
     , min: \(x : Int32) y -> Math#min(x, y)
     , max: \(x : Int32) y -> Math#max(x, y)
@@ -909,7 +945,6 @@ numberOpsInt64 : NumberOps Int64
 numberOpsInt64 =
   NumberOps
     { remainder: \x y -> Core#longRemainder(x, y)
-    , zero: 0L
     , even: \x -> Core#longRemainder(x, 2L) == 0L
     , min: \(x : Int64) y -> Math#min(x, y)
     , max: \(x : Int64) y -> Math#max(x, y)
@@ -921,7 +956,6 @@ numberOpsFloat32 : NumberOps Float32
 numberOpsFloat32 =
   NumberOps
     { remainder: \x y -> Core#floatRemainder(x, y)
-    , zero: 0F
     , even: \x -> Core#floatRemainder(x, 2F) == 0F
     , min: \(x : Float32) y -> Math#min(x, y)
     , max: \(x : Float32) y -> Math#max(x, y)
@@ -933,7 +967,6 @@ numberOpsFloat64 : NumberOps Float64
 numberOpsFloat64 =
   NumberOps
     { remainder: \x y -> Core#doubleRemainder(x, y)
-    , zero: 0.0
     , even: \x -> Core#doubleRemainder(x, 2.0) == 0.0
     , min: \(x : Float64) y -> Math#min(x, y)
     , max: \(x : Float64) y -> Math#max(x, y)
