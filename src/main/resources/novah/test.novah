@@ -139,20 +139,20 @@ runTestsFor package =
  */
 pub
 shouldBe : {{ Equals a }} -> a -> a -> Unit
-shouldBe {{eq}} x y =
-  if x == y
-    then ()
-    else throw AssertionError#new(format "`%s` is not equals `%s`" [x, y] as Object)
+shouldBe {{_}} x y =
+  if x == y then
+    ()
+  else throw AssertionError#new(format "`%s` is not equals `%s`" [x, y] as Object)
 
 /**
  * Fails the test if x is equals y.
  */
 pub
 shouldNotBe : {{ Equals a }} -> a -> a -> Unit
-shouldNotBe {{eq}} x y =
-  if x != y
-    then ()
-    else throw AssertionError#new(format "`%s` is equals `%s`" [x, y] as Object)
+shouldNotBe {{_}} x y =
+  if x != y then
+    ()
+  else throw AssertionError#new(format "`%s` is equals `%s`" [x, y] as Object)
 
 /**
  * Fails the test if the record r1 is not equals r2.

@@ -23,14 +23,14 @@ utf8 = StandardCharsets#-`UTF_8`
  */
 pub
 newFile : String -> File
-newFile (path: String) = File#new(path)
+newFile path = File#new(path)
 
 /**
  * Returns a file which represents a child of the given directory.
  */
 pub
 child : File -> String -> File
-child (dir : File) child_ = File#new(dir, child_)
+child dir child_ = File#new(dir, child_)
 
 /**
  * Returns a path by joining the first path with
@@ -46,7 +46,7 @@ pathOf first paths =
  */
 pub
 fileToPath : File -> Path
-fileToPath (file : File) = file#toPath()
+fileToPath file = file#toPath()
 
 /**
  * Possible file open options.
@@ -98,7 +98,7 @@ readTextWithCharset path charset = Files#readString(path, charset)
  */
 pub
 readText : File -> String
-readText (file : File) =
+readText file =
   Files#readString(file#toPath())
 
 /**
@@ -117,7 +117,7 @@ writeTextToPath path text charset options =
  */
 pub
 writeText : File -> String -> Path
-writeText (file: File) text =
+writeText file text =
   writeTextToPath file#toPath() text utf8 [Write, Create]
 
 /**
@@ -126,5 +126,5 @@ writeText (file: File) text =
  */
 pub
 appendText : File -> String -> Path
-appendText (file : File) text =
+appendText file text =
   writeTextToPath file#toPath() text utf8 [Append, Create]

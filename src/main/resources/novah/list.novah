@@ -42,7 +42,7 @@ fromStream st =
  */
 pub
 forEach : List a -> (a -> Unit) -> Unit
-forEach (list : List a) f =
+forEach list f =
   forEachRange (0L .> list#size()) \idx -> f list#nth(idx)
 
 /**
@@ -51,7 +51,7 @@ forEach (list : List a) f =
  */
 pub
 forEachIndexed : List a -> (Int32 -> a -> Unit) -> Unit
-forEachIndexed (list : List a) fun =
+forEachIndexed list fun =
   forEachRange (0 .> list#size()#intValue()) \i -> fun i list.[i]
 
 /**
@@ -61,7 +61,7 @@ forEachIndexed (list : List a) fun =
  */
 pub
 map : (a -> b) -> List a -> List b
-map f (list : List a) =
+map f list =
   let llist = []#linear()
   forEachRange (0L .> list#size()) \idx ->
     addLast (f list#nth(idx)) llist
@@ -76,7 +76,7 @@ map f (list : List a) =
  */
 pub
 mapIndexed : (Int32 -> a -> b) -> List a -> List b
-mapIndexed f (list : List a) =
+mapIndexed f list =
   let llist = []#linear()
   forEachRange (0 .> list#size()#intValue()) \idx ->
     addLast (f idx list.[idx]) llist
@@ -100,7 +100,7 @@ mapSome f = map f >> removeNones
  */
 pub
 nth : Int32 -> List a -> Option a
-nth index (list : List a) =
+nth index list =
   let i = if index >= 0 then index else list#size()#intValue() + index
   let len = list#size()#intValue()
   if i < 0 || i >= len
@@ -113,8 +113,7 @@ nth index (list : List a) =
  */
 pub
 size : List a -> Int32
-size (list : List a) =
-  list#size()#intValue()
+size list = list#size()#intValue()
 
 /**
  * Returns the index of the last element of this list or -1 if the list is empty.
@@ -122,8 +121,7 @@ size (list : List a) =
  */
 pub
 lastIndex : List a -> Int32
-lastIndex (list : List a) =
-  list#size()#intValue() - 1
+lastIndex list = list#size()#intValue() - 1
 
 /**
  * Returns the first element of this list if it's not empty.
@@ -139,7 +137,7 @@ first list = nth 0 list
  */
 pub
 last : List a -> Option a
-last (list : List a) =
+last list =
   nth (list#size()#intValue() - 1) list
 
 /**
@@ -148,8 +146,7 @@ last (list : List a) =
  */
 pub
 isEmpty : List a -> Boolean
-isEmpty (list : List a) =
-  list#size() == 0L
+isEmpty list = list#size() == 0L
 
 /**
  * Returns true if this list is not empty.
@@ -157,7 +154,7 @@ isEmpty (list : List a) =
  */
 pub
 isNotEmpty : List a -> Boolean
-isNotEmpty (list : List a) = list#size() != 0L
+isNotEmpty list = list#size() != 0L
 
 /**
  * Converts this list into a typed array.
@@ -191,7 +188,7 @@ fromArray arr = List#`of`(arr)
  */
 pub
 filter : (a -> Boolean) -> List a -> List a
-filter f (list : List a) =
+filter f list =
   let llist = []#linear()
   forEachRange (0L .> list#size()) \idx ->
     let elem = list#nth(idx)
@@ -207,7 +204,7 @@ filter f (list : List a) =
  */
 pub
 filterIndexed : (Int32 -> a -> Boolean) -> List a -> List a
-filterIndexed f (list : List a) =
+filterIndexed f list =
   let llist = []#linear()
   forEachRange (0 .> list#size()#intValue()) \idx ->
     let elem = list.[idx]
@@ -223,7 +220,7 @@ filterIndexed f (list : List a) =
  */
 pub
 remove : (a -> Boolean) -> List a -> List a
-remove f (list : List a) =
+remove f list =
   let llist = []#linear()
   forEachRange (0L .> list#size()) \idx ->
     let elem = list#nth(idx)
@@ -239,7 +236,7 @@ remove f (list : List a) =
  */
 pub
 removeIndexed : (Int32 -> a -> Boolean) -> List a -> List a
-removeIndexed f (list : List a) =
+removeIndexed f list =
   let llist = []#linear()
   forEachRange (0 .> list#size()#intValue()) \idx ->
     let elem = list.[idx]
@@ -338,10 +335,9 @@ contains {{Equals eq}} elem list =
  */
 pub
 tail : List a -> Option (List a)
-tail =
-  case _ of
-    [] -> None
-    [_ :: xs] -> Some xs
+tail = case _ of
+  [] -> None
+  [_ :: xs] -> Some xs
 
 /**
  * Returns a slice of this list starting at from (inclusive)
@@ -350,7 +346,7 @@ tail =
  */
 pub
 slice : Int32 -> Int32 -> List a -> List a
-slice (from: Int32) (to : Int32) (list : List a) =
+slice from to list =
   list#slice(from#longValue(), to#longValue())
 
 /**
@@ -359,7 +355,7 @@ slice (from: Int32) (to : Int32) (list : List a) =
  */
 pub
 take : Int32 -> List a -> List a
-take n (list : List a) =
+take n list =
   let actualN = Math.min n list#size()#intValue()
   slice 0 actualN list
 
@@ -369,7 +365,7 @@ take n (list : List a) =
  */
 pub
 drop : Int32 -> List a -> List a
-drop n (list : List a) =
+drop n list =
   let len = list#size()#intValue()
   let actualN = Math.min n len
   slice actualN len list
@@ -380,7 +376,7 @@ drop n (list : List a) =
  */
 pub
 takeWhile : (a -> Boolean) -> List a -> List a
-takeWhile pred (list : List a) =
+takeWhile pred list =
   let v = list#linear()
   let res = []#linear()
   while isNotEmpty v && pred v.[0] do
@@ -394,7 +390,7 @@ takeWhile pred (list : List a) =
  */
 pub
 dropWhile : (a -> Boolean) -> List a -> List a
-dropWhile pred (list : List a) =
+dropWhile pred list =
   let v = list#linear()
   while isNotEmpty v && pred v.[0] do
     removeFirst v
@@ -456,7 +452,7 @@ flatMap f list = flatten (map f list)
  */
 pub
 reverse : List a -> List a
-reverse (list : List a) =
+reverse list =
   let llist = []#linear()
   forEachRange (0L .> list#size()) \i ->
     addFirst list#nth(i) llist
@@ -980,7 +976,7 @@ removeNones list =
  */
 pub
 withLinear : List a -> (List a -> b) -> List a
-withLinear (list : List a) f =
+withLinear list f =
   let lin = list#linear()
   f lin
   (lin : List a)#forked()

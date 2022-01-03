@@ -127,13 +127,15 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     checkShadow(it.name, it.span)
                 }
 
+                val stype = signature?.type
                 // hold the type variables as scoped typed variables
                 val typeVars = mutableMapOf<String, Type>()
-                val expType = signature?.type?.desugar(isCtor = false, vars = typeVars)
+                val expType = stype?.desugar(isCtor = false, vars = typeVars)
                 val sig = if (expType != null) Signature(expType, signature!!.span) else null
 
                 try {
-                    var expr = nestLambdaPatterns(patterns, exp.desugar(tvars = typeVars), emptyList(), typeVars)
+                    val spreadPatterns = if (stype != null) spreadTypeAnnotation(stype, patterns) else patterns
+                    var expr = nestLambdaPatterns(spreadPatterns, exp.desugar(tvars = typeVars), emptyList(), typeVars)
 
                     // if the declaration has a type annotation, annotate it
                     expr = if (expType != null) Expr.Ann(expr, expType, expr.span) else expr
@@ -970,6 +972,36 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 else combiner(exp.span, doo)
             }
         }
+    }
+
+    /**
+     * Spreads a type annotation over the parameters of a top level declaration for better type inference:
+     * Ex:
+     * foo : (String -> Int) -> String -> Int
+     * foo f i = ...
+     * becomes
+     * foo (s : String -> Int) (i : Int) = ...
+     */
+    private fun spreadTypeAnnotation(type: SType, patterns: List<SPattern>): List<SPattern> {
+        tailrec fun shouldStop(p: SPattern): Boolean = when (p) {
+            is SPattern.Var, is SPattern.TypeAnnotation -> false
+            is SPattern.Parens -> shouldStop(p.pattern)
+            else -> true
+        }
+        val pats = mutableListOf<SPattern>()
+        var ty = type
+        var stop = false
+        for (pat in patterns) {
+            if (!stop && ty is SType.TFun) {
+                pats += if (pat is SPattern.Var && ty.arg.isConcrete()) SPattern.TypeAnnotation(pat, ty.arg, pat.span)
+                else {
+                    stop = shouldStop(pat)
+                    pat
+                }
+                ty = ty.ret
+            } else pats += pat
+        }
+        return pats
     }
 
     private fun reportUnusedImports() {

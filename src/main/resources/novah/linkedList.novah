@@ -203,10 +203,9 @@ flatMap f =
  */
 pub
 size : LinkedList a -> Int32
-size =
-  case _ of
-    Nil -> 0
-    Cons _ xs -> 1 + (size xs)
+size = case _ of
+  Nil -> 0
+  Cons _ xs -> 1 + (size xs)
 
 showLinkedList_ : Show a -> LinkedList a -> String
 showLinkedList_ (Show sh) l =

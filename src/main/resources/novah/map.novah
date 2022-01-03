@@ -43,7 +43,7 @@ newEq {{Equals eq}} hashFn =
  */
 pub
 size : Map k v -> Int64
-size (m : Map k v) = m#size()
+size m = m#size()
 
 /**
  * Inserts or replaces a new key/value pair in the map.
@@ -67,7 +67,7 @@ get k map = (map as IMap k v)#get(k) |> Option.fromOptional
  */
 pub
 update : k -> (v -> v) -> Map k v -> Map k v
-update key fun (map : Map k v) = map#update(key, Java.unaryOperator fun)
+update key fun map = map#update(key, Java.unaryOperator fun)
 
 /**
  * Removes the key from this map.
@@ -75,7 +75,7 @@ update key fun (map : Map k v) = map#update(key, Java.unaryOperator fun)
  */
 pub
 remove : k -> Map k v -> Map k v
-remove key (map : Map k v) = map#remove(key)
+remove key map = map#remove(key)
 
 /**
  * Returns true if this map contains the key.
@@ -83,7 +83,7 @@ remove key (map : Map k v) = map#remove(key)
  */
 pub
 hasKey : k -> Map k v -> Boolean
-hasKey key (map : Map k v) = map#contains(key)
+hasKey key map = map#contains(key)
 
 /**
  * Returns the result of merging the two maps.
@@ -92,7 +92,7 @@ hasKey key (map : Map k v) = map#contains(key)
  */
 pub
 merge : Map k v -> Map k v -> Map k v
-merge (m1 : Map k v) m2 = m1#union(m2 as IMap k v)
+merge m1 m2 = m1#union(m2 as IMap k v)
 
 /**
  * Returns a set of all keys in this map.
@@ -100,14 +100,14 @@ merge (m1 : Map k v) m2 = m1#union(m2 as IMap k v)
  */
 pub
 keys : Map k v -> Set k
-keys (map : Map k v) = map#keys()
+keys map = map#keys()
 
 /**
  * Returns a list of all values in this map.
  */
 pub
 values : Map k v -> List v
-values (map : Map k v) = List#from(map#values())
+values map = List#from(map#values())
 
 /**
  * Executes the function for every key/value pair in this map
@@ -115,7 +115,7 @@ values (map : Map k v) = List#from(map#values())
  */
 pub
 forEach : Map k v -> (k -> v -> Unit) -> Unit
-forEach (map : Map k v) f =
+forEach map f =
   Java.forEach map#iterator() \(entry : IEntry k v) -> f entry#key() entry#value()
 
 /**
@@ -124,7 +124,7 @@ forEach (map : Map k v) f =
  */
 pub
 mapValues : (k -> v -> v2) -> Map k v -> Map k v2
-mapValues f (map : Map k v) = map#mapValues(Java.biFunction f)
+mapValues f map = map#mapValues(Java.biFunction f)
 
 /**
  * Returns a map of the elements that match the given predicate.
@@ -132,7 +132,7 @@ mapValues f (map : Map k v) = map#mapValues(Java.biFunction f)
  */
 pub
 filter : (k -> v -> Boolean) -> Map k v -> Map k v
-filter pred (map : Map k v) =
+filter pred map =
   let lmap = map#linear()
   forEach lmap \k v ->
     if (not (pred k v)) then
@@ -193,7 +193,7 @@ eqMap {{Equals eqk}} {{Equals eqv}} = Equals \x y -> Core#equalsMap(x, y, eqk, e
  */
 pub
 withLinear : Map k v -> (Map k v -> b) -> Map k v
-withLinear (map : Map k v) f =
+withLinear map f =
   let lin = map#linear()
   f lin
   (lin : Map k v)#forked()

@@ -14,35 +14,35 @@ foreign import novah.Ref
  */
 pub
 isBlank : String -> Boolean
-isBlank (s : String) = s#isBlank()
+isBlank s = s#isBlank()
 
 /**
  * Returns true if this string is not empty or only contains whitespace codepoints.
  */
 pub
 isNotBlank : String -> Boolean
-isNotBlank (s : String) = not s#isBlank()
+isNotBlank s = not s#isBlank()
 
 /**
  * Returns true if this string is empty.
  */
 pub
 isEmpty : String -> Boolean
-isEmpty (s : String) = s#isEmpty()
+isEmpty s = s#isEmpty()
 
 /**
  * Returns true if this string is not empty.
  */
 pub
 isNotEmpty : String -> Boolean
-isNotEmpty (s : String) = not s#isEmpty()
+isNotEmpty s = not s#isEmpty()
 
 /**
  * Returns the size of this string.
  */
 pub
 size : String -> Int32
-size (s : String) = s#length()
+size s = s#length()
 
 /**
  * Returns the index of the last element of this string or -1 if the string is empty.
@@ -50,49 +50,49 @@ size (s : String) = s#length()
  */
 pub
 lastIndex : String -> Int32
-lastIndex (s : String) = s#length() - 1
+lastIndex s = s#length() - 1
 
 /**
  * Returns a lower case version of this string.
  */
 pub
 lowerCase : String -> String
-lowerCase (str : String) = str#toLowerCase()
+lowerCase str = str#toLowerCase()
 
 /**
  * Returns a upper case version of this string.
  */
 pub
 upperCase : String -> String
-upperCase (str : String) = str#toUpperCase()
+upperCase str = str#toUpperCase()
 
 /**
  * Returns true if this string starts with prefix.
  */
 pub
 startsWith : String -> String -> Boolean
-startsWith prefix (str : String) = str#startsWith(prefix)
+startsWith prefix str = str#startsWith(prefix)
 
 /**
  * Returns true if this string ends with suffix.
  */
 pub
 endsWith : String -> String -> Boolean
-endsWith suffix (str : String) = str#endsWith(suffix)
+endsWith suffix str = str#endsWith(suffix)
 
 /**
  * Returns true if this string contains the string represented by another.
  */
 pub
 contains : String -> String -> Boolean
-contains another (str : String) = str#contains(another as CharSequence)
+contains another str = str#contains(another as CharSequence)
 
 /**
  * Returns true if this string contains the character.
  */
 pub
 containsChar : Char -> String -> Boolean
-containsChar char (str : String) = str#contains(toString char as CharSequence)
+containsChar char str = str#contains(toString char as CharSequence)
 
 /**
  * Returns a substring from the given string
@@ -100,21 +100,21 @@ containsChar char (str : String) = str#contains(toString char as CharSequence)
  */
 pub
 substring : Int32 -> Int32 -> String -> String
-substring begin end (str : String) = str#substring(begin, end)
+substring begin end str = str#substring(begin, end)
 
 /**
  * Returns a substring from the given string starting from begin.
  */
 pub
 startFrom : Int32 -> String -> String
-startFrom begin (str : String) = str#substring(begin)
+startFrom begin str = str#substring(begin)
 
 /**
  * Encodes this string into an array of bytes using the platform's default charset.
  */
 pub
 getBytes : String -> ByteArray
-getBytes (str : String) = str#getBytes()
+getBytes str = str#getBytes()
 
 /**
  * Joins all strings in this list separated by delimiter.
@@ -129,35 +129,35 @@ join delimiter list =
  */
 pub
 strip : String -> String
-strip (str : String) = str#strip()
+strip str = str#strip()
 
 /**
  * Returns this string with all leading white spaces removed.
  */
 pub
 stripl : String -> String
-stripl (str : String) = str#stripLeading()
+stripl str = str#stripLeading()
 
 /**
  * Returns this string with all trailing white spaces removed.
  */
 pub
 stript : String -> String
-stript (str : String) = str#stripTrailing()
+stript str = str#stripTrailing()
 
 /**
  * Returns a string that represents the input string repeated n times.
  */
 pub
 repeat : Int32 -> String -> String
-repeat n (str : String) = str#repeat(n)
+repeat n str = str#repeat(n)
 
 /**
  * Returns this string with the first character converted to upper-case and the rest converted to lower-case.
  */
 pub
 capitalize : String -> String
-capitalize (str : String) =
+capitalize str =
   case str#length() of
     0 -> str
     1 -> str#toUpperCase()
@@ -172,7 +172,7 @@ capitalize (str : String) =
  */
 pub
 split : String -> String -> List String
-split regex (str : String) = str#split(regex) |> List.fromArray
+split regex str = str#split(regex) |> List.fromArray
 
 /**
  * Returns the character at the specified index if it exists.
@@ -181,7 +181,7 @@ split regex (str : String) = str#split(regex) |> List.fromArray
  */
 pub
 nth : Int32 -> String -> Option Char
-nth idx (str : String) =
+nth idx str =
   if idx >= 0 && idx < str#length() then
     let i = if idx >= 0 then idx else str#length() + idx
     Some str#charAt(i)
@@ -196,7 +196,7 @@ nth idx (str : String) =
  */
 pub
 charAt : Int32 -> String -> Char
-charAt idx (str : String) =
+charAt idx str =
   let i = if idx >= 0 then idx else str#length() + idx
   str#charAt(i)
 
@@ -207,7 +207,7 @@ charAt idx (str : String) =
  */
 pub
 indexOf : String -> String -> Int32
-indexOf (sub : String) (str : String) = str#indexOf(sub)
+indexOf sub str = str#indexOf(sub)
 
 /**
  * Returns a list of all chars in this string.
@@ -215,7 +215,7 @@ indexOf (sub : String) (str : String) = str#indexOf(sub)
  */
 pub
 toList : String -> List Char
-toList (str : String) =
+toList str =
   str#toCharArray() |> List.fromCharArray
 
 /**
@@ -349,14 +349,14 @@ dropWhile pred str =
  */
 pub
 replaceChar : Char -> Char -> String -> String
-replaceChar old new (str : String) = str#replace(old, new)
+replaceChar old new str = str#replace(old, new)
 
 /**
  * Replaces all substrings of this string that matches target with the given replacement. 
  */
 pub
 replace : String -> String -> String -> String
-replace target repl (str : String) = str#replace(target as CharSequence, repl as CharSequence)
+replace target repl str = str#replace(target as CharSequence, repl as CharSequence)
 
 /**
  * Returns the number of characters matching the given predicate.
@@ -385,7 +385,7 @@ indices str =
  */
 pub
 lines : String -> List String
-lines (str : String) =
+lines str =
   str#lines() |> List.fromStream
 
 /**

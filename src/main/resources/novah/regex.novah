@@ -21,7 +21,7 @@ new pat flags = Pattern#compile(pat, flags)
  */
 pub
 matcher : Pattern -> String -> Matcher
-matcher (pat : Pattern) str = pat#matcher(str as CharSequence)
+matcher pat str = pat#matcher(str as CharSequence)
 
 /**
  * Returns a list of all matched groups for
@@ -30,7 +30,7 @@ matcher (pat : Pattern) str = pat#matcher(str as CharSequence)
  */
 pub
 groups : Matcher -> List String
-groups (mat : Matcher) =
+groups mat =
   let count = mat#groupCount()
   if count == 0
     then [mat#group()]

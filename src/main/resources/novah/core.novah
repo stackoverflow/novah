@@ -182,14 +182,14 @@ todo msg = throw AssertionError#new(format "Not implemented: %s" [msg] as Object
  */
 pub
 int : Int64 -> Int32
-int (l : Int64) = l#intValue()
+int l = l#intValue()
 
 /**
  * Converts this 32-bit integer to a 64-bit integer.
  */
 pub
 int64 : Int32 -> Int64
-int64 (i : Int32) = i#longValue()
+int64 i = i#longValue()
 
 /**
  * Sets the value of this list at the specified index to x.
@@ -198,7 +198,7 @@ int64 (i : Int32) = i#longValue()
  */
 pub
 setAt : Int32 -> a -> List a -> List a
-setAt (index : Int32) x (list : List a) = list#set(index#longValue(), x)
+setAt index x list = list#set(index#longValue(), x)
 
 /**
  * Updates the value of this list at the specified index by applying function f to the old value.
@@ -207,7 +207,7 @@ setAt (index : Int32) x (list : List a) = list#set(index#longValue(), x)
  */
 pub
 updateAt : Int32 -> (a -> a) -> List a -> List a
-updateAt (index : Int32) f (list : List a) = list#set(index#longValue(), f list.[index])
+updateAt index f list = list#set(index#longValue(), f list.[index])
 
 /**
  * Appends x to the beginning of this list.
@@ -215,7 +215,7 @@ updateAt (index : Int32) f (list : List a) = list#set(index#longValue(), f list.
  */
 pub
 addFirst : a -> List a -> List a
-addFirst x (list : List a) = list#addFirst(x)
+addFirst x list = list#addFirst(x)
 
 /**
  * Appends x to the end of this list.
@@ -223,7 +223,7 @@ addFirst x (list : List a) = list#addFirst(x)
  */
 pub
 addLast : a -> List a -> List a
-addLast x (list : List a) = list#addLast(x)
+addLast x list = list#addLast(x)
 
 /**
  * Removes the first element of this list.
@@ -231,7 +231,7 @@ addLast x (list : List a) = list#addLast(x)
  */
 pub
 removeFirst : List a -> List a
-removeFirst (list : List a) = list#removeFirst()
+removeFirst list = list#removeFirst()
 
 /**
  * Removes the last element of this list.
@@ -239,7 +239,7 @@ removeFirst (list : List a) = list#removeFirst()
  */
 pub
 removeLast : List a -> List a
-removeLast (list : List a) = list#removeLast()
+removeLast list = list#removeLast()
 
 /**
  * Gets the element of the array at the specified index.
@@ -282,7 +282,7 @@ arrayOf clazz len = Core#mkArray(clazz, len)
  */
 pub
 format : String -> List a -> String
-format str (list : List a) = String#format(str, list#toArray())
+format str list = String#format(str, list#toArray())
 
 /**
  * Prints the formated string to stdout.
