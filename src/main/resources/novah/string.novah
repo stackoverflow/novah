@@ -176,29 +176,24 @@ split regex str = str#split(regex) |> List.fromArray
 
 /**
  * Returns the character at the specified index if it exists.
- * Negative numbers will start from the end of the string.
  * Runtime: O(1)
  */
 pub
 nth : Int32 -> String -> Option Char
 nth idx str =
   if idx >= 0 && idx < str#length() then
-    let i = if idx >= 0 then idx else str#length() + idx
-    Some str#charAt(i)
+    Some str#charAt(idx)
   else None
 
 /**
  * Returns the character at the specified index if it exists.
- * Negative numbers will start from the end of the string.
  * **Unsafe**: will throw an exception in case the index is invalid.
  * `String.nth` should be prefered instead of this function.
  * Runtime: O(1)
  */
 pub
 charAt : Int32 -> String -> Char
-charAt idx str =
-  let i = if idx >= 0 then idx else str#length() + idx
-  str#charAt(i)
+charAt idx str = str#charAt(idx)
 
 /**
  * Returns the index of the given sub string inside the string
