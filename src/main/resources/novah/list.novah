@@ -95,17 +95,15 @@ mapSome f = map f >> removeNones
 /**
  * Returns some value at index for this list if it exists or none.
  * This is a safe version of the list index operator: `list.[index]`.
- * Negative numbers will start from the end of the list.
  * Runtime: ~O(1)
  */
 pub
 nth : Int32 -> List a -> Option a
 nth index list =
-  let i = if index >= 0 then index else list#size()#intValue() + index
   let len = list#size()#intValue()
-  if i < 0 || i >= len
+  if index < 0 || index >= len
     then None
-    else Some list.[i]
+    else Some list.[index]
 
 /**
  * Returns the size of this list.
