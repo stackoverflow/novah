@@ -35,7 +35,7 @@ new {{Equals eq}} hashFn =
  */
 pub
 add : a -> Set a -> Set a
-add x (set : Set a) = set#add(x)
+add x set = set#add(x)
 
 /**
  * Removes this element from the set.
@@ -43,7 +43,7 @@ add x (set : Set a) = set#add(x)
  */
 pub
 remove : a -> Set a -> Set a
-remove x (set : Set a) = set#remove(x)
+remove x set = set#remove(x)
 
 /**
  * Returns the size of this set.
@@ -51,7 +51,7 @@ remove x (set : Set a) = set#remove(x)
  */
 pub
 size : Set a -> Int32
-size (set : Set a) =
+size set =
   set#size()#intValue()
 
 /**
@@ -59,7 +59,7 @@ size (set : Set a) =
  */
 pub
 isEmpty : Set a -> Boolean
-isEmpty (set : Set a) = set#size() == 0L
+isEmpty set = set#size() == 0L
 
 /**
  * Returns true if this set is not empty.
@@ -67,7 +67,7 @@ isEmpty (set : Set a) = set#size() == 0L
  */
 pub
 isNotEmpty : Set a -> Boolean
-isNotEmpty (set : Set a) = set#size() != 0L
+isNotEmpty set = set#size() != 0L
 
 /**
  * Returns some value at index for this set if it exists or none.
@@ -76,7 +76,7 @@ isNotEmpty (set : Set a) = set#size() != 0L
  */
 pub
 nth : Int32 -> Set a -> Option a
-nth index (set : Set a) =
+nth index set =
   let i = if index >= 0 then index else set#size()#intValue() + index
   let len = set#size()#intValue()
   if i < 0 || i >= len
@@ -89,28 +89,28 @@ nth index (set : Set a) =
  */
 pub
 union : Set a -> Set a -> Set a
-union (s1 : Set a) s2 = s1#union(s2 as ISet a)
+union s1 s2 = s1#union(s2 as ISet a)
 
 /**
  * Returns all elements in set 1 that are not in set 2.
  */
 pub
 difference : Set a -> Set a -> Set a
-difference (s1 : Set a) s2 = s1#difference(s2 as ISet a)
+difference s1 s2 = s1#difference(s2 as ISet a)
 
 /**
  * Returns the intersection between these 2 sets.
  */
 pub
 intersection : Set a -> Set a -> Set a
-intersection (s1 : Set a) s2 = s1#intersection(s2 as ISet a)
+intersection s1 s2 = s1#intersection(s2 as ISet a)
 
 /**
  * Returns a stream for this set.
  */
 pub
 stream : Set a -> Stream a
-stream (set : Set a) = set#stream()
+stream set = set#stream()
 
 /**
  * Collects this stream into a set.
@@ -129,7 +129,7 @@ fromStream st =
  */
 pub
 forEach : Set a -> (a -> Unit) -> Unit
-forEach (set : Set a) f =
+forEach set f =
   forEachRange (0L .> set#size()) \idx ->
     f set#nth(idx)
 
@@ -139,7 +139,7 @@ forEach (set : Set a) f =
  */
 pub
 forEachIndexed : Set a -> (Int32 -> a -> Unit) -> Unit
-forEachIndexed (set : Set a) f =
+forEachIndexed set f =
   forEachRange (0L .> set#size()) \(idx : Int64) ->
     f idx#intValue() set#nth(idx)
 
@@ -150,7 +150,7 @@ forEachIndexed (set : Set a) f =
  */
 pub
 map : (a -> b) -> Set a -> Set b
-map f (set : Set a) =
+map f set =
   let lset = #{}#linear()
   forEachRange (0L .> set#size()) \idx ->
     add (f set#nth(idx)) lset
@@ -163,7 +163,7 @@ map f (set : Set a) =
  */
 pub
 filter : (a -> Boolean) -> Set a -> Set a
-filter pred (set : Set a) =
+filter pred set =
   let lset = #{}#linear()
   forEachRange (0L .> set#size()) \idx ->
     let elem = set#nth(idx)
@@ -179,7 +179,7 @@ filter pred (set : Set a) =
  */
 pub
 find : (a -> Boolean) -> Set a -> Option a
-find pred (set : Set a) =
+find pred set =
   let lset = #{}#linear()
   forEachBreak 0 set#size()#intValue() \(idx : Int32) ->
     let elem = set#nth(idx#longValue())
@@ -197,7 +197,7 @@ find pred (set : Set a) =
  */
 pub
 contains : a -> Set a -> Boolean
-contains elem (set : Set a) = set#contains(elem)
+contains elem set = set#contains(elem)
 
 /**
  * Reduces this set to a single value according to the reducing function.
@@ -479,7 +479,7 @@ toList set =
  */
 pub
 withLinear : Set a -> (Set a -> b) -> Set a
-withLinear (set : Set a) f =
+withLinear set f =
   let lin = set#linear()
   f lin
   (lin : Set a)#forked()

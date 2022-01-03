@@ -26,7 +26,7 @@ size arr = Core#getArrayLength(arr)
  */
 pub
 stream : Array a -> Stream a
-stream (arr : Array a) = Arrays#stream(arr) as Stream a
+stream arr = Arrays#stream(arr) as Stream a
 
 /**
  * Collects this stream into an array.
@@ -116,7 +116,7 @@ forEachIndexed arr f =
  */
 pub
 map : (a -> b) -> Array a -> Array Object
-map f (arr : Array a) =
+map f arr =
   let len = size arr
   let res = arrayOf Object#-class len
   forEachRange (0 .> len) \i ->
@@ -153,7 +153,7 @@ sort {{Ord _ ord}} arr = sortBy ord.compare arr
  */
 pub
 reverse : Array a -> Array a
-reverse (arr : Array a) =
+reverse arr =
   let len = size arr
   let res = emptyCopy arr
   forEachRange (0 .> len) \idx ->

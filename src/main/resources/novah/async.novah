@@ -21,7 +21,7 @@ foreign import java.util.concurrent.TimeUnit
  */
 pub
 get : CompletableFuture a -> a
-get (fut : CompletableFuture a) = fut#get()
+get fut = fut#get()
 
 /**
  * Returns the value inside the future if it's completed,
@@ -29,7 +29,7 @@ get (fut : CompletableFuture a) = fut#get()
  */
 pub
 getOr : CompletableFuture a -> a -> a
-getOr (fut : CompletableFuture a) def = fut#getNow(def)
+getOr fut def = fut#getNow(def)
 
 /**
  * Blocks the future until it returns a result.
@@ -37,7 +37,7 @@ getOr (fut : CompletableFuture a) def = fut#getNow(def)
  */
 pub
 wait : CompletableFuture a -> Int64 -> TimeUnit -> Option a
-wait (fut : CompletableFuture a) time tunit =
+wait fut time tunit =
   try
     Some fut#get(time, tunit)
   catch
@@ -49,21 +49,21 @@ wait (fut : CompletableFuture a) time tunit =
  */
 pub
 complete : CompletableFuture a -> a -> Boolean
-complete (fut : CompletableFuture a) value = fut#complete(value)
+complete fut value = fut#complete(value)
 
 /**
  * Returns true if this future is completed in any form.
  */
 pub
 isDone : CompletableFuture a -> Boolean
-isDone (fut : CompletableFuture a) = fut#isDone()
+isDone fut = fut#isDone()
 
 /**
  * Returns true if this future is cancelled.
  */
 pub
 isCancelled : CompletableFuture a -> Boolean
-isCancelled (fut : CompletableFuture a) = fut#isCancelled()
+isCancelled fut = fut#isCancelled()
 
 /**
  * Creates a future that will run this function asynchronously.
@@ -85,14 +85,14 @@ newWith exe fun = CompletableFuture#supplyAsync(Java.supplier fun, exe)
  */
 pub
 sleep : Int64 -> TimeUnit -> CompletableFuture Unit
-sleep time (tunit : TimeUnit) = new (\_ -> tunit#sleep(time))
+sleep time tunit = new (\_ -> tunit#sleep(time))
 
 /**
  * Maps the given function asynchronously taking the result of this future as argument.
  */
 pub
 map : (a -> b) -> CompletableFuture a -> CompletableFuture b
-map fun (fut : CompletableFuture a) = fut#thenApply(fun as Object -> b)
+map fun fut = fut#thenApply(fun as Object -> b)
 
 /**
  * Maps the given function asynchronously taking the result of this future as argument.
@@ -100,7 +100,7 @@ map fun (fut : CompletableFuture a) = fut#thenApply(fun as Object -> b)
  */
 pub
 flatMap : (a -> CompletableFuture b) -> CompletableFuture a -> CompletableFuture b
-flatMap fun (fut : CompletableFuture a) = fut#thenCompose(fun as Object -> Object)
+flatMap fun fut = fut#thenCompose(fun as Object -> Object)
 
 /**
  * Runs the given function asynchronously with the result of both futures, returning a new future.
@@ -108,7 +108,7 @@ flatMap fun (fut : CompletableFuture a) = fut#thenCompose(fun as Object -> Objec
  */
 pub
 combine : (a -> b -> c) -> CompletableFuture a -> CompletableFuture b -> CompletableFuture c
-combine (fun : a -> b -> c) (fut : CompletableFuture a) (other : CompletableFuture b) =
+combine (fun : a -> b -> c) fut other =
   fut#thenCombine(other as CompletionStage b, Java.biFunction fun)
 
 /**
@@ -116,7 +116,7 @@ combine (fun : a -> b -> c) (fut : CompletableFuture a) (other : CompletableFutu
  */
 pub
 all : List (CompletableFuture a) -> CompletableFuture Unit
-all (futs : List (CompletableFuture a)) =
+all futs =
   let arr = (List.toTypedArray CompletableFuture#-class futs) as Array (CompletableFuture a)
   CompletableFuture#allOf(arr) as CompletableFuture Unit
 
@@ -125,7 +125,7 @@ all (futs : List (CompletableFuture a)) =
  */
 pub
 any : List (CompletableFuture a) -> CompletableFuture a
-any (futs : List (CompletableFuture a)) =
+any futs =
   let arr = (List.toTypedArray CompletableFuture#-class futs)
   CompletableFuture#anyOf(arr) as CompletableFuture a
 
@@ -135,7 +135,7 @@ any (futs : List (CompletableFuture a)) =
  */
 pub
 exceptionally : (Throwable -> a) -> CompletableFuture a -> CompletableFuture a
-exceptionally fun (fut : CompletableFuture a) = fut#exceptionally(fun)
+exceptionally fun fut = fut#exceptionally(fun)
 
 /**
  * Adds a handler to this future.
@@ -143,7 +143,7 @@ exceptionally fun (fut : CompletableFuture a) = fut#exceptionally(fun)
  */
 pub
 handle : (Result a Throwable -> b) -> CompletableFuture a -> CompletableFuture b
-handle fun (fut : CompletableFuture a) =
+handle fun fut =
   let handler res ex =
     case Option.toOption res of
       Some x -> Ok x |> fun

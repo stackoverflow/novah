@@ -51,9 +51,9 @@ equals x y = (x as Object)#equals(y as Object)
 pub
 assert : Boolean -> String -> Unit
 assert cond msg =
-  if cond
-    then ()
-    else throw AssertionError#new(format "Assert failed: %s" [msg] as Object)
+  if cond then
+    ()
+  else throw AssertionError#new(format "Assert failed: %s" [msg] as Object)
 
 /**
  * Executes the function for each value in this iterator.
@@ -61,7 +61,7 @@ assert cond msg =
  */
 pub
 forEach : Iterator a -> (a -> Unit) -> Unit
-forEach (it : Iterator a) fun =
+forEach it fun =
   while it#hasNext() do
     fun it#next()
 

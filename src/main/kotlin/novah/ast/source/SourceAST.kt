@@ -289,6 +289,13 @@ sealed class Type(open val span: Span) {
     data class TRowExtend(val labels: Labels<Type>, val row: Row, override val span: Span) : Type(span)
     data class TImplicit(val type: Type, override val span: Span) : Type(span)
 
+    fun isConcrete(): Boolean = when (this) {
+        is TConst -> name[0].isUpperCase()
+        is TParens -> type.isConcrete()
+        is TApp -> type.isConcrete()
+        else -> false
+    }
+
     /**
      * Walks this type bottom->up
      */
