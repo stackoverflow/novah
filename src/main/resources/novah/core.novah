@@ -178,20 +178,6 @@ todo : String -> a
 todo msg = throw AssertionError#new(format "Not implemented: %s" [msg] as Object)
 
 /**
- * Converts this 64-bit integer to a 32-bit integer.
- */
-pub
-int : Int64 -> Int32
-int l = l#intValue()
-
-/**
- * Converts this 32-bit integer to a 64-bit integer.
- */
-pub
-int64 : Int32 -> Int64
-int64 i = i#longValue()
-
-/**
  * Sets the value of this list at the specified index to x.
  * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: ~O(1)
@@ -971,6 +957,118 @@ numberOpsFloat64 =
     , min: \(x : Float64) y -> Math#min(x, y)
     , max: \(x : Float64) y -> Math#max(x, y)
     , abs: \(x : Float64) -> Math#abs(x)
+    }
+
+/**
+ * Types that can be converted to numbers.
+ * Many of these conversions are unsafe like
+ * int64 -> int, String -> int, etc.
+ * Booleans are converted to 1 for true and 0 for false.
+ */
+pub+
+opaque type ToNumber a =
+  { int : a -> Int32
+  , int64 : a -> Int64
+  , float32 : a -> Float32
+  , float64 : a -> Float64
+  }
+
+/**
+ * Converts this value to a 32-bit integer.
+ */
+pub
+int : {{ ToNumber a }} -> a -> Int32
+int {{ToNumber t}} x = t.int x
+
+/**
+ * Converts this value to a 64-bit integer.
+ */
+pub
+int64 : {{ ToNumber a }} -> a -> Int64
+int64 {{ToNumber t}} x = t.int64 x
+
+/**
+ * Converts this value to a 32-bit float.
+ */
+pub
+float32 : {{ ToNumber a }} -> a -> Float32
+float32 {{ToNumber t}} x = t.float32 x
+
+/**
+ * Converts this value to a 64-bit float.
+ */
+pub
+float64 : {{ ToNumber a }} -> a -> Float64
+float64 {{ToNumber t}} x = t.float64 x
+
+pub instance
+toNumberInt32 : ToNumber Int32
+toNumberInt32 =
+  ToNumber
+    { int: identity
+    , int64: \(n : Int32) -> n#longValue()
+    , float32: \(n : Int32) -> n#floatValue()
+    , float64: \(n : Int32) -> n#doubleValue()
+    }
+
+pub instance
+toNumberInt64 : ToNumber Int64
+toNumberInt64 =
+  ToNumber
+    { int: \(n : Int64) -> n#intValue()
+    , int64: identity
+    , float32: \(n : Int64) -> n#floatValue()
+    , float64: \(n : Int64) -> n#doubleValue()
+    }
+
+pub instance
+toNumberFloat32 : ToNumber Float32
+toNumberFloat32 =
+  ToNumber
+    { int: \(n : Float32) -> n#intValue()
+    , int64: \(n : Float32) -> n#longValue()
+    , float32: identity
+    , float64: \(n : Float32) -> n#doubleValue()
+    }
+
+pub instance
+toNumberFloat64 : ToNumber Float64
+toNumberFloat64 =
+  ToNumber
+    { int: \(n : Float64) -> n#intValue()
+    , int64: \(n : Float64) -> n#longValue()
+    , float32: \(n : Float64) -> n#floatValue()
+    , float64: identity
+    }
+
+pub instance
+toNumberChar : ToNumber Char
+toNumberChar =
+  ToNumber
+    { int: Core#charToInt(_)
+    , int64: \n -> Core#charToInt(n)#longValue()
+    , float32: \n -> Core#charToInt(n)#floatValue()
+    , float64: \n -> Core#charToInt(n)#doubleValue()
+    }
+
+pub instance
+toNumberString : ToNumber String
+toNumberString =
+  ToNumber
+    { int: Int32#parseInt(_)
+    , int64: Int64#parseLong(_)
+    , float32: Float32#parseFloat(_)
+    , float64: Float64#parseDouble(_)
+    }
+
+pub instance
+toNumberBoolean : ToNumber Boolean
+toNumberBoolean =
+  ToNumber
+    { int: if _ then 1 else 0
+    , int64: if _ then 1L else 0L
+    , float32: if _ then 1.0F else 0.0F
+    , float64: if _ then 1.0 else 0.0
     }
 
 /**
