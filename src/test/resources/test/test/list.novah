@@ -15,6 +15,7 @@ listTests =
   test "List reading functions" \_ ->
     let list = [1, 2, 3, 4]
     list.[2] `shouldBe` 3
+    list.[-1] `shouldBe` 4
     List.nth 2 list `shouldBe` Some 3
     List.first list `shouldBe` Some 1
     List.last list `shouldBe` Some 4

@@ -178,8 +178,18 @@ todo : String -> a
 todo msg = throw AssertionError#new(format "Not implemented: %s" [msg] as Object)
 
 /**
+ * Returns some value at index for this list if it exists.
+ * *Unsafe*: Will throw an exception if the index is out of bounds.
+ * This function is similar to the index operator `list.[i]` but
+ * it does not work on negative indexes.
+ */
+pub
+(!) : List a -> Int32 -> a
+(!) list idx = list#nth(idx#longValue())
+
+/**
  * Sets the value of this list at the specified index to x.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: ~O(1)
  */
 pub
@@ -188,7 +198,7 @@ setAt index x list = list#set(index#longValue(), x)
 
 /**
  * Updates the value of this list at the specified index by applying function f to the old value.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
  * Runtime: ~O(1)
  */
 pub

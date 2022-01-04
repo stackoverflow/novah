@@ -187,7 +187,7 @@ sealed class Expr {
     data class RecordMerge(val exp1: Expr, val exp2: Expr) : Expr()
     data class ListLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
-    data class ListIndex(val exp: Expr, val index: Expr) : Expr()
+    data class Index(val exp: Expr, val index: Expr) : Expr()
     class Underscore : Expr()
     data class Throw(val exp: Expr) : Expr()
     data class TryCatch(val tryExpr: Expr, val cases: List<Case>, val finallyExp: Expr?) : Expr()

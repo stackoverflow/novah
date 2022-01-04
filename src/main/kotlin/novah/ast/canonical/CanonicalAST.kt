@@ -134,7 +134,9 @@ sealed class Expr(open val span: Span) {
     data class RecordMerge(val exp1: Expr, val exp2: Expr, override val span: Span) : Expr(span)
     data class ListLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
     data class SetLiteral(val exps: List<Expr>, override val span: Span) : Expr(span)
-    data class ListIndex(val exp: Expr, val index: Expr, override val span: Span) : Expr(span)
+    data class Index(val exp: Expr, val index: Expr, override val span: Span) : Expr(span) {
+        var method: Method? = null
+    }
     data class Throw(val exp: Expr, override val span: Span) : Expr(span)
     data class TryCatch(val tryExp: Expr, val cases: List<Case>, val finallyExp: Expr?, override val span: Span) :
         Expr(span)
@@ -280,7 +282,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.RecordMerge -> f(e.copy(exp1 = go(e.exp1), exp2 = go(e.exp2)))
         is Expr.ListLiteral -> f(e.copy(exps = e.exps.map(::go)))
         is Expr.SetLiteral -> f(e.copy(exps = e.exps.map(::go)))
-        is Expr.ListIndex -> f(e.copy(exp = go(e.exp), index = go(e.index)))
+        is Expr.Index -> f(e.copy(exp = go(e.exp), index = go(e.index)))
         is Expr.Throw -> f(e.copy(exp = go(e.exp)))
         is Expr.TryCatch -> {
             val cases = e.cases.map {
@@ -398,7 +400,7 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
                 f(e)
                 e.exps.forEach { go(it) }
             }
-            is Expr.ListIndex -> {
+            is Expr.Index -> {
                 f(e)
                 go(e.exp)
                 go(e.index)

@@ -21,6 +21,8 @@ arrayTests =
 
   test "Array writing functions" \_ ->
     let arr = ia [1, 2, 3]
+    arr.[1] `shouldBe` 2
+    arr.[-1] `shouldBe` 3
     aset 1 5 arr
     arr `shouldBe` ia [1, 5, 3]
     aupdate 2 (_ + 5) arr

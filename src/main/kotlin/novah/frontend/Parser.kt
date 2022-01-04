@@ -548,7 +548,7 @@ class Parser(
 
         if (exp == null) return exp
 
-        // record selection, list index, !! and method/field call have the highest precedence
+        // record selection, index (.[x]), unwrap (!!) and method/field call have the highest precedence
         return parseSelection(exp)
     }
 
@@ -563,8 +563,8 @@ class Parser(
         is DotBracket -> {
             iter.next()
             val index = parseExpression()
-            val end = expect<RSBracket>(withError(E.rsbracketExpected("list index")))
-            val res = Expr.ListIndex(exp, index).withSpan(exp.span, end.span)
+            val end = expect<RSBracket>(withError(E.rsbracketExpected("index")))
+            val res = Expr.Index(exp, index).withSpan(exp.span, end.span)
             parseSelection(res)
         }
         is Hash -> {

@@ -15,6 +15,7 @@
  */
 package novah.frontend.typechecker
 
+import novah.Core
 import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
@@ -344,12 +345,40 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             val res = TApp(TConst(primSet), listOf(ty))
             exp.withType(res)
         }
-        is Expr.ListIndex -> {
+        is Expr.Index -> {
             val indexType = infer(env, level, exp.index)
-            uni.unify(indexType, tInt32, exp.index.span)
-            val listType = infer(env, level, exp.exp)
+            val type = infer(env, level, exp.exp)
+            val rtype = type.realType()
             val ty = tc.newVar(level)
-            uni.unify(listType, TApp(TConst(primList), listOf(ty)), exp.exp.span)
+            when {
+                rtype.isList() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, TApp(TConst(primList), listOf(ty)), exp.exp.span)
+                    exp.method = listGet
+                }
+                rtype.isSet() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, TApp(TConst(primSet), listOf(ty)), exp.exp.span)
+                    exp.method = setGet
+                }
+                rtype.isArray() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, TApp(TConst(primArray), listOf(ty)), exp.exp.span)
+                    exp.method = arrayGet
+                }
+                rtype is TConst && rtype.name == primString -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(ty, tChar, exp.exp.span)
+                    exp.method = stringGet
+                }
+                rtype.realType().isMap() -> {
+                    val keyTy = tc.newVar(level)
+                    uni.unify(indexType, keyTy, exp.index.span)
+                    uni.unify(type, TApp(TConst(primMap), listOf(keyTy, ty)), exp.exp.span)
+                    exp.method = mapGet
+                }
+                else -> inferError(E.UNKNOW_TYPE_FOR_INDEX, exp.span)
+            }
             exp.withType(ty)
         }
         is Expr.Throw -> {
@@ -816,5 +845,13 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             action = action
         )
         errors += warn
+    }
+
+    companion object {
+        val listGet = Core::class.java.methods.find { it.name == "listGet" }!!
+        val setGet = Core::class.java.methods.find { it.name == "setGet" }!!
+        val arrayGet = Core::class.java.methods.find { it.name == "arrayGet" }!!
+        val stringGet = Core::class.java.methods.find { it.name == "stringGet" }!!
+        val mapGet = Core::class.java.methods.find { it.name == "mapGet" }!!
     }
 }

@@ -187,6 +187,9 @@ object Errors {
 
     const val RECURSIVE_LET = "Let variables cannot be recursive."
 
+    const val UNKNOW_TYPE_FOR_INDEX =
+        "The type of operator 'expr.[index]' is unknown at this point. Consider adding further type information."
+
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
         
@@ -196,7 +199,8 @@ object Errors {
         Record values: { name: _ }, { age: 10 | _ }
         Record restrictions: { - name | _ }
         Record merges: { + _, rec }
-        List access: _.[1], list.[_]
+        Index access: _.[1], list.[_]
+        Option unwrap: _!!
         Ifs: if _ then 1 else 0, if check then _ else _
         Cases: case _ of ...
         Foreign fields: (_ : MyClass)#-field

@@ -450,6 +450,26 @@ public class Core {
         return list.nth(idx);
     }
 
+    public static <T> T setGet(int index, Set<T> set) {
+        long idx = index >= 0 ? index : set.size() + index;
+        return set.nth(idx);
+    }
+
+    public static <T> T arrayGet(int index, T[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
+    public static char stringGet(int index, String str) {
+        int idx = index >= 0 ? index : str.length() + index;
+        return str.charAt(idx);
+    }
+
+    public static <K, V> V mapGet(K key, Map<K, V> map) {
+        if (!map.contains(key)) throw new Error("Key does not exist in map");
+        return map.get(key, null);
+    }
+
     public static <T> boolean equalsList(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
         if (v1.hashCode() == v2.hashCode()) return true;
