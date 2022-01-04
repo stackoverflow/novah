@@ -35,6 +35,7 @@ sealed class Token {
     object DotBracket : Token()
     object Comma : Token()
     object Colon : Token()
+    object Semicolon : Token()
     object Equals : Token()
     object Backslash : Token()
     object Arrow : Token()
@@ -245,6 +246,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 }
             }
             ',' -> Comma
+            ';' -> Semicolon
             '\\' -> Backslash
             '\'' -> char()
             '"' -> string()

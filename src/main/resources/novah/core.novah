@@ -1252,13 +1252,6 @@ pub+
 type Tuple a b = Tuple a b
 
 /**
- * Creates a tuple out of two values.
- */
-pub
-(<>) : a -> b -> Tuple a b
-(<>) = Tuple
-
-/**
  * Returns the first element of this tuple.
  * Runtime: O(1)
  */

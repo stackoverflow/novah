@@ -19,7 +19,7 @@
 - [ ] Add `Ord` requirement to `NumberOps`
 - [ ] List patterns warn if used together (a fix the new pattern matching compiler)
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
-- [ ] make better range (maybe improve `for`s also to be generic)
+- [ ] Make better range (maybe improve `for`s also to be generic)
 
 ## LSP / IDE
 
