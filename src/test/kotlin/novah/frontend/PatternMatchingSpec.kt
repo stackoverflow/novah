@@ -197,6 +197,19 @@ class PatternMatchingSpec : StringSpec({
         val ds = TestUtil.compileCode(code).env.decls
         ds["fun"]?.type?.simpleName() shouldBe "Unit -> Int32"
     }
+
+    "pattern match tuples" {
+        val code = """
+            fun () =
+              case 1 ; 6 of
+                (0 as x) ; 5 -> x
+                1 ; 4 as x -> x
+                _ ; _ -> 0
+        """.module()
+
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["fun"]?.type?.simpleName() shouldBe "Unit -> Int32"
+    }
     
     "multi pattern test" {
         val code = """

@@ -479,6 +479,10 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SPattern.Named -> Pattern.Named(pat.desugar(locals, tvars), name, span)
         is SPattern.Unit -> Pattern.Unit(span)
         is SPattern.TypeTest -> Pattern.TypeTest(type.desugar(), alias, span)
+        is SPattern.TuplePattern -> {
+            val ctor = Expr.Constructor("Tuple", span, "novah.core")
+            Pattern.Ctor(ctor, listOf(p1.desugar(locals, tvars), p2.desugar(locals, tvars)), span)
+        }
         is SPattern.ImplicitPattern -> parserError(E.IMPLICIT_PATTERN, span)
         is SPattern.TypeAnnotation -> parserError(E.ANNOTATION_PATTERN, span)
     }
@@ -589,6 +593,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             if (pat.alias != null) listOf(CollectedVar(pat.alias, pat.span, implicit)) else emptyList()
         }
         is SPattern.TypeAnnotation -> collectVars(pat.pat)
+        is SPattern.TuplePattern -> listOf(pat.p1, pat.p2).flatMap { collectVars(it, implicit) }
     }
 
     private fun nestLambdas(binders: List<Binder>, exp: Expr): Expr {

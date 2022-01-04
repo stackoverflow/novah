@@ -1007,7 +1007,7 @@ class Parser(
         }
         if (pat == null) return pat
 
-        // named and annotation patterns
+        // named, tuple and annotation patterns
         return when (iter.peek().value) {
             is As -> {
                 iter.next()
@@ -1020,6 +1020,11 @@ class Parser(
                     val type = parseType()
                     Pattern.TypeAnnotation(pat, type, span(pat.span, type.span))
                 } else pat
+            }
+            is Semicolon -> {
+                iter.next()
+                val p2 = parsePattern(isDestructuring)
+                Pattern.TuplePattern(pat, p2, span(pat.span, p2.span))
             }
             else -> pat
         }
