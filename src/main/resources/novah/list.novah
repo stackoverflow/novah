@@ -94,7 +94,7 @@ mapSome f = map f >> removeNones
 
 /**
  * Returns some value at index for this list if it exists or none.
- * This is a safe version of the list index operator: `list.[index]`.
+ * This is a safe version of the index operator: `list.[index]`.
  * Runtime: ~O(1)
  */
 pub
@@ -917,7 +917,7 @@ zipAll list =
   let len = (map size list |> min) ?: 0
   let res = []#linear()
   forEachRange (0 .> len) \i ->
-    addLast (map _.[i] list) res
+    addLast (map (_ ! i) list) res
     ()
   res#forked()
 

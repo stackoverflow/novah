@@ -218,7 +218,7 @@ class Formatter {
             is Expr.RecordMerge -> "{ + ${show(e.exp1)}, ${show(e.exp2)} }"
             is Expr.ListLiteral -> e.exps.joinToString(prefix = "[", postfix = "]") { show(it) }
             is Expr.SetLiteral -> e.exps.joinToString(prefix = "#{", postfix = "}") { show(it) }
-            is Expr.ListIndex -> "${show(e.exp)}.[${show(e.index)}]"
+            is Expr.Index -> "${show(e.exp)}.[${show(e.index)}]"
             is Expr.Underscore -> "_"
             is Expr.BinApp -> "${show(e.left)} ${show(e.op)} ${show(e.right)}"
             is Expr.Throw -> "throw ${show(e.exp)}"
