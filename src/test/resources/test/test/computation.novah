@@ -11,9 +11,9 @@ listTests =
     let l = do.list
       for x in 1 .. 5 do
         for y in 2 .. 6 do
-          if Math.isEven (x + y) then yield (x <> y)
-    l `shouldBe` [1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4]
-  
+          if Math.isEven (x + y) then yield x ; y
+    l `shouldBe` [1 ; 3, 1 ; 5, 2 ; 2, 2 ; 4, 3 ; 3, 3 ; 5, 4 ; 2, 4 ; 4]
+
     let l2 = do.list
       for x in 1 .. 6 do
         let y = 0
@@ -25,44 +25,44 @@ listTests =
     let s = do.set
       for x in #{1, 2, 3, 4} do
         for y in #{2, 3, 4, 5} do
-          if Math.isEven (x + y) then yield (x <> y)
-    s `shouldBe` #{1 <> 3, 1 <> 5, 2 <> 2, 2 <> 4, 3 <> 3, 3 <> 5, 4 <> 2, 4 <> 4}
+          if Math.isEven (x + y) then yield x ; y
+    s `shouldBe` #{1 ; 3, 1 ; 5, 2 ; 2, 2 ; 4, 3 ; 3, 3 ; 5, 4 ; 2, 4 ; 4}
 
   test "LinkedList computations" \_ ->
     let l = do.linkedList
       for x in LinkedList.rangeTo 1 5 do
         for y in LinkedList.rangeTo 2 6 do
-          if Math.isEven (x + y) then yield (x <> y)
-    l `shouldBe` ((1 <> 3) :: (1 <> 5) :: (2 <> 2) :: (2 <> 4) :: (3 <> 3) :: (3 <> 5) :: (4 <> 2) :: (4 <> 4) :: Nil)
+          if Math.isEven (x + y) then yield x ; y
+    l `shouldBe` ((1 ; 3) :: (1 ; 5) :: (2 ; 2) :: (2 ; 4) :: (3 ; 3) :: (3 ; 5) :: (4 ; 2) :: (4 ; 4) :: Nil)
 
   test "Option computations" \_ ->
     let opt = do.option
       let! x = Some 3
       let! y = Some 5
-      if Math.isEven (x + y) then return (x <> y)
-    opt `shouldBe` Some (3 <> 5)
+      if Math.isEven (x + y) then return x ; y
+    opt `shouldBe` Some (3 ; 5)
 
     let opt2 = do.option
       let! x = Some 4
       let! y = Some 5
-      if Math.isEven (x + y) then return (x <> y)
+      if Math.isEven (x + y) then return x ; y
     opt2 `shouldBe` None
 
     let opt3 = do.option
       let! x = None
       let! y = Some 5
-      if Math.isEven (x + y) then return (x <> y)
+      if Math.isEven (x + y) then return x ; y
     opt3 `shouldBe` None
 
   test "Result computation" \_ ->
     let res = do.result
       let! x = Ok 3 : Result Int Int
       let! y = Ok 5
-      return (x + y)
+      return x + y
     res `shouldBe` Ok 8
 
     let res2 = do.result
       let! x = Err 3
       let! y = Ok 5
-      return (x + y)
+      return x + y
     res2 `shouldBe` Err 3

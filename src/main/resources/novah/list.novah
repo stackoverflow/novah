@@ -867,7 +867,7 @@ indices list =
  * Ex:
  * ```novah
  * zip [1, 2, 3, 4, 5] ["a", "b", "c"]
- * // => [1 <> "a", 2 <> "b", 3 <> "c"]
+ * // => [1 ; "a", 2 ; "b", 3 ; "c"]
  * ```
  * Runtime: O(n)
  */
@@ -877,7 +877,7 @@ zip l1 l2 =
   let length = if size l1 > size l2 then size l2 else size l1
   let lin = []#linear()
   forEachRange (0 .> length) \i ->
-    addLast (l1.[i] <> l2.[i]) lin
+    addLast (l1.[i] ; l2.[i]) lin
     ()
   lin#forked()
 
@@ -926,8 +926,8 @@ zipAll list =
  * The opposite of `zip`.
  * Ex:
  * ```novah
- * unzip [1 <> "a", 2 <> "b", 3 <> "c"]
- * // => [1, 2, 3, 4, 5] <> ["a", "b", "c"]
+ * unzip [1 ; "a", 2 ; "b", 3 ; "c"]
+ * // => [1, 2, 3, 4, 5] ; ["a", "b", "c"]
  * ```
  * Runtime: O(n)
  */
@@ -940,7 +940,7 @@ unzip list =
     addLast x lin
     addLast x2 lin2
     ()
-  lin#forked() <> lin2#forked()
+  lin#forked() ; lin2#forked()
 
 /**
  * Removes all empty options from the list.

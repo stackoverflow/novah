@@ -169,7 +169,7 @@ toList : Map k v -> List (Tuple k v)
 toList map =
   let lin = []#linear()
   forEach map \k v ->
-    addLast (k <> v) lin
+    addLast (k ; v) lin
     ()
   lin#forked()
 
@@ -185,7 +185,7 @@ eqMap {{Equals eqk}} {{Equals eqv}} = Equals \x y -> Core#equalsMap(x, y, eqk, e
  * All functions that alter maps like `put`, `update`, `remove`, etc.
  * will mutate a linear map.
  * Ex:
- *   withLinear (Map.new ["a" <> 1, "b" <> 2, "c" <> 3]) \map ->
+ *   withLinear (Map.new ["a" ; 1, "b" ; 2, "c" ; 3]) \map ->
  *     put "d" 4 map
  *     remove "b" map
  *

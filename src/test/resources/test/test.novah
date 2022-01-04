@@ -43,7 +43,7 @@ myfun x =
 
 typecast : String -> Map String Id
 typecast typ =
-  Map.new ["a" <> Id typ] as Map String Id
+  Map.new ["a" ; Id typ] as Map String Id
 
 /**
  * The badge is a lie.

@@ -426,6 +426,10 @@ class Parser(
             is Ident -> parseVar()
             is Op -> parseOperator()
             is Null -> parseNull()
+            is Semicolon -> {
+                val tk = iter.next()
+                Expr.Operator("Tuple", true).withSpanAndComment(tk)
+            }
             is Underline -> {
                 val tk = iter.next()
                 val under = Expr.Underscore().withSpan(tk.span).withComment(tk.comment)

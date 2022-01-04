@@ -208,7 +208,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             if (alias != null) checkAlias(alias, span)
             val importedModule = imports[fullname()]
             if (importedModule != null) usedImports += importedModule
-            Expr.Var(name, span, importedModule, isOp = true)
+            if (name[0].isUpperCase()) Expr.Constructor(name, span, importedModule)
+            else Expr.Var(name, span, importedModule, isOp = true)
         }
         is SExpr.Constructor -> {
             if (alias == null) usedVars += name

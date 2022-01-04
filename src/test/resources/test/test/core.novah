@@ -74,7 +74,7 @@ coreTests =
     (Some "abc" ++ None) `shouldBe` None
 
   test "Core tuples" \_ ->
-    let tup = 3 <> true
+    let tup = 3 ; true
     tup `shouldBe` Tuple 3 true
     fst tup `shouldBe` 3
     snd tup `shouldBe` true
