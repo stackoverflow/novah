@@ -384,66 +384,6 @@ lines str =
   str#lines() |> List.fromStream
 
 /**
- * Parses this string to an int in base 10.
- * **Unsafe**: will throw an exception for invalid strings.
- * `Number.parseInt` is recommended instead of this function.
- */
-pub
-toInt : String -> Int32
-toInt str =
-  Int32#parseInt(str)
-
-/**
- * Parses this string to an int in the given base.
- * **Unsafe**: will throw an exception for invalid strings.
- * `Number.parseIntRadix` is recommended instead of this function.
- */
-pub
-toIntRadix : Int32 -> String -> Int32
-toIntRadix radix str =
-  Int32#parseInt(str, radix)
-
-/**
- * Parses this string to an int64 in base 10.
- * **Unsafe**: will throw an exception for invalid strings.
- * `Number.parseInt64` is recommended instead of this function.
- */
-pub
-toInt64 : String -> Int64
-toInt64 str =
-  Int64#parseLong(str)
-
-/**
- * Parses this string to an int64 in the given base.
- * **Unsafe**: will throw an exception for invalid strings.
- * `Number.parseInt64Radix` is recommended instead of this function.
- */
-pub
-toInt64Radix : Int32 -> String -> Int64
-toInt64Radix radix str =
-  Int64#parseLong(str, radix)
-
-/**
- * Parses this string to an float32.
- * **Unsafe**: will throw an exception for invalid strings.
- * `Number.parseFloat` is recommended instead of this function.
- */
-pub
-toFloat32 : String -> Float32
-toFloat32 str =
-  Float32#parseFloat(str)
-
-/**
- * Parses this string to an float64.
- * **Unsafe**: will throw an exception for invalid strings.
- * `Number.parseFloat64` is recommended instead of this function.
- */
-pub
-toFloat64 : String -> Float64
-toFloat64 str =
-  Float64#parseDouble(str)
-
-/**
  * Finds the smallest common indentation of all lines in this string
  * and removes it.
  * Blank lines will be removed.
