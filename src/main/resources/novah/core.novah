@@ -306,6 +306,18 @@ pub
     None -> def
 
 /**
+ * Extracts the value out of this option.
+ * *Unsafe*: Will thrown an exception if the option is empty.
+ * The `!!` syntactic sugar can be used instead,
+ * but this function still needs to be in scope.
+ */
+pub
+unwrapOption : Option a -> a
+unwrapOption = case _ of
+  Some x -> x
+  None -> throw AssertionError#new("Empty Option" as Object)
+
+/**
  * Threads optional values together stopping as soon as
  * the option is empty.
  * This is a flipped version of `Option.flatMap`.

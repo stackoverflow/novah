@@ -65,8 +65,8 @@ parseInt str =
  * Tries to parse a string to an int in base `radix`.
  */
 pub
-parseIntRadix : String -> Int32 -> Option Int32
-parseIntRadix str radix =
+parseIntRadix : Int32 -> String -> Option Int32
+parseIntRadix radix str =
   try
     Some Int32#parseInt(str, radix)
   catch
@@ -87,8 +87,8 @@ parseInt64 str =
  * Tries to parse a string to an int64 in base `radix`.
  */
 pub
-parseInt64Radix : String -> Int32 -> Option Int64
-parseInt64Radix str radix =
+parseInt64Radix : Int32 -> String -> Option Int64
+parseInt64Radix radix str =
   try
     Some Int64#parseLong(str, radix)
   catch

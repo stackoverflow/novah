@@ -3,7 +3,6 @@
  */
 module novah.option
 
-foreign import java.lang.AssertionError
 foreign import java.util.Optional
 
 /**
@@ -58,13 +57,12 @@ isNone = case _ of
 
 /**
  * Extracts the value out of this option.
- * *Unsafe*: Will thrown an exception if the Option is empty.
+ * *Unsafe*: Will thrown an exception if the option is empty.
+ * An alias for `unwrapOptions` and the `!!` syntactic sugar.
  */
 pub
 unwrap : Option a -> a
-unwrap = case _ of
-  Some x -> x
-  None -> throw AssertionError#new("Empty Option" as Object)
+unwrap = unwrapOption
 
 /**
  * Transforms this nullable value into an option.
