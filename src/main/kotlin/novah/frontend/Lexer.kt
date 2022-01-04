@@ -50,6 +50,7 @@ sealed class Token {
     object Else : Token()
     object LetT : Token()
     object LetBang : Token()
+    object BangBang : Token()
     object CaseT : Token()
     object Of : Token()
     object In : Token()
@@ -515,11 +516,19 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     private fun operator(init: Char): Token {
-        return when (val op = init + acceptMany(operators)) {
+        var op = "$init"
+        var next = accept(operators)
+        while (next != null) {
+            op += next
+            if (op == "!!" && iter.peek() == '.') return BangBang
+            next = accept(operators)
+        }
+        return when (op) {
             "=" -> Equals
             "->" -> Arrow
             "|" -> Pipe
             ":" -> Colon
+            "!!" -> BangBang
             "." -> {
                 if (iter.peek() == '[') {
                     iter.next()
@@ -653,8 +662,9 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     companion object {
 
         private const val operators = "$=<>|&+-:*/%^.?!"
+        private val operatorSet = operators.toSet()
 
-        fun isOperator(str: String) = str.toCharArray().all { it in operators }
+        fun isOperator(str: String) = str.toCharArray().all { it in operatorSet }
 
         /**
          * Reads a Java UTF-16 basic multilingual plane escape (\uxxxx)

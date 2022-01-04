@@ -7,9 +7,9 @@ mathTests =
   test "Number operations" \_ ->
     Number.parseInt "12345" `shouldBe` Some 12345
     Number.parseInt "abc" `shouldBe` None
-    Number.parseIntRadix "1110" 2 `shouldBe` Some 14
+    Number.parseIntRadix 2 "1110" `shouldBe` Some 14
     Number.parseInt64 "12345" `shouldBe` Some 12345L
     Number.parseInt64 "abc" `shouldBe` None
-    Number.parseInt64Radix "1110" 2 `shouldBe` Some 14L
+    Number.parseInt64Radix 2 "1110" `shouldBe` Some 14L
     Number.parseFloat32 "1.345" `shouldBe` Some 1.345F
     Number.parseFloat64 "1.345" `shouldBe` Some 1.345

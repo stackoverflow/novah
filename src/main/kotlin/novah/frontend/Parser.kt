@@ -574,6 +574,12 @@ class Parser(
             val res = Expr.ForeignField(exp, field).withSpan(exp.span, tk.span).withComment(exp.comment)
             parseSelection(res)
         }
+        is BangBang -> {
+            val span = iter.next().span
+            val unwrap = Expr.Var("unwrapOption").withSpan(span)
+            val res = Expr.App(unwrap, exp).withSpan(exp.span, span).withComment(exp.comment)
+            parseSelection(res)
+        }
         else -> exp
     }
 
