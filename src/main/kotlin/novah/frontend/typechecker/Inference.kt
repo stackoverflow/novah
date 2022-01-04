@@ -371,7 +371,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                     uni.unify(ty, tChar, exp.exp.span)
                     exp.method = stringGet
                 }
-                rtype.realType().isMap() -> {
+                rtype.realType().isMap() || indexType.typeNameOrEmpty() != primInt32 -> {
                     val keyTy = tc.newVar(level)
                     uni.unify(indexType, keyTy, exp.index.span)
                     uni.unify(type, TApp(TConst(primMap), listOf(keyTy, ty)), exp.exp.span)
