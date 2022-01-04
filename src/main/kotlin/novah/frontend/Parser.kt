@@ -428,7 +428,15 @@ class Parser(
             is Null -> parseNull()
             is Underline -> {
                 val tk = iter.next()
-                Expr.Underscore().withSpan(tk.span).withComment(tk.comment)
+                val under = Expr.Underscore().withSpan(tk.span).withComment(tk.comment)
+                // a _!! unwrap anonymous function
+                if (iter.peek().value is BangBang) {
+                    val bb = iter.next()
+                    val unwrap = Expr.Var("unwrapOption").withSpan(bb.span)
+                    val v = Expr.Var("\$unw").withSpan(tk.span) as Expr.Var
+                    val body = Expr.App(unwrap, v).withSpan(tk.span, bb.span)
+                    Expr.Lambda(listOf(Pattern.Var(v)), body).withSpan(tk.span, bb.span).withComment(tk.comment)
+                } else under
             }
             is LParen -> {
                 withIgnoreOffside {
@@ -540,7 +548,7 @@ class Parser(
 
         if (exp == null) return exp
 
-        // record selection, list index and method/field call have the highest precedence
+        // record selection, list index, !! and method/field call have the highest precedence
         return parseSelection(exp)
     }
 
