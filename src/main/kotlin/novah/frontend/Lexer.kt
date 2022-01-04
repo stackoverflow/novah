@@ -520,7 +520,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         var next = accept(operators)
         while (next != null) {
             op += next
-            if (op == "!!" && iter.peek() == '.') return BangBang
+            if (op == "!!" && iter.hasNext() && iter.peek() == '.') return BangBang
             next = accept(operators)
         }
         return when (op) {
