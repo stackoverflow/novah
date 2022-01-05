@@ -111,7 +111,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
                 if (!isAnnotated) {
                     val fix = "$name : ${genTy.show(false)}"
-                    warner(E.noTypeAnnDecl(name, genTy.show()), decl.span, Action.NoType(fix))
+                    warner(E.noTypeAnnDecl(name, genTy.show()), decl.name.span, Action.NoType(fix))
                 }
             } catch (ie: InferenceError) {
                 decl.typeError = true
