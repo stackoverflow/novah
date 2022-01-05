@@ -49,13 +49,18 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
         help = "Run the compiler in dev mode: no optimizations will be applied and some errors will be warnings."
     ).flag(default = false)
 
+    private val lenient by option(
+        "-l", "--lenient",
+        help = "Makes the compiler more lenient by turning off strict mode (less errors reported). Not recomended for production builds."
+    ).flag(default = false)
+
     private val config by requireObject<Map<String, Deps>>()
 
     override fun run() {
         val al = alias ?: DepsProcessor.defaultAlias
         val deps = config["deps"] ?: return
 
-        build(al, deps, verbose, devMode, check, ::echo, ::echo)
+        build(al, deps, verbose, devMode, !lenient, check, ::echo, ::echo)
     }
 
     companion object {
@@ -65,6 +70,7 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
             deps: Deps,
             verbose: Boolean,
             devMode: Boolean,
+            strict: Boolean,
             check: Boolean,
             echo: (String) -> Unit,
             echoErr: (String, Boolean) -> Unit
@@ -85,7 +91,7 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
                 }
             }
 
-            val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode))
+            val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode, strict))
             try {
                 val warns = compiler.run(File(out), check)
                 Compiler.printWarnings(warns, echo)

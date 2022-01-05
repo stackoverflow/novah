@@ -35,10 +35,12 @@ import novah.frontend.TestUtil.parseResource
 import novah.frontend.TestUtil.parseString
 import novah.frontend.typechecker.Typechecker
 import novah.main.NovahClassLoader
+import novah.main.Options
 
 class ParserSpec : StringSpec({
 
     val fmt = Formatter()
+    val opts = Options()
 
     fun Module.findApp(name: String): Expr =
         decls.filterIsInstance<Decl.ValDecl>().find { it.name == name }?.exp!!
@@ -123,7 +125,7 @@ class ParserSpec : StringSpec({
         val code = "type Wrong = Wrong | NotWrong".module()
 
         val ast = parseString(code)
-        val des = Desugar(ast, Typechecker(NovahClassLoader(null)))
+        val des = Desugar(ast, Typechecker(NovahClassLoader(null), opts), opts)
         des.desugar()
         val errs = des.errors()
         errs.size shouldBe 1
@@ -135,7 +137,7 @@ class ParserSpec : StringSpec({
         val code = "type Tuple a b = Tuple a b".module()
 
         val ast = parseString(code)
-        val des = Desugar(ast, Typechecker(NovahClassLoader(null)))
+        val des = Desugar(ast, Typechecker(NovahClassLoader(null), opts), opts)
         shouldNotThrowAny {
             des.desugar()
         }
@@ -169,7 +171,7 @@ class ParserSpec : StringSpec({
         """.trimIndent()
 
         val ast = parseString(code)
-        val des = Desugar(ast, Typechecker(NovahClassLoader(null)))
+        val des = Desugar(ast, Typechecker(NovahClassLoader(null), opts), opts)
         shouldNotThrowAny {
             des.desugar()
         }
