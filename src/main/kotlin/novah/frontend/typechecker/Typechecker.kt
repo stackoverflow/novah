@@ -25,9 +25,10 @@ import novah.frontend.error.Severity
 import novah.main.CompilationError
 import novah.main.ModuleEnv
 import novah.main.NovahClassLoader
+import novah.main.Options
 import java.util.*
 
-class Typechecker(classLoader: NovahClassLoader) {
+class Typechecker(classLoader: NovahClassLoader, options: Options) {
     private var currentId = 0
 
     val env = Env.new()
@@ -36,7 +37,7 @@ class Typechecker(classLoader: NovahClassLoader) {
         private set
 
     val uni = Unification(this)
-    val infer = Inference(this, classLoader)
+    val infer = Inference(this, classLoader, options.strict)
     
     /**
      * A map of the internal type variable ids to

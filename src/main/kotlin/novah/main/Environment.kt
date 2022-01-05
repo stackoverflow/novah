@@ -135,7 +135,7 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
         val orderedMods = modGraph.topoSort()
         for (modNode in orderedMods) {
             val mod = modNode.data
-            val typeChecker = Typechecker(classLoader)
+            val typeChecker = Typechecker(classLoader, opts)
             val importErrs = resolveImports(mod, modules, typeChecker.env)
             val foreignErrs = resolveForeignImports(mod, classLoader, typeChecker)
             errors += importErrs
@@ -144,7 +144,7 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
 
             if (opts.verbose) echo("Typechecking ${mod.name.value}")
 
-            val desugar = Desugar(mod, typeChecker)
+            val desugar = Desugar(mod, typeChecker, opts)
             val canonical = desugar.desugar().unwrapOrElse { throwAllErrors(it + desugar.errors()) }
             errors += desugar.errors()
             if (shouldThrow(errors)) throwErrors()
@@ -166,7 +166,7 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
     fun generateCode(output: File, dryRun: Boolean = false) {
 
         val optASTs = modules.values.map { menv ->
-            val optimizer = Optimizer(menv.ast, ctorCache)
+            val optimizer = Optimizer(menv.ast, ctorCache, opts)
             val opt = optimizer.convert()
             errors += optimizer.errors()
             opt

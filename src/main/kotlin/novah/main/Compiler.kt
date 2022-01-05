@@ -17,7 +17,6 @@ package novah.main
 
 import novah.data.BufferedCharIterator
 import novah.frontend.error.CompilerProblem
-import novah.frontend.error.Severity
 import java.io.File
 import java.io.Reader
 import java.nio.file.Files
@@ -61,7 +60,7 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
     }
 }
 
-class Options(val verbose: Boolean = false, val devMode: Boolean = false)
+class Options(val verbose: Boolean = false, val devMode: Boolean = false, val strict: Boolean = false)
 
 sealed class Source(val path: Path) {
     class SPath(path: Path) : Source(path)

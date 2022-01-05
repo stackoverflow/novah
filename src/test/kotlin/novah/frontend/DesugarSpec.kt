@@ -26,8 +26,11 @@ import novah.frontend.TestUtil.parseString
 import novah.frontend.TestUtil.simpleName
 import novah.frontend.typechecker.Typechecker
 import novah.main.NovahClassLoader
+import novah.main.Options
 
 class DesugarSpec : StringSpec({
+
+    val opts = Options()
 
     fun List<Decl.TypeDecl>.byName(n: String) = find { it.name.value == n }!!
     fun List<Decl.ValDecl>.byName(n: String) = find { it.name.value == n }!!
@@ -52,7 +55,7 @@ class DesugarSpec : StringSpec({
         """.trimIndent()
 
         val ast = parseString(code)
-        val dast = Desugar(ast, Typechecker(NovahClassLoader(null))).desugar().unwrap()
+        val dast = Desugar(ast, Typechecker(NovahClassLoader(null), opts), opts).desugar().unwrap()
 
         val tds = dast.decls.filterIsInstance<Decl.TypeDecl>()
 

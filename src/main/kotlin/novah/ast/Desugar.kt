@@ -33,6 +33,7 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
+import novah.main.Options
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
@@ -48,7 +49,7 @@ import novah.frontend.error.Errors as E
 /**
  * Converts a source AST to the canonical spanned AST
  */
-class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
+class Desugar(private val smod: SModule, private val typeChecker: Typechecker, private val options: Options) {
 
     private val imports = smod.resolvedImports
 
@@ -79,7 +80,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         return try {
             synonyms = validateTypealiases()
             val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
-            reportUnusedImports()
+            if (options.strict) reportUnusedImports()
             Ok(
                 Module(
                     smod.name,

@@ -31,7 +31,7 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import novah.frontend.error.Errors as E
 
-class Inference(private val tc: Typechecker, private val classLoader: NovahClassLoader) {
+class Inference(private val tc: Typechecker, private val classLoader: NovahClassLoader, private val strict: Boolean) {
 
     private val implicitsToCheck = mutableListOf<Expr>()
     private val errors = mutableSetOf<CompilerProblem>()
@@ -109,7 +109,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 if (decl.isInstance) env.extendInstance(name, genTy)
                 decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
 
-                if (!isAnnotated) {
+                if (!isAnnotated && strict) {
                     val fix = "$name : ${genTy.show(false)}"
                     warner(E.noTypeAnnDecl(name, genTy.show()), decl.name.span, Action.NoType(fix))
                 }

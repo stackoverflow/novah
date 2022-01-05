@@ -34,6 +34,7 @@ import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
 import novah.main.Environment
+import novah.main.Options
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
 import java.util.function.Function
@@ -56,7 +57,11 @@ import novah.frontend.typechecker.Type as TType
  * Converts the canonical AST to the
  * optimized version, ready for codegen
  */
-class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<String, Ctor>) {
+class Optimizer(
+    private val ast: CModule,
+    private val ctorCache: MutableMap<String, Ctor>,
+    private val options: Options
+) {
 
     private var haslambda = false
     private val errors = mutableListOf<CompilerProblem>()
@@ -70,7 +75,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
     fun convert(): Module {
         patternCompiler.addConsToCache(ast)
         val optimized = ast.convert()
-        reportUnusedImports()
+        if (options.strict) reportUnusedImports()
         return optimized
     }
 
