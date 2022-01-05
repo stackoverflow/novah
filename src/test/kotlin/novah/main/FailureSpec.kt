@@ -215,7 +215,7 @@ class FailureSpec : StringSpec({
 
         val error = """
             module [33mmod1[0m
-            at src/test/resources/multimodulefail/duplicatedimportvars/mod1.novah:4:1 - 4:21
+            at src/test/resources/multimodulefail/duplicatedimportvars/mod1.novah:4:1 - 4:13
             
               No type annotation given for top-level declaration newArrayList.
               Consider adding a type annotation.

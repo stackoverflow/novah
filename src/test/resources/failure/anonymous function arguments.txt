@@ -9,7 +9,8 @@ at src/test/resources/failure/anonymous function arguments.novah:3:13 - 3:14
   Record values: { name: _ }, { age: 10 | _ }
   Record restrictions: { - name | _ }
   Record merges: { + _, rec }
-  List access: _.[1], list.[_]
+  Index access: _.[1], list.[_]
+  Option unwrap: _!!
   Ifs: if _ then 1 else 0, if check then _ else _
   Cases: case _ of ...
   Foreign fields: (_ : MyClass)#-field
