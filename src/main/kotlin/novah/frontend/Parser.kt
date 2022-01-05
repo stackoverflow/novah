@@ -238,30 +238,34 @@ class Parser(
         val comment = tk.comment
         var visibility: Token? = null
         var isInstance = false
+        var offside = Integer.MAX_VALUE
         if (tk.value is PublicT || tk.value is PublicPlus) {
             iter.next()
             visibility = tk.value
+            if (tk.offside() < offside) offside = tk.offside()
             tk = iter.peek()
         }
         if (tk.value is Instance) {
             iter.next()
             isInstance = true
+            if (tk.offside() < offside) offside = tk.offside()
             tk = iter.peek()
         }
+        if (tk.offside() < offside) offside = tk.offside()
         val decl = when (tk.value) {
             is TypeT -> {
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
-                parseTypeDecl(visibility)
+                parseTypeDecl(visibility, offside)
             }
             is Opaque -> {
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
-                parseOpaqueDecl(visibility)
+                parseOpaqueDecl(visibility, offside)
             }
-            is Ident -> parseVarDecl(visibility, isInstance)
-            is LParen -> parseVarDecl(visibility, isInstance, true)
+            is Ident -> parseVarDecl(visibility, isInstance, offside)
+            is LParen -> parseVarDecl(visibility, isInstance, offside, true)
             is TypealiasT -> {
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
-                parseTypealias(visibility)
+                parseTypealias(visibility, offside)
             }
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
         }
@@ -269,10 +273,10 @@ class Parser(
         return decl
     }
 
-    private fun parseTypeDecl(visibility: Token?): Decl {
+    private fun parseTypeDecl(visibility: Token?, offside: Int): Decl {
         val vis = if (visibility != null) Visibility.PUBLIC else Visibility.PRIVATE
         val typ = expect<TypeT>(noErr())
-        return withOffside(typ.offside() + 1) {
+        return withOffside(offside + 1) {
 
             val nameTk = expect<UpperIdent>(withError(E.DATA_NAME))
             val name = Spanned(nameTk.span, nameTk.value.v)
@@ -292,11 +296,11 @@ class Parser(
         }
     }
 
-    private fun parseOpaqueDecl(visibility: Token?): Decl {
+    private fun parseOpaqueDecl(visibility: Token?, offside: Int): Decl {
         val vis = if (visibility != null) Visibility.PUBLIC else Visibility.PRIVATE
         val tk = expect<Opaque>(noErr())
         expect<TypeT>(withError(E.INVALID_OPAQUE))
-        return withOffside(tk.offside() + 1) {
+        return withOffside(offside + 1) {
             val nameTk = expect<UpperIdent>(withError(E.DATA_NAME))
             val name = Spanned(nameTk.span, nameTk.value.v)
 
@@ -312,7 +316,7 @@ class Parser(
         }
     }
 
-    private fun parseVarDecl(visibility: Token?, isInstance: Boolean, isOperator: Boolean = false): Decl {
+    private fun parseVarDecl(visibility: Token?, isInstance: Boolean, offside: Int, isOperator: Boolean = false): Decl {
         fun parseName(name: String): Spanned<String> {
             return if (isOperator) {
                 val tk = expect<LParen>(withError(E.INVALID_OPERATOR_DECL))
@@ -333,7 +337,7 @@ class Parser(
         val nameTk = parseName("")
         val name = nameTk.value
 
-        return withOffside(nameTk.offside() + 1) {
+        return withOffside(offside + 1) {
             var sig: Signature? = null
             var nameTk2: Spanned<String>? = null
             if (iter.peek().value is Colon) {
@@ -356,15 +360,15 @@ class Parser(
         }
     }
 
-    private fun parseTypealias(visibility: Token?): Decl {
+    private fun parseTypealias(visibility: Token?, offside: Int): Decl {
         var vis = Visibility.PRIVATE
         if (visibility != null) {
             if (visibility is PublicPlus) throwError(E.PUB_PLUS to iter.current().span)
             vis = Visibility.PUBLIC
         }
-        val ta = expect<TypealiasT>(noErr())
+        expect<TypealiasT>(noErr())
         val name = expect<UpperIdent>(withError(E.TYPEALIAS_NAME))
-        return withOffside(ta.offside() + 1) {
+        return withOffside(offside + 1) {
             val tyVars = tryParseListOf { tryParseTypeVar() }
             val end = iter.current().span
             expect<Equals>(withError(E.TYPEALIAS_EQUALS))
