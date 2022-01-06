@@ -571,11 +571,20 @@ show : {{ Show a }} -> a -> String
 show {{Show sh}} x = sh x
 
 /**
- * Like `println` but transforms x to a String using `show` first.
+ * Prints x to stdout and appends a new line.
+ * Transforms the argument to a String using `show` first.
  */
 pub
 printlnShow : {{ Show a }} -> a -> Unit
 printlnShow {{Show sh}} x = println (sh x)
+
+/**
+ * Prints x to stdout.
+ * Transforms the argument to a String using `show` first.
+ */
+pub
+printShow : {{ Show a }} -> a -> Unit
+printShow {{Show sh}} x = print (sh x)
 
 pub instance
 showString : Show String
@@ -1287,6 +1296,42 @@ concatTup (Concat c1) (Concat c2) (Tuple x y) (Tuple x2 y2) = Tuple (c1 x x2) (c
 pub instance
 concatTuple : {{ Concat a }} -> {{ Concat b }} -> Concat (Tuple a b)
 concatTuple {{c1}} {{c2}} = Concat (concatTup c1 c2)
+
+plusTup : Plus a -> Plus b -> Tuple a b -> Tuple a b -> Tuple a b
+plusTup (Plus p1) (Plus p2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (p1.plus x1 x2) (p2.plus y1 y2)
+
+pub instance
+plusTuple : {{ Plus a }} -> {{ Plus b }} -> Plus (Tuple a b)
+plusTuple {{(Plus p1) as plusp1}} {{(Plus p2) as plusp2}} =
+  Plus
+    { plus: plusTup plusp1 plusp2
+    , identity: Tuple p1.identity p2.identity
+    }
+
+minusTup : Minus a -> Minus b -> Tuple a b -> Tuple a b -> Tuple a b
+minusTup (Minus m1) (Minus m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2) (m2 y1 y2)
+
+pub instance
+minusTuple : {{ Minus a }} -> {{ Minus b }} -> Minus (Tuple a b)
+minusTuple {{m1}} {{m2}} = Minus (minusTup m1 m2)
+
+multTup : Mult a -> Mult b -> Tuple a b -> Tuple a b -> Tuple a b
+multTup (Mult p1) (Mult p2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (p1.mult x1 x2) (p2.mult y1 y2)
+
+pub instance
+multTuple : {{ Mult a }} -> {{ Mult b }} -> Mult (Tuple a b)
+multTuple {{(Mult p1) as multp1}} {{(Mult p2) as multp2}} =
+  Mult
+    { mult: multTup multp1 multp2
+    , identity: Tuple p1.identity p2.identity
+    }
+
+divideTup : Divide a -> Divide b -> Tuple a b -> Tuple a b -> Tuple a b
+divideTup (Divide m1) (Divide m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2) (m2 y1 y2)
+
+pub instance
+divideTuple : {{ Divide a }} -> {{ Divide b }} -> Divide (Tuple a b)
+divideTuple {{m1}} {{m2}} = Divide (divideTup m1 m2)
 
 /**
  * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.

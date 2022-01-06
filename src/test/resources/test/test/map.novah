@@ -8,6 +8,8 @@ mapTests =
     let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
     Map.get "b" map `shouldBe` Some 2
     Map.get "d" map `shouldBe` None
+    Map.getOr "b" 0 map `shouldBe` 2
+    Map.getOr "d" 0 map `shouldBe` 0
     map.["b"] `shouldBe` 2
     Map.hasKey "c" map `shouldBe` true
     Map.keys map `shouldBe` #{"a", "b", "c"}
