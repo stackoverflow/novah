@@ -78,3 +78,7 @@ coreTests =
     tup `shouldBe` Tuple 3 true
     fst tup `shouldBe` 3
     snd tup `shouldBe` true
+    ((3 ; 56.9) + (34 ; 24.5)) `shouldBe` (37 ; 81.4)
+    ((6 ; 6.9) - (2 ; 2.5)) `shouldBe` (4 ; 4.4)
+    ((3 ; 3.2) * (5 ; 4.8)) `shouldBe` (15 ; 15.36)
+    ((16 ; 6.2) / (2 ; 2.0)) `shouldBe` (8 ; 3.1)

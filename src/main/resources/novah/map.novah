@@ -62,6 +62,14 @@ get : k -> Map k v -> Option v
 get k map = (map as IMap k v)#get(k) |> Option.fromOptional
 
 /**
+ * Returns the value under key if it exists, or the default value.
+ * Runtime: ~O(1)
+ */
+pub
+getOr : k -> v -> Map k v -> v
+getOr k default map = map#get(k, default)
+
+/**
  * Applies the function to the value represented by the key, updating it.
  * Runtime: ~O(1)
  */
