@@ -470,6 +470,14 @@ public class Core {
         return map.get(key, null);
     }
 
+    public static <T> List<T> listDrop(int howMany, List<T> list) {
+        return list.slice(howMany, list.size());
+    }
+
+    public static <T> boolean listMinSize(int minSize, List<T> list) {
+        return list.size() >= minSize;
+    }
+
     public static <T> boolean equalsList(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
         if (v1.hashCode() == v2.hashCode()) return true;

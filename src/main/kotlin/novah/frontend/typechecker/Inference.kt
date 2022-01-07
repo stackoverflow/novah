@@ -606,21 +606,13 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
                 val vars = mutableListOf<PatternVar>()
                 val elemTy = tc.newVar(level)
-                uni.unify(TApp(TConst(primList), listOf(elemTy)), ty, pat.span)
+                val listTy = TApp(TConst(primList), listOf(elemTy))
+                uni.unify(listTy, ty, pat.span)
 
                 pat.elems.forEach { p ->
                     vars += inferpattern(env, level, p, elemTy)
                 }
-                vars
-            }
-            is Pattern.ListHeadTail -> {
-                val vars = mutableListOf<PatternVar>()
-                val elemTy = tc.newVar(level)
-                val listTy = TApp(TConst(primList), listOf(elemTy))
-                uni.unify(listTy, ty, pat.span)
-
-                vars += inferpattern(env, level, pat.head, elemTy)
-                vars += inferpattern(env, level, pat.tail, listTy)
+                if (pat.tail != null) vars += inferpattern(env, level, pat.tail, listTy)
                 vars
             }
             is Pattern.Named -> {

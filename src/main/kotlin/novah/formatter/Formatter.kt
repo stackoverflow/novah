@@ -266,8 +266,10 @@ class Formatter {
         is Pattern.LiteralP -> show(p.lit)
         is Pattern.Parens -> "(${show(p.pattern)})"
         is Pattern.Record -> "{ ${p.labels.show { l, pt -> "$l: ${show(pt)}" }} }"
-        is Pattern.ListP -> "[${p.elems.joinToString { show(it) }}]"
-        is Pattern.ListHeadTail -> "[${show(p.head)} :: ${show(p.tail)}]"
+        is Pattern.ListP -> {
+            val tail = if (p.tail != null) " :: ${show(p.tail)}" else ""
+            "[${p.elems.joinToString { show(it) }}$tail]"
+        }
         is Pattern.Named -> "${show(p.pat)} as ${p.name}"
         is Pattern.Unit -> "()"
         is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " as ${p.alias}" else ""

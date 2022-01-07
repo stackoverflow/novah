@@ -25,7 +25,7 @@ data class Ctor(val name: String, val arity: Int, val span: Int)
 
 sealed class Pat {
     data class PVar(val name: String) : Pat()
-    data class PCon(val con: Ctor, val pats: List<Pat>) : Pat()
+    data class PCon(val con: Ctor, val pats: List<Pat> = emptyList()) : Pat()
 }
 
 sealed class Access {
@@ -232,34 +232,34 @@ class PatternMatchingCompiler<R>(private val ctorCache: MutableMap<String, Ctor>
                 is LiteralPattern.Float32Literal -> mkPrimCtor(l.e.v.toString())
                 is LiteralPattern.Float64Literal -> mkPrimCtor(l.e.v.toString())
             }
-            Pat.PCon(con, emptyList())
+            Pat.PCon(con)
         }
         is Pattern.Record -> {
             val pats = p.labels.values().flatten().map { convertPattern(it, modName) }
             Pat.PCon(mkRecordCtor(p.labels.size().toInt()), pats)
         }
         is Pattern.ListP -> {
-            if (p.elems.isEmpty()) Pat.PCon(listEmptyCtor, emptyList())
-            else Pat.PCon(mkListCtor(p.elems.size), p.elems.map { convertPattern(it, modName) })
-        }
-        is Pattern.ListHeadTail -> {
-            Pat.PCon(listHeadTailCtor, listOf(convertPattern(p.head, modName), convertPattern(p.tail, modName)))
+            if (p.elems.isEmpty()) Pat.PCon(listEmptyCtor)
+            else {
+                val tail = if (p.tail != null) convertPattern(p.tail, modName) else Pat.PCon(falseCtor)
+                p.elems.reversed().fold(tail) { acc, pattern ->
+                    Pat.PCon(mkListCtor(), listOf(convertPattern(pattern, modName), acc))
+                }
+            }
         }
         is Pattern.Named -> convertPattern(p.pat, modName)
         is Pattern.Unit -> Pat.PVar("()")
-        is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.test.show()), emptyList())
+        is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.test.show()))
     }
 
     companion object {
         private val trueCtor = Ctor("true", 0, 2)
         private val falseCtor = Ctor("false", 0, 2)
         private val listEmptyCtor = Ctor("list", 0, 2)
-        private val listHeadTailCtor = Ctor("list", 2, 2)
         private fun mkPrimCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkRecordCtor(arity: Int) = Ctor("record$arity", arity, 1)
-        private fun mkListCtor(arity: Int) = Ctor("list$arity", arity, Integer.MAX_VALUE)
+        private fun mkListCtor() = Ctor("list", 2, 2)
         private fun mkTypeTestCtor(name: String) = Ctor(name, 0, Integer.MAX_VALUE)
         private fun mkMultiCtor(arity: Int) = Ctor("multi$arity", arity, 1)
     }
-        
 }

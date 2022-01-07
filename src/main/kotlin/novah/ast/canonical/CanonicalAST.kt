@@ -219,8 +219,7 @@ sealed class Pattern(open val span: Span) {
     data class Var(val v: Expr.Var) : Pattern(v.span)
     data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
     data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
-    data class ListP(val elems: List<Pattern>, override val span: Span) : Pattern(span)
-    data class ListHeadTail(val head: Pattern, val tail: Pattern, override val span: Span) : Pattern(span)
+    data class ListP(val elems: List<Pattern>, val tail: Pattern?, override val span: Span) : Pattern(span)
     data class Named(val pat: Pattern, val name: Spanned<String>, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val test: Type, val alias: String?, override val span: Span) : Pattern(span)
@@ -244,8 +243,10 @@ fun Pattern.show(): String = when (this) {
     is Pattern.Ctor -> if (fields.isEmpty()) ctor.name else "${ctor.name} " + fields.joinToString(" ") { it.show() }
     is Pattern.LiteralP -> lit.show()
     is Pattern.Record -> "{ " + labels.show { l, e -> "$l: ${e.show()}" } + " }"
-    is Pattern.ListP -> "[${elems.joinToString { it.show() }}]"
-    is Pattern.ListHeadTail -> "[${head.show()} :: ${tail.show()}]"
+    is Pattern.ListP -> {
+        val tail = if (tail != null) " :: ${tail.show()}" else ""
+        "[${elems.joinToString { it.show() }}$tail]"
+    }
     is Pattern.Named -> "${pat.show()} as $name"
     is Pattern.Unit -> "()"
     is Pattern.TypeTest -> ":? ${test.show()}" + if (alias != null) " $alias" else ""
@@ -480,11 +481,7 @@ fun Pattern.everywhereUnit(f: (Pattern) -> Unit) {
             is Pattern.ListP -> {
                 f(p)
                 p.elems.forEach { go(it) }
-            }
-            is Pattern.ListHeadTail -> {
-                f(p)
-                go(p.head)
-                go(p.tail)
+                if (p.tail != null) go(p.tail)
             }
             is Pattern.Named -> {
                 f(p)

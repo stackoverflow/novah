@@ -969,17 +969,17 @@ class Parser(
                 iter.next()
                 if (iter.peek().value is RSBracket) {
                     val end = iter.next().span
-                    Pattern.ListP(emptyList(), span(tk.span, end))
+                    Pattern.ListP(emptyList(), null, span(tk.span, end))
                 } else {
                     val elems = between<Comma, Pattern>(::parsePattern)
-                    if (elems.size == 1 && iter.peek().value.isDoubleColon()) {
+                    if (iter.peek().value.isDoubleColon()) {
                         iter.next()
                         val tail = parsePattern()
                         val end = expect<RSBracket>(withError(E.rsbracketExpected("list pattern"))).span
-                        Pattern.ListHeadTail(elems[0], tail, span(tk.span, end))
+                        Pattern.ListP(elems, tail, span(tk.span, end))
                     } else {
                         val end = expect<RSBracket>(withError(E.rsbracketExpected("list pattern"))).span
-                        Pattern.ListP(elems, span(tk.span, end))
+                        Pattern.ListP(elems, null, span(tk.span, end))
                     }
                 }
             }
