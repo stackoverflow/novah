@@ -201,16 +201,17 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
             Expr.ImplicitVar(name, span, if (name in locals) null else importedModule)
         }
         is SExpr.Operator -> {
-            if (name == "<-") parserError(E.notAField(), span)
+            val exp = if (name == ";") this.copy(name = "Tuple") else this
+            if (exp.name == "<-") parserError(E.notAField(), span)
             if (alias == null) {
-                unusedVars.remove(name)
-                usedVars += name
+                unusedVars.remove(exp.name)
+                usedVars += exp.name
             }
             if (alias != null) checkAlias(alias, span)
-            val importedModule = imports[fullname()]
+            val importedModule = imports[exp.fullname()]
             if (importedModule != null) usedImports += importedModule
-            if (name[0].isUpperCase()) Expr.Constructor(name, span, importedModule)
-            else Expr.Var(name, span, importedModule, isOp = true)
+            if (exp.name[0].isUpperCase()) Expr.Constructor(exp.name, span, importedModule)
+            else Expr.Var(exp.name, span, importedModule, isOp = true)
         }
         is SExpr.Constructor -> {
             if (alias == null) usedVars += name
