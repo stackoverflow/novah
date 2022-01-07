@@ -153,14 +153,20 @@ class PatternMatchingSpec : StringSpec({
               case l of
                 [] -> 0
                 [_ :: xs] -> 1 + len xs
+            
+            foo = case _ of
+              [] -> 0
+              [x] -> 1
+              [x, y :: _] -> x + y
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "Int32"
         ds["f2"]?.type?.simpleName() shouldBe "List Int32 -> Int32"
         ds["len"]?.type?.simpleName() shouldBe "List t1 -> Int32"
+        ds["foo"]?.type?.simpleName() shouldBe "List Int32 -> Int32"
     }
-    
+
     "pattern match named" {
         val code = """
             f1 = case 3 of

@@ -17,10 +17,8 @@
 - [ ] Typechecker cannot correlate a java class' variable with its methods/fields (add to caveats)
 - [ ] How to handle `AutoCloseable` interface
 - [ ] Add `Ord` requirement to `NumberOps`
-- [ ] List patterns warn if used together (a fix the new pattern matching compiler)
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
 - [ ] Make better range (maybe improve `for`s also to be generic)
-- [ ] Incorporate tails patterns in normal list patterns `[x, y :: rest]`
 
 ## LSP / IDE
 

@@ -313,6 +313,7 @@ class Optimizer(
     private val stringType = tString.convert()
     private val boolType = tBoolean.convert()
     private val longType = tInt64.convert()
+    private val intType = tInt32.convert()
 
     private fun makeThrow(msg: String): Expr {
         return Expr.Throw(
@@ -357,10 +358,21 @@ class Optimizer(
             }
         }
 
-        fun mkListSizeCheck(exp: Expr, size: Long): Expr {
+        fun mkListSizeCheck(exp: Expr, size: Int): Expr {
             val sizeExp = Expr.NativeMethod(listSize, exp, emptyList(), longType, exp.span)
-            val longe = Expr.Int64(size, longType, exp.span)
+            val longe = Expr.Int64(size.toLong(), longType, exp.span)
             return Expr.NativeStaticMethod(eqLong, listOf(sizeExp, longe), boolType, exp.span)
+        }
+
+        fun mkListMinSizeCheck(exp: Expr, size: Int): Expr {
+            val minSize = Expr.Int32(size, intType, exp.span)
+            return Expr.NativeStaticMethod(listMinSize, listOf(minSize, exp), boolType, exp.span)
+        }
+
+        fun mkListTail(exp: Expr, fieldTy: Clazz, size: Int): Expr {
+            val listClass = Clazz(LIST_TYPE, listOf(fieldTy))
+            val howMany = Expr.Int32(size, intType, exp.span)
+            return Expr.NativeStaticMethod(listDrop, listOf(howMany, exp), listClass, exp.span)
         }
 
         fun mkListAccessor(exp: Expr, index: Long, type: Clazz): Expr =
@@ -429,7 +441,8 @@ class Optimizer(
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                conds += mkListSizeCheck(exp, p.elems.size.toLong())
+                val elemSize = p.elems.size
+                conds += if (p.tail == null) mkListSizeCheck(exp, elemSize) else mkListMinSizeCheck(exp, elemSize)
                 val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for list: ${exp.type}")
                 p.elems.forEachIndexed { i, pat ->
                     val field = mkListAccessor(exp, i.toLong(), fieltTy)
@@ -437,25 +450,11 @@ class Optimizer(
                     conds += cond
                     vars += vs
                 }
-
-                PatternResult(simplifyConds(conds), vars)
-            }
-            is Pattern.ListHeadTail -> {
-                val conds = mutableListOf<Expr>()
-                val vars = mutableListOf<VarDef>()
-
-                conds += Expr.NativeStaticMethod(listNotEmpty, listOf(exp), boolType, p.span)
-                val fieltTy = exp.type.pars.firstOrNull() ?: internalError("Got wrong type for list: ${exp.type}")
-                val headExp = mkListAccessor(exp, 0, fieltTy)
-                val vecClass = Clazz(LIST_TYPE, listOf(fieltTy))
-                val tailExp = Expr.NativeMethod(listTail, exp, emptyList(), vecClass, p.span)
-
-                val (hCond, hVs) = desugarPattern(p.head, headExp)
-                val (tCond, tVs) = desugarPattern(p.tail, tailExp)
-                conds += hCond
-                conds += tCond
-                vars += hVs
-                vars += tVs
+                if (p.tail != null) {
+                    val (tCond, tVs) = desugarPattern(p.tail, mkListTail(exp, fieltTy, elemSize))
+                    conds += tCond
+                    vars += tVs
+                }
 
                 PatternResult(simplifyConds(conds), vars)
             }
@@ -627,8 +626,8 @@ class Optimizer(
 
         val listSize = PList::class.java.methods.find { it.name == "size" }!!
         private val listAccess = PList::class.java.methods.find { it.name == "nth" }!!
-        private val listTail = PList::class.java.methods.find { it.name == "removeFirst" }!!
-        private val listNotEmpty = Core::class.java.methods.find { it.name == "listNotEmpty" }!!
+        private val listDrop = Core::class.java.methods.find { it.name == "listDrop" }!!
+        private val listMinSize = Core::class.java.methods.find { it.name == "listMinSize" }!!
         val eqInt = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
         }!!

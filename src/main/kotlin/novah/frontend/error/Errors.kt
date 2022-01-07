@@ -445,11 +445,20 @@ object Errors {
         or pass the argument explicitly.
     """.trimIndent()
 
-    fun redundantMatches(pats: List<String>) = """
-        A case expression contains redundant cases:
-        
-            ${pats.joinToString()}
-    """.trimIndent()
+    fun redundantMatches(pats: List<String>): String {
+        return if (pats.size == 1)
+            """
+            A case expression contains redundant cases:
+            
+                ${pats[0]}
+            """.trimIndent()
+        else
+            """
+            Case expressions contain redundant cases:
+            
+                ${pats.joinToString()}
+            """.trimIndent()
+    }
 
     fun noAliasFound(alias: String) = "Could not find import alias $alias."
 
