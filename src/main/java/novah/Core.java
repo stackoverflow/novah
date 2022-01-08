@@ -460,6 +460,46 @@ public class Core {
         return arr[idx];
     }
 
+    public static byte byteArrayGet(int index, byte[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
+    public static short shortArrayGet(int index, short[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
+    public static int intArrayGet(int index, int[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
+    public static long longArrayGet(int index, long[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
+    public static float floatArrayGet(int index, float[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
+    public static double doubleArrayGet(int index, double[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
+    public static boolean booleanArrayGet(int index, boolean[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
+    public static char charArrayGet(int index, char[] arr) {
+        int idx = index >= 0 ? index : arr.length + index;
+        return arr[idx];
+    }
+
     public static char stringGet(int index, String str) {
         int idx = index >= 0 ? index : str.length() + index;
         return str.charAt(idx);
@@ -468,6 +508,38 @@ public class Core {
     public static <K, V> V mapGet(K key, Map<K, V> map) {
         if (!map.contains(key)) throw new Error("Key does not exist in map");
         return map.get(key, null);
+    }
+
+    public static void byteArraySet(int index, byte val, byte[] arr) {
+        arr[index] = val;
+    }
+
+    public static void shortArraySet(int index, short val, short[] arr) {
+        arr[index] = val;
+    }
+
+    public static void intArraySet(int index, int val, int[] arr) {
+        arr[index] = val;
+    }
+
+    public static void longArraySet(int index, long val, long[] arr) {
+        arr[index] = val;
+    }
+
+    public static void floatArraySet(int index, float val, float[] arr) {
+        arr[index] = val;
+    }
+
+    public static void doubleArraySet(int index, double val, double[] arr) {
+        arr[index] = val;
+    }
+
+    public static void booleanArraySet(int index, boolean val, boolean[] arr) {
+        arr[index] = val;
+    }
+
+    public static void charArraySet(int index, char val, char[] arr) {
+        arr[index] = val;
     }
 
     public static <T> List<T> listDrop(int howMany, List<T> list) {

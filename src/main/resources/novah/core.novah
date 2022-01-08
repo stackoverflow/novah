@@ -252,7 +252,7 @@ aget index arr = Core#getArray(index, arr)
  * Runtime: O(1)
  */
 pub
-aset : Int32-> a -> Array a -> Unit
+aset : Int32 -> a -> Array a -> Unit
 aset index x arr = Core#setArray(index, x, arr)
 
 /**

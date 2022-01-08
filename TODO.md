@@ -19,6 +19,7 @@
 - [ ] Add `Ord` requirement to `NumberOps`
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
 - [ ] Make better range (maybe improve `for`s also to be generic)
+- [ ] Java objects don't hold their types: `let x = Ref#new(0) ... x#-val : ??`
 
 ## LSP / IDE
 

@@ -328,6 +328,18 @@ contains {{Equals eq}} elem list =
     None -> false
 
 /**
+ * Returns true if the element is inside the list.
+ * An alias to `contains`.
+ * Runtime: O(n)
+ */
+pub
+isIn : {{ Equals a }} -> a -> List a -> Boolean
+isIn {{Equals eq}} elem list =
+  case find (\e -> eq e elem) list of
+    Some _ -> true
+    None -> false
+
+/**
  * Returns the tail of this list if it's not empty.
  * Runtime: ~O(1)
  */

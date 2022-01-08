@@ -366,6 +366,54 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                     uni.unify(type, TApp(TConst(primArray), listOf(ty)), exp.exp.span)
                     exp.method = arrayGet
                 }
+                rtype.isByteArray() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, tByteArray, exp.exp.span)
+                    uni.unify(ty, tByte, exp.exp.span)
+                    exp.method = byteArrayGet
+                }
+                rtype.isInt16Array() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, tInt16Array, exp.exp.span)
+                    uni.unify(ty, tInt16, exp.exp.span)
+                    exp.method = shortArrayGet
+                }
+                rtype.isInt32Array() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, tInt32Array, exp.exp.span)
+                    uni.unify(ty, tInt32, exp.exp.span)
+                    exp.method = intArrayGet
+                }
+                rtype.isInt64Array() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, tInt64Array, exp.exp.span)
+                    uni.unify(ty, tInt64, exp.exp.span)
+                    exp.method = longArrayGet
+                }
+                rtype.isFloat32Array() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, tFloat32Array, exp.exp.span)
+                    uni.unify(ty, tFloat32, exp.exp.span)
+                    exp.method = floatArrayGet
+                }
+                rtype.isFloat64Array() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, tFloat64Array, exp.exp.span)
+                    uni.unify(ty, tFloat64, exp.exp.span)
+                    exp.method = doubleArrayGet
+                }
+                rtype.isBooleanArray() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, tBooleanArray, exp.exp.span)
+                    uni.unify(ty, tBoolean, exp.exp.span)
+                    exp.method = booleanArrayGet
+                }
+                rtype.isCharArray() -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(type, tCharArray, exp.exp.span)
+                    uni.unify(ty, tChar, exp.exp.span)
+                    exp.method = charArrayGet
+                }
                 rtype is TConst && rtype.name == primString -> {
                     uni.unify(indexType, tInt32, exp.index.span)
                     uni.unify(ty, tChar, exp.exp.span)
@@ -840,10 +888,38 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
     }
 
     companion object {
-        val listGet = Core::class.java.methods.find { it.name == "listGet" }!!
-        val setGet = Core::class.java.methods.find { it.name == "setGet" }!!
-        val arrayGet = Core::class.java.methods.find { it.name == "arrayGet" }!!
-        val stringGet = Core::class.java.methods.find { it.name == "stringGet" }!!
-        val mapGet = Core::class.java.methods.find { it.name == "mapGet" }!!
+        private lateinit var listGet: Method
+        private lateinit var setGet: Method
+        private lateinit var arrayGet: Method
+        private lateinit var stringGet: Method
+        private lateinit var mapGet: Method
+        private lateinit var byteArrayGet: Method
+        private lateinit var shortArrayGet: Method
+        private lateinit var intArrayGet: Method
+        private lateinit var longArrayGet: Method
+        private lateinit var floatArrayGet: Method
+        private lateinit var doubleArrayGet: Method
+        private lateinit var booleanArrayGet: Method
+        private lateinit var charArrayGet: Method
+
+        init {
+            Core::class.java.methods.forEach { m ->
+                when (m.name) {
+                    "byteArrayGet" -> byteArrayGet = m
+                    "shortArrayGet" -> shortArrayGet = m
+                    "intArrayGet" -> intArrayGet = m
+                    "longArrayGet" -> longArrayGet = m
+                    "floatArrayGet" -> floatArrayGet = m
+                    "doubleArrayGet" -> doubleArrayGet = m
+                    "booleanArrayGet" -> booleanArrayGet = m
+                    "charArrayGet" -> charArrayGet = m
+                    "listGet" -> listGet = m
+                    "setGet" -> setGet = m
+                    "arrayGet" -> arrayGet = m
+                    "stringGet" -> stringGet = m
+                    "mapGet" -> mapGet = m
+                }
+            }
+        }
     }
 }
