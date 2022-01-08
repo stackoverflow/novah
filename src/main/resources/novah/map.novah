@@ -3,6 +3,7 @@
  */
 module novah.map
 
+foreign import java.lang.StringBuilder
 foreign import io.lacuna.bifurcan.Maps
 foreign import io.lacuna.bifurcan.IMap
 foreign import io.lacuna.bifurcan.IEntry
@@ -222,3 +223,23 @@ withLinear map f =
 pub
 associate : (a -> Tuple k v) -> List a -> Map k v
 associate fun = List.map fun >> new
+
+showMapp : Show k -> Show v -> Map k v -> String
+showMapp (Show shk) (Show shv) m =
+  let builder = StringBuilder#new("{")
+  let first = Ref#new(true)
+  forEach m \k v ->
+    if first#-val then first#-val <- false
+    else
+      builder#append(", ")
+      ()
+    builder#append(shk k)
+    builder#append(": ")
+    builder#append(shv v)
+    ()
+  builder#append("}")
+  builder#toString()
+
+pub instance
+showMap : {{ Show k }} -> {{ Show v }} -> Show (Map k v)
+showMap {{sk}} {{sv}} = Show (showMapp sk sv)
