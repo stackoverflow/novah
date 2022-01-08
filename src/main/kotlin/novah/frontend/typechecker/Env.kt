@@ -195,6 +195,14 @@ fun Type.isList() = this is TApp && type is TConst && type.name == primList
 fun Type.isSet() = this is TApp && type is TConst && type.name == primSet
 fun Type.isArray() = this is TApp && type is TConst && type.name == primArray
 fun Type.isMap() = this is TApp && type is TConst && type.name == primMap
+fun Type.isByteArray() = this is TConst && name == primByteArray
+fun Type.isInt16Array() = this is TConst && name == primInt16Array
+fun Type.isInt32Array() = this is TConst && name == primInt32Array
+fun Type.isInt64Array() = this is TConst && name == primInt64Array
+fun Type.isFloat32Array() = this is TConst && name == primFloat32Array
+fun Type.isFloat64Array() = this is TConst && name == primFloat64Array
+fun Type.isBooleanArray() = this is TConst && name == primBooleanArray
+fun Type.isCharArray() = this is TConst && name == primCharArray
 
 fun javaToNovah(jname: String): String = when (jname) {
     "byte" -> primByte

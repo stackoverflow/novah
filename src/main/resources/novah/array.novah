@@ -252,3 +252,75 @@ emptyCopy arr =
     else
       let elem = aget 0 arr as Object
       arrayOf elem#getClass() (size arr) as Array a
+
+/**
+ * Sets the element of this byte array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+byteaset : Int32 -> Byte -> ByteArray -> Unit
+byteaset index x arr = Core#byteArraySet(index, x, arr)
+
+/**
+ * Sets the element of this int16 array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+int16aset : Int32 -> Int16 -> Int16Array -> Unit
+int16aset index x arr = Core#shortArraySet(index, x, arr)
+
+/**
+ * Sets the element of this int array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+int32aset : Int32 -> Int32 -> Int32Array -> Unit
+int32aset index x arr = Core#intArraySet(index, x, arr)
+
+/**
+ * Sets the element of this int64 array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+int64aset : Int32 -> Int64 -> Int64Array -> Unit
+int64aset index x arr = Core#longArraySet(index, x, arr)
+
+/**
+ * Sets the element of this float32 array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+float32aset : Int32 -> Float32 -> Float32Array -> Unit
+float32aset index x arr = Core#floatArraySet(index, x, arr)
+
+/**
+ * Sets the element of this float64 array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+float64aset : Int32 -> Float64 -> Float64Array -> Unit
+float64aset index x arr = Core#doubleArraySet(index, x, arr)
+
+/**
+ * Sets the element of this boolean array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+booleanaset : Int32 -> Boolean -> BooleanArray -> Unit
+booleanaset index x arr = Core#booleanArraySet(index, x, arr)
+
+/**
+ * Sets the element of this char array at the specified index.
+ * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+ * Runtime: O(1)
+ */
+pub
+charaset : Int32 -> Char -> CharArray -> Unit
+charaset index x arr = Core#charArraySet(index, x, arr)

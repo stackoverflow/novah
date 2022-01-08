@@ -198,6 +198,16 @@ contains : a -> Set a -> Boolean
 contains elem set = set#contains(elem)
 
 /**
+ * Returns true if the element is inside the set.
+ * This function uses the set's equality function, set at creation time.
+ * An alias to `contains`.
+ * Runtime: ~O(1)
+ */
+pub
+isIn : a -> Set a -> Boolean
+isIn elem set = set#contains(elem)
+
+/**
  * Reduces this set to a single value according to the reducing function.
  * Goes from the left to the right.
  * Runtime: O(n)

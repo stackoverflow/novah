@@ -94,6 +94,15 @@ hasKey : k -> Map k v -> Boolean
 hasKey key map = map#contains(key)
 
 /**
+ * Returns true if this map contains the key.
+ * An alias to `hasKey`.
+ * Runtime: ~O(1)
+ */
+pub
+isIn : k -> Map k v -> Boolean
+isIn key map = map#contains(key)
+
+/**
  * Returns the result of merging the two maps.
  * Repeated keys in the second map will overwrite keys from the first.
  * An alias for `++`.
