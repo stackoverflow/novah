@@ -14,7 +14,6 @@
 - [ ] Only recompile files that changed + dependencies
 - [ ] Auto complete literal list, set in IDE: `[]#size()`
 - [ ] Create computation expression for (lazy) async
-- [ ] Typechecker cannot correlate a java class' variable with its methods/fields (add to caveats)
 - [ ] How to handle `AutoCloseable` interface
 - [ ] Add `Ord` requirement to `NumberOps`
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`

@@ -83,6 +83,11 @@ sealed class Type {
         return rt is TVar && rt.tvar is TypeVar.Unbound
     }
 
+    fun parameters(): List<Type> = when (val ty = realType()) {
+        is TApp -> ty.types
+        else -> emptyList()
+    }
+
     fun clone(): Type = when (this) {
         is TConst -> this
         is TApp -> copy(type.clone(), types.map(Type::clone))

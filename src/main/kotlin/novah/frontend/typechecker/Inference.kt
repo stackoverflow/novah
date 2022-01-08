@@ -35,7 +35,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
     private val implicitsToCheck = mutableListOf<Expr>()
     private val errors = mutableSetOf<CompilerProblem>()
-    
+
     private val env = tc.env
     private val uni = tc.uni
     private val instances = InstanceSearch(tc)
@@ -366,6 +366,17 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                     uni.unify(type, TApp(TConst(primArray), listOf(ty)), exp.exp.span)
                     exp.method = arrayGet
                 }
+                rtype is TConst && rtype.name == primString -> {
+                    uni.unify(indexType, tInt32, exp.index.span)
+                    uni.unify(ty, tChar, exp.exp.span)
+                    exp.method = stringGet
+                }
+                rtype.realType().isMap() || indexType.typeNameOrEmpty() != primInt32 -> {
+                    val keyTy = tc.newVar(level)
+                    uni.unify(indexType, keyTy, exp.index.span)
+                    uni.unify(type, TApp(TConst(primMap), listOf(keyTy, ty)), exp.exp.span)
+                    exp.method = mapGet
+                }
                 rtype.isByteArray() -> {
                     uni.unify(indexType, tInt32, exp.index.span)
                     uni.unify(type, tByteArray, exp.exp.span)
@@ -413,17 +424,6 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                     uni.unify(type, tCharArray, exp.exp.span)
                     uni.unify(ty, tChar, exp.exp.span)
                     exp.method = charArrayGet
-                }
-                rtype is TConst && rtype.name == primString -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(ty, tChar, exp.exp.span)
-                    exp.method = stringGet
-                }
-                rtype.realType().isMap() || indexType.typeNameOrEmpty() != primInt32 -> {
-                    val keyTy = tc.newVar(level)
-                    uni.unify(indexType, keyTy, exp.index.span)
-                    uni.unify(type, TApp(TConst(primMap), listOf(keyTy, ty)), exp.exp.span)
-                    exp.method = mapGet
                 }
                 else -> inferError(E.UNKNOW_TYPE_FOR_INDEX, exp.span)
             }
@@ -516,7 +516,9 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 inferError(E.nonPublicField(exp.fieldName.value, clazz), exp.fieldName.span)
             }
 
-            val ty = Reflection.collectType(tc, field.genericType, level)
+            val mappings = Reflection.typeMappings[clazz]
+            val cache = mappings?.zip(objTy.parameters())?.toMap() ?: emptyMap()
+            val ty = Reflection.collectType(tc, field.genericType, level, cache)
             exp.field = field
             exp.withType(ty)
         }
@@ -553,10 +555,21 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
                 val tys = exp.args.map { infer(env, level, it) }
                 val found = unifyConstructors(ctors, tys, level, exp.span)
-                    ?: inferError(E.methodDidNotUnify(method.value, clazz), method.span)
+                    ?: inferError(E.methodDidNotUnify(method.value, clazz, tys.map(Type::show)), method.span)
                 if (!Reflection.isPublic(found)) inferError(E.nonPublicCtor(clazz), method.span)
 
                 val ty = Reflection.collectType(tc, found.declaringClass, level)
+
+                // cache this type parameters
+                val typeParameters = ty.parameters()
+                if (typeParameters.isNotEmpty() && !Reflection.typeMappings.containsKey(clazz)) {
+                    val mappings = mutableListOf<java.lang.reflect.Type>()
+                    val typeCache = Reflection.typeCache.entries.associate { (k, v) -> v to k }
+                    typeParameters.forEach { par ->
+                        typeCache[par]?.let { mappings += it }
+                    }
+                    Reflection.typeMappings[clazz] = mappings
+                }
                 exp.ctor = found
                 exp.withType(ty)
             } else { // it's a method
@@ -565,7 +578,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
                 val tys = exp.args.map { infer(env, level, it) }
                 val found = unifyMethods(methods, tys, level, exp.span)
-                    ?: inferError(E.methodDidNotUnify(method.value, clazz), method.span)
+                    ?: inferError(E.methodDidNotUnify(method.value, clazz, tys.map(Type::show)), method.span)
                 if (!Reflection.isPublic(found)) {
                     inferError(E.nonPublicMethod(method.value, clazz), method.span)
                 }
@@ -586,14 +599,16 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             if (methods.isEmpty())
                 inferError(E.methodNotFound(exp.methodName.value, clazz, argCount), exp.methodName.span)
 
+            val mappings = Reflection.typeMappings[clazz]
+            val cache = mappings?.zip(objTy.parameters())?.toMap() ?: emptyMap()
             val tys = exp.args.map { infer(env, level, it) }
-            val found = unifyMethods(methods, tys, level, exp.span)
-                ?: inferError(E.methodDidNotUnify(exp.methodName.value, clazz), exp.methodName.span)
+            val found = unifyMethods(methods, tys, level, exp.span, cache)
+                ?: inferError(E.methodDidNotUnify(exp.methodName.value, clazz, tys.map(Type::show)), exp.methodName.span)
             if (!Reflection.isPublic(found)) {
                 inferError(E.nonPublicMethod(exp.methodName.value, clazz), exp.methodName.span)
             }
 
-            val ty = Reflection.collectType(tc, found.genericReturnType, level)
+            val ty = Reflection.collectType(tc, found.genericReturnType, level, cache)
             exp.method = found
             exp.withType(ty)
         }
@@ -741,13 +756,19 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         return ret to imps
     }
 
-    private fun unifyMethods(methods: List<Method>, tys: List<Type>, level: Int, span: Span): Method? {
+    private fun unifyMethods(
+        methods: List<Method>,
+        tys: List<Type>,
+        level: Int,
+        span: Span,
+        cache: Cache? = null
+    ): Method? {
         if (methods.size == 1) {
-            val mtys = methods[0].genericParameterTypes.map { Reflection.collectType(tc, it, level) }
+            val mtys = methods[0].genericParameterTypes.map { Reflection.collectType(tc, it, level, cache) }
             return if (unifyForeignPars(mtys, tys, span)) methods[0] else null
         }
         return methods.find { method ->
-            val mtys = method.genericParameterTypes.map { Reflection.collectType(tc, it, level) }
+            val mtys = method.genericParameterTypes.map { Reflection.collectType(tc, it, level, cache) }
             try {
                 // we can't commit to the unification because this method has many overloads,
                 // so we clone the types until we find a match and reunify the matching types
