@@ -251,8 +251,10 @@ object Errors {
         Could not find constructor for class $type taking $argsCount parameters.
     """.trimIndent()
 
-    fun methodDidNotUnify(name: String, type: String) = """
-        Method $name for class $type could not be matched with the given parameters.
+    fun methodDidNotUnify(name: String, type: String, types: List<String>) = """
+        Method $name for class $type could not be matched with parameters:
+        
+            ${types.joinToString()}
         
         Make sure the parameters match or cast them to a suitable type.
     """.trimIndent()

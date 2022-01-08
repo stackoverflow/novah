@@ -20,9 +20,13 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import java.lang.reflect.*
 
+typealias Cache = Map<java.lang.reflect.Type, Type>
+
 object Reflection {
 
     val typeCache = mutableMapOf<java.lang.reflect.Type, Type>()
+
+    val typeMappings = mutableMapOf<String, List<java.lang.reflect.Type>>()
 
     fun novahToJava(type: String) = when (type) {
         "String" -> "java.lang.String"
@@ -91,10 +95,13 @@ object Reflection {
 
     fun isPublic(constructor: Constructor<*>): Boolean = Modifier.isPublic(constructor.modifiers)
 
-    fun collectType(tc: Typechecker, ty: java.lang.reflect.Type, level: Int? = null): Type {
+    fun collectType(tc: Typechecker, ty: java.lang.reflect.Type, level: Int? = null, cache: Cache? = null): Type {
+        if (cache != null && cache.containsKey(ty)) return cache[ty]!!
         if (typeCache.containsKey(ty)) return typeCache[ty]!!
         val nty = when (ty) {
-            is GenericArrayType -> TApp(TConst(primArray), listOf(collectType(tc, ty.genericComponentType, level)))
+            is GenericArrayType -> {
+                TApp(TConst(primArray), listOf(collectType(tc, ty.genericComponentType, level, cache)))
+            }
             is TypeVariable<*> -> {
                 if (unbounded(ty)) {
                     if (level != null) tc.newVar(level)
@@ -104,18 +111,18 @@ object Reflection {
             is WildcardType -> {
                 if (ty.lowerBounds.isNotEmpty()) tObject
                 else if (ty.upperBounds.size == 1 && ty.upperBounds[0] is TypeVariable<*>) {
-                    collectType(tc, ty.upperBounds[0], level)
+                    collectType(tc, ty.upperBounds[0], level, cache)
                 } else tObject
             }
             is ParameterizedType -> {
                 val arity = ty.actualTypeArguments.size
                 val kind = if (arity == 0) Kind.Star else Kind.Constructor(arity)
                 if (ty.rawType.typeName == "java.util.function.Function") {
-                    val args = listOf(collectType(tc, ty.actualTypeArguments[0], level))
-                    TArrow(args, collectType(tc, ty.actualTypeArguments[1], level))
+                    val args = listOf(collectType(tc, ty.actualTypeArguments[0], level, cache))
+                    TArrow(args, collectType(tc, ty.actualTypeArguments[1], level, cache))
                 } else {
                     val ctor = TConst(javaToNovah(ty.rawType.typeName), kind)
-                    TApp(ctor, ty.actualTypeArguments.map { collectType(tc, it, level) })
+                    TApp(ctor, ty.actualTypeArguments.map { collectType(tc, it, level, cache) })
                 }
             }
             is Class<*> -> {
@@ -129,14 +136,14 @@ object Reflection {
                         "double" -> tFloat64Array
                         "boolean" -> tBooleanArray
                         "char" -> tCharArray
-                        else -> TApp(TConst(primArray), listOf(collectType(tc, ty.componentType, level)))
+                        else -> TApp(TConst(primArray), listOf(collectType(tc, ty.componentType, level, cache)))
                     }
                 } else {
                     val arity = ty.typeParameters.size
                     if (arity == 0) TConst(javaToNovah(ty.canonicalName))
                     else {
                         val type = TConst(javaToNovah(ty.canonicalName), Kind.Constructor(arity))
-                        TApp(type, ty.typeParameters.map { collectType(tc, it, level) })
+                        TApp(type, ty.typeParameters.map { collectType(tc, it, level, cache) })
                     }
                 }
             }
