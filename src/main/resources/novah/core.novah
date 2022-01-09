@@ -1551,7 +1551,7 @@ inRangeCheck {{Ord (Equals eq) _}} {{_}} defaultStep x (Range s e step) =
   let small = if s <= e then s else e
   let big = if s >= e then s else e
   if step `eq` defaultStep then
-    x >= small && x <= big
+    x >= small && x < big
   else
     let ref = Ref#new(s)
     while ref#-val < e && not (ref#-val `eq` x) do

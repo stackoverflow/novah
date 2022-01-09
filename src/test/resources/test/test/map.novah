@@ -21,6 +21,8 @@ mapTests =
     let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
     Map.put "d" 4 map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; 4]
     Map.update "c" (_ + 3) map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 6]
+    Map.update "d" (_ + 3) map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
+    Map.updateOr "d" (_ + 3) -1 map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; -1]
     Map.remove "b" map `shouldBe` Map.new ["a" ; 1, "c" ; 3]
 
   test "Map traversing functions" \_ ->

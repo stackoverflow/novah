@@ -72,11 +72,29 @@ getOr k default map = map#get(k, default)
 
 /**
  * Applies the function to the value represented by the key, updating it.
+ * Does nothing if the key is not present.
  * Runtime: ~O(1)
  */
 pub
 update : k -> (v -> v) -> Map k v -> Map k v
-update key fun map = map#update(key, Java.unaryOperator fun)
+update key fun map =
+  if map#contains(key) then
+    map#update(key, Java.unaryOperator fun)
+  else
+    map
+
+/**
+ * Applies the function to the value represented by the key, updating it.
+ * Inserts the or value if the key is not present.
+ * Runtime: ~O(1)
+ */
+pub
+updateOr : k -> (v -> v) -> v -> Map k v -> Map k v
+updateOr key fun default map =
+  if map#contains(key) then
+    map#update(key, Java.unaryOperator fun)
+  else
+    put key default map
 
 /**
  * Removes the key from this map.
