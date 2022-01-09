@@ -48,6 +48,8 @@ coreTests =
     inRange 567000 (1 .> 2000000000) `shouldBe` true
     inRange 3 (range 1 10 2) `shouldBe` true
     inRange 3 (range 1 10 3) `shouldBe` false
+    show (1 .> 10) `shouldBe` "(1 .> 10)"
+    show (range 1 10 2) `shouldBe` "(Range 1 10 2)"
 
   test "Core list functions" \_ ->
     [1, 2].[1] `shouldBe` 2
