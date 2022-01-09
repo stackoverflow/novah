@@ -1497,6 +1497,7 @@ opaque type Ranged a =
   { defaultStep : a
   , contains : a -> Range a -> Boolean
   , forEach : Range a -> (a -> Unit) -> Unit
+  , show : Show a -> Range a -> String
   }
 
 /**
@@ -1557,13 +1558,21 @@ inRangeCheck {{Ord (Equals eq) _}} {{_}} defaultStep x (Range s e step) =
       ref#update(_ + step)
     ref#-val `eq` x
 
+genericShowRange : (a -> Boolean) -> (Show a) -> Range a -> String
+genericShowRange hasStep (Show sh) (Range b e s) =
+  if hasStep s then
+    format "(%s .> %s)" [sh b, sh e]
+  else
+    format "(Range %s %s %s)" [sh b, sh e, sh s]
+
 pub instance
 rangedInt32 : Ranged Int32
 rangedInt32 =
   Ranged
     { defaultStep: 1
     , contains: inRangeCheck 1
-    , forEach: \(Range b eggwash s) fun -> Core#eachRangeInt(b, eggwash, s, fun)
+    , forEach: \(Range b e s) fun -> Core#eachRangeInt(b, e, s, fun)
+    , show: genericShowRange (_ == 1)
     }
 
 pub instance
@@ -1573,6 +1582,7 @@ rangedInt64 =
     { defaultStep: 1L
     , contains: inRangeCheck 1L
     , forEach: \(Range b e s) fun -> Core#eachRangeLong(b, e, s, fun)
+    , show: genericShowRange (_ == 1L)
     }
 
 pub instance
@@ -1582,6 +1592,7 @@ rangedFloat32 =
     { defaultStep: 1.0F
     , contains: inRangeCheck 1.0F
     , forEach: \(Range b e s) fun -> Core#eachRangeFloat(b, e, s, fun)
+    , show: genericShowRange (_ == 1.0F)
     }
 
 pub instance
@@ -1591,4 +1602,9 @@ rangedFloat64 =
     { defaultStep: 1.0
     , contains: inRangeCheck 1.0
     , forEach: \(Range b e s) fun -> Core#eachRangeDouble(b, e, s, fun)
+    , show: genericShowRange (_ == 1.0)
     }
+
+pub instance
+showRange : {{ Show a }} -> {{ Ranged a }} -> Show (Range a)
+showRange {{sh}} {{Ranged r}} = Show (r.show sh)
