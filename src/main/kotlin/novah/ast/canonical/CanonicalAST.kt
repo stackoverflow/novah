@@ -223,6 +223,7 @@ sealed class Pattern(open val span: Span) {
     data class Named(val pat: Pattern, val name: Spanned<String>, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)
     data class TypeTest(val test: Type, val alias: String?, override val span: Span) : Pattern(span)
+    data class Regex(val regex: String, override val span: Span) : Pattern(span)
 
     var type: Type? = null
 }
@@ -250,6 +251,7 @@ fun Pattern.show(): String = when (this) {
     is Pattern.Named -> "${pat.show()} as $name"
     is Pattern.Unit -> "()"
     is Pattern.TypeTest -> ":? ${test.show()}" + if (alias != null) " $alias" else ""
+    is Pattern.Regex -> "#\"$regex\""
 }
 
 fun LiteralPattern.show(): String = when (this) {
@@ -500,6 +502,7 @@ fun Pattern.everywhereUnit(f: (Pattern) -> Unit) {
             is Pattern.Var -> f(p)
             is Pattern.LiteralP -> f(p)
             is Pattern.TypeTest -> f(p)
+            is Pattern.Regex -> f(p)
         }
     }
     go(this)

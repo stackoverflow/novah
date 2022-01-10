@@ -484,6 +484,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
             val ctor = Expr.Constructor("Tuple", span, "novah.core")
             Pattern.Ctor(ctor, listOf(p1.desugar(locals, tvars), p2.desugar(locals, tvars)), span)
         }
+        is SPattern.RegexPattern -> Pattern.Regex(regex.regex, span)
         is SPattern.ImplicitPattern -> parserError(E.IMPLICIT_PATTERN, span)
         is SPattern.TypeAnnotation -> parserError(E.ANNOTATION_PATTERN, span)
     }
@@ -592,6 +593,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
         is SPattern.Wildcard -> emptyList()
         is SPattern.LiteralP -> emptyList()
         is SPattern.Unit -> emptyList()
+        is SPattern.RegexPattern -> emptyList()
         is SPattern.TypeTest -> {
             if (pat.alias != null) listOf(CollectedVar(pat.alias, pat.span, implicit)) else emptyList()
         }

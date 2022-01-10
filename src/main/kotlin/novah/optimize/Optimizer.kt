@@ -399,6 +399,11 @@ class Optimizer(
                     PatternResult(Expr.NativeStaticMethod(method, listOf(exp, lit), boolType, exp.span))
                 }
             }
+            is Pattern.Regex -> {
+                val regex = Expr.StringE(p.regex, stringType, p.span)
+                val method = Expr.NativeStaticMethod(patternMatches, listOf(regex, exp), boolType, exp.span)
+                PatternResult(method)
+            }
             is Pattern.Ctor -> {
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
@@ -649,5 +654,6 @@ class Optimizer(
         val eqString = String::class.java.methods.find { it.name == "equals" }!!
         val newRecFun: Constructor<*> = RecFunction::class.java.constructors.first()
         val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
+        val patternMatches = java.util.regex.Pattern::class.java.methods.find { it.name == "matches" }!!
     }
 }

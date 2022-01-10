@@ -630,6 +630,10 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 emptyList()
             }
             is Pattern.Var -> listOf(PatternVar(pat.v.name, ty, pat.span))
+            is Pattern.Regex -> {
+                uni.unify(tString, ty, pat.span)
+                emptyList()
+            }
             is Pattern.Ctor -> {
                 val cty = infer(env, level, pat.ctor)
 

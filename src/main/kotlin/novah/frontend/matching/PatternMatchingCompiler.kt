@@ -250,6 +250,7 @@ class PatternMatchingCompiler<R>(private val ctorCache: MutableMap<String, Ctor>
         is Pattern.Named -> convertPattern(p.pat, modName)
         is Pattern.Unit -> Pat.PVar("()")
         is Pattern.TypeTest -> Pat.PCon(mkTypeTestCtor(p.test.show()))
+        is Pattern.Regex -> Pat.PCon(mkPrimCtor(p.regex))
     }
 
     companion object {

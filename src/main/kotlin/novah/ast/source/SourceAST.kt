@@ -163,7 +163,7 @@ sealed class Expr {
     data class Operator(val name: String, val isPrefix: Boolean, val alias: String? = null) : Expr()
     data class ImplicitVar(val name: String, val alias: String? = null) : Expr()
     data class Constructor(val name: String, val alias: String? = null) : Expr()
-    data class PatternLiteral(val regex: String) : Expr()
+    data class PatternLiteral(val regex: String, val raw: String) : Expr()
     data class Lambda(val patterns: List<Pattern>, val body: Expr) : Expr()
     data class App(val fn: Expr, val arg: Expr) : Expr()
     data class BinApp(val op: Expr, val left: Expr, val right: Expr) : Expr()
@@ -261,6 +261,7 @@ sealed class Pattern(open val span: Span) {
     data class TypeTest(val type: Type, val alias: String?, override val span: Span) : Pattern(span)
     data class ImplicitPattern(val pat: Pattern, override val span: Span) : Pattern(span)
     data class TuplePattern(val p1: Pattern, val p2: Pattern, override val span: Span) : Pattern(span)
+    data class RegexPattern(val regex: Expr.PatternLiteral) : Pattern(regex.span)
 
     // those last patterns will de desugared during desugar phase
     data class Parens(val pattern: Pattern, override val span: Span) : Pattern(span)

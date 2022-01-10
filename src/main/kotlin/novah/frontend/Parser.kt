@@ -631,7 +631,7 @@ class Parser(
 
     private fun parsePatternString(): Expr {
         val str = expect<PatternStringT>(withError(E.literalExpected("pattern string")))
-        return Expr.PatternLiteral(str.value.s).withSpanAndComment(str)
+        return Expr.PatternLiteral(str.value.s, str.value.raw).withSpanAndComment(str)
     }
 
     private fun parseChar(): Expr {
@@ -982,6 +982,10 @@ class Parser(
                         Pattern.ListP(elems, null, span(tk.span, end))
                     }
                 }
+            }
+            is PatternStringT -> {
+                val pt = parsePatternString()
+                Pattern.RegexPattern(pt as Expr.PatternLiteral)
             }
             is Op -> {
                 if (tk.value.op == ":?") {
