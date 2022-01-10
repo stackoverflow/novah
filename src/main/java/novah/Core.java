@@ -500,16 +500,6 @@ public class Core {
         return arr[idx];
     }
 
-    public static char stringGet(int index, String str) {
-        int idx = index >= 0 ? index : str.length() + index;
-        return str.charAt(idx);
-    }
-
-    public static <K, V> V mapGet(K key, Map<K, V> map) {
-        if (!map.contains(key)) throw new Error("Key does not exist in map");
-        return map.get(key, null);
-    }
-
     public static void byteArraySet(int index, byte val, byte[] arr) {
         arr[index] = val;
     }
@@ -540,6 +530,48 @@ public class Core {
 
     public static void charArraySet(int index, char val, char[] arr) {
         arr[index] = val;
+    }
+
+    public static int byteArraySize(byte[] arr) {
+        return arr.length;
+    }
+
+    public static int shortArraySize(short[] arr) {
+        return arr.length;
+    }
+
+    public static int intArraySize(int[] arr) {
+        return arr.length;
+    }
+
+    public static int longArraySize(long[] arr) {
+        return arr.length;
+    }
+
+    public static int floatArraySize(float[] arr) {
+        return arr.length;
+    }
+
+    public static int doubleArraySize(double[] arr) {
+        return arr.length;
+    }
+
+    public static int booleanArraySize(boolean[] arr) {
+        return arr.length;
+    }
+
+    public static int charArraySize(char[] arr) {
+        return arr.length;
+    }
+
+    public static char stringGet(int index, String str) {
+        int idx = index >= 0 ? index : str.length() + index;
+        return str.charAt(idx);
+    }
+
+    public static <K, V> V mapGet(K key, Map<K, V> map) {
+        if (!map.contains(key)) throw new Error("Key does not exist in map");
+        return map.get(key, null);
     }
 
     public static <T> List<T> listDrop(int howMany, List<T> list) {

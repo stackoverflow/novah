@@ -360,6 +360,28 @@ slice from to list =
   list#slice(from#longValue(), to#longValue())
 
 /**
+ * Splits this list into elements before the index
+ * and elements after the index.
+ * Runtime: ~O(1)
+ */
+pub
+splitIndex : Int32 -> List a -> Tuple (List a) (List a)
+splitIndex i list = take i list ; drop (i + 1) list
+
+/**
+ * Splits this list into elements before the given element
+ * and elements after it.
+ * Considers only the first occurence of the element.
+ * Runtime: O(n)
+ */
+pub
+split : {{ Equals a }} -> a -> List a -> Tuple (List a) (List a)
+split {{Equals eq}} x list =
+  case findIndex (_ `eq` x) list of
+    Some i -> splitIndex i list
+    None -> list ; []
+
+/**
  * Returns the first n elements of this list.
  * Runtime: ~O(1)
  */
