@@ -8,6 +8,7 @@ foreign import java.util.Arrays
 foreign import java.util.Comparator
 foreign import java.util.stream.Stream
 foreign import novah.Core
+foreign import novah.Ref
 
 import novah.java (toComparator)
 import novah.option as Option
@@ -324,3 +325,131 @@ booleanaset index x arr = Core#booleanArraySet(index, x, arr)
 pub
 charaset : Int32 -> Char -> CharArray -> Unit
 charaset index x arr = Core#charArraySet(index, x, arr)
+
+/**
+ * Returns true if the byte is inside the array.
+ * Runtime: O(n)
+ */
+pub
+containsByte : Byte -> ByteArray -> Boolean
+containsByte elem arr =
+  let found = Ref#new(false)
+  let i = Ref#new(0)
+  let max = Core#byteArraySize(arr)
+  while i#-val < max && not found#-val do
+    if arr.[i#-val] == elem then
+      found#-val <- true
+    i#-val <- i#-val + 1
+  found#-val
+
+/**
+ * Returns true if the int is inside the array.
+ * Runtime: O(n)
+ */
+pub
+containsInt : Int32 -> Int32Array -> Boolean
+containsInt elem arr =
+  let found = Ref#new(false)
+  let i = Ref#new(0)
+  let max = Core#intArraySize(arr)
+  while i#-val < max && not found#-val do
+    if arr.[i#-val] == elem then
+      found#-val <- true
+    i#-val <- i#-val + 1
+  found#-val
+
+/**
+ * Returns true if the int16 is inside the array.
+ * Runtime: O(n)
+ */
+pub
+containsInt16 : Int16 -> Int16Array -> Boolean
+containsInt16 elem arr =
+  let found = Ref#new(false)
+  let i = Ref#new(0)
+  let max = Core#shortArraySize(arr)
+  while i#-val < max && not found#-val do
+    if arr.[i#-val] == elem then
+      found#-val <- true
+    i#-val <- i#-val + 1
+  found#-val
+
+/**
+ * Returns true if the int64 is inside the array.
+ * Runtime: O(n)
+ */
+pub
+containsInt64 : Int64 -> Int64Array -> Boolean
+containsInt64 elem arr =
+  let found = Ref#new(false)
+  let i = Ref#new(0)
+  let max = Core#longArraySize(arr)
+  while i#-val < max && not found#-val do
+    if arr.[i#-val] == elem then
+      found#-val <- true
+    i#-val <- i#-val + 1
+  found#-val
+
+/**
+ * Returns true if the float32 is inside the array.
+ * Runtime: O(n)
+ */
+pub
+containsFloat32 : Float32 -> Float32Array -> Boolean
+containsFloat32 elem arr =
+  let found = Ref#new(false)
+  let i = Ref#new(0)
+  let max = Core#floatArraySize(arr)
+  while i#-val < max && not found#-val do
+    if arr.[i#-val] == elem then
+      found#-val <- true
+    i#-val <- i#-val + 1
+  found#-val
+
+/**
+ * Returns true if the float64 is inside the array.
+ * Runtime: O(n)
+ */
+pub
+containsFloat64 : Float64 -> Float64Array -> Boolean
+containsFloat64 elem arr =
+  let found = Ref#new(false)
+  let i = Ref#new(0)
+  let max = Core#doubleArraySize(arr)
+  while i#-val < max && not found#-val do
+    if arr.[i#-val] == elem then
+      found#-val <- true
+    i#-val <- i#-val + 1
+  found#-val
+
+/**
+ * Returns true if the boolean is inside the array.
+ * Runtime: O(n)
+ */
+pub
+containsBoolean : Boolean -> BooleanArray -> Boolean
+containsBoolean elem arr =
+  let found = Ref#new(false)
+  let i = Ref#new(0)
+  let max = Core#booleanArraySize(arr)
+  while i#-val < max && not found#-val do
+    if arr.[i#-val] == elem then
+      found#-val <- true
+    i#-val <- i#-val + 1
+  found#-val
+
+/**
+ * Returns true if the char is inside the array.
+ * Runtime: O(n)
+ */
+pub
+containsChar : Char -> CharArray -> Boolean
+containsChar elem arr =
+  let found = Ref#new(false)
+  let i = Ref#new(0)
+  let max = Core#charArraySize(arr)
+  while i#-val < max && not found#-val do
+    if arr.[i#-val] == elem then
+      found#-val <- true
+    i#-val <- i#-val + 1
+  found#-val

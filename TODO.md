@@ -19,6 +19,7 @@
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
 - [ ] Make better range (maybe improve `for`s also to be generic)
 - [ ] Highlight all unused variables instead of just the first
+- [ ] Auto derive Equals, Show
 
 ## LSP / IDE
 

@@ -48,6 +48,7 @@ stringTests =
     String.count (_ == 'a') "banana" `shouldBe` 3
     String.replaceChar 'a' 'o' "banana" `shouldBe` "bonono"
     String.replace "the" "some" "the bad and the ugly" `shouldBe` "some bad and some ugly"
+    String.reverse "someone" `shouldBe` "enoemos"
     String.indices "abcd" `shouldBe` [0, 1, 2, 3]
     let bigStr = """
       some Indented

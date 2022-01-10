@@ -7,6 +7,7 @@ import novah.list as List
 import novah.set as Set
 
 foreign import java.lang.CharSequence
+foreign import java.lang.StringBuilder
 foreign import novah.Ref
 
 /**
@@ -86,6 +87,14 @@ endsWith suffix str = str#endsWith(suffix)
 pub
 contains : String -> String -> Boolean
 contains another str = str#contains(another as CharSequence)
+
+/**
+ * Returns true if this string contains the string represented by another.
+ * An alias to `contains`.
+ */
+pub
+isIn : String -> String -> Boolean
+isIn another str = str#contains(another as CharSequence)
 
 /**
  * Returns true if this string contains the character.
@@ -352,6 +361,15 @@ replaceChar old new str = str#replace(old, new)
 pub
 replace : String -> String -> String -> String
 replace target repl str = str#replace(target as CharSequence, repl as CharSequence)
+
+/**
+ * Returns this string reversed.
+ */
+pub
+reverse : String -> String
+reverse str =
+  let sb = StringBuilder#new(str)
+  sb#reverse()#toString()
 
 /**
  * Returns the number of characters matching the given predicate.

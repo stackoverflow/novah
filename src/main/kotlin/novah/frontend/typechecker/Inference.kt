@@ -346,11 +346,19 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             exp.withType(res)
         }
         is Expr.Index -> {
+
             val indexType = infer(env, level, exp.index)
             val type = infer(env, level, exp.exp)
             val rtype = type.realType()
             val ty = tc.newVar(level)
             when {
+                rtype.isMap() || (!indexType.isUnbound() && indexType.typeNameOrEmpty() != primInt32) -> {
+                    val keyTy = tc.newVar(level)
+                    uni.unify(indexType, keyTy, exp.index.span)
+                    uni.unify(type, TApp(TConst(primMap), listOf(keyTy, ty)), exp.exp.span)
+                    exp.method = mapGet
+                }
+                rtype.isUnbound() -> inferError(E.UNKNOW_TYPE_FOR_INDEX, exp.span)
                 rtype.isList() -> {
                     uni.unify(indexType, tInt32, exp.index.span)
                     uni.unify(type, TApp(TConst(primList), listOf(ty)), exp.exp.span)
@@ -370,12 +378,6 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                     uni.unify(indexType, tInt32, exp.index.span)
                     uni.unify(ty, tChar, exp.exp.span)
                     exp.method = stringGet
-                }
-                rtype.realType().isMap() || indexType.typeNameOrEmpty() != primInt32 -> {
-                    val keyTy = tc.newVar(level)
-                    uni.unify(indexType, keyTy, exp.index.span)
-                    uni.unify(type, TApp(TConst(primMap), listOf(keyTy, ty)), exp.exp.span)
-                    exp.method = mapGet
                 }
                 rtype.isByteArray() -> {
                     uni.unify(indexType, tInt32, exp.index.span)

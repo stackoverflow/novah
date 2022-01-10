@@ -33,6 +33,10 @@ listTests =
     List.size list `shouldBe` 4
     List.lastIndex list `shouldBe` 3
     List.lastIndex [] `shouldBe` -1
+    List.splitIndex 2 [2, 3, 4, 5, 6] `shouldBe` ([2, 3] ; [5, 6])
+    List.splitIndex 7 [3, 4, 5] `shouldBe` ([3, 4, 5] ; [])
+    List.split 't' ['f', 'o', 'x', 't', 'r', 'o', 't'] `shouldBe` (['f', 'o', 'x'] ; ['r', 'o', 't'])
+    List.split 3L [0L, 1L, 5L, 7L] `shouldBe` ([0L, 1L, 5L, 7L] ; [])
     (list ++ [5, 6]) `shouldBe` [1, 2, 3, 4, 5, 6]
 
   test "List writing functions" \_ ->
