@@ -216,6 +216,18 @@ class PatternMatchingSpec : StringSpec({
         val ds = TestUtil.compileCode(code).env.decls
         ds["fun"]?.type?.simpleName() shouldBe "Unit -> Int32"
     }
+
+    "pattern match regexes" {
+        val code = """
+            fun = case _ of
+              #"\d+" as str -> int str
+              #"\w+" -> 0
+              _ -> -1
+        """.module()
+
+        val ds = TestUtil.compileCode(code).env.decls
+        ds["fun"]?.type?.simpleName() shouldBe "String -> Int32"
+    }
     
     "multi pattern test" {
         val code = """

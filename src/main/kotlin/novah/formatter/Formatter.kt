@@ -200,7 +200,7 @@ class Formatter {
             is Expr.Float32 -> e.text
             is Expr.Float64 -> e.text
             is Expr.StringE -> if (e.multi) "\"\"\"${e.v}\"\"\"" else "\"${e.raw}\""
-            is Expr.PatternLiteral -> "#\"${e.regex}\""
+            is Expr.PatternLiteral -> "#\"${e.raw}\""
             is Expr.CharE -> "'${e.raw}'"
             is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
@@ -276,6 +276,7 @@ class Formatter {
         is Pattern.ImplicitPattern -> "{{${show(p.pat)}}}"
         is Pattern.TypeAnnotation -> "${show(p.pat)} : ${show(p.type)}"
         is Pattern.TuplePattern -> "${show(p.p1)} ; ${show(p.p2)}"
+        is Pattern.RegexPattern -> "#\"${p.regex}\""
     }
 
     private fun show(p: LiteralPattern): String = when (p) {
