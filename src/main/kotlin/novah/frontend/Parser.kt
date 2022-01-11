@@ -52,6 +52,7 @@ class Parser(
     fun errors(): List<CompilerProblem> = errors
 
     private fun innerParseFullModule(): Module {
+        val moduleAttr = parseAttributes()
         val (mname, mspan, comment) = parseModule()
         moduleName = mname.value
 
@@ -73,7 +74,9 @@ class Parser(
         val decls = mutableListOf<Decl>()
         while (iter.peek().value !is EOF) {
             try {
-                decls += parseDecl()
+                val attr = parseAttributes()
+                val decl = parseDecl().withAttributes(attr)
+                decls += decl
             } catch (le: LexError) {
                 errors += CompilerProblem(le.msg, le.span, sourceName, moduleName)
                 fastForward()
@@ -89,6 +92,7 @@ class Parser(
             imports,
             foreigns,
             decls,
+            moduleAttr,
             mspan
         ).withComment(comment)
     }
@@ -1049,12 +1053,12 @@ class Parser(
         return label to pat
     }
 
-    private fun parseLabel(): Pair<String, Spanned<Token>> {
+    private fun parseLabel(error: String = E.RECORD_LABEL): Pair<String, Spanned<Token>> {
         return if (iter.peek().value is Ident) {
             val tk = expect<Ident>(noErr())
             tk.value.v to tk
         } else {
-            val tk = expect<StringT>(withError(E.RECORD_LABEL))
+            val tk = expect<StringT>(withError(error))
             tk.value.s to tk
         }
     }
@@ -1393,6 +1397,56 @@ class Parser(
             is StringT -> tk.value.s
             else -> throwError(withError(E.UPPER_LOWER_STR)(tk))
         }
+    }
+
+    private fun parseAttributes(): Attribute? {
+        if (iter.peek().value !is AttrBracket) return null
+
+        val begin = expect<AttrBracket>(noErr())
+        val rows = between<Comma, Pair<String, Expr>>(::parseAttributeRow)
+        val end = expect<RSBracket>(withError(E.rsbracketExpected("attribute")))
+
+        val exp = Expr.RecordExtend(rows, Expr.RecordEmpty())
+            .withSpan(begin.span, end.span) as Expr.RecordExtend
+        return Attribute(exp)
+    }
+
+    private fun parseAttributeRow(): Pair<String, Expr> {
+        val (label, tk) = parseLabel()
+        if (iter.peek().value !is Colon && tk.value is Ident) {
+            return label to Expr.Bool(true).withSpanAndComment(tk)
+        }
+        expect<Colon>(withError(E.RECORD_COLON))
+        val exp = parseAttributeExpr()
+        return label to exp
+    }
+
+    private fun parseAttributeExpr(): Expr = when (iter.peek().value) {
+        is IntT -> parseInt32()
+        is LongT -> parseInt64()
+        is FloatT -> parseFloat32()
+        is DoubleT -> parseFloat64()
+        is StringT -> parseString()
+        is CharT -> parseChar()
+        is BoolT -> parseBool()
+        is LSBracket -> parseAttributeList()
+        is LBracket -> parseAttributeRecord()
+        else -> throwError(E.INVALID_ATTR_EXPR to iter.peek().span)
+    }
+
+    private fun parseAttributeList(): Expr {
+        val begin = expect<LSBracket>(noErr())
+        val exprs = between<Comma, Expr>(::parseAttributeExpr)
+        val end = expect<RSBracket>(withError(E.rsbracketExpected("list")))
+        return Expr.ListLiteral(exprs).withSpan(begin.span, end.span)
+    }
+
+    private fun parseAttributeRecord(): Expr {
+        val begin = expect<LBracket>(noErr())
+        val rows = between<Comma, Pair<String, Expr>>(::parseAttributeRow)
+        val end = expect<RBracket>(withError(E.rbracketExpected("record")))
+        return Expr.RecordExtend(rows, Expr.RecordEmpty())
+            .withSpan(begin.span, end.span)
     }
 
     private fun tryParseTypeVar(): String? {

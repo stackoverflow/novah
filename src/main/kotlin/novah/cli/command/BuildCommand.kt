@@ -49,18 +49,13 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
         help = "Run the compiler in dev mode: no optimizations will be applied and some errors will be warnings."
     ).flag(default = false)
 
-    private val lenient by option(
-        "-l", "--lenient",
-        help = "Makes the compiler more lenient by turning off strict mode (less errors reported). Not recomended for production builds."
-    ).flag(default = false)
-
     private val config by requireObject<Map<String, Deps>>()
 
     override fun run() {
         val al = alias ?: DepsProcessor.defaultAlias
         val deps = config["deps"] ?: return
 
-        build(al, deps, verbose, devMode, !lenient, check, ::echo, ::echo)
+        build(al, deps, verbose, devMode, check, ::echo, ::echo)
     }
 
     companion object {
@@ -70,7 +65,6 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
             deps: Deps,
             verbose: Boolean,
             devMode: Boolean,
-            strict: Boolean,
             check: Boolean,
             echo: (String) -> Unit,
             echoErr: (String, Boolean) -> Unit
@@ -91,7 +85,7 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
                 }
             }
 
-            val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode, strict))
+            val compiler = Compiler.new(emptySequence(), classpath, sourcepath, Options(verbose, devMode))
             try {
                 val warns = compiler.run(File(out), check)
                 Compiler.printWarnings(warns, echo)
@@ -131,7 +125,10 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
                 if (alias == DepsProcessor.defaultAlias) {
                     echo("No classpath found. Run the `deps` command first to generate a classpath", true)
                 } else {
-                    echo("No classpath found for alias $alias. Run the `deps` command first to generate a classpath", true)
+                    echo(
+                        "No classpath found for alias $alias. Run the `deps` command first to generate a classpath",
+                        true
+                    )
                 }
                 return null
             }

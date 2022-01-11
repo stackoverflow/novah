@@ -29,7 +29,7 @@ class FailureSpec : StringSpec({
             val testName = file.nameWithoutExtension
             val output = File("${file.parent}/$testName.txt")
 
-            val opts = Options(verbose = false, devMode = false, strict = true)
+            val opts = Options(verbose = false, devMode = false)
             val compiler = Compiler.new(sequenceOf(path), null, null, opts)
             try {
                 compiler.run(File("."), true)
@@ -49,7 +49,7 @@ class FailureSpec : StringSpec({
             val testName = file.nameWithoutExtension
             val output = File("${file.parent}/$testName.txt")
 
-            val opts = Options(verbose = false, devMode = true, strict = true)
+            val opts = Options(verbose = false, devMode = true)
             val compiler = Compiler.new(sequenceOf(path), null, null, opts)
             val warns = compiler.run(File("."), true)
             if (warns.isEmpty()) throw failure("Expected test `$testName` to return warnings.")
@@ -121,7 +121,7 @@ class FailureSpec : StringSpec({
     }
 
     "non-existing import declaration fail" {
-        val compiler = TestUtil.compilerFor("multimodulefail/importfail", strict = true)
+        val compiler = TestUtil.compilerFor("multimodulefail/importfail")
 
         val error = """
             module [33mmod2[0m
@@ -153,7 +153,7 @@ class FailureSpec : StringSpec({
     }
 
     "private import declaration fail" {
-        val compiler = TestUtil.compilerFor("multimodulefail/privateimport", strict = true)
+        val compiler = TestUtil.compilerFor("multimodulefail/privateimport")
 
         val error = """
             module [33mmod2[0m
@@ -185,7 +185,7 @@ class FailureSpec : StringSpec({
     }
 
     "duplicate imported types fail" {
-        val compiler = TestUtil.compilerFor("multimodulefail/duplicatedimports", strict = true)
+        val compiler = TestUtil.compilerFor("multimodulefail/duplicatedimports")
 
         val error = """
             module [33mmod2[0m
@@ -213,7 +213,7 @@ class FailureSpec : StringSpec({
     }
 
     "duplicate imported variables fail" {
-        val compiler = TestUtil.compilerFor("multimodulefail/duplicatedimportvars", strict = true)
+        val compiler = TestUtil.compilerFor("multimodulefail/duplicatedimportvars")
 
         val error = """
             module [33mmod1[0m

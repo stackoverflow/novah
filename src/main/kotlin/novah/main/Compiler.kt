@@ -60,7 +60,7 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
     }
 }
 
-class Options(val verbose: Boolean = false, val devMode: Boolean = false, val strict: Boolean = false)
+class Options(val verbose: Boolean = false, val devMode: Boolean = false)
 
 sealed class Source(val path: Path) {
     class SPath(path: Path) : Source(path)

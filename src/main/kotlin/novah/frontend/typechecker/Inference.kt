@@ -31,7 +31,7 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import novah.frontend.error.Errors as E
 
-class Inference(private val tc: Typechecker, private val classLoader: NovahClassLoader, private val strict: Boolean) {
+class Inference(private val tc: Typechecker, private val classLoader: NovahClassLoader) {
 
     private val implicitsToCheck = mutableListOf<Expr>()
     private val errors = mutableSetOf<CompilerProblem>()
@@ -79,13 +79,18 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             }
         }
 
+        if (ast.attributes != null) ast.attributes.type = infer(env, 0, ast.attributes.attrs)
+
         val vals = ast.decls.filterIsInstance<Decl.ValDecl>()
-        vals.filter { it.exp is Expr.Ann }.forEach { decl ->
-            val expr = decl.exp as Expr.Ann
-            val name = decl.name.value
-            checkShadow(env, name, decl.span)
-            env.extend(name, expr.annType)
-            if (decl.isInstance) env.extendInstance(name, expr.annType)
+        vals.forEach { decl ->
+            if (decl.exp is Expr.Ann) {
+                val expr = decl.exp
+                val name = decl.name.value
+                checkShadow(env, name, decl.span)
+                env.extend(name, expr.annType)
+                if (decl.isInstance) env.extendInstance(name, expr.annType)
+            }
+            if (decl.attributes != null) decl.attributes!!.type = infer(env, 0, decl.attributes!!.attrs)
         }
 
         for (decl in vals) {
@@ -109,7 +114,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 if (decl.isInstance) env.extendInstance(name, genTy)
                 decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
 
-                if (!isAnnotated && strict) {
+                if (!isAnnotated && !decl.attributes.isTrue(Attribute.NO_WARN)) {
                     val fix = "$name : ${genTy.show(false)}"
                     warner(E.noTypeAnnDecl(name, genTy.show()), decl.name.span, Action.NoType(fix))
                 }

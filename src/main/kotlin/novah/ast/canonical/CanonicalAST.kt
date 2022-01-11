@@ -39,6 +39,7 @@ data class Module(
     val unusedImports: Map<String, Span>,
     val imports: List<Import>,
     val foreigns: List<ForeignImport>,
+    val attributes: Attribute?,
     val comment: Comment?
 )
 
@@ -66,6 +67,8 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
     ) : Decl(span, comment) {
         var typeError = false
     }
+
+    var attributes: Attribute? = null
 
     fun isPublic() = when (this) {
         is TypeDecl -> visibility == Visibility.PUBLIC
@@ -113,7 +116,7 @@ sealed class Expr(open val span: Span) {
     data class App(val fn: Expr, val arg: Expr, override val span: Span) : Expr(span)
     data class If(val cond: Expr, val thenCase: Expr, val elseCase: Expr, override val span: Span) : Expr(span)
     data class Let(val letDef: LetDef, val body: Expr, override val span: Span) : Expr(span)
-    data class Match(val exps: List<Expr>, val cases: List<Case>, val warn: Boolean, override val span: Span) :
+    data class Match(val exps: List<Expr>, val cases: List<Case>, override val span: Span) :
         Expr(span)
 
     data class Ann(val exp: Expr, val annType: Type, override val span: Span) : Expr(span)
@@ -262,6 +265,36 @@ fun LiteralPattern.show(): String = when (this) {
     is LiteralPattern.Int64Literal -> e.v.toString()
     is LiteralPattern.Float32Literal -> e.v.toString()
     is LiteralPattern.Float64Literal -> e.v.toString()
+}
+
+data class Attribute(val attrs: Expr.RecordExtend) {
+    var type: Type? = null
+
+    fun merge(other: Attribute?): Attribute {
+        if (other == null) return this
+
+        val span = Span.new(attrs.span, other.attrs.span)
+        val newAttrs = attrs.copy(labels = other.attrs.labels.mergeReplace(attrs.labels), span = span)
+        return Attribute(newAttrs)
+    }
+
+    fun getAttr(attr: String): Any? {
+        val v = attrs.labels.get(attr)
+        return if (v.isPresent) {
+            val list = v.get()
+            if (!list.isEmpty()) list.nth(0) else null
+        } else null
+    }
+
+    companion object {
+        const val NO_WARN = "noWarn"
+    }
+}
+
+fun Attribute?.isTrue(attr: String): Boolean {
+    if (this == null) return false
+    val v = getAttr(attr)
+    return v != null && v is Expr.Bool && v.v
 }
 
 /**

@@ -33,7 +33,7 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
-import novah.main.Options
+import novah.ast.source.Attribute as SAttribute
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
@@ -49,7 +49,7 @@ import novah.frontend.error.Errors as E
 /**
  * Converts a source AST to the canonical spanned AST
  */
-class Desugar(private val smod: SModule, private val typeChecker: Typechecker, private val options: Options) {
+class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
 
     private val imports = smod.resolvedImports
 
@@ -79,8 +79,9 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
         declNames += imports.keys
         return try {
             synonyms = validateTypealiases()
-            val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar() })
-            if (options.strict) reportUnusedImports()
+            val attrs = smod.attributes?.desugar(null)
+            val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar(attrs) })
+            if (!attrs.isTrue(Attribute.NO_WARN)) reportUnusedImports()
             Ok(
                 Module(
                     smod.name,
@@ -89,6 +90,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
                     unusedImports,
                     smod.imports,
                     smod.foreigns,
+                    attrs,
                     smod.comment
                 )
             )
@@ -102,8 +104,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
     private val declVars = mutableSetOf<String>()
     private val unusedVars = mutableMapOf<String, Span>()
 
-    private fun SDecl.desugar(): Decl? {
-        return when (this) {
+    private fun SDecl.desugar(moduleAttrs: Attribute?): Decl? {
+        val decl = when (this) {
             is SDecl.TypeDecl -> {
                 validateDataConstructorNames(this)
                 if (smod.foreignTypes[name] != null || imports[name] != null) {
@@ -159,6 +161,11 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
             }
             else -> null
         }
+
+        if (decl != null) {
+            decl.attributes = if (attributes != null) attributes?.desugar(moduleAttrs) else moduleAttrs
+        }
+        return decl
     }
 
     private fun SDataConstructor.desugar(): DataConstructor =
@@ -257,7 +264,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
                     Binder(v, it.span) to Expr.Var(v, it.span)
                 } else null to it.desugar(locals, tvars)
             }
-            val match = Expr.Match(args.map { it.second }, cases.map { it.desugar(locals, tvars) }, true, span)
+            val match = Expr.Match(args.map { it.second }, cases.map { it.desugar(locals, tvars) }, span)
             nestLambdas(args.mapNotNull { it.first }, match)
         }
         is SExpr.Ann -> Expr.Ann(exp.desugar(locals, tvars), type.desugar(vars = tvars.toMutableMap()), span)
@@ -566,6 +573,11 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
         else -> parserError(E.notAField(), span)
     }
 
+    private fun SAttribute.desugar(moduleAttrs: Attribute?): Attribute {
+        val attr = Attribute(attrs.desugar() as Expr.RecordExtend)
+        return attr.merge(moduleAttrs)
+    }
+
     private data class CollectedVar(
         val name: String,
         val span: Span,
@@ -630,8 +642,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
                     } else {
                         val v = newVar()
                         val vars = listOf(Expr.Var(v, pat.span))
-                        val expr =
-                            Expr.Match(vars, listOf(Case(listOf(pat.pat.desugar(locals, tvars)), exp)), false, exp.span)
+                        val expr = Expr.Match(vars, listOf(Case(listOf(pat.pat.desugar(locals, tvars)), exp)), exp.span)
                         Expr.Lambda(
                             Binder(v, pat.span, true),
                             nestLambdaPatterns(pats.drop(1), expr, locals, tvars),
@@ -654,7 +665,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
                 else -> {
                     val vars = pats.map { Expr.Var(newVar(), it.span) }
                     val span = Span.new(pat.span, exp.span)
-                    val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals, tvars) }, exp)), false, span)
+                    val expr = Expr.Match(vars, listOf(Case(pats.map { it.desugar(locals, tvars) }, exp)), span)
                     nestLambdas(vars.map { Binder(it.name, it.span) }, expr)
                 }
             }
@@ -668,7 +679,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker, p
             }
             is SLetDef.DefPattern -> {
                 val case = Case(listOf(ld.pat.desugar(locals, tvars)), exp)
-                Expr.Match(listOf(ld.expr.desugar(locals, tvars)), listOf(case), false, span)
+                Expr.Match(listOf(ld.expr.desugar(locals, tvars)), listOf(case), span)
             }
         }
 

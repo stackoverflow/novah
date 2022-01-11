@@ -127,3 +127,13 @@ fun <V> LabelMap<V>.merge(other: LabelMap<V>): LabelMap<V> {
         acc.assocat(kv.key(), kv.value())
     }.forked()
 }
+
+/**
+ * Don't join the values together, just replace them with the values from `other`.
+ */
+fun <V> LabelMap<V>.mergeReplace(other: LabelMap<V>): LabelMap<V> {
+    val m = forked().linear()
+    return other.fold(m) { acc, kv ->
+        acc.put(kv.key(), kv.value())
+    }.forked()
+}
