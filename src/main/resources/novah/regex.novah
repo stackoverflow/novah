@@ -5,16 +5,24 @@ module novah.regex
 
 foreign import java.lang.CharSequence
 foreign import java.util.regex.Matcher
+foreign import java.util.regex.MatchResult
 foreign import java.util.regex.Pattern
 
 import novah.list as List
 
 /**
+ * Compiles this string into a regular expression.
+ */
+pub
+new : String -> Pattern
+new pat = Pattern#compile(pat)
+
+/**
  * Compiles this string and flags into a regular expression.
  */
 pub
-new : String -> Int32 -> Pattern
-new pat flags = Pattern#compile(pat, flags)
+withFlags : String -> Int32 -> Pattern
+withFlags pat flags = Pattern#compile(pat, flags)
 
 /**
  * Returns a matcher for the given regex and string.
@@ -23,6 +31,14 @@ pub
 matcher : Pattern -> String -> Matcher
 matcher pat str = pat#matcher(str as CharSequence)
 
+resultToGroups : MatchResult -> List String
+resultToGroups mat =
+  let count = mat#groupCount()
+  if count == 0 then
+    [mat#group()]
+  else
+    List.map mat#group(_) (0 ... count)
+
 /**
  * Returns a list of all matched groups for
  * the most recent match on this matcher.
@@ -30,11 +46,7 @@ matcher pat str = pat#matcher(str as CharSequence)
  */
 pub
 groups : Matcher -> List String
-groups mat =
-  let count = mat#groupCount()
-  if count == 0
-    then [mat#group()]
-    else List.map mat#group(_) (0 ... count)
+groups mat = resultToGroups (mat as MatchResult)
 
 /**
  * Returns the first match of this regex for the given string.
@@ -62,6 +74,16 @@ findAll pat str =
   seq#forked()
 
 /**
+ * Returns true if there is at least one match of this pattern
+ * in the given string.
+ */
+pub
+canFind : Pattern -> String -> Boolean
+canFind pat str =
+  let mat = matcher pat str
+  mat#find()
+
+/**
  * Returns true if this regex matches the whole input string.
  */
 pub
@@ -69,6 +91,13 @@ matches : Pattern -> String -> Boolean
 matches pat str =
   let mat = matcher pat str
   mat#matches()
+
+/**
+ * Splits this string around matches of this pattern.
+ */
+pub
+split : Pattern -> String -> List String
+split pat str = pat#split(str as CharSequence) |> List.fromArray
 
 /**
  * Replaces the first occurrence of this regex with the
@@ -88,4 +117,26 @@ pub
 replaceAll : Pattern -> String -> String -> String
 replaceAll pat repl input =
   let mat = matcher pat input
+  mat#replaceAll(repl)
+
+/**
+ * Replaces the first occurrence of this regex with the
+ * application of the given function to the match result.
+ */
+pub
+replaceFirstWith : Pattern -> (List String -> String) -> String -> String
+replaceFirstWith pat fun input =
+  let mat = matcher pat input
+  let repl m = fun (resultToGroups m)
+  mat#replaceFirst(repl)
+
+/**
+ * Replaces all occurrences of this regex with the
+ * application of the given function to the match result.
+ */
+pub
+replaceAllWith : Pattern -> (List String -> String) -> String -> String
+replaceAllWith pat fun input =
+  let mat = matcher pat input
+  let repl m = fun (resultToGroups m)
   mat#replaceAll(repl)
