@@ -272,7 +272,6 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
     }
 
     private val validEscapes = setOf('t', 'b', 'n', 'r', 'u', '\'', '\"', '\\')
-    private val validRegexEscapes = setOf('\"', 'u')
     private val escapes = setOf('\t', '\b', '\n', '\r')
 
     private fun char(): Token {
@@ -402,10 +401,10 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             if (c == '\n') {
                 lexError("Newline is not allowed inside pattern strings.")
             }
-            if (c == '\\' && iter.peek() in validRegexEscapes) {
-                val (esc, str) = readRegexEscape()
-                c = esc
-                raw.append(str)
+            if (c == '\\' && iter.peek() == '"') {
+                iter.next()
+                c = '"'
+                raw.append("\\\"")
             } else raw.append(c)
             bld.append(c)
             c = iter.next()
@@ -623,22 +622,6 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             in validEscapes -> getEscape(c)
             else -> lexError("Unexpected escape character `$c`. Valid ones are: $validEscapes")
         }
-    }
-
-    private fun readRegexEscape(): Pair<Char, String> = when (val c = iter.next()) {
-        '"' -> '"' to "\\\""
-        'u' -> {
-            val hex = "0123456789abcdefABCDEF"
-            val b1 = accept(hex)
-            val b2 = accept(hex)
-            val b3 = accept(hex)
-            val b4 = accept(hex)
-            if (b1 == null || b2 == null || b3 == null || b4 == null) {
-                lexError("Unexpected UTF-16 escape character.")
-            }
-            readUTF16BMP(b1, b2, b3, b4)
-        }
-        else -> c to "$c"
     }
 
     private fun lexError(msg: String): Nothing {

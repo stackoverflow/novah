@@ -21,7 +21,6 @@
 - [ ] Highlight all unused variables instead of just the first
 - [ ] Auto derive Equals, Show
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
-- [ ] Literal regex strings need more escapes like `\n`
 
 ## LSP / IDE
 
