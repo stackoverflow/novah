@@ -276,7 +276,7 @@ class Formatter {
         is Pattern.ImplicitPattern -> "{{${show(p.pat)}}}"
         is Pattern.TypeAnnotation -> "${show(p.pat)} : ${show(p.type)}"
         is Pattern.TuplePattern -> "${show(p.p1)} ; ${show(p.p2)}"
-        is Pattern.RegexPattern -> "#\"${p.regex}\""
+        is Pattern.RegexPattern -> "#\"${show(p.regex)}\""
     }
 
     private fun show(p: LiteralPattern): String = when (p) {
