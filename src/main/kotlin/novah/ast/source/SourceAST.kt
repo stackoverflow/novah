@@ -28,6 +28,7 @@ data class Module(
     val imports: List<Import>,
     val foreigns: List<ForeignImport>,
     val decls: List<Decl>,
+    val attributes: Attribute?,
     val span: Span
 ) {
     var comment: Comment? = null
@@ -134,8 +135,11 @@ sealed class Decl(val name: String, val visibility: Visibility) {
 
     var comment: Comment? = null
     var span = Span.empty()
+    var attributes: Attribute? = null
 
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.startLine, s.startColumn, e.endLine, e.endColumn) }
+
+    fun withAttributes(attrs: Attribute?) = apply { attributes = attrs }
 }
 
 data class Signature(val type: Type, val span: Span)
@@ -150,6 +154,8 @@ data class DataConstructor(
         return name.value + args.joinToString(" ", prefix = " ")
     }
 }
+
+data class Attribute(val attrs: Expr.RecordExtend)
 
 sealed class Expr {
     data class Int32(val v: Int, val text: String) : Expr()

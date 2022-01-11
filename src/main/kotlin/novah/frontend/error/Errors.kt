@@ -207,6 +207,11 @@ object Errors {
         Foreign methods: (_ : String)#endsWith("."), Math#exp(_)
     """.trimIndent()
 
+    val INVALID_ATTR_EXPR = """
+        Invalid attribute expression.
+        Attributes can only contain lists, records and primitive types (numbers, booleans, chars and strings)
+    """.trimIndent()
+
     fun opToolong(op: String) =
         "Operator $op is too long. Operators cannot contain more than 3 characters."
 

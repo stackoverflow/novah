@@ -181,7 +181,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             }
         logger().info("compiling project")
 
-        val options = Options(verbose = false, devMode = true, strict = true)
+        val options = Options(verbose = false, devMode = true)
         val theEnv = Environment(paths["classpath"], paths["sourcepath"], options)
         try {
             theEnv.parseSources(sources.asSequence())

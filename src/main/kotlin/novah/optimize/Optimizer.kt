@@ -34,7 +34,6 @@ import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
 import novah.main.Environment
-import novah.main.Options
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
 import java.util.function.Function
@@ -57,11 +56,7 @@ import novah.frontend.typechecker.Type as TType
  * Converts the canonical AST to the
  * optimized version, ready for codegen
  */
-class Optimizer(
-    private val ast: CModule,
-    private val ctorCache: MutableMap<String, Ctor>,
-    private val options: Options
-) {
+class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<String, Ctor>) {
 
     private var haslambda = false
     private val errors = mutableListOf<CompilerProblem>()
@@ -75,18 +70,21 @@ class Optimizer(
     fun convert(): Module {
         patternCompiler.addConsToCache(ast)
         val optimized = ast.convert()
-        if (options.strict) reportUnusedImports()
+        if (!ast.attributes.isTrue(Attribute.NO_WARN)) reportUnusedImports()
         return optimized
     }
 
     private fun CModule.convert(): Module {
         val ds = mutableListOf<Decl>()
         for (d in decls) {
+            attrs = d.attributes
             if (d is CDataDecl) ds += d.convert()
             if (d is CValDecl && !d.typeError) ds += d.convert()
         }
         return Module(internalize(name.value), sourceName, haslambda, ds)
     }
+
+    var attrs: Attribute? = null
 
     private fun CValDecl.convert(): Decl.ValDecl =
         Decl.ValDecl(Names.convert(name.value), exp.convert(), visibility, span)
@@ -176,9 +174,9 @@ class Optimizer(
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ, span)
             is CExpr.Match -> {
-                // don't report warnings on pattern matches in let definitions on lambda parameters
+                // don't report warnings on pattern matches when a #[noWarn] attribute is present
                 // so we can do things like `let [x :: xs] = 1 .. 10`
-                if (warn) {
+                if (!attrs.isTrue(Attribute.NO_WARN)) {
                     val match = cases.map { patternCompiler.convert(it, ast.name.value) }
                     // guarded matches are ignored
                     val matches = match.filter { !it.isGuarded }

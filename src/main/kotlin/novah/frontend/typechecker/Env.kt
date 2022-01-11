@@ -348,6 +348,7 @@ val primModule = Module(
     emptyMap(),
     emptyList(),
     emptyList(),
+    null,
     Comment("The primitive module contains all primitive defined types.", Span.empty(), true)
 )
 

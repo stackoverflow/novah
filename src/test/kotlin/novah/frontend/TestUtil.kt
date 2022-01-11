@@ -69,25 +69,15 @@ object TestUtil {
         return out
     }
 
-    fun compilerFor(
-        path: String,
-        verbose: Boolean = false,
-        devMode: Boolean = true,
-        strict: Boolean = false
-    ): Compiler {
+    fun compilerFor(path: String, verbose: Boolean = false, devMode: Boolean = true): Compiler {
         val sources = File("src/test/resources/$path").walkBottomUp().filter { it.extension == "novah" }
             .map { it.toPath() }
-        return Compiler.new(sources, null, null, Options(verbose, devMode, strict))
+        return Compiler.new(sources, null, null, Options(verbose, devMode))
     }
 
-    private fun compilerForCode(
-        code: String,
-        verbose: Boolean = false,
-        devMode: Boolean = true,
-        strict: Boolean = false
-    ): Compiler {
+    private fun compilerForCode(code: String, verbose: Boolean = false, devMode: Boolean = true): Compiler {
         val sources = listOf(Source.SString(Path.of("namespace"), code)).asSequence()
-        return Compiler(sources, null, null, Options(verbose, devMode, strict))
+        return Compiler(sources, null, null, Options(verbose, devMode))
     }
 
     fun compileCode(code: String, verbose: Boolean = false): FullModuleEnv {
@@ -102,7 +92,7 @@ object TestUtil {
     fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
         val compiler = compilerForCode(code, verbose)
         val ast = compiler.compile().values.last().ast
-        val opt = Optimizer(ast, mutableMapOf(), Options())
+        val opt = Optimizer(ast, mutableMapOf())
         val conv = opt.convert()
         if (opt.errors().isNotEmpty()) {
             opt.errors().forEach { println(it.formatToConsole()) }
