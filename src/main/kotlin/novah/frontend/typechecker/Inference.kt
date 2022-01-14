@@ -79,7 +79,11 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             }
         }
 
-        if (ast.attributes != null) ast.attributes.type = infer(env, 0, ast.attributes.attrs)
+        if (ast.metadata != null) ast.metadata.type = infer(env, 0, ast.metadata.data)
+
+        ast.decls.forEach { decl ->
+            if (decl.metadata != null) decl.metadata!!.type = infer(env, 0, decl.metadata!!.data)
+        }
 
         val vals = ast.decls.filterIsInstance<Decl.ValDecl>()
         vals.forEach { decl ->
@@ -90,7 +94,6 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 env.extend(name, expr.annType)
                 if (decl.isInstance) env.extendInstance(name, expr.annType)
             }
-            if (decl.attributes != null) decl.attributes!!.type = infer(env, 0, decl.attributes!!.attrs)
         }
 
         for (decl in vals) {
@@ -114,7 +117,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 if (decl.isInstance) env.extendInstance(name, genTy)
                 decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
 
-                if (!isAnnotated && !decl.attributes.isTrue(Attribute.NO_WARN)) {
+                if (!isAnnotated && !decl.metadata.isTrue(Metadata.NO_WARN)) {
                     val fix = "$name : ${genTy.show(false)}"
                     warner(E.noTypeAnnDecl(name, genTy.show()), decl.name.span, Action.NoType(fix))
                 }

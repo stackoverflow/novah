@@ -149,6 +149,8 @@ object Errors {
 
     const val INSTANCE_ERROR = "Type and type alias declarations cannot be instances, only values."
 
+    const val META_ALIAS = "Type aliases cannot have metadata."
+
     const val ALIAS_DOT = "Expected dot (.) after aliased variable."
 
     const val INVALID_OPERATOR_DECL = "Operator declarations have to be defined between parentheses."
@@ -207,7 +209,7 @@ object Errors {
         Foreign methods: (_ : String)#endsWith("."), Math#exp(_)
     """.trimIndent()
 
-    val INVALID_ATTR_EXPR = """
+    val INVALID_META_EXPR = """
         Invalid attribute expression.
         Attributes can only contain lists, records and primitive types (numbers, booleans, chars and strings)
     """.trimIndent()

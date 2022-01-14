@@ -671,6 +671,7 @@ class CompletionFeature(private val server: NovahServer) {
                             comps += binder to e.letDef.expr.type
                         }
                     }
+                    else -> {}
                 }
             }
             return comps

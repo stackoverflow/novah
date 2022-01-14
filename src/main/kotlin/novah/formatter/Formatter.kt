@@ -37,7 +37,7 @@ class Formatter {
         } else ""
         builder.append(cmt)
 
-        if (m.attributes != null) builder.append(show(m.attributes) + "\n")
+        if (m.metadata != null) builder.append(show(m.metadata) + "\n")
         builder.append("module ${m.name.value}")
 
         val imps = m.imports.filter { !it.isAuto() }
@@ -82,7 +82,7 @@ class Formatter {
 
     fun show(d: Decl): String {
         val cmt = if (d.comment != null) show(d.comment!!, true) else ""
-        val attrs = if (d.attributes != null) show(d.attributes!!) + "\n" else ""
+        val attrs = if (d.metadata != null) show(d.metadata!!) + "\n" else ""
         val vis = if (d.visibility == Visibility.PUBLIC) "pub\n" else ""
         return cmt + attrs + when (d) {
             is Decl.TypeDecl -> {
@@ -327,8 +327,8 @@ class Formatter {
         is Type.TImplicit -> "{{ ${show(t.type)} }}"
     }
 
-    fun show(attrs: Attribute): String {
-        val e = attrs.attrs
+    fun show(attrs: Metadata): String {
+        val e = attrs.data
         val labels = e.labels.show(::showLabelExpr)
         return "#[$labels]"
     }

@@ -4,6 +4,7 @@ foreign import java.util.regex.Pattern
 
 import novah.test
 
+#[noWarn]
 regexTests : Unit
 regexTests =
   test "Regex tests" \_ ->

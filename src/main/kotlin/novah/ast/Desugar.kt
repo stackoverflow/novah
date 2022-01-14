@@ -33,7 +33,7 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
-import novah.ast.source.Attribute as SAttribute
+import novah.ast.source.Metadata as SMetadata
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
@@ -79,9 +79,9 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         declNames += imports.keys
         return try {
             synonyms = validateTypealiases()
-            val attrs = smod.attributes?.desugar(null)
-            val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar(attrs) })
-            if (!attrs.isTrue(Attribute.NO_WARN)) reportUnusedImports()
+            val metas = smod.metadata?.desugar(null)
+            val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar(metas) })
+            if (!metas.isTrue(Metadata.NO_WARN)) reportUnusedImports()
             Ok(
                 Module(
                     smod.name,
@@ -90,7 +90,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     unusedImports,
                     smod.imports,
                     smod.foreigns,
-                    attrs,
+                    metas,
                     smod.comment
                 )
             )
@@ -104,7 +104,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
     private val declVars = mutableSetOf<String>()
     private val unusedVars = mutableMapOf<String, Span>()
 
-    private fun SDecl.desugar(moduleAttrs: Attribute?): Decl? {
+    private fun SDecl.desugar(moduleMeta: Metadata?): Decl? {
         val decl = when (this) {
             is SDecl.TypeDecl -> {
                 validateDataConstructorNames(this)
@@ -163,7 +163,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         }
 
         if (decl != null) {
-            decl.attributes = if (attributes != null) attributes?.desugar(moduleAttrs) else moduleAttrs
+            decl.metadata = if (metadata != null) metadata?.desugar(moduleMeta) else moduleMeta
         }
         return decl
     }
@@ -573,9 +573,9 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         else -> parserError(E.notAField(), span)
     }
 
-    private fun SAttribute.desugar(moduleAttrs: Attribute?): Attribute {
-        val attr = Attribute(attrs.desugar() as Expr.RecordExtend)
-        return attr.merge(moduleAttrs)
+    private fun SMetadata.desugar(moduleMeta: Metadata?): Metadata {
+        val meta = Metadata(data.desugar() as Expr.RecordExtend)
+        return meta.merge(moduleMeta)
     }
 
     private data class CollectedVar(
@@ -831,6 +831,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     is Expr.Var -> deps += e.fullname()
                     is Expr.ImplicitVar -> deps += e.fullname()
                     is Expr.Constructor -> deps += e.fullname()
+                    else -> {}
                 }
             }
             return deps

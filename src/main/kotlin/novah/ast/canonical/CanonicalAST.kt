@@ -39,7 +39,7 @@ data class Module(
     val unusedImports: Map<String, Span>,
     val imports: List<Import>,
     val foreigns: List<ForeignImport>,
-    val attributes: Attribute?,
+    val metadata: Metadata?,
     val comment: Comment?
 )
 
@@ -68,11 +68,16 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
         var typeError = false
     }
 
-    var attributes: Attribute? = null
+    var metadata: Metadata? = null
 
     fun isPublic() = when (this) {
         is TypeDecl -> visibility == Visibility.PUBLIC
         is ValDecl -> visibility == Visibility.PUBLIC
+    }
+
+    fun rawName() = when (this) {
+        is TypeDecl -> name.value
+        is ValDecl -> name.value
     }
 }
 
@@ -267,19 +272,19 @@ fun LiteralPattern.show(): String = when (this) {
     is LiteralPattern.Float64Literal -> e.v.toString()
 }
 
-data class Attribute(val attrs: Expr.RecordExtend) {
+data class Metadata(val data: Expr.RecordExtend) {
     var type: Type? = null
 
-    fun merge(other: Attribute?): Attribute {
+    fun merge(other: Metadata?): Metadata {
         if (other == null) return this
 
-        val span = Span.new(attrs.span, other.attrs.span)
-        val newAttrs = attrs.copy(labels = other.attrs.labels.mergeReplace(attrs.labels), span = span)
-        return Attribute(newAttrs)
+        val span = Span.new(data.span, other.data.span)
+        val newMeta = data.copy(labels = other.data.labels.mergeReplace(data.labels), span = span)
+        return Metadata(newMeta)
     }
 
-    fun getAttr(attr: String): Any? {
-        val v = attrs.labels.get(attr)
+    fun getMeta(attr: String): Any? {
+        val v = data.labels.get(attr)
         return if (v.isPresent) {
             val list = v.get()
             if (!list.isEmpty()) list.nth(0) else null
@@ -291,9 +296,9 @@ data class Attribute(val attrs: Expr.RecordExtend) {
     }
 }
 
-fun Attribute?.isTrue(attr: String): Boolean {
+fun Metadata?.isTrue(attr: String): Boolean {
     if (this == null) return false
-    val v = getAttr(attr)
+    val v = getMeta(attr)
     return v != null && v is Expr.Bool && v.v
 }
 
@@ -390,6 +395,7 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
                                 is Pattern.Ctor -> go(it.ctor)
                                 is Pattern.LiteralP -> go(it.lit.e)
                                 is Pattern.Var -> go(it.v)
+                                else -> {}
                             }
                         }
                     }
