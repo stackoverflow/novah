@@ -46,6 +46,20 @@ equals : a -> a -> Boolean
 equals x y = (x as Object)#equals(y as Object)
 
 /**
+ * Returns true if the given object is an instance of the class.
+ */
+pub
+instanceOf : a -> Class b -> Boolean
+instanceOf o clazz = clazz#isInstance(o as Object)
+
+/**
+ * Returns true if clazz1 is a superclass or superinterface of class2.
+ */
+pub
+isAssignableFrom : Class a -> Class b -> Boolean
+isAssignableFrom clazz1 clazz2 = clazz1#isAssignableFrom(clazz2)
+
+/**
  * Throws an assetion error if the condition is false.
  */
 pub

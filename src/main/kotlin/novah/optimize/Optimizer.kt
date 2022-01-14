@@ -16,6 +16,7 @@
 package novah.optimize
 
 import io.lacuna.bifurcan.Map
+import novah.ast.canonical.Metadata
 import novah.Core
 import novah.RecFunction
 import novah.Util.internalError
@@ -23,6 +24,7 @@ import novah.ast.Desugar
 import novah.ast.canonical.*
 import novah.ast.optimized.*
 import novah.ast.optimized.Decl
+import novah.ast.source.Visibility
 import novah.data.forEachKeyList
 import novah.data.mapList
 import novah.frontend.Span
@@ -45,7 +47,7 @@ import kotlin.collections.plusAssign
 import io.lacuna.bifurcan.List as PList
 import novah.ast.canonical.Binder as CBinder
 import novah.ast.canonical.DataConstructor as CDataConstructor
-import novah.ast.canonical.Decl.TypeDecl as CDataDecl
+import novah.ast.canonical.Decl.TypeDecl as CTypeDecl
 import novah.ast.canonical.Decl.ValDecl as CValDecl
 import novah.ast.canonical.Expr as CExpr
 import novah.ast.canonical.Module as CModule
@@ -70,26 +72,30 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
     fun convert(): Module {
         patternCompiler.addConsToCache(ast)
         val optimized = ast.convert()
-        if (!ast.attributes.isTrue(Attribute.NO_WARN)) reportUnusedImports()
+        if (!ast.metadata.isTrue(Metadata.NO_WARN)) reportUnusedImports()
         return optimized
     }
 
     private fun CModule.convert(): Module {
+        val metaExpr = mutableListOf<Pair<String, Metadata>>()
         val ds = mutableListOf<Decl>()
         for (d in decls) {
-            attrs = d.attributes
-            if (d is CDataDecl) ds += d.convert()
+            meta = d.metadata
+            if (d.metadata != null) metaExpr += d.rawName() to d.metadata!!
+            if (d is CTypeDecl) ds += d.convert()
             if (d is CValDecl && !d.typeError) ds += d.convert()
         }
-        return Module(internalize(name.value), sourceName, haslambda, ds)
+        val allDecls = if (metaExpr.isEmpty()) ds
+        else ds + makeMetaExpr(metaExpr)
+        return Module(internalize(name.value), sourceName, haslambda, allDecls)
     }
 
-    var attrs: Attribute? = null
+    private var meta: Metadata? = null
 
     private fun CValDecl.convert(): Decl.ValDecl =
         Decl.ValDecl(Names.convert(name.value), exp.convert(), visibility, span)
 
-    private fun CDataDecl.convert(): Decl.TypeDecl =
+    private fun CTypeDecl.convert(): Decl.TypeDecl =
         Decl.TypeDecl(name.value, tyVars, dataCtors.map { it.convert() }, visibility, span)
 
     private fun CDataConstructor.convert(): DataConstructor =
@@ -176,7 +182,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is CExpr.Match -> {
                 // don't report warnings on pattern matches when a #[noWarn] attribute is present
                 // so we can do things like `let [x :: xs] = 1 .. 10`
-                if (!attrs.isTrue(Attribute.NO_WARN)) {
+                if (!meta.isTrue(Metadata.NO_WARN)) {
                     val match = cases.map { patternCompiler.convert(it, ast.name.value) }
                     // guarded matches are ignored
                     val matches = match.filter { !it.isGuarded }
@@ -518,6 +524,18 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         return nestLets(vars, ifExp, type)
     }
 
+    private fun makeMetaExpr(meta: List<Pair<String, Metadata>>): Decl.ValDecl {
+        fun register(decl: String, exp: CExpr.RecordExtend): Expr {
+            val modExpr = Expr.StringE(ast.name.value, stringType, Span.empty())
+            val declExpr = Expr.StringE(decl, stringType, Span.empty())
+            val retur = Clazz(Type.VOID_TYPE)
+            return Expr.NativeStaticMethod(registerMetas, listOf(modExpr, declExpr, exp.convert()), retur, Span.empty())
+        }
+
+        val expr = Expr.Do(meta.map { (decl, attr) -> register(decl, attr.data) }, Clazz(UNIT_TYPE), Span.empty())
+        return Decl.ValDecl("\$meta", expr, Visibility.PRIVATE, Span.empty())
+    }
+
     private fun needVar(exp: Expr): Boolean = when (exp) {
         is Expr.Var, is Expr.LocalVar, is Expr.ByteE, is Expr.Int16,
         is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
@@ -593,7 +611,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             primBoolean -> Type.getType(Boolean::class.javaObjectType)
             primChar -> Type.getType(Char::class.javaObjectType)
             primString -> Type.getType(String::class.java)
-            primUnit -> Type.getObjectType(internalize("novah.Unit"))
+            primUnit -> UNIT_TYPE
             primObject -> OBJECT_TYPE
             primArray -> ARRAY_TYPE
             primByteArray -> Type.getType(ByteArray::class.java)
@@ -620,6 +638,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
         private val LONG_TYPE = Type.getType(Long::class.javaObjectType)
         private val LIST_TYPE = Type.getType(PList::class.java)
+        private val UNIT_TYPE = Type.getObjectType(internalize("novah.Unit"))
         val OBJECT_TYPE = Type.getType(Object::class.java)!!
         val ARRAY_TYPE = Type.getType(Array::class.java)!!
 
@@ -653,5 +672,6 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         val newRecFun: Constructor<*> = RecFunction::class.java.constructors.first()
         val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
         val patternMatches = java.util.regex.Pattern::class.java.methods.find { it.name == "matches" }!!
+        val registerMetas = novah.Metadata::class.java.methods.find { it.name == "registerMetas" }!!
     }
 }

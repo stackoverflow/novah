@@ -21,6 +21,8 @@
 - [ ] Highlight all unused variables instead of just the first
 - [ ] Auto derive Equals, Show
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
+- [ ] Add support for primitive types
+- [ ] Better implicit type inference
 
 ## LSP / IDE
 

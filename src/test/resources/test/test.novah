@@ -6,6 +6,7 @@ foreign import java.io.File
 
 typealias Opt a = Option a
 
+#[foo: "123"]
 pub+
 type MyList a
   = Niu
@@ -18,15 +19,16 @@ pub
 baz : (a -> b) -> LinkedList a -> LinkedList b
 baz = map
 
+#[noWarn, foo: [4, 5]]
 baz2 : LinkedList Int32
 baz2 = 1 :: Nil
 
 nf : String -> File
 nf (x : String) = File#new(x)
 
+#[bar: false, deprecated: "1.2.0"]
 fname : File -> String
-fname f =
-  (f: File)#getName() ++ File#-separator
+fname f = f#getName() ++ File#-separator
 
 value : Id
 value = Id "asd"

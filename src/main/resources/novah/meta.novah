@@ -1,0 +1,29 @@
+/**
+ * Functions for reflecting on metadata.
+ */
+module novah.meta
+
+foreign import java.lang.reflect.Field
+foreign import novah.Metadata
+
+/**
+ * Returns all modules where the tag is defined
+ * in at least one declaration.
+ */
+pub
+modulesForTag : String -> Set String
+modulesForTag tag = Metadata#modulesForTag(tag)
+
+/**
+ * Returns all declarations where the tag is defined.
+ */
+pub
+declarationsForTag : String -> List Field
+declarationsForTag tag = Metadata#declarationsForTag(tag)
+
+/**
+ * Returns all declarations in the given module where the tag is defined.
+ */
+pub
+declarationsInModuleForTag : String -> String -> List Field
+declarationsInModuleForTag moduleName tag = Metadata#declarationsForTag(moduleName, tag)

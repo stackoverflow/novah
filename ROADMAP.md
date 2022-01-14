@@ -7,6 +7,7 @@
 - [X] IDE support (WIP)
 - [X] LSP implemented in the compiler (WIP)
 - [ ] Auto derive Show and maybe some other type classes
+- [ ] Primitive types support
 - [X] Computation expressions
 - [X] Standard library (WIP)
 - [X] Multi line strings

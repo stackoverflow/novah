@@ -16,6 +16,7 @@
 package novah.main
 
 import com.github.ajalt.clikt.output.TermUi
+import novah.Metadata
 import novah.Core
 import novah.Ref
 import novah.collections.ListValue
@@ -44,6 +45,7 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
         if (name == "novah.Ref") return Ref::class.java
         if (name == "novah.collections.Record") return Record::class.java
         if (name == "novah.collections.ListValue") return ListValue::class.java
+        if (name == "novah.Metadata") return Metadata::class.java
         if (name.startsWith("io.lacuna.bifurcan")) return Class.forName(name)
         return classLoader.loadClass(name)
     }

@@ -52,7 +52,7 @@ class Parser(
     fun errors(): List<CompilerProblem> = errors
 
     private fun innerParseFullModule(): Module {
-        val moduleAttr = parseAttributes()
+        val moduleAttr = parseMetadata()
         val (mname, mspan, comment) = parseModule()
         moduleName = mname.value
 
@@ -74,9 +74,7 @@ class Parser(
         val decls = mutableListOf<Decl>()
         while (iter.peek().value !is EOF) {
             try {
-                val attr = parseAttributes()
-                val decl = parseDecl().withAttributes(attr)
-                decls += decl
+                decls += parseDecl()
             } catch (le: LexError) {
                 errors += CompilerProblem(le.msg, le.span, sourceName, moduleName)
                 fastForward()
@@ -238,6 +236,7 @@ class Parser(
     }
 
     private fun parseDecl(): Decl {
+        val meta = parseMetadata()
         var tk = iter.peek()
         val comment = tk.comment
         var visibility: Token? = null
@@ -259,16 +258,17 @@ class Parser(
         val decl = when (tk.value) {
             is TypeT -> {
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
-                parseTypeDecl(visibility, offside)
+                parseTypeDecl(visibility, offside).withMeta(meta)
             }
             is Opaque -> {
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
-                parseOpaqueDecl(visibility, offside)
+                parseOpaqueDecl(visibility, offside).withMeta(meta)
             }
-            is Ident -> parseVarDecl(visibility, isInstance, offside)
-            is LParen -> parseVarDecl(visibility, isInstance, offside, true)
+            is Ident -> parseVarDecl(visibility, isInstance, offside).withMeta(meta)
+            is LParen -> parseVarDecl(visibility, isInstance, offside, true).withMeta(meta)
             is TypealiasT -> {
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
+                if (meta != null) throwError(E.META_ALIAS to meta.data.span)
                 parseTypealias(visibility, offside)
             }
             else -> throwError(withError(E.TOPLEVEL_IDENT)(tk))
@@ -1399,29 +1399,29 @@ class Parser(
         }
     }
 
-    private fun parseAttributes(): Attribute? {
+    private fun parseMetadata(): Metadata? {
         if (iter.peek().value !is AttrBracket) return null
 
         val begin = expect<AttrBracket>(noErr())
-        val rows = between<Comma, Pair<String, Expr>>(::parseAttributeRow)
+        val rows = between<Comma, Pair<String, Expr>>(::parseMetadataRow)
         val end = expect<RSBracket>(withError(E.rsbracketExpected("attribute")))
 
         val exp = Expr.RecordExtend(rows, Expr.RecordEmpty())
             .withSpan(begin.span, end.span) as Expr.RecordExtend
-        return Attribute(exp)
+        return Metadata(exp)
     }
 
-    private fun parseAttributeRow(): Pair<String, Expr> {
+    private fun parseMetadataRow(): Pair<String, Expr> {
         val (label, tk) = parseLabel()
         if (iter.peek().value !is Colon && tk.value is Ident) {
             return label to Expr.Bool(true).withSpanAndComment(tk)
         }
         expect<Colon>(withError(E.RECORD_COLON))
-        val exp = parseAttributeExpr()
+        val exp = parseMetadataExpr()
         return label to exp
     }
 
-    private fun parseAttributeExpr(): Expr = when (iter.peek().value) {
+    private fun parseMetadataExpr(): Expr = when (iter.peek().value) {
         is IntT -> parseInt32()
         is LongT -> parseInt64()
         is FloatT -> parseFloat32()
@@ -1429,21 +1429,21 @@ class Parser(
         is StringT -> parseString()
         is CharT -> parseChar()
         is BoolT -> parseBool()
-        is LSBracket -> parseAttributeList()
-        is LBracket -> parseAttributeRecord()
-        else -> throwError(E.INVALID_ATTR_EXPR to iter.peek().span)
+        is LSBracket -> parseMetadataList()
+        is LBracket -> parseMetadataRecord()
+        else -> throwError(E.INVALID_META_EXPR to iter.peek().span)
     }
 
-    private fun parseAttributeList(): Expr {
+    private fun parseMetadataList(): Expr {
         val begin = expect<LSBracket>(noErr())
-        val exprs = between<Comma, Expr>(::parseAttributeExpr)
+        val exprs = between<Comma, Expr>(::parseMetadataExpr)
         val end = expect<RSBracket>(withError(E.rsbracketExpected("list")))
         return Expr.ListLiteral(exprs).withSpan(begin.span, end.span)
     }
 
-    private fun parseAttributeRecord(): Expr {
+    private fun parseMetadataRecord(): Expr {
         val begin = expect<LBracket>(noErr())
-        val rows = between<Comma, Pair<String, Expr>>(::parseAttributeRow)
+        val rows = between<Comma, Pair<String, Expr>>(::parseMetadataRow)
         val end = expect<RBracket>(withError(E.rbracketExpected("record")))
         return Expr.RecordExtend(rows, Expr.RecordEmpty())
             .withSpan(begin.span, end.span)

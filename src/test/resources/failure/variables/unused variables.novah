@@ -1,5 +1,7 @@
 module test
 
+#[noWarn]
 f1 [] [x] = 10
 
+#[noWarn]
 main args = 10
