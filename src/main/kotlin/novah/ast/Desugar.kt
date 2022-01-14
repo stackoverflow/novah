@@ -33,6 +33,7 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
+import novah.optimize.AutoDerive
 import novah.ast.source.Metadata as SMetadata
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
@@ -80,7 +81,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         return try {
             synonyms = validateTypealiases()
             val metas = smod.metadata?.desugar(null)
-            val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar(metas) })
+            val decls = autoDerives + validateTopLevelValues(smod.decls.mapNotNull { it.desugar(metas) })
             if (!metas.isTrue(Metadata.NO_WARN)) reportUnusedImports()
             Ok(
                 Module(
@@ -104,7 +105,10 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
     private val declVars = mutableSetOf<String>()
     private val unusedVars = mutableMapOf<String, Span>()
 
+    private val autoDerives = mutableListOf<Decl>()
+
     private fun SDecl.desugar(moduleMeta: Metadata?): Decl? {
+        val meta = metadata?.desugar(moduleMeta) ?: moduleMeta
         val decl = when (this) {
             is SDecl.TypeDecl -> {
                 validateDataConstructorNames(this)
@@ -112,7 +116,12 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     errors += makeError(E.duplicatedType(name), span)
                     null
                 } else {
-                    Decl.TypeDecl(binder, tyVars, dataCtors.map { it.desugar() }, span, visibility, isOpaque, comment)
+                    val ctors = dataCtors.map { it.desugar() }
+                    val tdecl = Decl.TypeDecl(binder, tyVars, ctors, span, visibility, isOpaque, comment)
+                    tdecl.metadata = meta
+                    // auto derive type classes
+                    AutoDerive.derive(tdecl, ::makeAddError)?.let { autoDerives += it }
+                    tdecl
                 }
             }
             is SDecl.ValDecl -> {
@@ -153,7 +162,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                         isInstance,
                         isOperator,
                         comment
-                    )
+                    ).withMeta(meta)
                 } catch (pe: ParserError) {
                     errors += makeError(pe.msg, pe.span)
                     return null
@@ -162,9 +171,6 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             else -> null
         }
 
-        if (decl != null) {
-            decl.metadata = if (metadata != null) metadata?.desugar(moduleMeta) else moduleMeta
-        }
         return decl
     }
 
@@ -1128,6 +1134,10 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
 
     private fun makeError(msg: String, span: Span): CompilerProblem =
         CompilerProblem(msg, span, smod.sourceName, moduleName)
+
+    private fun makeAddError(msg: String, span: Span) {
+        errors += makeError(msg, span)
+    }
 
     companion object {
         fun collectVars(exp: Expr): List<String> =

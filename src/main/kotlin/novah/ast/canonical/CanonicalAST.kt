@@ -79,6 +79,8 @@ sealed class Decl(open val span: Span, open val comment: Comment?) {
         is TypeDecl -> name.value
         is ValDecl -> name.value
     }
+
+    fun withMeta(meta: Metadata?) = apply { metadata = meta }
 }
 
 data class Signature(val type: Type, val span: Span)
@@ -278,12 +280,11 @@ data class Metadata(val data: Expr.RecordExtend) {
     fun merge(other: Metadata?): Metadata {
         if (other == null) return this
 
-        val span = Span.new(data.span, other.data.span)
-        val newMeta = data.copy(labels = other.data.labels.mergeReplace(data.labels), span = span)
+        val newMeta = data.copy(labels = other.data.labels.mergeReplace(data.labels), span = data.span)
         return Metadata(newMeta)
     }
 
-    fun getMeta(attr: String): Any? {
+    fun getMeta(attr: String): Expr? {
         val v = data.labels.get(attr)
         return if (v.isPresent) {
             val list = v.get()
@@ -293,6 +294,7 @@ data class Metadata(val data: Expr.RecordExtend) {
 
     companion object {
         const val NO_WARN = "noWarn"
+        const val DERIVE = "derive"
     }
 }
 

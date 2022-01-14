@@ -192,6 +192,10 @@ object Errors {
     const val UNKNOW_TYPE_FOR_INDEX =
         "The type of operator 'expr.[index]' is unknown at this point. Consider adding further type information."
 
+    const val DERIVE_LIST = "Wrong value for derive metadata. Should be a list of strings: #[derive: [\"Show\"]]"
+
+    const val DERIVE_UNKNOW = "Cannot auto derive types with unknow type variables."
+
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
         
@@ -468,6 +472,12 @@ object Errors {
                 ${pats.joinToString()}
             """.trimIndent()
     }
+
+    fun invalidAutoDerive(name: String, valids: Set<String>) = """
+        Invalid type for auto deriving: $name
+        
+        Valid ones are: ${valids.joinToString()}
+    """.trimIndent()
 
     fun noAliasFound(alias: String) = "Could not find import alias $alias."
 

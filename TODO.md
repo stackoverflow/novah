@@ -23,6 +23,8 @@
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
 - [ ] Add support for primitive types
 - [ ] Better implicit type inference
+- [ ] Disallow expose private types in declarations
+- [ ] Improve auto derive to actually recurse on the derived type
 
 ## LSP / IDE
 
