@@ -1,9 +1,10 @@
-package novah.optimize
+package novah.ast
 
 import novah.ast.source.*
 import novah.frontend.Span
 import novah.frontend.Spanned
 import novah.frontend.error.Errors
+import novah.optimize.Names
 import novah.ast.canonical.Metadata as MData
 
 object AutoDerive {
