@@ -24,7 +24,6 @@
 - [ ] Add support for primitive types
 - [ ] Better implicit type inference
 - [ ] Disallow expose private types in declarations
-- [ ] Improve auto derive to actually recurse on the derived type
 
 ## LSP / IDE
 

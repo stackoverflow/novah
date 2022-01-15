@@ -81,7 +81,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         return try {
             synonyms = validateTypealiases()
             val metas = smod.metadata?.desugar(null)
-            val decls = autoDerives + validateTopLevelValues(smod.decls.mapNotNull { it.desugar(metas) })
+            val decls = validateTopLevelValues(smod.decls.mapNotNull { it.desugar(metas) }) +
+                    autoDerives.mapNotNull { it.desugar(metas) }
             if (!metas.isTrue(Metadata.NO_WARN)) reportUnusedImports()
             Ok(
                 Module(
@@ -105,7 +106,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
     private val declVars = mutableSetOf<String>()
     private val unusedVars = mutableMapOf<String, Span>()
 
-    private val autoDerives = mutableListOf<Decl>()
+    private val autoDerives = mutableListOf<SDecl>()
 
     private fun SDecl.desugar(moduleMeta: Metadata?): Decl? {
         val meta = metadata?.desugar(moduleMeta) ?: moduleMeta
@@ -116,12 +117,10 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     errors += makeError(E.duplicatedType(name), span)
                     null
                 } else {
-                    val ctors = dataCtors.map { it.desugar() }
-                    val tdecl = Decl.TypeDecl(binder, tyVars, ctors, span, visibility, isOpaque, comment)
-                    tdecl.metadata = meta
                     // auto derive type classes
-                    AutoDerive.derive(tdecl, ::makeAddError)?.let { autoDerives += it }
-                    tdecl
+                    AutoDerive.derive(this, ::makeAddError)?.let { autoDerives += it }
+                    val ctors = dataCtors.map { it.desugar() }
+                    Decl.TypeDecl(binder, tyVars, ctors, span, visibility, isOpaque, comment).withMeta(meta)
                 }
             }
             is SDecl.ValDecl -> {
