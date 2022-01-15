@@ -1400,9 +1400,9 @@ class Parser(
     }
 
     private fun parseMetadata(): Metadata? {
-        if (iter.peek().value !is AttrBracket) return null
+        if (iter.peek().value !is MetaBracket) return null
 
-        val begin = expect<AttrBracket>(noErr())
+        val begin = expect<MetaBracket>(noErr())
         val rows = between<Comma, Pair<String, Expr>>(::parseMetadataRow)
         val end = expect<RSBracket>(withError(E.rsbracketExpected("attribute")))
 
