@@ -137,6 +137,7 @@ sealed class Decl(val name: String, val visibility: Visibility) {
     var span = Span.empty()
     var metadata: Metadata? = null
 
+    fun withSpan(s: Span) = apply { span = s }
     fun withSpan(s: Span, e: Span) = apply { span = Span(s.startLine, s.startColumn, e.endLine, e.endColumn) }
 
     fun withMeta(meta: Metadata?) = apply { metadata = meta }

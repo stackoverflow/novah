@@ -31,6 +31,8 @@ object Names {
         }
         return b.toString()
     }
+
+    fun isValidNovahIdent(ident: String) = ident.matches(identRegex)
     
     // novah operators
     private val chars = mapOf(
@@ -50,4 +52,6 @@ object Names {
         '?' to "\$question",
         '!' to "\$bang"
     )
+
+    private val identRegex = Regex("[a-z]\\w*")
 }
