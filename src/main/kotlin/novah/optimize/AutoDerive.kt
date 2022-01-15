@@ -17,31 +17,36 @@ object AutoDerive {
         val meta = decl.metadata ?: return null
         val deri = meta.getMeta(MData.DERIVE) ?: return null
 
-        if (deri !is Expr.ListLiteral) {
-            onError(Errors.DERIVE_LIST, deri.span)
+        if (deri !is Expr.RecordExtend) {
+            onError(Errors.DERIVE_REC, deri.span)
             return null
         }
-        val deriveExps = deri.exps
+        val deriveExps = deri.labels
         if (deriveExps.isEmpty()) return null
-        if (deriveExps[0] !is Expr.StringE) {
-            onError(Errors.DERIVE_LIST, deri.span)
+        if (deriveExps.any { it.second !is Expr.StringE }) {
+            onError(Errors.DERIVE_REC, deri.span)
             return null
         }
 
-        val derives = deriveExps.filterIsInstance<Expr.StringE>()
-        return derives.mapNotNull {
-            when (it.v) {
-                "Show" -> makeShow(it.span, decl)
-                "Equals" -> makeEquals(it.span, decl)
-                else -> {
-                    onError(Errors.invalidAutoDerive(it.v, classes), it.span)
-                    null
+        return deriveExps.mapNotNull {
+            val v = it.second as Expr.StringE
+            if (Names.isValidNovahIdent(it.first)) {
+                when (v.v) {
+                    "Show" -> makeShow(it.first, v.span, decl)
+                    "Equals" -> makeEquals(it.first, v.span, decl)
+                    else -> {
+                        onError(Errors.invalidAutoDerive(v.v, classes), v.span)
+                        null
+                    }
                 }
+            } else {
+                onError(Errors.invalidIdent(it.first), deri.span)
+                null
             }
         }
     }
 
-    private fun makeShow(span: Span, decl: Decl.TypeDecl): Decl {
+    private fun makeShow(name: String, span: Span, decl: Decl.TypeDecl): Decl {
         val tyVars = decl.tyVars
         // function signature
         val retType = makeApp("Show", makeType(decl, span), span) as Type
@@ -68,10 +73,10 @@ object AutoDerive {
         val match = Expr.Match(listOf(Expr.Var("\$x")), cases)
         val lambda = Expr.Lambda(listOf(varPattern("\$x")), match)
         val exp = Expr.App(Expr.Constructor("Show"), lambda).withSpan(span)
-        return makeDecl("\$show${decl.name}", span, decl.visibility, pars, exp, sig)
+        return makeDecl(name, span, decl.visibility, pars, exp, sig)
     }
 
-    private fun makeEquals(span: Span, decl: Decl.TypeDecl): Decl {
+    private fun makeEquals(name: String, span: Span, decl: Decl.TypeDecl): Decl {
         val tyVars = decl.tyVars
         // function signature
         val retType = makeApp("Equals", makeType(decl, span), span) as Type
@@ -101,7 +106,7 @@ object AutoDerive {
         val match = Expr.Match(listOf(Expr.Var("\$x"), Expr.Var("\$y")), cases)
         val lambda = Expr.Lambda(listOf(varPattern("\$x"), varPattern("\$y")), match)
         val exp = Expr.App(Expr.Constructor("Equals"), lambda).withSpan(span)
-        return makeDecl("\$equals${decl.name}", span, decl.visibility, pars, exp, sig)
+        return makeDecl(name, span, decl.visibility, pars, exp, sig)
     }
 
     private fun makeDecl(
@@ -112,7 +117,7 @@ object AutoDerive {
         exp: Expr,
         sig: Signature
     ): Decl =
-        Decl.ValDecl(Spanned(span, name), pars, exp, sig, vis, isInstance = true, isOperator = false)
+        Decl.ValDecl(Spanned(span, name), pars, exp, sig, vis, isInstance = true, isOperator = false).withSpan(span)
 
     private fun makeShowFormat(ctor: DataConstructor, varMap: Map<String, Int>, span: Span): Expr {
         val name = ctor.name.value
