@@ -155,7 +155,11 @@ data class DataConstructor(
     }
 }
 
-data class Metadata(val data: Expr.RecordExtend)
+data class Metadata(val data: Expr.RecordExtend) {
+    fun getMeta(meta: String): Expr? {
+        return data.labels.find { it.first == meta }?.second
+    }
+}
 
 sealed class Expr {
     data class Int32(val v: Int, val text: String) : Expr()
@@ -302,6 +306,8 @@ sealed class Type(open val span: Span) {
         is TApp -> type.isConcrete()
         else -> false
     }
+
+    fun isTypeVar() = this is TConst && name[0].isLowerCase()
 
     /**
      * Walks this type bottom->up

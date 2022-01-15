@@ -89,7 +89,14 @@ class Formatter {
                 val visi = if (d.dataCtors[0].visibility == Visibility.PUBLIC) "pub+\n" else vis
                 visi + show(d)
             }
-            is Decl.ValDecl -> vis + show(d)
+            is Decl.ValDecl -> {
+                when {
+                    d.visibility == Visibility.PUBLIC && d.isInstance -> "pub instance\n"
+                    d.visibility == Visibility.PUBLIC -> "pub\n"
+                    d.isInstance -> "instance\n"
+                    else -> ""
+                } + show(d)
+            }
             is Decl.TypealiasDecl -> vis + show(d)
         }
     }

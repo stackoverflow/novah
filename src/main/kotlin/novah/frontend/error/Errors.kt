@@ -194,8 +194,6 @@ object Errors {
 
     const val DERIVE_LIST = "Wrong value for derive metadata. Should be a list of strings: #[derive: [\"Show\"]]"
 
-    const val DERIVE_UNKNOW = "Cannot auto derive types with unknow type variables."
-
     val ANONYMOUS_FUNCTION_ARGUMENT = """
         Invalid context for anonymous function argument.
         
