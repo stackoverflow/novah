@@ -1404,7 +1404,7 @@ class Parser(
 
         val begin = expect<MetaBracket>(noErr())
         val rows = between<Comma, Pair<String, Expr>>(::parseMetadataRow)
-        val end = expect<RSBracket>(withError(E.rsbracketExpected("attribute")))
+        val end = expect<RSBracket>(withError(E.rsbracketExpected("metadata")))
 
         val exp = Expr.RecordExtend(rows, Expr.RecordEmpty())
             .withSpan(begin.span, end.span) as Expr.RecordExtend
