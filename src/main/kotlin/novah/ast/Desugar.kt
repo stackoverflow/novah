@@ -33,7 +33,7 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
-import novah.optimize.AutoDerive
+import novah.ast.AutoDerive
 import novah.ast.source.Metadata as SMetadata
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
