@@ -29,7 +29,7 @@ sealed class Token {
     object LBracket : Token()
     object RBracket : Token()
     object SetBracket : Token()
-    object AttrBracket : Token()
+    object MetaBracket : Token()
     object Hash : Token()
     object HashDash : Token()
     object Dot : Token()
@@ -237,7 +237,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     }
                     '[' -> {
                         iter.next()
-                        AttrBracket
+                        MetaBracket
                     }
                     '-' -> {
                         iter.next()
