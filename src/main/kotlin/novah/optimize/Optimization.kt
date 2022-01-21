@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,12 @@ import novah.optimize.Optimizer.Companion.eqFloat
 import novah.optimize.Optimizer.Companion.eqInt
 import novah.optimize.Optimizer.Companion.eqLong
 import novah.optimize.Optimizer.Companion.eqString
+import novah.range.*
+import novah.range.CharRange
+import novah.range.IntRange
+import novah.range.LongRange
 import org.objectweb.asm.Type
+import java.lang.reflect.Method
 
 object Optimization {
 
@@ -76,6 +81,10 @@ object Optimization {
     private const val gtEq = "\$greater\$equals"
     private const val lt = "\$smaller"
     private const val ltEq = "\$smaller\$equals"
+    private const val dotDot = "\$dot\$dot"
+    private const val dotDotDot = "\$dot\$dot\$dot"
+    private const val dotLt = "\$dot\$smaller"
+    private const val dotDotLt = "\$dot\$dot\$smaller"
 
     private val binOps = mapOf(
         "\$plus" to "+",
@@ -280,11 +289,52 @@ object Optimization {
                     fn is Var && fn.fullname() == "$coreMod.not" -> {
                         Expr.NativeStaticMethod(negate, listOf(arg), e.type, e.span)
                     }
+                    // optimize `..`, '...', '.<' and '..<'
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDot" -> {
+                        makeRangeCtor(e, fn.arg, arg, open = false, up = true)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDotDot" -> {
+                        makeRangeCtor(e, fn.arg, arg, open = true, up = true)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotLt" -> {
+                        makeRangeCtor(e, fn.arg, arg, open = false, up = false)
+                    }
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDotLt" -> {
+                        makeRangeCtor(e, fn.arg, arg, open = true, up = false)
+                    }
                     else -> e
                 }
             }
         }
     }
+
+    private fun makeRangeCtor(e: Expr, arg1: Expr, arg2: Expr, open: Boolean, up: Boolean): Expr =
+        when (arg2.type.type.className) {
+            "java.lang.Integer" -> {
+                val step = Expr.Int32(if (up) 1 else -1, arg1.type, e.span)
+                val ctor = if (open) newIntOpenRange else newIntRange
+                Expr.NativeCtor(ctor, listOf(arg1, arg2, step), e.type, e.span)
+            }
+            "java.lang.Long" -> {
+                val step = Expr.Int64(if (up) 1 else -1, arg1.type, e.span)
+                val ctor = if (open) newLongOpenRange else newLongRange
+                Expr.NativeCtor(ctor, listOf(arg1, arg2, step), e.type, e.span)
+            }
+            "java.lang.Float" -> {
+                val isUp = Expr.Bool(up, booleanClass, e.span)
+                Expr.NativeCtor(newFloatRange, listOf(arg1, arg2, isUp), e.type, e.span)
+            }
+            "java.lang.Double" -> {
+                val isUp = Expr.Bool(up, booleanClass, e.span)
+                Expr.NativeCtor(newDoubleRange, listOf(arg1, arg2, isUp), e.type, e.span)
+            }
+            "java.lang.Character" -> {
+                val step = Expr.Int32(if (up) 1 else -1, intClass, e.span)
+                val ctor = if (open) newCharOpenRange else newCharRange
+                Expr.NativeCtor(ctor, listOf(arg1, arg2, step), e.type, e.span)
+            }
+            else -> e
+        }
 
     private fun comp(vararg fs: (Expr) -> Expr): (Expr) -> Expr = { e ->
         fs.fold(e) { ex, f -> f(ex) }
@@ -294,34 +344,79 @@ object Optimization {
         it.name == "format" && it.parameterTypes[0] == String::class.java
     }!!
     private val vecNth = List::class.java.methods.find { it.name == "nth" }!!
-    private val gtInt = Core::class.java.methods.find { it.name == "greaterInt" }!!
-    private val ltInt = Core::class.java.methods.find { it.name == "smallerInt" }!!
-    private val gtEqInt = Core::class.java.methods.find { it.name == "greaterOrEqualsInt" }!!
-    private val ltEqInt = Core::class.java.methods.find { it.name == "smallerOrEqualsInt" }!!
-    private val gtLong = Core::class.java.methods.find { it.name == "greaterLong" }!!
-    private val ltLong = Core::class.java.methods.find { it.name == "smallerLong" }!!
-    private val gtEqLong = Core::class.java.methods.find { it.name == "greaterOrEqualsLong" }!!
-    private val ltEqLong = Core::class.java.methods.find { it.name == "smallerOrEqualsLong" }!!
-    private val gtDouble = Core::class.java.methods.find { it.name == "greaterDouble" }!!
-    private val ltDouble = Core::class.java.methods.find { it.name == "smallerDouble" }!!
-    private val gtEqDouble = Core::class.java.methods.find { it.name == "greaterOrEqualsDouble" }!!
-    private val ltEqDouble = Core::class.java.methods.find { it.name == "smallerOrEqualsDouble" }!!
-    private val bitAndInt = Core::class.java.methods.find { it.name == "bitAndInt" }!!
-    private val bitOrInt = Core::class.java.methods.find { it.name == "bitOrInt" }!!
-    private val bitXorInt = Core::class.java.methods.find { it.name == "bitXorInt" }!!
-    private val bitNotInt = Core::class.java.methods.find { it.name == "bitNotInt" }!!
-    private val bitShiftLeftInt = Core::class.java.methods.find { it.name == "bitShiftLeftInt" }!!
-    private val bitShiftRightInt = Core::class.java.methods.find { it.name == "bitShiftRightInt" }!!
-    private val unsignedBitShiftRightInt = Core::class.java.methods.find { it.name == "unsignedBitShiftRightInt" }!!
-    private val bitAndLong = Core::class.java.methods.find { it.name == "bitAndLong" }!!
-    private val bitOrLong = Core::class.java.methods.find { it.name == "bitOrLong" }!!
-    private val bitXorLong = Core::class.java.methods.find { it.name == "bitXorLong" }!!
-    private val bitNotLong = Core::class.java.methods.find { it.name == "bitNotLong" }!!
-    private val bitShiftLeftLong = Core::class.java.methods.find { it.name == "bitShiftLeftLong" }!!
-    private val bitShiftRightLong = Core::class.java.methods.find { it.name == "bitShiftRightLong" }!!
-    private val unsignedBitShiftRightLong = Core::class.java.methods.find { it.name == "unsignedBitShiftRightLong" }!!
-    private val negate = Core::class.java.methods.find { it.name == "not" }!!
+    private lateinit var gtInt: Method
+    private lateinit var ltInt: Method
+    private lateinit var gtEqInt: Method
+    private lateinit var ltEqInt: Method
+    private lateinit var gtLong: Method
+    private lateinit var ltLong: Method
+    private lateinit var gtEqLong: Method
+    private lateinit var ltEqLong: Method
+    private lateinit var gtDouble: Method
+    private lateinit var ltDouble: Method
+    private lateinit var gtEqDouble: Method
+    private lateinit var ltEqDouble: Method
+    private lateinit var bitAndInt: Method
+    private lateinit var bitOrInt: Method
+    private lateinit var bitXorInt: Method
+    private lateinit var bitNotInt: Method
+    private lateinit var bitShiftLeftInt: Method
+    private lateinit var bitShiftRightInt: Method
+    private lateinit var unsignedBitShiftRightInt: Method
+    private lateinit var bitAndLong: Method
+    private lateinit var bitOrLong: Method
+    private lateinit var bitXorLong: Method
+    private lateinit var bitNotLong: Method
+    private lateinit var bitShiftLeftLong: Method
+    private lateinit var bitShiftRightLong: Method
+    private lateinit var unsignedBitShiftRightLong: Method
+    private lateinit var negate: Method
+
+    init {
+        Core::class.java.methods.forEach {
+            when (it.name) {
+                "greaterInt" -> gtInt = it
+                "smallerInt" -> ltInt = it
+                "greaterOrEqualsInt" -> gtEqInt = it
+                "smallerOrEqualsInt" -> ltEqInt = it
+                "greaterLong" -> gtLong = it
+                "smallerLong" -> ltLong = it
+                "greaterOrEqualsLong" -> gtEqLong = it
+                "smallerOrEqualsLong" -> ltEqLong = it
+                "greaterDouble" -> gtDouble = it
+                "smallerDouble" -> ltDouble = it
+                "greaterOrEqualsDouble" -> gtEqDouble = it
+                "smallerOrEqualsDouble" -> ltEqDouble = it
+                "bitAndInt" -> bitAndInt = it
+                "bitOrInt" -> bitOrInt = it
+                "bitXorInt" -> bitXorInt = it
+                "bitNotInt" -> bitNotInt = it
+                "bitShiftLeftInt" -> bitShiftLeftInt = it
+                "bitShiftRightInt" -> bitShiftRightInt = it
+                "unsignedBitShiftRightInt" -> unsignedBitShiftRightInt = it
+                "bitAndLong" -> bitAndLong = it
+                "bitOrLong" -> bitOrLong = it
+                "bitXorLong" -> bitXorLong = it
+                "bitNotLong" -> bitNotLong = it
+                "bitShiftLeftLong" -> bitShiftLeftLong = it
+                "bitShiftRightLong" -> bitShiftRightLong = it
+                "unsignedBitShiftRightLong" -> unsignedBitShiftRightLong = it
+                "not" -> negate = it
+            }
+        }
+    }
     private val toLong = java.lang.Integer::class.java.methods.find { it.name == "longValue" }!!
+    private val newIntRange = IntRange::class.java.constructors.first()
+    private val newIntOpenRange = IntOpenRange::class.java.constructors.first()
+    private val newLongRange = LongRange::class.java.constructors.first()
+    private val newLongOpenRange = LongOpenRange::class.java.constructors.first()
+    private val newFloatRange = FloatRange::class.java.constructors.first()
+    private val newDoubleRange = DoubleRange::class.java.constructors.first()
+    private val newCharRange = CharRange::class.java.constructors.first()
+    private val newCharOpenRange = CharOpenRange::class.java.constructors.first()
+
+    private val intClass = Clazz(Type.getType(Int::class.javaObjectType))
+    private val booleanClass = Clazz(Type.getType(Boolean::class.javaObjectType))
 }
 
 private typealias App = Expr.App
