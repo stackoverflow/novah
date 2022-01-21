@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit
 class NovahSpec : StringSpec({
 
     fun compileStdlibTests() {
-        val compiler = TestUtil.compilerFor("test")
+        val compiler = TestUtil.compilerFor("test", devMode = false)
         compiler.run(TestUtil.cleanAndGetOutDir())
     }
 

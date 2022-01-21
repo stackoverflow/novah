@@ -12,8 +12,6 @@
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
 - [ ] Auto complete foreign imports
 - [ ] Only recompile files that changed + dependencies
-- [ ] Auto complete literal list, set in IDE: `[]#size()`
-- [ ] Create computation expression for (lazy) async
 - [ ] How to handle `AutoCloseable` interface
 - [ ] Add `Ord` requirement to `NumberOps`
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
@@ -27,3 +25,4 @@
 
 - [ ] Don't auto import functions from same module in LSP
 - [ ] Auto import doesn't work with wrong case
+- [ ] Auto complete literal list, set in IDE: `[]#size()`
