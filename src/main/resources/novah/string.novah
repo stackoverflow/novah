@@ -264,7 +264,7 @@ mapString f str =
 pub
 forEach : String -> (Char -> Unit) -> Unit
 forEach str fun =
-  forEachRange (0 .> size str) \idx ->
+  forEachRange (0 ... size str) \idx ->
     fun (charAt idx str)
 
 /**
@@ -389,8 +389,7 @@ count pred str =
  */
 pub
 indices : String -> List Int32
-indices str =
-  0 .. (size str)
+indices str = [0 ... size str]
 
 /**
  * Returns a list of the lines in this string, separated by line terminators.

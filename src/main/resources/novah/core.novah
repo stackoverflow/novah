@@ -8,7 +8,17 @@ foreign import io.lacuna.bifurcan.IList
 foreign import io.lacuna.bifurcan.ISet
 foreign import novah.Core
 foreign import novah.collections.Record
-foreign import novah.Ref
+foreign import novah.range.CharRange
+foreign import novah.range.CharOpenRange
+foreign import novah.range.DoubleRange
+foreign import novah.range.DoubleOpenRange
+foreign import novah.range.FloatRange
+foreign import novah.range.FloatOpenRange
+foreign import novah.range.IntRange
+foreign import novah.range.IntOpenRange
+foreign import novah.range.LongRange
+foreign import novah.range.LongOpenRange
+foreign import novah.range.Range
 foreign import java.util.concurrent.atomic.AtomicReference
 foreign import java.lang.AssertionError
 foreign import java.lang.Class
@@ -1404,207 +1414,179 @@ forEachBreak begin end f =
   Core#eachRangeBreak(begin, end, f)
 
 /**
- * Types that can generate a list over a range.
- */
-pub+
-opaque type ListRange a =
-  { range: a -> a -> List a
-  , rangeInclusive: a -> a -> List a
-  }
-
-/**
- * Returns a list starting at begin (inclusive) and ending at end (exclusive).
- */
-pub
-(..) : {{ ListRange a }} -> a -> a -> List a
-(..) {{ListRange r}} begin end = r.range begin end
-
-/**
- * Returns a list starting at begin (inclusive) and ending at end (inclusive).
- */
-pub
-(...) : {{ ListRange a }} -> a -> a -> List a
-(...) {{ListRange r}} begin end = r.rangeInclusive begin end
-
-pub instance
-rangeInt32 : ListRange Int32
-rangeInt32 =
-  let inclusive (begin : Int32) end =
-    let e = if begin < end then end + 1 else end - 1
-    Core#listIntRange(begin, e)
-  ListRange
-    { range: \begin end -> Core#listIntRange(begin, end)
-    , rangeInclusive: inclusive
-    }
-
-pub instance
-rangeInt64 : ListRange Int64
-rangeInt64 =
-  let inclusive (begin : Int64) end =
-    let e = if begin < end then end + 1L else end - 1L
-    Core#listLongRange(begin, e)
-  ListRange
-    { range: \begin end -> Core#listLongRange(begin, end)
-    , rangeInclusive: inclusive
-    }
-
-pub instance
-rangeFloat32 : ListRange Float32
-rangeFloat32 =
-  let inclusive (begin : Float32) end =
-    let e = if begin < end then end + 1.0F else end - 1.0F
-    Core#listFloatRange(begin, e)
-  ListRange
-    { range: \begin end -> Core#listFloatRange(begin, end)
-    , rangeInclusive: inclusive
-    }
-
-pub instance
-rangeFloat64 : ListRange Float64
-rangeFloat64 =
-  let inclusive (begin : Float64) end =
-    let e = if begin < end then end + 1.0 else end - 1.0
-    Core#listDoubleRange(begin, e)
-  ListRange
-    { range: \begin end -> Core#listDoubleRange(begin, end)
-    , rangeInclusive: inclusive
-    }
-
-pub instance
-rangeChar : ListRange Char
-rangeChar =
-  let inclusive (begin : Char) end =
-    let b = Core#charToInt(begin)
-    let eend = Core#charToInt(end)
-    let e = if b < eend then eend + 1 else eend - 1
-    Core#listCharRange(begin, Core#intToChar(e))
-  ListRange
-    { range: \begin end -> Core#listCharRange(begin, end)
-    , rangeInclusive: inclusive
-    }
-
-/**
- * A range from start to end step by step.
- */
-pub
-type Range a = Range a a a
-
-/**
  * Types that can range over some values.
  */
 pub+
 opaque type Ranged a =
-  { defaultStep : a
-  , contains : a -> Range a -> Boolean
-  , forEach : Range a -> (a -> Unit) -> Unit
-  , show : Show a -> Range a -> String
+  { upTo : a -> a -> Range a
+  , downTo : a -> a -> Range a
+  , until : a -> a -> Range a
+  , downUntil : a -> a -> Range a
   }
 
 /**
- * Returns a range starting at begin (inclusive) and ending at end (exclusive).
+ * Types that can range over some values with a step.
+ */
+pub+
+opaque type RangedStep a =
+  { range : a -> a -> a -> Range a
+  , rangeOpen : a -> a -> a -> Range a
+  }
+
+/**
+ * Returns a range starting at begin (inclusive) and going up to end (inclusive).
  * Runtime: O(1)
  */
 pub
-(.>) : {{ Ranged a }} -> a -> a -> Range a
-(.>) {{Ranged r}} begin end = Range begin end r.defaultStep
+(..) : {{ Ranged a }} -> a -> a -> Range a
+(..) {{Ranged r}} begin end = r.upTo begin end
+
+/**
+ * Returns a range starting at begin (inclusive) and going up to end (exclusive).
+ * Runtime: O(1)
+ */
+pub
+(...) : {{ Ranged a }} -> a -> a -> Range a
+(...) {{Ranged r}} begin end = r.until begin end
+
+/**
+ * Returns a range starting at begin (inclusive) and going down to end (inclusive).
+ * Runtime: O(1)
+ */
+pub
+(.<) : {{ Ranged a }} -> a -> a -> Range a
+(.<) {{Ranged r}} begin end = r.downTo begin end
+
+/**
+ * Returns a range starting at begin (inclusive) and going down to end (exclusive).
+ * Runtime: O(1)
+ */
+pub
+(..<) : {{ Ranged a }} -> a -> a -> Range a
+(..<) {{Ranged r}} begin end = r.downUntil begin end
+
+/**
+ * Returns a range between begin (inclusive) and end (inclusive) going step by step.
+ * Runtime: O(1)
+ */
+pub
+range : {{ RangedStep a }} -> a -> a -> a -> Range a
+range {{RangedStep r}} start end step = r.range start end step
+
+/**
+ * Returns a range between begin (inclusive) and end (exclusive) going step by step.
+ * Runtime: O(1)
+ */
+pub
+rangeOpen : {{ RangedStep a }} -> a -> a -> a -> Range a
+rangeOpen {{RangedStep r}} start end step = r.rangeOpen start end step
 
 /**
  * Returns true if the value is inside the range.
  */
 pub
-inRange : {{ Ranged a }} -> a -> Range a -> Boolean
-inRange {{Ranged r}} x ran = r.contains x ran
-
-/**
- * Creates a range with the specified start (inclusive), end (exclusive) and step.
- * Runtime: O(1)
- */
-pub
-range : {{ Ranged a }} -> a -> a -> a -> Range a
-range {{_}} = Range
-
-/**
- * Returns the start of this range.
- * Runtime: O(1)
- */
-pub
-rangeStart : Range a -> a
-rangeStart (Range s _ _) = s
-
-/**
- * Returns the end of this range.
- * Runtime: O(1)
- */
-pub
-rangeEnd : Range a -> a
-rangeEnd (Range _ e _) = e
+inRange : a -> Range a -> Boolean
+inRange x ran = ran#contains(x)
 
 /**
  * Executes the function for every value in this range.
  */
 pub
-forEachRange : {{ Ranged a }} -> Range a -> (a -> Unit) -> Unit
-forEachRange {{Ranged r}} ran f = r.forEach ran f
+forEachRange : Range a -> (a -> Unit) -> Unit
+forEachRange ran fun = ran#foreach(fun)
 
-inRangeCheck : {{ Ord a }} -> {{ Plus a }} -> a -> a -> Range a -> Boolean
-inRangeCheck {{Ord (Equals eq) _}} {{_}} defaultStep x (Range s e step) =
-  let small = if s <= e then s else e
-  let big = if s >= e then s else e
-  if step `eq` defaultStep then
-    x >= small && x < big
-  else
-    let ref = Ref#new(s)
-    while ref#-val < e && not (ref#-val `eq` x) do
-      ref#update(_ + step)
-    ref#-val `eq` x
+/**
+ * Returns a list with all the elements of this range.
+ */
+pub
+rangeToList : Range a -> List a
+rangeToList r = r#toList()
 
-genericShowRange : (a -> Boolean) -> (Show a) -> Range a -> String
-genericShowRange hasStep (Show sh) (Range b e s) =
-  if hasStep s then
-    format "(%s .> %s)" [sh b, sh e]
-  else
-    format "(Range %s %s %s)" [sh b, sh e, sh s]
+/**
+ * Returns a set with all the elements of this range.
+ */
+pub
+rangeToSet : Range a -> Set a
+rangeToSet r = r#toSet()
 
 pub instance
 rangedInt32 : Ranged Int32
 rangedInt32 =
   Ranged
-    { defaultStep: 1
-    , contains: inRangeCheck 1
-    , forEach: \(Range b e s) fun -> Core#eachRangeInt(b, e, s, fun)
-    , show: genericShowRange (_ == 1)
+    { upTo: \start end -> IntRange#new(start, end, 1) as Range Int32
+    , downTo: \start end -> IntRange#new(start, end, -1) as Range Int32
+    , until: \start end -> IntOpenRange#new(start, end, 1) as Range Int32
+    , downUntil: \start end -> IntOpenRange#new(start, end, -1) as Range Int32
     }
 
 pub instance
 rangedInt64 : Ranged Int64
 rangedInt64 =
   Ranged
-    { defaultStep: 1L
-    , contains: inRangeCheck 1L
-    , forEach: \(Range b e s) fun -> Core#eachRangeLong(b, e, s, fun)
-    , show: genericShowRange (_ == 1L)
+    { upTo: \start end -> LongRange#new(start, end, 1L) as Range Int64
+    , downTo: \start end -> LongRange#new(start, end, -1L) as Range Int64
+    , until: \start end -> LongOpenRange#new(start, end, 1L) as Range Int64
+    , downUntil: \start end -> LongOpenRange#new(start, end, -1L) as Range Int64
     }
 
 pub instance
 rangedFloat32 : Ranged Float32
 rangedFloat32 =
   Ranged
-    { defaultStep: 1.0F
-    , contains: inRangeCheck 1.0F
-    , forEach: \(Range b e s) fun -> Core#eachRangeFloat(b, e, s, fun)
-    , show: genericShowRange (_ == 1.0F)
+    { upTo: \start end -> FloatRange#new(start, end, true) as Range Float32
+    , downTo: \start end -> FloatRange#new(start, end, false) as Range Float32
+    , until: \start end -> FloatOpenRange#new(start, end, true) as Range Float32
+    , downUntil: \start end -> FloatOpenRange#new(start, end, false) as Range Float32
     }
 
 pub instance
 rangedFloat64 : Ranged Float64
 rangedFloat64 =
   Ranged
-    { defaultStep: 1.0
-    , contains: inRangeCheck 1.0
-    , forEach: \(Range b e s) fun -> Core#eachRangeDouble(b, e, s, fun)
-    , show: genericShowRange (_ == 1.0)
+    { upTo: \start end -> DoubleRange#new(start, end, true) as Range Float64
+    , downTo: \start end -> DoubleRange#new(start, end, false) as Range Float64
+    , until: \start end -> DoubleOpenRange#new(start, end, true) as Range Float64
+    , downUntil: \start end -> DoubleOpenRange#new(start, end, false) as Range Float64
     }
 
 pub instance
-showRange : {{ Show a }} -> {{ Ranged a }} -> Show (Range a)
-showRange {{sh}} {{Ranged r}} = Show (r.show sh)
+rangedChar : Ranged Char
+rangedChar =
+  Ranged
+    { upTo: \start end -> CharRange#new(start, end, 1) as Range Char
+    , downTo: \start end -> CharRange#new(start, end, -1) as Range Char
+    , until: \start end -> CharOpenRange#new(start, end, 1) as Range Char
+    , downUntil: \start end -> CharOpenRange#new(start, end, -1) as Range Char
+    }
+
+pub instance
+rangedStepInt32 : RangedStep Int32
+rangedStepInt32 =
+  RangedStep
+    { range: \start end step -> IntRange#new(start, end, step) as Range Int32
+    , rangeOpen: \start end step -> IntOpenRange#new(start, end, step) as Range Int32
+    }
+
+pub instance
+rangedStepInt64 : RangedStep Int64
+rangedStepInt64 =
+  RangedStep
+    { range: \start end step -> LongRange#new(start, end, step) as Range Int64
+    , rangeOpen: \start end step -> LongOpenRange#new(start, end, step) as Range Int64
+    }
+
+pub instance
+rangedStepChar : RangedStep Char
+rangedStepChar =
+  RangedStep
+    { range: \start end step -> CharRange#new(start, end, Core#charToInt(step)) as Range Char
+    , rangeOpen: \start end step -> CharOpenRange#new(start, end, Core#charToInt(step)) as Range Char
+    }
+
+pub instance
+showRange : {{ Show a }} -> Show (Range a)
+showRange {{_}} = Show toString
+
+pub instance
+equalsRange : {{ Equals a }} -> Equals (Range a)
+equalsRange {{_}} = Equals \(one : Range a) (other : Range a) -> (one as Object)#equals(other as Object)

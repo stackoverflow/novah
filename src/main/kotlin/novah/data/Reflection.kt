@@ -52,6 +52,7 @@ object Reflection {
         "Set" -> "io.lacuna.bifurcan.Set"
         "Map" -> "io.lacuna.bifurcan.Map"
         "Function" -> "java.util.function.Function"
+        "Unit" -> "novah.Unit"
         else -> type
     }
 

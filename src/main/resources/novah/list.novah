@@ -43,7 +43,7 @@ fromStream st =
 pub
 forEach : List a -> (a -> Unit) -> Unit
 forEach list f =
-  forEachRange (0L .> list#size()) \idx -> f list#nth(idx)
+  forEachRange (0L ... list#size()) \idx -> f list#nth(idx)
 
 /**
  * Runs function f for every index and element of this list, ignoring the result.
@@ -52,7 +52,7 @@ forEach list f =
 pub
 forEachIndexed : List a -> (Int32 -> a -> Unit) -> Unit
 forEachIndexed list fun =
-  forEachRange (0 .> list#size()#intValue()) \i -> fun i list.[i]
+  forEachRange (0 ... list#size()#intValue()) \i -> fun i list.[i]
 
 /**
  * Maps function f over all elements of this list
@@ -63,7 +63,7 @@ pub
 map : (a -> b) -> List a -> List b
 map f list =
   let llist = []#linear()
-  forEachRange (0L .> list#size()) \idx ->
+  forEachRange (0L ... list#size()) \idx ->
     addLast (f list#nth(idx)) llist
     ()
   llist#forked()
@@ -78,7 +78,7 @@ pub
 mapIndexed : (Int32 -> a -> b) -> List a -> List b
 mapIndexed f list =
   let llist = []#linear()
-  forEachRange (0 .> list#size()#intValue()) \idx ->
+  forEachRange (0 ... list#size()#intValue()) \idx ->
     addLast (f idx list.[idx]) llist
     ()
   llist#forked()
@@ -188,7 +188,7 @@ pub
 filter : (a -> Boolean) -> List a -> List a
 filter f list =
   let llist = []#linear()
-  forEachRange (0L .> list#size()) \idx ->
+  forEachRange (0L ... list#size()) \idx ->
     let elem = list#nth(idx)
     if (f elem) then
       addLast elem llist
@@ -204,7 +204,7 @@ pub
 filterIndexed : (Int32 -> a -> Boolean) -> List a -> List a
 filterIndexed f list =
   let llist = []#linear()
-  forEachRange (0 .> list#size()#intValue()) \idx ->
+  forEachRange (0 ... list#size()#intValue()) \idx ->
     let elem = list.[idx]
     if (f idx elem) then
       addLast elem llist
@@ -220,7 +220,7 @@ pub
 remove : (a -> Boolean) -> List a -> List a
 remove f list =
   let llist = []#linear()
-  forEachRange (0L .> list#size()) \idx ->
+  forEachRange (0L ... list#size()) \idx ->
     let elem = list#nth(idx)
     if not (f elem) then
       addLast elem llist
@@ -236,7 +236,7 @@ pub
 removeIndexed : (Int32 -> a -> Boolean) -> List a -> List a
 removeIndexed f list =
   let llist = []#linear()
-  forEachRange (0 .> list#size()#intValue()) \idx ->
+  forEachRange (0 ... list#size()#intValue()) \idx ->
     let elem = list.[idx]
     if not (f idx elem) then
       addLast elem llist
@@ -486,7 +486,7 @@ pub
 reverse : List a -> List a
 reverse list =
   let llist = []#linear()
-  forEachRange (0L .> list#size()) \i ->
+  forEachRange (0L ... list#size()) \i ->
     addFirst list#nth(i) llist
     ()
   llist#forked()
@@ -878,7 +878,7 @@ pub
 repeat : Int32 -> a -> List a
 repeat n x =
   let lin = []#linear()
-  forEachRange (0 .> n) \_ ->
+  forEachRange (0 ... n) \_ ->
     addLast x lin
     ()
   lin#forked()
@@ -892,8 +892,7 @@ repeat n x =
  */
 pub
 indices : List a -> List Int32
-indices list =
-  0 .. (size list)
+indices list = [0 ... size list]
 
 /**
  * Zips the two lists together.
@@ -910,7 +909,7 @@ zip : List a -> List b -> List (Tuple a b)
 zip l1 l2 =
   let length = if size l1 > size l2 then size l2 else size l1
   let lin = []#linear()
-  forEachRange (0 .> length) \i ->
+  forEachRange (0 ... length) \i ->
     addLast (l1.[i] ; l2.[i]) lin
     ()
   lin#forked()
@@ -930,7 +929,7 @@ zipWith : (a -> b -> c) -> List a -> List b -> List c
 zipWith fun l1 l2 =
   let length = if size l1 > size l2 then size l2 else size l1
   let lin = []#linear()
-  forEachRange (0 .> length) \i ->
+  forEachRange (0 ... length) \i ->
     addLast (fun l1.[i] l2.[i]) lin
     ()
   lin#forked()
@@ -950,7 +949,7 @@ zipAll : List (List a) -> List (List a)
 zipAll list =
   let len = (map size list |> min) ?: 0
   let res = []#linear()
-  forEachRange (0 .> len) \i ->
+  forEachRange (0 ... len) \i ->
     addLast (map (_ ! i) list) res
     ()
   res#forked()
