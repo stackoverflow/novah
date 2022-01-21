@@ -37,7 +37,7 @@ resultToGroups mat =
   if count == 0 then
     [mat#group()]
   else
-    List.map mat#group(_) (0 ... count)
+    List.map mat#group(_) [0 .. count]
 
 /**
  * Returns a list of all matched groups for

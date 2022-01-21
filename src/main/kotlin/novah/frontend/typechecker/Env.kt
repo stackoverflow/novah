@@ -214,6 +214,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     "char" -> primChar
     "boolean" -> primBoolean
     "void" -> primUnit
+    "novah.Unit" -> primUnit
     "java.lang.String" -> primString
     "java.lang.Byte" -> primByte
     "java.lang.Short" -> primInt16

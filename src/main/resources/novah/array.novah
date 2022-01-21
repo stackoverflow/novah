@@ -97,7 +97,7 @@ contains {{Equals eq}} elem arr = find (\x -> eq x elem) arr |> Option.isSome
 pub
 forEach : Array a -> (a -> Unit) -> Unit
 forEach arr f =
-  forEachRange (0 .> size arr) \idx ->
+  forEachRange (0 ... size arr) \idx ->
     f (aget idx arr)
 
 /**
@@ -107,7 +107,7 @@ forEach arr f =
 pub
 forEachIndexed : Array a -> (Int32 -> a -> Unit) -> Unit
 forEachIndexed arr f =
-  forEachRange (0 .> size arr) \idx ->
+  forEachRange (0 ... size arr) \idx ->
     f idx (aget idx arr)
 
 /**
@@ -120,7 +120,7 @@ map : (a -> b) -> Array a -> Array Object
 map f arr =
   let len = size arr
   let res = arrayOf Object#-class len
-  forEachRange (0 .> len) \i ->
+  forEachRange (0 ... len) \i ->
     aset i (f (aget i arr) as Object) res
   res
 
@@ -157,7 +157,7 @@ reverse : Array a -> Array a
 reverse arr =
   let len = size arr
   let res = emptyCopy arr
-  forEachRange (0 .> len) \idx ->
+  forEachRange (0 ... len) \idx ->
     let i = len - idx - 1
     let elem = aget idx arr
     aset i elem res
@@ -171,7 +171,7 @@ pub
 reversed : Array a -> Unit
 reversed arr =
   let len = size arr
-  forEachRange (0 .> (len / 2)) \i ->
+  forEachRange (0 ... (len / 2)) \i ->
     let temp = aget i arr
     aset i (aget (len - i - 1) arr) arr
     aset (len - i - 1) temp arr

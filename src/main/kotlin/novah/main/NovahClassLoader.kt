@@ -47,6 +47,7 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
         if (name == "novah.collections.ListValue") return ListValue::class.java
         if (name == "novah.Metadata") return Metadata::class.java
         if (name.startsWith("io.lacuna.bifurcan")) return Class.forName(name)
+        if (name.startsWith("novah.range.")) return Class.forName(name)
         return classLoader.loadClass(name)
     }
 

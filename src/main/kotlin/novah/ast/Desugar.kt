@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +33,6 @@ import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.frontend.validatePublicAliases
 import novah.main.CompilationError
-import novah.ast.AutoDerive
-import novah.ast.source.Metadata as SMetadata
 import novah.ast.source.Binder as SBinder
 import novah.ast.source.Case as SCase
 import novah.ast.source.DataConstructor as SDataConstructor
@@ -42,6 +40,7 @@ import novah.ast.source.Decl as SDecl
 import novah.ast.source.Expr as SExpr
 import novah.ast.source.LetDef as SLetDef
 import novah.ast.source.LiteralPattern as SLiteralPattern
+import novah.ast.source.Metadata as SMetadata
 import novah.ast.source.Module as SModule
 import novah.ast.source.Pattern as SPattern
 import novah.ast.source.Type as SType
@@ -343,8 +342,18 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
 
             nestLambdas(lvars, Expr.RecordMerge(lexpr, rexpr, span))
         }
-        is SExpr.ListLiteral -> Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
-        is SExpr.SetLiteral -> Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
+        is SExpr.ListLiteral -> {
+            if (exps.size == 1 && isRange(exps[0])) {
+                // a list range literal
+                SExpr.App(SExpr.Var("rangeToList").withSpan(span), exps[0]).withSpan(span).desugar(locals, tvars)
+            } else Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
+        }
+        is SExpr.SetLiteral -> {
+            if (exps.size == 1 && isRange(exps[0])) {
+                // a set range literal
+                SExpr.App(SExpr.Var("rangeToSet").withSpan(span), exps[0]).withSpan(span).desugar(locals, tvars)
+            } else Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
+        }
         is SExpr.Index -> {
             val lvars = mutableListOf<Binder>()
             val list = if (exp is SExpr.Underscore) {
@@ -1032,6 +1041,11 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         return pats
     }
 
+    private fun isRange(exp: SExpr): Boolean {
+        if (exp !is SExpr.BinApp) return false
+        return exp.op is SExpr.Operator && exp.op.fullname() in rangeOperators
+    }
+
     private fun reportUnusedImports() {
         val duplicates = mutableListOf<DeclarationRef>()
         // normal imports
@@ -1141,5 +1155,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
     companion object {
         fun collectVars(exp: Expr): List<String> =
             exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.fullname()) else emptyList() }
+
+        private val rangeOperators = setOf("..", "...", ".<", "..<")
     }
 }
