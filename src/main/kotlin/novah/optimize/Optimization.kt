@@ -281,13 +281,9 @@ object Optimization {
                             && arg.type.isInt64() -> {
                         Expr.NativeStaticMethod(unsignedBitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
                     }
-                    // optimize `Array.size array` to `array.length`
-                    fn is Var && fn.fullname() == "novah/array/\$Module.size" -> {
-                        Expr.ArrayLength(arg, e.type, e.span)
-                    }
-                    // optimize `not`
-                    fn is Var && fn.fullname() == "$coreMod.not" -> {
-                        Expr.NativeStaticMethod(negate, listOf(arg), e.type, e.span)
+                    // optimize `forEachRange`
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.forEachRange" -> {
+                        Expr.NativeMethod(forEachRange, fn.arg, listOf(arg), e.type, e.span)
                     }
                     // optimize `..`, '...', '.<' and '..<'
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDot" -> {
@@ -301,6 +297,14 @@ object Optimization {
                     }
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDotLt" -> {
                         makeRangeCtor(e, fn.arg, arg, open = true, up = false)
+                    }
+                    // optimize `Array.size array` to `array.length`
+                    fn is Var && fn.fullname() == "novah/array/\$Module.size" -> {
+                        Expr.ArrayLength(arg, e.type, e.span)
+                    }
+                    // optimize `not`
+                    fn is Var && fn.fullname() == "$coreMod.not" -> {
+                        Expr.NativeStaticMethod(negate, listOf(arg), e.type, e.span)
                     }
                     else -> e
                 }
@@ -414,6 +418,7 @@ object Optimization {
     private val newDoubleRange = DoubleRange::class.java.constructors.first()
     private val newCharRange = CharRange::class.java.constructors.first()
     private val newCharOpenRange = CharOpenRange::class.java.constructors.first()
+    private val forEachRange = Range::class.java.methods.find { it.name == "foreach" }!!
 
     private val intClass = Clazz(Type.getType(Int::class.javaObjectType))
     private val booleanClass = Clazz(Type.getType(Boolean::class.javaObjectType))
