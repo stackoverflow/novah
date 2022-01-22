@@ -53,6 +53,7 @@ object Reflection {
         "Map" -> "io.lacuna.bifurcan.Map"
         "Function" -> "java.util.function.Function"
         "Unit" -> "novah.Unit"
+        "Range" -> "novah.range.Range"
         else -> type
     }
 

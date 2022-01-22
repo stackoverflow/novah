@@ -21,7 +21,7 @@ public class DoubleOpenRange implements Range<Double> {
 
     @Override
     public Double end() {
-        return end;
+        return up ? end - 1 : end + 1;
     }
 
     /**

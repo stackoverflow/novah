@@ -36,6 +36,7 @@ import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
 import novah.main.Environment
+import novah.range.Range
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
 import java.util.function.Function
@@ -625,6 +626,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             primList -> LIST_TYPE
             primMap -> Type.getType(Map::class.java)
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
+            primRange -> Type.getType(Range::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
         }
 

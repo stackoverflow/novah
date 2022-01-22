@@ -22,7 +22,7 @@ public class CharOpenRange implements Range<Character> {
 
     @Override
     public Character end() {
-        return (char) end;
+        return (char) (end - step);
     }
 
     /**

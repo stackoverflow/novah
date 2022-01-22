@@ -22,7 +22,7 @@ public class LongOpenRange implements Range<Long> {
 
     @Override
     public Long end() {
-        return end;
+        return end - step;
     }
 
     /**

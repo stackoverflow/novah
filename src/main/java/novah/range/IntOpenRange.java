@@ -22,7 +22,7 @@ public class IntOpenRange implements Range<Integer> {
 
     @Override
     public Integer end() {
-        return end;
+        return end - step;
     }
 
     /**
