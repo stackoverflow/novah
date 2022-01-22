@@ -132,6 +132,7 @@ const val primFloat64Array = "$PRIM.Float64Array"
 const val primBooleanArray = "$PRIM.BooleanArray"
 const val primCharArray = "$PRIM.CharArray"
 const val primNullable = "$PRIM.Nullable"
+const val primRange = "$PRIM.Range"
 
 val tByte = TConst(primByte)
 val tInt16 = TConst(primInt16)
@@ -157,6 +158,7 @@ val tFloat64Array = TConst(primFloat64Array)
 val tBooleanArray = TConst(primBooleanArray)
 val tCharArray = TConst(primCharArray)
 val tNullable = tapp(primNullable, -6)
+val tRange = tapp(primRange, -7)
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -182,7 +184,8 @@ val primTypes = mapOf(
     primFloat64Array to tFloat64Array,
     primBooleanArray to tBooleanArray,
     primCharArray to tCharArray,
-    primNullable to tNullable
+    primNullable to tNullable,
+    primRange to tRange
 )
 
 fun isListOf(type: Type, of: Type) =
@@ -228,6 +231,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     "io.lacuna.bifurcan.List" -> primList
     "io.lacuna.bifurcan.Set" -> primSet
     "io.lacuna.bifurcan.Map" -> primMap
+    "novah.range.Range" -> primRange
     else -> {
         if (jname.endsWith("[]")) {
             when (jname.substring(0, jname.length - 2)) {
@@ -260,6 +264,7 @@ fun findJavaType(novahType: String) = when (novahType) {
     primList -> "io.lacuna.bifurcan.List"
     primSet -> "io.lacuna.bifurcan.Set"
     primMap -> "io.lacuna.bifurcan.Map"
+    primRange -> "novah.range.Range"
     primArray -> "java.lang.Object[]"
     primByteArray -> "byte[]"
     primInt16Array -> "short[]"
@@ -306,7 +311,8 @@ val primModuleEnv = ModuleEnv(
         "Float64Array" to tdecl(tFloat64Array),
         "BooleanArray" to tdecl(tBooleanArray),
         "CharArray" to tdecl(tCharArray),
-        "Nullable" to tdecl(tNullable)
+        "Nullable" to tdecl(tNullable),
+        "Range" to tdecl(tRange)
     )
 )
 
@@ -345,6 +351,7 @@ val primModule = Module(
         ),
         primType("Set", "A persistent, immutable set of values.\nEquivalent to `io.lacuna.bifurcan.Set`."),
         primType("Map", "A persistent, immutable map of key and values.\nEquivalent to `io.lacuna.bifurcan.Map`."),
+        primType("Range", "A range of values.")
     ),
     emptyMap(),
     emptyList(),

@@ -21,7 +21,7 @@ public class FloatOpenRange implements Range<Float> {
 
     @Override
     public Float end() {
-        return end;
+        return up ? end - 1 : end + 1;
     }
 
     /**
