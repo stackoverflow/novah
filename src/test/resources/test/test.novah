@@ -1,75 +1,10 @@
 module test
 
-import novah.linkedList (map, LinkedList(Nil), ::)
-
-foreign import java.io.File
-
-typealias Opt a = Option a
-
-#[foo: "123"]
-pub+
-type MyList a
-  = Niu
-  | Kons a (MyList a)
-
-pub
-type Id = Id String
-
-pub
-baz : (a -> b) -> LinkedList a -> LinkedList b
-baz = map
-
-#[noWarn, foo: [4, 5]]
-baz2 : LinkedList Int32
-baz2 = 1 :: Nil
-
-nf : String -> File
-nf (x : String) = File#new(x)
-
-#[bar: false, deprecated: "1.2.0"]
-fname : File -> String
-fname f = f#getName() ++ File#-separator
-
-value : Id
-value = Id "asd"
-
-/**
- * This is my comment
- * it should describe the function
- */
-myfun : Int -> String
-myfun x =
-  let instance vari = x * x
-  let other = vari * x
-  x + vari + other |> show
-
-typecast : String -> Map String Id
-typecast typ =
-  Map.new ["a" ; Id typ] as Map String Id
-
-/**
- * The badge is a lie.
- */
-pub
-showBadge : Id -> String
-showBadge (Id id) = format "my id is %s" [id]
-
-rec : { age : Int, name : String } -> String
-rec {name, age} =
-  format "age %i name %s" [show age, name]
-
-fullname : { name : String, lastName : String } -> String
-fullname person =
-  format "%s %s" [person.name, person.lastName]
-
-foo : (Int -> Boolean) -> List Int -> Int
-foo pred list =
-  case list of
-    [] -> 0
-    [x] if pred x -> x
-    _ -> -1
+foo : Unit -> Unit
+foo _ =
+  forEachRange (0 .. 10) println
 
 pub
 main : Array String -> Unit
 main _ =
-  foo (_ > 1) [1, 2, 3, 4] |> println
+  println ""
