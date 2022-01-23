@@ -62,8 +62,8 @@ listTests =
     List.reduce (+) list `shouldBe` Some 6
     List.flatten [[1, 2], [3, 4], [5, 6]] `shouldBe` [1, 2, 3, 4, 5, 6]
     List.flatMap (\x -> [x, x]) list `shouldBe` [1, 1, 2, 2, 3, 3]
-    List.every (_ < 10) list `shouldBe` true
-    List.every (_ < 3) list `shouldBe` false
+    List.all (_ < 10) list `shouldBe` true
+    List.all (_ < 3) list `shouldBe` false
     List.any (_ < 3) list `shouldBe` true
     List.any (_ < 0) list `shouldBe` false
     List.reverse list `shouldBe` [3, 2, 1]

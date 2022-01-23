@@ -208,6 +208,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 ctx.setLocalVar(e)
                 mv.visitVarInsn(ALOAD, local)
             }
+            is Expr.SetLocalVar -> {
+                val local = ctx[e.name] ?: internalError("unmapped local variable (${e.name}) in code generation: $e")
+                genExpr(e.exp, mv, ctx)
+                mv.visitVarInsn(ASTORE, local)
+                genUnit(mv)
+            }
             is Expr.Var -> {
                 mv.visitFieldInsn(GETSTATIC, e.className, e.name, e.type.type.descriptor)
             }
@@ -540,6 +546,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 genExpr(e.expr, mv, ctx)
                 mv.visitInsn(ARRAYLENGTH)
                 box(INT_TYPE, mv)
+            }
+            is Expr.Return -> {
+                genExpr(e.exp, mv, ctx)
+                mv.visitInsn(ARETURN)
             }
             is Expr.While -> {
                 val whileLb = Label()
@@ -902,12 +912,10 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 go(exp.cond)
                 for (e in exp.exps) go(e)
             }
-            is Expr.ConstructorAccess -> {
-                go(exp.ctor)
-            }
-            is Expr.ArrayLength -> {
-                go(exp.expr)
-            }
+            is Expr.ConstructorAccess -> go(exp.ctor)
+            is Expr.ArrayLength -> go(exp.expr)
+            is Expr.Return -> go(exp.exp)
+            is Expr.SetLocalVar -> go(exp.exp)
             is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
             is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor, is Expr.Null, is Expr.Var,
             is Expr.RecordEmpty, is Expr.Unit, is Expr.NativeStaticFieldGet, is Expr.ClassConstant -> {

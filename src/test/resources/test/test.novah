@@ -1,10 +1,19 @@
 module test
 
-foo : Unit -> Unit
-foo _ =
-  forEachRange (0 .. 10) println
+sumToTco : Int64 -> Int64 -> Int64
+sumToTco x acc =
+  if x <= 0L then acc
+  else sumToTco (x - 1L) (x + acc)
+
+letrec : Int -> Int
+letrec x =
+  let go n acc =
+    if n < 0 then acc
+    else go (n - 1) (acc + n)
+
+  go x 0
 
 pub
 main : Array String -> Unit
-main _ =
-  println ""
+main args =
+  println (letrec (int args.[0]))

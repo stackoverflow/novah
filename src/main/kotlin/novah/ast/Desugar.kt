@@ -192,7 +192,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             Expr.ForeignStaticMethod(clazz, method, listOf(Expr.StringE(regex, span)), span)
         }
         is SExpr.Var -> {
-            declVars += name
+            declVars += fullname()
             if (alias == null) {
                 unusedVars.remove(name)
                 usedVars += name
@@ -212,6 +212,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             Expr.ImplicitVar(name, span, if (name in locals) null else importedModule)
         }
         is SExpr.Operator -> {
+            declVars += fullname()
             val exp = if (name == ";") this.copy(name = "Tuple") else this
             if (exp.name == "<-") parserError(E.notAField(), span)
             if (alias == null) {
