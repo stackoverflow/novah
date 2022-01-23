@@ -412,16 +412,7 @@ object Errors {
 
     fun duplicatedType(name: String) = "Type $name is already defined or imported."
 
-    fun unusedVariables(vars: List<String>): String {
-        return if (vars.size == 1) "Variable ${vars[0]} is unused in declaration."
-        else """
-            Variables
-            
-                ${vars.joinToString()}
-            
-            are unused in declaration.
-        """.trimIndent()
-    }
+    fun unusedVariable(varr: String) = "Variable $varr is unused in declaration."
 
     fun unusedImport(imp: String): String = "Import $imp is unused in module."
 

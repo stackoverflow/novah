@@ -14,7 +14,6 @@
 - [ ] How to handle `AutoCloseable` interface
 - [ ] Add `Ord` requirement to `NumberOps`
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
-- [ ] Highlight all unused variables instead of just the first
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
 - [ ] Add support for primitive types
 - [ ] Better implicit type inference
