@@ -63,6 +63,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
         Expr(type, span)
 
     data class LocalVar(val name: String, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class SetLocalVar(val name: String, val exp: Expr) : Expr(exp.type, exp.span)
     data class Lambda(
         val binder: String,
         val body: Expr,
@@ -197,6 +198,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
     data class Null(override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ArrayLength(val expr: Expr, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ClassConstant(val clazz: String, override val type: Clazz, override val span: Span) : Expr(type, span)
+    data class Return(val exp: Expr) : Expr(exp.type, exp.span)
 }
 
 data class Catch(val exception: Clazz, val binder: String?, val expr: Expr, val span: Span) {
@@ -239,9 +241,157 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         }
         is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
         is Expr.ArrayLength -> f(e.copy(expr = go(e.expr)))
-        else -> f(e)
+        is Expr.Return -> f(e.copy(exp = go(e.exp)))
+        is Expr.SetLocalVar -> f(e.copy(exp = go(e.exp)))
+        is Expr.ConstructorAccess -> f(e.copy(ctor = go(e.ctor)))
+        is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64, is Expr.LocalVar,
+        is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor, is Expr.Null, is Expr.Var,
+        is Expr.RecordEmpty, is Expr.Unit, is Expr.NativeStaticFieldGet, is Expr.ClassConstant -> f(e)
     }
     return go(this)
+}
+
+fun Expr.everywherUnit(f: (Expr) -> Unit) {
+    fun go(e: Expr) {
+        when (e) {
+            is Expr.Lambda -> {
+                f(e)
+                go(e.body)
+            }
+            is Expr.App -> {
+                f(e)
+                go(e.fn)
+                go(e.arg)
+            }
+            is Expr.CtorApp -> {
+                f(e)
+                go(e.ctor)
+                e.args.forEach(::go)
+            }
+            is Expr.If -> {
+                f(e)
+                e.conds.forEach {
+                    go(it.first)
+                    go(it.second)
+                }
+                go(e.elseCase)
+            }
+            is Expr.Let -> {
+                f(e)
+                go(e.bindExpr)
+                go(e.body)
+            }
+            is Expr.Do -> {
+                f(e)
+                e.exps.forEach(::go)
+            }
+            is Expr.OperatorApp -> {
+                f(e)
+                e.operands.forEach(::go)
+            }
+            is Expr.InstanceOf -> {
+                f(e)
+                go(e.exp)
+            }
+            is Expr.NativeFieldGet -> {
+                f(e)
+                go(e.thisPar)
+            }
+            is Expr.NativeFieldSet -> {
+                f(e)
+                go(e.thisPar)
+                go(e.par)
+            }
+            is Expr.NativeStaticFieldSet -> {
+                f(e)
+                go(e.par)
+            }
+            is Expr.NativeCtor -> {
+                f(e)
+                e.pars.forEach(::go)
+            }
+            is Expr.NativeMethod -> {
+                f(e)
+                go(e.thisPar)
+                e.pars.forEach(::go)
+            }
+            is Expr.NativeStaticMethod -> {
+                f(e)
+                e.pars.forEach(::go)
+            }
+            is Expr.Throw -> {
+                f(e)
+                go(e.expr)
+            }
+            is Expr.Cast -> {
+                f(e)
+                go(e.expr)
+            }
+            is Expr.RecordExtend -> {
+                f(e)
+                e.labels.forEach { it.value().forEach(::go) }
+                go(e.expr)
+            }
+            is Expr.RecordSelect -> {
+                f(e)
+                go(e.expr)
+            }
+            is Expr.RecordRestrict -> {
+                f(e)
+                go(e.expr)
+            }
+            is Expr.RecordUpdate -> {
+                f(e)
+                go(e.expr)
+                go(e.value)
+            }
+            is Expr.RecordMerge -> {
+                f(e)
+                go(e.exp1)
+                go(e.exp2)
+            }
+            is Expr.ListLiteral -> {
+                f(e)
+                e.exps.forEach(::go)
+            }
+            is Expr.SetLiteral -> {
+                f(e)
+                e.exps.forEach(::go)
+            }
+            is Expr.ArrayLiteral -> {
+                f(e)
+                e.exps.forEach(::go)
+            }
+            is Expr.TryCatch -> {
+                f(e)
+                go(e.tryExpr)
+                e.catches.forEach { go(it.expr) }
+                if (e.finallyExp != null) go(e.finallyExp)
+            }
+            is Expr.While -> {
+                f(e)
+                go(e.cond)
+                e.exps.forEach(::go)
+            }
+            is Expr.ArrayLength -> {
+                f(e)
+                go(e.expr)
+            }
+            is Expr.Return -> {
+                f(e)
+                go(e.exp)
+            }
+            is Expr.SetLocalVar -> {
+                f(e)
+                go(e.exp)
+            }
+            is Expr.Bool, is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32 -> f(e)
+            is Expr.Float64, is Expr.CharE, is Expr.StringE, is Expr.Var, is Expr.LocalVar -> f(e)
+            is Expr.ClassConstant, is Expr.Constructor, is Expr.ConstructorAccess, is Expr.Null -> f(e)
+            is Expr.NativeStaticFieldGet, is Expr.RecordEmpty, is Expr.Unit -> f(e)
+        }
+    }
+    go(this)
 }
 
 fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = when {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,8 +93,14 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
 
     private var meta: Metadata? = null
 
-    private fun CValDecl.convert(): Decl.ValDecl =
-        Decl.ValDecl(Names.convert(name.value), exp.convert(), visibility, span)
+    private fun CValDecl.convert(): Decl.ValDecl {
+        val newExp = if (recursive && exp.isTailcall(name.value)) {
+            // optimize tail calls
+            val fullname = internalize(ast.name.value + ".\$Module") + ".${name.value}"
+            tcoToLoop(fullname, exp.convert(), isLet = false)
+        } else exp.convert()
+        return Decl.ValDecl(Names.convert(name.value), newExp, visibility, span)
+    }
 
     private fun CTypeDecl.convert(): Decl.TypeDecl =
         Decl.TypeDecl(name.value, tyVars, dataCtors.map { it.convert() }, visibility, span)
@@ -175,8 +181,14 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is CExpr.Let -> {
                 val binder = Names.convert(letDef.binder.convert())
                 val lcs = locals + binder
-                val let = Expr.Let(binder, letDef.expr.convert(lcs), body.convert(lcs), typ, span)
-                if (letDef.recursive) makeRecursiveLet(let) else let
+                if (letDef.recursive && letDef.expr.isTailcall(letDef.binder.name)) {
+                    // optimize tail calls
+                    val tcoed = tcoToLoop(binder, letDef.expr.convert(lcs), isLet = true)
+                    Expr.Let(binder, tcoed, body.convert(lcs), typ, span)
+                } else {
+                    val let = Expr.Let(binder, letDef.expr.convert(lcs), body.convert(lcs), typ, span)
+                    if (letDef.recursive) makeRecursiveLet(let) else let
+                }
             }
             is CExpr.Ann -> exp.convert(locals)
             is CExpr.Do -> Expr.Do(exps.map { it.convert(locals) }, typ, span)
@@ -313,6 +325,101 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         val fieldSet = Expr.NativeFieldSet(recFunField, recVar, newBinderExpr, newBinderExpr.type, newBinderExpr.span)
         val recBody = Expr.Do(listOf(fieldSet, innerLet), let.type, let.span)
         return Expr.Let(binder, recCtor, recBody, let.type, let.span)
+    }
+
+    /**
+     * Transforms this tail recursion into a loop.
+     */
+    private fun tcoToLoop(name: String, exp: Expr, isLet: Boolean): Expr {
+        val tru = Expr.Bool(true, boolType, exp.span)
+        fun isVar(e: Expr) = e is Expr.Var && e.fullname() == name
+        fun isVarLet(e: Expr) = e is Expr.LocalVar && e.name == name
+        val varCheck = if (isLet) ::isVarLet else ::isVar
+
+        fun updateLambdaBody(e: Expr, pars: List<Pair<String, Clazz>> = emptyList()): Expr = when (e) {
+            is Expr.Lambda -> {
+                val par = e.binder to (e.type.pars.getOrNull(0) ?: e.type)
+                e.copy(body = updateLambdaBody(e.body, pars + par))
+            }
+            else -> {
+                val parNames = pars.map { it.first }
+                val newBinds = pars.map { (par, clazz) -> "tco$$par" to Expr.LocalVar(par, clazz, e.span) }
+                val parMap = parNames.associateWith { "tco$$it" }
+                val replExp = e.everywhere {
+                    if (it is Expr.LocalVar && parMap.containsKey(it.name))
+                        it.copy(name = parMap[it.name]!!)
+                    else it
+                }
+
+                val tcoed = replExp.toLoop(name, newBinds.map { it.first }, varCheck)
+                val whil = Expr.While(tru, listOf(tcoed), e.type, e.span)
+                nestLets(newBinds, whil, e.type)
+            }
+        }
+        return updateLambdaBody(exp)
+    }
+
+    private fun Expr.toLoop(name: String, pars: List<String>, varCheck: (Expr) -> Boolean): Expr = when (this) {
+        is Expr.Lambda -> copy(body = body.toLoop(name, pars, varCheck))
+        is Expr.Do -> {
+            val ex = exps.toMutableList()
+            ex[ex.lastIndex] = ex[ex.lastIndex].toLoop(name, pars, varCheck)
+            copy(exps = ex)
+        }
+        is Expr.Let -> copy(body = body.toLoop(name, pars, varCheck))
+        is Expr.If ->
+            copy(
+                elseCase = elseCase.toLoop(name, pars, varCheck),
+                conds = conds.map { it.first to it.second.toLoop(name, pars, varCheck) }
+            )
+        is Expr.Throw -> this
+        is Expr.App -> {
+            var hasCall = false
+            everywherUnit { if (varCheck(it)) hasCall = true }
+            if (hasCall) {
+                // rewrite this recursive call to just set the loop variables
+                val args = mutableListOf<Expr>()
+                var app = this
+                while (app is Expr.App) {
+                    args += app.arg
+                    app = app.fn
+                }
+                args.reverse()
+
+                if (pars.size != args.size) internalError("cannot TCO $name in ${ast.name.value}")
+                val newBinds = args.mapIndexed { i, arg -> "tmp$$i" to arg }
+                val body = pars.zip(newBinds).map { (par, v) ->
+                    Expr.SetLocalVar(par, Expr.LocalVar(v.first, v.second.type, v.second.span))
+                }
+                nestLets(newBinds, Expr.Do(body, body.last().type, span), type)
+            } else Expr.Return(this)
+        }
+        else -> Expr.Return(this)
+    }
+
+    /**
+     * Returns true if this expression is a tail recursive function.
+     */
+    private fun CExpr.isTailcall(name: String): Boolean = when (this) {
+        is CExpr.Lambda -> body.isTailcall(name)
+        is CExpr.Do -> exps.last().isTailcall(name)
+        is CExpr.Let -> body.isTailcall(name)
+        is CExpr.If -> thenCase.isTailcall(name) && elseCase.isTailcall(name)
+        is CExpr.Ann -> exp.isTailcall(name)
+        is CExpr.TypeCast -> exp.isTailcall(name)
+        is CExpr.While -> false
+        is CExpr.TryCatch -> false
+        is CExpr.Match -> cases.all { it.exp.isTailcall(name) }
+        is CExpr.App -> {
+            var hasCall = false
+            everywhereUnit { if (it is CExpr.Var && it.fullname() == name) hasCall = true }
+            if (hasCall) {
+                var app = fn
+                while (app is CExpr.App) app = app.fn
+                app is CExpr.Var && app.fullname() == name
+            } else true
+        }
+        else -> true
     }
 
     private val stringType = tString.convert()

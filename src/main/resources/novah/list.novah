@@ -492,12 +492,12 @@ reverse list =
   llist#forked()
 
 /**
- * Returns true if the predicate is true for every element in this list.
+ * Returns true if the predicate is true for all elements in this list.
  * Runtime: O(n)
  */
 pub
-every : (a -> Boolean) -> List a -> Boolean
-every pred list =
+all : (a -> Boolean) -> List a -> Boolean
+all pred list =
   Core#listEvery(pred, list)
 
 /**

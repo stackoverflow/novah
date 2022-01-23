@@ -7,7 +7,6 @@
 - [ ] Disallow duplicate labels in pattern matching
 - [ ] Rename operators and java keywords to be more java-friendly (WIP)
 - [ ] Fix pattern matching warnings (records)
-- [ ] TCO
 - [ ] Fix double CHECKCAST on native function calls
 - [ ] Fix app implicit peeling in inference for cases like {{Type}} -> Return (warn?)
 - [ ] Auto complete foreign imports

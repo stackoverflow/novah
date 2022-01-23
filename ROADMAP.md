@@ -8,6 +8,7 @@
 - [X] LSP implemented in the compiler (WIP)
 - [ ] Auto derive Show and maybe some other type classes
 - [ ] Primitive types support
+- [X] Tail call optimization for recursive functions
 - [X] Computation expressions
 - [X] Standard library (WIP)
 - [X] Multi line strings

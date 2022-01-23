@@ -255,12 +255,12 @@ flatMap : (a -> Set b) -> Set a -> Set b
 flatMap f set = flatten (map f set)
 
 /**
- * Returns true if the predicate is true for every element in this set.
+ * Returns true if the predicate is true for all elements in this set.
  * Runtime: O(n)
  */
 pub
-every : (a -> Boolean) -> Set a -> Boolean
-every pred set = Core#setEvery(pred, set)
+all : (a -> Boolean) -> Set a -> Boolean
+all pred set = Core#setEvery(pred, set)
 
 /**
  * Returns true if the predicate is true for any element in this set.
@@ -424,7 +424,7 @@ productOf {{Mult m}} fn =
  */
 pub
 containsAll : List a -> Set a -> Boolean
-containsAll list set = List.every (\x -> contains x set) list
+containsAll list set = List.all (\x -> contains x set) list
 
 /**
  * Groups the elements of the set according
