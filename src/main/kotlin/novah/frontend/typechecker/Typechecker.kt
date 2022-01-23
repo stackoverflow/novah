@@ -117,7 +117,7 @@ class Typechecker(classLoader: NovahClassLoader) {
             is TVar -> {
                 when (val tv = ty.tvar) {
                     is TypeVar.Link -> checkWellFormed(tv.type, span)
-                    is TypeVar.Unbound -> inferError(Errors.unusedVariables(listOf(ty.show())), span)
+                    is TypeVar.Unbound -> inferError(Errors.unusedVariable(ty.show()), span)
                     else -> {}
                 }
             }

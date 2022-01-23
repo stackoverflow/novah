@@ -1026,6 +1026,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             is SPattern.Parens -> shouldStop(p.pattern)
             else -> true
         }
+
         val pats = mutableListOf<SPattern>()
         var ty = type
         var stop = false
@@ -1104,14 +1105,16 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
     }
 
     private fun addUnusedVars(unusedVars: Map<String, Span>) {
-        val err = CompilerProblem(
-            E.unusedVariables(unusedVars.keys.toList()),
-            unusedVars.values.first(),
-            smod.sourceName,
-            moduleName,
-            severity = Severity.WARN
-        )
-        errors += err
+        unusedVars.forEach { (name, span) ->
+            val err = CompilerProblem(
+                E.unusedVariable(name),
+                span,
+                smod.sourceName,
+                moduleName,
+                severity = Severity.WARN
+            )
+            errors += err
+        }
     }
 
     private val aliasedImports = smod.imports.mapNotNull { it.alias() }.toSet()
