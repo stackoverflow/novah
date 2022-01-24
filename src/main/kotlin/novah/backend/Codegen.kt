@@ -204,12 +204,14 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitInsn(ACONST_NULL)
             }
             is Expr.LocalVar -> {
-                val local = ctx[e.name] ?: internalError("unmapped local variable (${e.name}) in code generation: $e")
+                val local =
+                    ctx[e.name] ?: internalError("unmapped local variable (${e.name}) in code generation <${ast.name}>")
                 ctx.setLocalVar(e)
                 mv.visitVarInsn(ALOAD, local)
             }
             is Expr.SetLocalVar -> {
-                val local = ctx[e.name] ?: internalError("unmapped local variable (${e.name}) in code generation: $e")
+                val local =
+                    ctx[e.name] ?: internalError("unmapped local variable (${e.name}) in code generation <${ast.name}>")
                 genExpr(e.exp, mv, ctx)
                 mv.visitVarInsn(ASTORE, local)
                 genUnit(mv)
@@ -308,7 +310,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 // load all local variables captured by this closure in order to partially apply them
                 for (localVar in e.locals) {
                     val local = ctx[localVar.name]
-                        ?: internalError("unmapped local variable (${localVar.name}) in code generation: $e")
+                        ?: internalError("unmapped local variable (${localVar.name}) in code generation <${ast.name}>")
                     val type = localVar.type.type
                     localTypes += type
                     mv.visitVarInsn(ALOAD, local)

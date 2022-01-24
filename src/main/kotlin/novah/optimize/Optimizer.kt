@@ -25,6 +25,7 @@ import novah.ast.canonical.*
 import novah.ast.optimized.*
 import novah.ast.optimized.Decl
 import novah.ast.source.Visibility
+import novah.data.allList
 import novah.data.forEachKeyList
 import novah.data.mapList
 import novah.frontend.Span
@@ -400,25 +401,34 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
     /**
      * Returns true if this expression is a tail recursive function.
      */
-    private fun CExpr.isTailcall(name: String): Boolean = when (this) {
-        is CExpr.Lambda -> body.isTailcall(name)
-        is CExpr.Do -> exps.last().isTailcall(name)
-        is CExpr.Let -> body.isTailcall(name)
-        is CExpr.If -> thenCase.isTailcall(name) && elseCase.isTailcall(name)
-        is CExpr.Ann -> exp.isTailcall(name)
-        is CExpr.TypeCast -> exp.isTailcall(name)
+    private fun CExpr.isTailcall(name: String, tail: Boolean = true): Boolean = when (this) {
+        is CExpr.Lambda -> body.isTailcall(name, tail)
+        is CExpr.Do -> {
+            exps.dropLast(1).all { it.isTailcall(name, false) } && exps.last().isTailcall(name, tail)
+        }
+        is CExpr.Let -> {
+            letDef.expr.isTailcall(name, false) && body.isTailcall(name, tail)
+        }
+        is CExpr.If -> thenCase.isTailcall(name, tail) && elseCase.isTailcall(name, tail)
+        is CExpr.Ann -> exp.isTailcall(name, tail)
+        is CExpr.TypeCast -> exp.isTailcall(name, tail)
         is CExpr.While -> false
         is CExpr.TryCatch -> false
-        is CExpr.Match -> cases.all { it.exp.isTailcall(name) }
-        is CExpr.App -> {
-            var hasCall = false
-            everywhereUnit { if (it is CExpr.Var && it.fullname() == name) hasCall = true }
-            if (hasCall) {
-                var app = fn
-                while (app is CExpr.App) app = app.fn
-                app is CExpr.Var && app.fullname() == name
-            } else true
-        }
+        is CExpr.Throw -> false
+        is CExpr.Match -> exps.all { it.isTailcall(name, false) } && cases.all { it.exp.isTailcall(name, tail) }
+        is CExpr.App -> fn.isTailcall(name, tail) && arg.isTailcall(name, false)
+        is CExpr.Var -> if (fullname() == name) tail else true
+        is CExpr.RecordExtend -> exp.isTailcall(name, false) && labels.allList { it.isTailcall(name, false) }
+        is CExpr.RecordMerge -> exp1.isTailcall(name, false) && exp2.isTailcall(name, false)
+        is CExpr.RecordRestrict -> exp.isTailcall(name, false)
+        is CExpr.RecordUpdate -> exp.isTailcall(name, false) && value.isTailcall(name, false)
+        is CExpr.ListLiteral -> exps.all { it.isTailcall(name, false) }
+        is CExpr.SetLiteral -> exps.all { it.isTailcall(name, false) }
+        is CExpr.ForeignField -> exp.isTailcall(name, false)
+        is CExpr.ForeignFieldSetter -> field.isTailcall(name, false) && value.isTailcall(name, false)
+        is CExpr.ForeignStaticFieldSetter -> value.isTailcall(name, false)
+        is CExpr.ForeignStaticMethod -> args.all { it.isTailcall(name, false) }
+        is CExpr.ForeignMethod -> exp.isTailcall(name, false) && args.all { it.isTailcall(name, false) }
         else -> true
     }
 
