@@ -89,7 +89,7 @@ object TestUtil {
         return compiler.getModules()["test"]!!
     }
 
-    fun compileAndOptimizeCode(code: String, verbose: Boolean = true): OModule {
+    fun compileAndOptimizeCode(code: String, verbose: Boolean = false): OModule {
         val compiler = compilerForCode(code, verbose)
         val ast = compiler.compile().values.last().ast
         val opt = Optimizer(ast, mutableMapOf())

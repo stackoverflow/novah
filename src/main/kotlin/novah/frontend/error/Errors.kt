@@ -329,6 +329,12 @@ object Errors {
         Or if it's a foreign type: `foreign import java.io.File`
     """.trimIndent()
 
+    fun escapeType(type: String) = """
+        Private type $type escaped its module.
+        
+        A public function cannot have a private type.
+    """.trimIndent()
+
     fun invalidJavaType(type: String) = """
         Could not determine the foreign type of
         
