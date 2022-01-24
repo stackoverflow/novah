@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
 import novah.ast.canonical.*
+import novah.ast.source.Visibility
 import novah.data.*
 import novah.frontend.Span
 import novah.frontend.error.Action
@@ -39,6 +40,8 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
     private val env = tc.env
     private val uni = tc.uni
     private val instances = InstanceSearch(tc)
+
+    private val pvtTypes = mutableSetOf<String>()
 
     fun errors(): Set<CompilerProblem> = errors
 
@@ -61,6 +64,8 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             val (ty, map) = getDataType(d, ast.name.value)
             checkShadowType(env, d.name.value, d.span)
             env.extendType("${ast.name.value}.${d.name.value}", ty)
+            if (d.visibility == Visibility.PRIVATE)
+                pvtTypes += "${ast.name.value}.${d.name.value}"
 
             d.dataCtors.forEach { dc ->
                 val dcname = dc.name.value
@@ -116,6 +121,9 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 env.extend(name, genTy)
                 if (decl.isInstance) env.extendInstance(name, genTy)
                 decls[name] = DeclRef(genTy, decl.visibility, decl.isInstance, decl.comment)
+
+                if (decl.visibility == Visibility.PUBLIC && pvtTypes.isNotEmpty())
+                    checkEscapePvtType(genTy, decl.name.span)
 
                 if (!isAnnotated && !decl.metadata.isTrue(Metadata.NO_WARN)) {
                     val fix = "$name : ${genTy.show(false)}"
@@ -873,6 +881,21 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 inferError(E.undefinedType(ty.show()), ty.span ?: span)
             }
         }
+    }
+
+    /**
+     * Checks if a public function doesn't have a private type.
+     * So the type doesn't escape its module.
+     */
+    private fun checkEscapePvtType(ty: Type, span: Span) {
+        var found = ""
+        var tySpan: Span? = null
+        ty.everywhereUnit { if (it is TConst && it.name in pvtTypes) {
+            found = it.name
+            tySpan = it.span
+        } }
+        if (found.isNotBlank())
+            inferError(E.escapeType(found), tySpan ?: span)
     }
 
     private tailrec fun validateImplicitArgs(exp: Expr.Lambda, ty: TArrow) {

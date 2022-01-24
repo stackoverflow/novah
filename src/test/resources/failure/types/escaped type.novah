@@ -1,0 +1,7 @@
+module test
+
+type Foo a = Foo a
+
+pub
+fun : Int -> Foo Int
+fun x = Foo x

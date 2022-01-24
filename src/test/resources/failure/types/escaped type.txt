@@ -1,0 +1,9 @@
+module [33mtest[0m
+at src/test/resources/failure/types/escaped type.novah:6:14 - 6:17
+
+  Private type test.Foo escaped its module.
+  
+  A public function cannot have a private type.
+
+in declaration fun
+
