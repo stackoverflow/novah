@@ -406,10 +406,10 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         is CExpr.Do -> {
             exps.dropLast(1).all { it.isTailcall(name, false) } && exps.last().isTailcall(name, tail)
         }
-        is CExpr.Let -> {
-            letDef.expr.isTailcall(name, false) && body.isTailcall(name, tail)
+        is CExpr.Let -> letDef.expr.isTailcall(name, false) && body.isTailcall(name, tail)
+        is CExpr.If -> {
+            cond.isTailcall(name, false) && thenCase.isTailcall(name, tail) && elseCase.isTailcall(name, tail)
         }
-        is CExpr.If -> thenCase.isTailcall(name, tail) && elseCase.isTailcall(name, tail)
         is CExpr.Ann -> exp.isTailcall(name, tail)
         is CExpr.TypeCast -> exp.isTailcall(name, tail)
         is CExpr.While -> false
