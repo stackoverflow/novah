@@ -15,6 +15,13 @@ public class LongRange implements Range<Long> {
         this.step = step;
     }
 
+    public LongRange(long start, long end) {
+        long st = start <= end ? 1 : -1;
+        this.start = start;
+        this.end = end;
+        step = st;
+    }
+
     @Override
     public Long start() {
         return start;

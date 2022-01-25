@@ -31,12 +31,6 @@ pub
 typealias Int = Int32
 
 /**
- * A 64-bits floating point.
- */
-pub
-typealias Float = Float64
-
-/**
  * Coerce parameter x from type a to b.
  * This is extremely unsafe and should be used only
  * when sure both types are compatible, otherwise
@@ -1417,10 +1411,8 @@ forEachBreak begin end f =
  */
 pub+
 opaque type Ranged a =
-  { upTo : a -> a -> Range a
-  , downTo : a -> a -> Range a
-  , until : a -> a -> Range a
-  , downUntil : a -> a -> Range a
+  { range : a -> a -> Range a
+  , rangeOpen : a -> a -> Range a
   }
 
 /**
@@ -1433,36 +1425,22 @@ opaque type RangedStep a =
   }
 
 /**
- * Returns a range starting at begin (inclusive) and going up to end (inclusive).
+ * Returns a range from begin (inclusive) to end (inclusive).
+ * If start > end the range will go down instead of up.
  * Runtime: O(1)
  */
 pub
 (..) : {{ Ranged a }} -> a -> a -> Range a
-(..) {{Ranged r}} begin end = r.upTo begin end
+(..) {{Ranged r}} begin end = r.range begin end
 
 /**
- * Returns a range starting at begin (inclusive) and going up to end (exclusive).
+ * Returns a range from begin (inclusive) to end (exclusive).
+ * If start > end the range will go down instead of up.
  * Runtime: O(1)
  */
 pub
 (...) : {{ Ranged a }} -> a -> a -> Range a
-(...) {{Ranged r}} begin end = r.until begin end
-
-/**
- * Returns a range starting at begin (inclusive) and going down to end (inclusive).
- * Runtime: O(1)
- */
-pub
-(.<) : {{ Ranged a }} -> a -> a -> Range a
-(.<) {{Ranged r}} begin end = r.downTo begin end
-
-/**
- * Returns a range starting at begin (inclusive) and going down to end (exclusive).
- * Runtime: O(1)
- */
-pub
-(..<) : {{ Ranged a }} -> a -> a -> Range a
-(..<) {{Ranged r}} begin end = r.downUntil begin end
+(...) {{Ranged r}} begin end = r.rangeOpen begin end
 
 /**
  * Returns a range between begin (inclusive) and end (inclusive) going step by step.
@@ -1526,50 +1504,40 @@ pub instance
 rangedInt32 : Ranged Int32
 rangedInt32 =
   Ranged
-    { upTo: \start end -> IntRange#new(start, end, 1) as Range Int32
-    , downTo: \start end -> IntRange#new(start, end, -1) as Range Int32
-    , until: \start end -> IntOpenRange#new(start, end, 1) as Range Int32
-    , downUntil: \start end -> IntOpenRange#new(start, end, -1) as Range Int32
+    { range: \start end -> IntRange#new(start, end) as Range Int32
+    , rangeOpen: \start end -> IntOpenRange#new(start, end) as Range Int32
     }
 
 pub instance
 rangedInt64 : Ranged Int64
 rangedInt64 =
   Ranged
-    { upTo: \start end -> LongRange#new(start, end, 1L) as Range Int64
-    , downTo: \start end -> LongRange#new(start, end, -1L) as Range Int64
-    , until: \start end -> LongOpenRange#new(start, end, 1L) as Range Int64
-    , downUntil: \start end -> LongOpenRange#new(start, end, -1L) as Range Int64
+    { range: \start end -> LongRange#new(start, end) as Range Int64
+    , rangeOpen: \start end -> LongOpenRange#new(start, end) as Range Int64
     }
 
 pub instance
 rangedFloat32 : Ranged Float32
 rangedFloat32 =
   Ranged
-    { upTo: \start end -> FloatRange#new(start, end, true) as Range Float32
-    , downTo: \start end -> FloatRange#new(start, end, false) as Range Float32
-    , until: \start end -> FloatOpenRange#new(start, end, true) as Range Float32
-    , downUntil: \start end -> FloatOpenRange#new(start, end, false) as Range Float32
+    { range: \start end -> FloatRange#new(start, end) as Range Float32
+    , rangeOpen: \start end -> FloatOpenRange#new(start, end) as Range Float32
     }
 
 pub instance
 rangedFloat64 : Ranged Float64
 rangedFloat64 =
   Ranged
-    { upTo: \start end -> DoubleRange#new(start, end, true) as Range Float64
-    , downTo: \start end -> DoubleRange#new(start, end, false) as Range Float64
-    , until: \start end -> DoubleOpenRange#new(start, end, true) as Range Float64
-    , downUntil: \start end -> DoubleOpenRange#new(start, end, false) as Range Float64
+    { range: \start end -> DoubleRange#new(start, end) as Range Float64
+    , rangeOpen: \start end -> DoubleOpenRange#new(start, end) as Range Float64
     }
 
 pub instance
 rangedChar : Ranged Char
 rangedChar =
   Ranged
-    { upTo: \start end -> CharRange#new(start, end, 1) as Range Char
-    , downTo: \start end -> CharRange#new(start, end, -1) as Range Char
-    , until: \start end -> CharOpenRange#new(start, end, 1) as Range Char
-    , downUntil: \start end -> CharOpenRange#new(start, end, -1) as Range Char
+    { range: \start end -> CharRange#new(start, end) as Range Char
+    , rangeOpen: \start end -> CharOpenRange#new(start, end) as Range Char
     }
 
 pub instance

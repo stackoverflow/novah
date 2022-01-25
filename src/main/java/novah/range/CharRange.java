@@ -15,6 +15,13 @@ public class CharRange implements Range<Character> {
         this.step = step;
     }
 
+    public CharRange(char start, char end) {
+        int st = start <= end ? 1 : -1;
+        this.start = start;
+        this.end = end;
+        step = st;
+    }
+
     @Override
     public Character start() {
         return (char) start;

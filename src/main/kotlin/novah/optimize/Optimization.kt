@@ -83,8 +83,6 @@ object Optimization {
     private const val ltEq = "\$smaller\$equals"
     private const val dotDot = "\$dot\$dot"
     private const val dotDotDot = "\$dot\$dot\$dot"
-    private const val dotLt = "\$dot\$smaller"
-    private const val dotDotLt = "\$dot\$dot\$smaller"
 
     private val binOps = mapOf(
         "\$plus" to "+",
@@ -285,18 +283,12 @@ object Optimization {
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.forEachRange" -> {
                         Expr.NativeMethod(forEachRange, fn.arg, listOf(arg), e.type, e.span)
                     }
-                    // optimize `..`, '...', '.<' and '..<'
+                    // optimize `..` and '...'
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDot" -> {
-                        makeRangeCtor(e, fn.arg, arg, open = false, up = true)
+                        makeRangeCtor(e, fn.arg, arg, open = false)
                     }
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDotDot" -> {
-                        makeRangeCtor(e, fn.arg, arg, open = true, up = true)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotLt" -> {
-                        makeRangeCtor(e, fn.arg, arg, open = false, up = false)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDotLt" -> {
-                        makeRangeCtor(e, fn.arg, arg, open = true, up = false)
+                        makeRangeCtor(e, fn.arg, arg, open = true)
                     }
                     // optimize `Array.size array` to `array.length`
                     fn is Var && fn.fullname() == "novah/array/\$Module.size" -> {
@@ -312,30 +304,25 @@ object Optimization {
         }
     }
 
-    private fun makeRangeCtor(e: Expr, arg1: Expr, arg2: Expr, open: Boolean, up: Boolean): Expr =
+    private fun makeRangeCtor(e: Expr, arg1: Expr, arg2: Expr, open: Boolean): Expr =
         when (arg2.type.type.className) {
             "java.lang.Integer" -> {
-                val step = Expr.Int32(if (up) 1 else -1, arg1.type, e.span)
                 val ctor = if (open) newIntOpenRange else newIntRange
-                Expr.NativeCtor(ctor, listOf(arg1, arg2, step), e.type, e.span)
+                Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }
             "java.lang.Long" -> {
-                val step = Expr.Int64(if (up) 1 else -1, arg1.type, e.span)
                 val ctor = if (open) newLongOpenRange else newLongRange
-                Expr.NativeCtor(ctor, listOf(arg1, arg2, step), e.type, e.span)
+                Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }
             "java.lang.Float" -> {
-                val isUp = Expr.Bool(up, booleanClass, e.span)
-                Expr.NativeCtor(newFloatRange, listOf(arg1, arg2, isUp), e.type, e.span)
+                Expr.NativeCtor(newFloatRange, listOf(arg1, arg2), e.type, e.span)
             }
             "java.lang.Double" -> {
-                val isUp = Expr.Bool(up, booleanClass, e.span)
-                Expr.NativeCtor(newDoubleRange, listOf(arg1, arg2, isUp), e.type, e.span)
+                Expr.NativeCtor(newDoubleRange, listOf(arg1, arg2), e.type, e.span)
             }
             "java.lang.Character" -> {
-                val step = Expr.Int32(if (up) 1 else -1, intClass, e.span)
                 val ctor = if (open) newCharOpenRange else newCharRange
-                Expr.NativeCtor(ctor, listOf(arg1, arg2, step), e.type, e.span)
+                Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }
             else -> e
         }
@@ -410,18 +397,15 @@ object Optimization {
         }
     }
     private val toLong = java.lang.Integer::class.java.methods.find { it.name == "longValue" }!!
-    private val newIntRange = IntRange::class.java.constructors.first()
-    private val newIntOpenRange = IntOpenRange::class.java.constructors.first()
-    private val newLongRange = LongRange::class.java.constructors.first()
-    private val newLongOpenRange = LongOpenRange::class.java.constructors.first()
-    private val newFloatRange = FloatRange::class.java.constructors.first()
-    private val newDoubleRange = DoubleRange::class.java.constructors.first()
-    private val newCharRange = CharRange::class.java.constructors.first()
-    private val newCharOpenRange = CharOpenRange::class.java.constructors.first()
+    private val newIntRange = IntRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newIntOpenRange = IntOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newLongRange = LongRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newLongOpenRange = LongOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newFloatRange = FloatRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newDoubleRange = DoubleRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newCharRange = CharRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newCharOpenRange = CharOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val forEachRange = Range::class.java.methods.find { it.name == "foreach" }!!
-
-    private val intClass = Clazz(Type.getType(Int::class.javaObjectType))
-    private val booleanClass = Clazz(Type.getType(Boolean::class.javaObjectType))
 }
 
 private typealias App = Expr.App

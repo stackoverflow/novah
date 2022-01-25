@@ -14,6 +14,12 @@ public class FloatOpenRange implements Range<Float> {
         this.up = up;
     }
 
+    public FloatOpenRange(float start, float end) {
+        this.start = start;
+        this.end = end;
+        this.up = start <= end;
+    }
+
     @Override
     public Float start() {
         return start;

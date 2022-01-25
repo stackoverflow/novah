@@ -15,6 +15,13 @@ public class IntOpenRange implements Range<Integer> {
         this.step = step;
     }
 
+    public IntOpenRange(int start, int end) {
+        int st = start <= end ? 1 : -1;
+        this.start = start;
+        this.end = end;
+        step = st;
+    }
+
     @Override
     public Integer start() {
         return start;
