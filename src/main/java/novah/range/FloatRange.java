@@ -14,6 +14,12 @@ public class FloatRange implements Range<Float> {
         this.up = up;
     }
 
+    public FloatRange(float start, float end) {
+        this.start = start;
+        this.end = end;
+        this.up = start <= end;
+    }
+
     @Override
     public Float start() {
         return start;

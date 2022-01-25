@@ -1160,6 +1160,6 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         fun collectVars(exp: Expr): List<String> =
             exp.everywhereAccumulating { e -> if (e is Expr.Var) listOf(e.fullname()) else emptyList() }
 
-        private val rangeOperators = setOf("..", "...", ".<", "..<")
+        private val rangeOperators = setOf("..", "...")
     }
 }

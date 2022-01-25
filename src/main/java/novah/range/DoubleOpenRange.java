@@ -14,6 +14,12 @@ public class DoubleOpenRange implements Range<Double> {
         this.up = up;
     }
 
+    public DoubleOpenRange(double start, double end) {
+        this.start = start;
+        this.end = end;
+        this.up = start <= end;
+    }
+
     @Override
     public Double start() {
         return start;

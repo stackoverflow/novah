@@ -14,6 +14,12 @@ public class DoubleRange implements Range<Double> {
         this.up = up;
     }
 
+    public DoubleRange(double start, double end) {
+        this.start = start;
+        this.end = end;
+        this.up = start <= end;
+    }
+
     @Override
     public Double start() {
         return start;
