@@ -11,7 +11,7 @@ mapTests =
     Map.getOr "b" 0 map `shouldBe` 2
     Map.getOr "d" 0 map `shouldBe` 0
     map.["b"] `shouldBe` 2
-    Map.hasKey "c" map `shouldBe` true
+    Map.hasKey? "c" map `shouldBe` true
     Map.keys map `shouldBe` #{"a", "b", "c"}
     Map.values map `shouldAllBeIn` #{1, 2, 3}
     Map.size map `shouldBe` 3L
@@ -28,11 +28,11 @@ mapTests =
   test "Map traversing functions" \_ ->
     let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
     Map.mapValues (\_ v -> v + 1) map `shouldBe` Map.new ["a" ; 2, "b" ; 3, "c" ; 4]
-    Map.filter (\_ v -> Math.isOdd v) map `shouldBe` Map.new ["a" ; 1, "c" ; 3]
-    Map.every (\_ v -> Math.isOdd v) map `shouldBe` false
+    Map.filter (\_ v -> Math.odd? v) map `shouldBe` Map.new ["a" ; 1, "c" ; 3]
+    Map.all? (\_ v -> Math.odd? v) map `shouldBe` false
     (Map.toList map |> Set.fromList) `shouldBe` #{"a" ; 1, "b" ; 2, "c" ; 3}
     let folder acc (k : Int) v =
-      if Math.isEven k then
+      if Math.even? k then
         acc + v + 0
       else acc - v
     Map.foldl folder 0 (Map.new [1 ; 2, 2 ; 3, 3 ; 4, 4 ; 5]) `shouldBe` 2

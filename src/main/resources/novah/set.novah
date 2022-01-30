@@ -58,16 +58,16 @@ size set =
  * Returns true if this set is empty.
  */
 pub
-isEmpty : Set a -> Boolean
-isEmpty set = set#size() == 0L
+empty? : Set a -> Boolean
+empty? set = set#size() == 0L
 
 /**
  * Returns true if this set is not empty.
  * Runtime: O(1)
  */
 pub
-isNotEmpty : Set a -> Boolean
-isNotEmpty set = set#size() != 0L
+notEmpty? : Set a -> Boolean
+notEmpty? set = set#size() != 0L
 
 /**
  * Returns some value at index for this set if it exists or none.
@@ -203,12 +203,11 @@ foldl f init set = Core#foldSet(f, init, set)
 pub
 reduce : (a -> a -> a) -> Set a -> Option a
 reduce f set =
-  if isEmpty set
-    then None
-    else
-      let first = set#nth(0L)
-      let rest = remove first set
-      Some (foldl f first rest)
+  if empty? set then None
+  else
+    let first = set#nth(0L)
+    let rest = remove first set
+    Some (foldl f first rest)
 
 /**
  * Flattens a set of sets into a single set by concatenating them together.
@@ -217,7 +216,7 @@ reduce f set =
 pub
 flatten : Set (Set a) -> Set a
 flatten sets =
-  if isEmpty sets
+  if empty? sets
     then #{}
     else
       let first = sets#nth(0L)
@@ -238,8 +237,8 @@ flatMap f set = flatten (map f set)
  * Runtime: O(n)
  */
 pub
-all : (a -> Boolean) -> Set a -> Boolean
-all pred set =
+all? : (a -> Boolean) -> Set a -> Boolean
+all? pred set =
   let t = set#size()
   let go i =
     if i >= t then true
@@ -253,8 +252,8 @@ all pred set =
  * Runtime: O(n)
  */
 pub
-any : (a -> Boolean) -> Set a -> Boolean
-any pred set =
+any? : (a -> Boolean) -> Set a -> Boolean
+any? pred set =
   let t = set#size()
   let go i =
     if i >= t then false
@@ -311,7 +310,7 @@ minBy {{_}} fn =
 pub
 minOf : {{ NumberOps b }} -> (a -> b) -> Set a -> Option b
 minOf {{NumberOps ops}} fn set =
-  if isEmpty set then
+  if empty? set then
     None
   else
     let first = set#nth(0L)
@@ -356,7 +355,7 @@ maxBy {{_}} fn =
 pub
 maxOf : {{ NumberOps b }} -> (a -> b) -> Set a -> Option b
 maxOf {{NumberOps ops}} fn set =
-  if isEmpty set then
+  if empty? set then
     None
   else
     let first = set#nth(0L)
@@ -408,8 +407,8 @@ productOf {{Mult m}} fn =
  * Returns true if every element in the list is contained in the set.
  */
 pub
-containsAll : List a -> Set a -> Boolean
-containsAll list set = List.all set#contains(_) list
+containsAll? : List a -> Set a -> Boolean
+containsAll? list set = List.all? set#contains(_) list
 
 /**
  * Groups the elements of the set according

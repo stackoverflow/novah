@@ -5,8 +5,8 @@ import novah.test
 optionTests : Unit
 optionTests =
   test "Option reading functions" \_ ->
-    Option.isSome (Some 1) `shouldBe` true
-    Option.isNone None `shouldBe` true
+    Option.some? (Some 1) `shouldBe` true
+    Option.none? None `shouldBe` true
     Option.maybe 3 (_ + 1) (Some 1) `shouldBe` 2
     Option.maybe 3 (_ + 1) None `shouldBe` 3
     (Some 1 ?: 0) `shouldBe` 1

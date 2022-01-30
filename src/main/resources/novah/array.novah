@@ -83,7 +83,7 @@ find pred arr =
 pub instance
 containedArray : {{ Equals a }} -> Contained a (Array a)
 containedArray {{(Equals eq) as equals}} =
-  Contained equals \x arr -> find (\elem -> eq x elem) arr |> Option.isSome
+  Contained equals \x arr -> find (\elem -> eq x elem) arr |> Option.some?
 
 /**
  * Runs function f for every element of this array, ignoring the result.

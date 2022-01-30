@@ -5,8 +5,8 @@ import novah.test
 resultTests : Unit
 resultTests =
   test "Result reading functions" \_ ->
-    Result.isOk (Ok 1) `shouldBe` true
-    Result.isErr (Err 0) `shouldBe` true
+    Result.ok? (Ok 1) `shouldBe` true
+    Result.err? (Err 0) `shouldBe` true
     Result.ok (Ok 1) `shouldBe` Some 1
     Result.err (Err 0) `shouldBe` Some 0
     Result.unwrap (Ok "abc") `shouldBe` "abc"

@@ -13,29 +13,29 @@ foreign import java.lang.StringBuilder
  * Returns true if this string is empty or only contains whitespace codepoints.
  */
 pub
-isBlank : String -> Boolean
-isBlank s = s#isBlank()
+blank? : String -> Boolean
+blank? s = s#isBlank()
 
 /**
  * Returns true if this string is not empty or only contains whitespace codepoints.
  */
 pub
-isNotBlank : String -> Boolean
-isNotBlank s = not s#isBlank()
+notBlank? : String -> Boolean
+notBlank? s = not s#isBlank()
 
 /**
  * Returns true if this string is empty.
  */
 pub
-isEmpty : String -> Boolean
-isEmpty s = s#isEmpty()
+empty? : String -> Boolean
+empty? s = s#isEmpty()
 
 /**
  * Returns true if this string is not empty.
  */
 pub
-isNotEmpty : String -> Boolean
-isNotEmpty s = not s#isEmpty()
+notEmpty? : String -> Boolean
+notEmpty? s = not s#isEmpty()
 
 /**
  * Returns the size of this string.
@@ -70,15 +70,15 @@ upperCase str = str#toUpperCase()
  * Returns true if this string starts with prefix.
  */
 pub
-startsWith : String -> String -> Boolean
-startsWith prefix str = str#startsWith(prefix)
+startsWith? : String -> String -> Boolean
+startsWith? prefix str = str#startsWith(prefix)
 
 /**
  * Returns true if this string ends with suffix.
  */
 pub
-endsWith : String -> String -> Boolean
-endsWith suffix str = str#endsWith(suffix)
+endsWith? : String -> String -> Boolean
+endsWith? suffix str = str#endsWith(suffix)
 
 /**
  * Returns a substring from the given string
@@ -390,7 +390,7 @@ lines str =
 pub
 stripIndent : String -> String
 stripIndent str =
-  let ls = lines str |> List.filter isNotBlank
+  let ls = lines str |> List.filter notBlank?
   let indent =
     ls
       |> List.map (findIndex (\(c : Char) -> not Char#isWhitespace(c)))
