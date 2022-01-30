@@ -55,15 +55,15 @@ complete fut value = fut#complete(value)
  * Returns true if this future is completed in any form.
  */
 pub
-isDone : CompletableFuture a -> Boolean
-isDone fut = fut#isDone()
+done? : CompletableFuture a -> Boolean
+done? fut = fut#isDone()
 
 /**
  * Returns true if this future is cancelled.
  */
 pub
-isCancelled : CompletableFuture a -> Boolean
-isCancelled fut = fut#isCancelled()
+cancelled? : CompletableFuture a -> Boolean
+cancelled? fut = fut#isCancelled()
 
 /**
  * Creates a future that will run this function asynchronously.

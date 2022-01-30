@@ -40,8 +40,8 @@ unwrap = case _ of
  * Returns true if this result is ok.
  */
 pub
-isOk : Result a b -> Boolean
-isOk = case _ of
+ok? : Result a b -> Boolean
+ok? = case _ of
   Ok _ -> true
   _ -> false
 
@@ -49,8 +49,8 @@ isOk = case _ of
  * Returns true if this result is an error.
  */
 pub
-isErr : Result a b -> Boolean
-isErr = case _ of
+err? : Result a b -> Boolean
+err? = case _ of
   Err _ -> true
   _ -> false
 

@@ -41,8 +41,8 @@ maybe def f = case _ of
  * Returns true if this option contains a value.
  */
 pub
-isSome : Option a -> Boolean
-isSome = case _ of
+some? : Option a -> Boolean
+some? = case _ of
   Some _ -> true
   None -> false
 
@@ -50,8 +50,8 @@ isSome = case _ of
  * Returns true if this option *doesn't* contain a value.
  */
 pub
-isNone : Option a -> Boolean
-isNone = case _ of
+none? : Option a -> Boolean
+none? = case _ of
   Some _ -> false
   None -> true
 

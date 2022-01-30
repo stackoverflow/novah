@@ -143,16 +143,16 @@ last list =
  * Runtime: O(1)
  */
 pub
-isEmpty : List a -> Boolean
-isEmpty list = list#size() == 0L
+empty? : List a -> Boolean
+empty? list = list#size() == 0L
 
 /**
  * Returns true if this list is not empty.
  * Runtime: O(1)
  */
 pub
-isNotEmpty : List a -> Boolean
-isNotEmpty list = list#size() != 0L
+notEmpty? : List a -> Boolean
+notEmpty? list = list#size() != 0L
 
 /**
  * Converts this list into a typed array.
@@ -386,7 +386,7 @@ takeWhile : (a -> Boolean) -> List a -> List a
 takeWhile pred list =
   let v = list#linear()
   let res = []#linear()
-  while isNotEmpty v && pred v.[0] do
+  while notEmpty? v && pred v.[0] do
     addLast v.[0] res
     removeFirst v
   res#forked()
@@ -399,7 +399,7 @@ pub
 dropWhile : (a -> Boolean) -> List a -> List a
 dropWhile pred list =
   let v = list#linear()
-  while isNotEmpty v && pred v.[0] do
+  while notEmpty? v && pred v.[0] do
     removeFirst v
   v#forked()
 
@@ -471,8 +471,8 @@ reverse list =
  * Runtime: O(n)
  */
 pub
-all : (a -> Boolean) -> List a -> Boolean
-all pred list =
+all? : (a -> Boolean) -> List a -> Boolean
+all? pred list =
   let t = list#size()
   let go i =
     if i >= t then true
@@ -486,8 +486,8 @@ all pred list =
  * Runtime: O(n)
  */
 pub
-any : (a -> Boolean) -> List a -> Boolean
-any pred list =
+any? : (a -> Boolean) -> List a -> Boolean
+any? pred list =
   let t = list#size()
   let go i =
     if i >= t then false
@@ -816,7 +816,7 @@ pub
 partitionAllStep : Int32 -> Int32 -> List a -> List (List a)
 partitionAllStep n step list =
   let go listt acc =
-    if isEmpty listt then
+    if empty? listt then
       acc
     else
       let prefix = take n listt

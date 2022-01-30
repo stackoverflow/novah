@@ -297,12 +297,14 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
     private fun ident(init: Char?): Token {
         val builder = StringBuilder(init?.toString() ?: "")
+        var hasOpEnd = false
 
         while (iter.hasNext() && iter.peek().isValidIdentifier()) {
             builder.append(iter.next())
         }
         if (iter.hasNext() && (iter.peek() == '?' || iter.peek() == '!')) {
             builder.append(iter.next())
+            hasOpEnd = true
         }
 
         return when (val id = builder.toString()) {
@@ -348,8 +350,10 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 } else PublicT
             }
             else ->
-                if (id[0].isUpperCase()) UpperIdent(id)
-                else Ident(id)
+                if (id[0].isUpperCase()) {
+                    if (hasOpEnd) lexError("Upper case identifiers cannot end with `?` or `!`.")
+                    UpperIdent(id)
+                } else Ident(id)
         }
     }
 

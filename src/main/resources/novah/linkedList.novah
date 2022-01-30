@@ -111,8 +111,8 @@ dropWhile pred =
  * Runtime: O(1)
  */
 pub
-isEmpty : LinkedList a -> Boolean
-isEmpty =
+empty? : LinkedList a -> Boolean
+empty? =
   case _ of
     Nil -> true
     _ -> false
@@ -122,8 +122,8 @@ isEmpty =
  * Runtime: O(1)
  */
 pub
-isNotEmpty : LinkedList a -> Boolean
-isNotEmpty =
+notEmpty? : LinkedList a -> Boolean
+notEmpty? =
   case _ of
     Nil -> false
     _ -> true
@@ -132,12 +132,13 @@ isNotEmpty =
  * Returns true if the element is inside this linked list.
  * Runtime: O(n)
  */
-pub
-contains : {{ Equals a }} -> a -> LinkedList a -> Boolean
-contains {{eq}} elem =
-  case _ of
+pub instance
+containedLinkedList : {{ Equals a }} -> Contained a (LinkedList a)
+containedLinkedList {{(Equals eq) as equals}} =
+  let go elem = case _ of
     Nil -> false
-    Cons x xs -> if x == elem then true else contains {{eq}} elem xs
+    Cons x xs -> if eq x elem then true else go elem xs
+  Contained equals go
 
 /**
  * Maps function f over all elements of this linked list

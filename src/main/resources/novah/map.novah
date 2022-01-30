@@ -109,17 +109,8 @@ remove key map = map#remove(key)
  * Runtime: ~O(1)
  */
 pub
-hasKey : k -> Map k v -> Boolean
-hasKey key map = map#contains(key)
-
-/**
- * Returns true if this map contains the key.
- * An alias to `hasKey`.
- * Runtime: ~O(1)
- */
-pub
-isIn : k -> Map k v -> Boolean
-isIn key map = map#contains(key)
+hasKey? : k -> Map k v -> Boolean
+hasKey? key map = map#contains(key)
 
 /**
  * Returns the result of merging the two maps.
@@ -189,8 +180,8 @@ foldl fun init map =
  * Runtime: O(n)
  */
 pub
-every : (k -> v -> Boolean) -> Map k v -> Boolean
-every pred map = Core#mapEvery(pred, map)
+all? : (k -> v -> Boolean) -> Map k v -> Boolean
+all? pred map = Core#mapEvery(pred, map)
 
 pub instance
 concatMap : Concat (Map k v)

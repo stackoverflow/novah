@@ -8,14 +8,14 @@ isVowel c = c `in?` #{'a', 'e', 'i', 'o', 'u'}
 stringTests : Unit
 stringTests =
   test "String reading functions" \_ ->
-    String.isBlank "  " `shouldBe` true
-    String.isEmpty "  " `shouldBe` false
+    String.blank? "  " `shouldBe` true
+    String.empty? "  " `shouldBe` false
     String.size "abc" `shouldBe` 3
     String.lastIndex "abc" `shouldBe` 2
     String.lowerCase "Some NaMe" `shouldBe` "some name"
     String.upperCase "Some NaMe" `shouldBe` "SOME NAME"
-    String.startsWith "some" "some body" `shouldBe` true
-    String.endsWith "dy" "some body" `shouldBe` true
+    String.startsWith? "some" "some body" `shouldBe` true
+    String.endsWith? "dy" "some body" `shouldBe` true
     ("cat" `in?` "caterpillar") `shouldBe` true
     ('z' `in?` "azure") `shouldBe` true
     String.join " " ["the", "lazy", "fox"] `shouldBe` "the lazy fox"

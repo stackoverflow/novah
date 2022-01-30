@@ -78,8 +78,8 @@ findAll pat str =
  * in the given string.
  */
 pub
-canFind : Pattern -> String -> Boolean
-canFind pat str =
+find? : Pattern -> String -> Boolean
+find? pat str =
   let mat = matcher pat str
   mat#find()
 
@@ -87,8 +87,8 @@ canFind pat str =
  * Returns true if this regex matches the whole input string.
  */
 pub
-matches : Pattern -> String -> Boolean
-matches pat str =
+matches? : Pattern -> String -> Boolean
+matches? pat str =
   let mat = matcher pat str
   mat#matches()
 

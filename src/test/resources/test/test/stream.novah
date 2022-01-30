@@ -15,7 +15,7 @@ streamTests =
     let st = List.stream [1, 2, 3, 4, 5, 6]
     (Stream.empty () |> List.fromStream) `shouldBe` ([] : List Int)
     (Stream.from 1 |> Stream.toArray) `shouldBe` toArray [1]
-    let res = st |> Stream.map (_ + 1) |> Stream.filter Math.isOdd |> Stream.limit 2L
+    let res = st |> Stream.map (_ + 1) |> Stream.filter Math.odd? |> Stream.limit 2L
     List.fromStream res `shouldBe` [3, 5]
 
     let st2 = vs [1, 2, 3, 4]
