@@ -163,6 +163,10 @@ class Parser(
 
     private fun parseModuleName(): Spanned<String> {
         val idents = between<Dot, Spanned<Ident>> { expect(withError(E.MODULE_NAME)) }
+        idents.forEach {
+            if (it.value.v.endsWith('?') || it.value.v.endsWith('!'))
+                throwError(E.MODULE_NAME to it.span)
+        }
         val span = span(idents[0].span, idents.last().span)
         return Spanned(span, idents.joinToString(".") { it.value.v })
     }

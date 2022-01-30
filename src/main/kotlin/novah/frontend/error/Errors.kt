@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ object Errors {
         |module some.namespace
     """.trimMargin()
 
-    const val MODULE_NAME =
-        "Module names should be composed of identifiers started with a lower case character and separated by dots."
+    val MODULE_NAME = """
+        Module names should be composed of identifiers started with a lower case character and separated by dots.
+        They also cannot contain special characters like `?` or `!`. 
+    """.trimIndent()
 
     val IMPORT_ALIAS = """Expected module import alias to be capitalized:
         |Example: import data.namespace as Mod
