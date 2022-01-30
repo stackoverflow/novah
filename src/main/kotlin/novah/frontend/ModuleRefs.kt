@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,9 +74,23 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>, env: Env): 
                     resolvedTypealiases += ta
                 }
             }
-            // Import only defined declarations and types
+            // Import defined declarations and types unqualified, plus everything qualified if there's an alias
             is Import.Exposing -> {
-                val alias = if (imp.alias != null) "${imp.alias}." else ""
+                if (imp.alias != null) {
+                    val alias = "${imp.alias}."
+                    m.types.filter(visibleType).forEach { name, (type, _) ->
+                        resolved["$alias$name"] = mname
+                        env.extendType("$mname.$name", type)
+                    }
+                    m.decls.filter(visible).forEach { name, (type, _, isInstance) ->
+                        resolved["$alias$name"] = mname
+                        env.extend("$mname.$name", type)
+                        if (isInstance) env.extendInstance("$mname.$name", type)
+                    }
+                    typealiases.filter { (_, ta) -> ta.visibility == Visibility.PUBLIC }.forEach { (_, ta) ->
+                        resolvedTypealiases += ta
+                    }
+                }
                 for (ref in imp.defs) {
                     when (ref) {
                         is DeclarationRef.RefVar -> {
@@ -90,7 +104,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>, env: Env): 
                                 continue
                             }
                             val fname = "$mname.${ref.name}"
-                            resolved["$alias${ref.name}"] = mname
+                            resolved[ref.name] = mname
                             env.extend(fname, declRef.type)
                             if (declRef.isInstance) env.extendInstance(fname, declRef.type)
                         }
@@ -114,7 +128,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>, env: Env): 
                                 continue
                             }
                             env.extendType("$mname.${ref.name}", declRef.type)
-                            resolved["$alias${ref.name}"] = mname
+                            resolved[ref.name] = mname
                             when {
                                 ref.ctors == null -> {
                                 }
@@ -126,7 +140,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>, env: Env): 
                                             continue
                                         }
                                         env.extend("$mname.$ctor", ctorDecl.type)
-                                        resolved["$alias$ctor"] = mname
+                                        resolved[ctor] = mname
                                     }
                                 }
                                 else -> {
@@ -142,7 +156,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>, env: Env): 
                                             continue
                                         }
                                         env.extend("$mname.$name", ctorDecl.type)
-                                        resolved["$alias$name"] = mname
+                                        resolved[name] = mname
                                     }
                                 }
                             }
