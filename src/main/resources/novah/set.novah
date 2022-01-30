@@ -178,15 +178,13 @@ filter pred set =
 pub
 find : (a -> Boolean) -> Set a -> Option a
 find pred set =
-  let lset = #{}#linear()
-  forEachBreak 0 set#size()#intValue() \(idx : Int32) ->
-    let elem = set#nth(idx#longValue())
-    if pred elem
-      then
-        add elem lset
-        -1
-      else 0
-  nth 0 lset
+  let t = set#size()
+  let go i =
+    if i >= t then None
+    else
+      let e = set#nth(i)
+      if pred e then Some e else go (i + 1L)
+  go 0L
 
 /**
  * Reduces this set to a single value according to the reducing function.
@@ -241,7 +239,14 @@ flatMap f set = flatten (map f set)
  */
 pub
 all : (a -> Boolean) -> Set a -> Boolean
-all pred set = Core#setEvery(pred, set)
+all pred set =
+  let t = set#size()
+  let go i =
+    if i >= t then true
+    else
+      let e = set#nth(i)
+      if pred e then go (i + 1L) else false
+  go 0L
 
 /**
  * Returns true if the predicate is true for any element in this set.
@@ -250,14 +255,13 @@ all pred set = Core#setEvery(pred, set)
 pub
 any : (a -> Boolean) -> Set a -> Boolean
 any pred set =
-  let res = Ref#new(false)
-  forEachBreak 0 (size set) \(i : Int32) ->
-    if set#nth(i#longValue()) |> pred
-      then
-        res#-val <- true
-        -1
-      else 0
-  res#-val
+  let t = set#size()
+  let go i =
+    if i >= t then false
+    else
+      let e = set#nth(i)
+      if pred e then true else go (i + 1L)
+  go 0L
 
 
 /**

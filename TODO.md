@@ -17,6 +17,18 @@
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
 - [ ] Add support for primitive types
 - [ ] Better implicit type inference
+- [ ] This was not support to type check:
+      ```
+      findIndex : (a -> Boolean) -> List a -> Option Int32
+      findIndex pred list =
+        let t = List.size list
+        let go i =
+          if i >= t then None
+          else
+           let e = list.[i]
+           if pred e then Some e else go (i + 1)
+        go 0
+      ```
 
 ## LSP / IDE
 
