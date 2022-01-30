@@ -263,6 +263,9 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 } else operator(c)
             }
             '`' -> Op(backtickOperator(), isPrefix = true)
+            '_' ->
+                if (iter.hasNext() && iter.peek().isValidIdentifier()) ident(c)
+                else Underline
             else -> {
                 when {
                     c.isDigit() -> number(c)
@@ -298,6 +301,9 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         while (iter.hasNext() && iter.peek().isValidIdentifier()) {
             builder.append(iter.next())
         }
+        if (iter.hasNext() && (iter.peek() == '?' || iter.peek() == '!')) {
+            builder.append(iter.next())
+        }
 
         return when (val id = builder.toString()) {
             "" -> lexError("Identifiers cannot be empty")
@@ -327,25 +333,14 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "return" -> Return
             "yield" -> Yield
             "for" -> For
-            "do" -> {
-                when (iter.peek()) {
-                    '.' -> {
-                        iter.next()
-                        DoDot
-                    }
-                    '!' -> {
-                        iter.next()
-                        DoBang
-                    }
-                    else -> Do
-                }
-            }
-            "let" -> {
-                if (iter.peek() == '!') {
+            "do" ->
+                if (iter.peek() == '.') {
                     iter.next()
-                    LetBang
-                } else LetT
-            }
+                    DoDot
+                } else Do
+            "do!" -> DoBang
+            "let" -> LetT
+            "let!" -> LetBang
             "pub" -> {
                 if (iter.peek() == '+') {
                     iter.next()
@@ -545,8 +540,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 if (iter.peek() == '[') {
                     iter.next()
                     DotBracket
-                }
-                else Dot
+                } else Dot
             }
             else -> Op(op)
         }
@@ -645,7 +639,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         return this.isValidIdentifierStart() || this.isDigit()
     }
 
-    private fun Char.isValidOperator(): Boolean = this in operators
+    private fun Char.isValidOperator(): Boolean = this in operatorSet
 
     private fun String.toSafeLong(radix: Int): Long {
         try {

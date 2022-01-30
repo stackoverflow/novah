@@ -360,6 +360,115 @@ pub
   None -> None
 
 /**
+ * Represents a computation that can fail.
+ * Should be used to represent errors instead of exceptions.
+ */
+pub+
+type Result ok err
+  = Ok ok
+  | Err err
+
+/**
+ * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
+ */
+pub
+opaque type Atom a = AtomicReference a
+
+/**
+ * Creates a new Atom to hold x.
+ * Should *not* be used to hold a mutable value.
+ */
+pub
+atom : a -> Atom a
+atom x = Atom AtomicReference#new(x)
+
+/**
+ * Returns the value inside this Atom.
+ */
+pub
+deref : Atom a -> a
+deref (Atom a) = a#get()
+
+/**
+ * Resets the value of this Atom to x, discarding the old value.
+ * Returns x.
+ */
+pub
+reset : a -> Atom a -> a
+reset x (Atom a) =
+  a#set(x)
+  x
+
+/**
+ * Swaps the value of this atom by applying a function to the old value.
+ * The function *should be free of side effects* as it may be executed
+ * multiple times.
+ */
+pub
+swap : (a -> a) -> Atom a -> a
+swap f (Atom a) = Core#swapAtom(a, f)
+
+/**
+ * Low-level function that receives the old value, the new value and attempts
+ * to set the atom to new if old matches.
+ * Returns true if it succeeded.
+ * Always prefer `swap` over `compareAndSet`.
+ */
+pub
+compareAndSet : a -> a -> Atom a -> Boolean
+compareAndSet old new (Atom atm) = atm#compareAndSet(old, new)
+
+/**
+ * Returns x raised to the power of y.
+ * Follows the same special cases as `java.lang.Math.pow`.
+ */
+pub
+(^) : Float64 -> Float64 -> Float64
+(^) x y = Math#pow(x, y)
+
+/**
+ * The ordering type represents the outcome
+ * of comparing 2 values:
+ *
+ * GT -> bigger than
+ * EQ -> equals
+ * LT -> less than
+ */
+pub+
+type Ordering = GT | LT | EQ
+
+/**
+ * A Tuple containing two values.
+ */
+pub+
+type Tuple a b = Tuple a b
+
+/**
+ * Returns the first element of this tuple.
+ * Runtime: O(1)
+ */
+pub
+fst : Tuple a b -> a
+fst (Tuple x _) = x
+
+/**
+ * Returns the second element of this tuple.
+ * Runtime: O(1)
+ */
+pub
+snd : Tuple a b -> b
+snd (Tuple _ x) = x
+
+/**
+ * Executes the function for every number from begin (inclusive) to end (exclusive).
+ * The for breaks if the function returns a number < 0.
+ */
+pub
+forEachBreak : Int32 -> Int32 -> (Int32 -> Int32) -> Unit
+forEachBreak begin end f =
+  Core#eachRangeBreak(begin, end, f)
+
+/**
  * The type of things that can be concatenated.
  */
 pub+
@@ -393,6 +502,13 @@ concatOption_ (Concat concat) =
 pub instance
 concatOption : {{ Concat a }} -> Concat (Option a)
 concatOption {{ap}} = Concat (concatOption_ ap)
+
+concatTup : Concat a -> Concat b -> Tuple a b -> Tuple a b -> Tuple a b
+concatTup (Concat c1) (Concat c2) (Tuple x y) (Tuple x2 y2) = Tuple (c1 x x2) (c2 y y2)
+
+pub instance
+concatTuple : {{ Concat a }} -> {{ Concat b }} -> Concat (Tuple a b)
+concatTuple {{c1}} {{c2}} = Concat (concatTup c1 c2)
 
 /**
  * The type of things that can be added together
@@ -443,6 +559,17 @@ plusFloat64 =
     , identity: 0.0
     }
 
+plusTup : Plus a -> Plus b -> Tuple a b -> Tuple a b -> Tuple a b
+plusTup (Plus p1) (Plus p2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (p1.plus x1 x2) (p2.plus y1 y2)
+
+pub instance
+plusTuple : {{ Plus a }} -> {{ Plus b }} -> Plus (Tuple a b)
+plusTuple {{(Plus p1) as plusp1}} {{(Plus p2) as plusp2}} =
+  Plus
+    { plus: plusTup plusp1 plusp2
+    , identity: Tuple p1.identity p2.identity
+    }
+
 /**
  * The type of things that can be subtracted
  * using the - operator.
@@ -472,6 +599,13 @@ minusFloat32 = Minus \(x : Float32) y -> Core#sub(x, y)
 pub instance
 minusFloat64 : Minus Float64
 minusFloat64 = Minus \(x : Float64) y -> Core#sub(x, y)
+
+minusTup : Minus a -> Minus b -> Tuple a b -> Tuple a b -> Tuple a b
+minusTup (Minus m1) (Minus m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2) (m2 y1 y2)
+
+pub instance
+minusTuple : {{ Minus a }} -> {{ Minus b }} -> Minus (Tuple a b)
+minusTuple {{m1}} {{m2}} = Minus (minusTup m1 m2)
 
 /**
  * The type of things that can be multiplied together
@@ -522,6 +656,17 @@ multFloat64 =
     , identity: 1.0
     }
 
+multTup : Mult a -> Mult b -> Tuple a b -> Tuple a b -> Tuple a b
+multTup (Mult p1) (Mult p2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (p1.mult x1 x2) (p2.mult y1 y2)
+
+pub instance
+multTuple : {{ Mult a }} -> {{ Mult b }} -> Mult (Tuple a b)
+multTuple {{(Mult p1) as multp1}} {{(Mult p2) as multp2}} =
+  Mult
+    { mult: multTup multp1 multp2
+    , identity: Tuple p1.identity p2.identity
+    }
+
 /**
  * The type of things that can be divided
  * using the / operator.
@@ -552,13 +697,12 @@ pub instance
 divideFloat64 : Divide Float64
 divideFloat64 = Divide \(x : Float64) y -> Core#div(x, y)
 
-/**
- * Returns x raised to the power of y.
- * Follows the same special cases as `java.lang.Math.pow`.
- */
-pub
-(^) : Float64 -> Float64 -> Float64
-(^) x y = Math#pow(x, y)
+divideTup : Divide a -> Divide b -> Tuple a b -> Tuple a b -> Tuple a b
+divideTup (Divide m1) (Divide m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2) (m2 y1 y2)
+
+pub instance
+divideTuple : {{ Divide a }} -> {{ Divide b }} -> Divide (Tuple a b)
+divideTuple {{m1}} {{m2}} = Divide (divideTup m1 m2)
 
 /**
  * The type of things that have a String representation.
@@ -660,6 +804,35 @@ showNull (Show sh) x =
 pub instance
 showNullable : {{ Show a }} -> Show (Nullable a)
 showNullable {{s}} = Show (showNull s)
+
+pub instance
+showOrdering : Show Ordering
+showOrdering = Show toString
+
+showRes : Show ok -> Show err -> Result ok err -> String
+showRes (Show s1) (Show s2) =
+  case _ of
+    Ok x -> format "(Ok %s)" [s1 x]
+    Err x -> format "(Err %s)" [s2 x]
+
+pub instance
+showResult : {{ Show ok }} -> {{ Show err }} -> Show (Result ok err)
+showResult {{s1}} {{s2}} = Show (showRes s1 s2)
+
+pub instance
+showAtom : {{ Show a }} -> Show (Atom a)
+showAtom {{Show sh}} = Show \atm -> format "(Atom %s)" [sh (deref atm)]
+
+showTup : Show a -> Show b -> Tuple a b -> String
+showTup (Show s1) (Show s2) (Tuple x y) = format "(%s, %s)" [s1 x, s2 y]
+
+pub instance
+showTuple : {{ Show a }} -> {{ Show b }} -> Show (Tuple a b)
+showTuple {{s1}} {{s2}} = Show (showTup s1 s2)
+
+pub instance
+showRange : {{ Show a }} -> Show (Range a)
+showRange {{_}} = Show toString
 
 /**
  * The type of things that support equality comparison.
@@ -764,25 +937,6 @@ pub instance
 eqObject : Equals Object
 eqObject = Equals \(x : Object) y -> x#equals(y)
 
-/**
- * Compare if the two records are equals
- * according to Java's equality.
- */
-pub
-recordEquals : { | r } -> { | r } -> Boolean
-recordEquals r1 r2 = (r1 as Record)#equals(r2 as Object)
-
-/**
- * The ordering type represents the outcome
- * of comparing 2 values:
- *
- * GT -> bigger than
- * EQ -> equals
- * LT -> less than
- */
-pub+
-type Ordering = GT | LT | EQ
-
 equalsOrdering : Ordering -> Ordering -> Boolean
 equalsOrdering =
   case _, _ of
@@ -795,9 +949,102 @@ pub instance
 eqOrdering : Equals Ordering
 eqOrdering = Equals equalsOrdering
 
+equalsResult : Equals ok -> Equals err -> Result ok err -> Result ok err -> Boolean
+equalsResult (Equals eq1) (Equals eq2) =
+  case _, _ of
+    Ok x, Ok y -> eq1 x y
+    Err x, Err y -> eq2 x y
+    _, _ -> false
+
 pub instance
-showOrdering : Show Ordering
-showOrdering = Show toString
+eqResult : {{ Equals ok }} -> {{ Equals err }} -> Equals (Result ok err)
+eqResult {{eq1}} {{eq2}} = Equals (equalsResult eq1 eq2)
+
+equalsAtom : Equals a -> Atom a -> Atom a -> Boolean
+equalsAtom (Equals eq) x y = eq (deref x) (deref y)
+
+pub instance
+eqAtom : {{ Equals a }} -> Equals (Atom a)
+eqAtom {{eq}} = Equals (equalsAtom eq)
+
+equalsTuple : Equals a -> Equals b -> Tuple a b -> Tuple a b -> Boolean
+equalsTuple (Equals eq1) (Equals eq2) (Tuple x y) (Tuple x2 y2) = eq1 x x2 && eq2 y y2
+
+pub instance
+eqTuple : {{ Equals a }} -> {{ Equals b }} -> Equals (Tuple a b)
+eqTuple {{eq1}} {{eq2}} = Equals (equalsTuple eq1 eq2)
+
+pub instance
+equalsRange : {{ Equals a }} -> Equals (Range a)
+equalsRange {{_}} = Equals \(one : Range a) (other : Range a) -> (one as Object)#equals(other as Object)
+
+/**
+ * Compare if the two records are equals
+ * according to Java's equality.
+ */
+pub
+recordEquals : { | r } -> { | r } -> Boolean
+recordEquals r1 r2 = (r1 as Record)#equals(r2 as Object)
+
+/**
+ * The type of things that can contain other values.
+ * The first type variable is the type of the contained value,
+ * the second is the type of the container itself.
+ * Ex.: Contained a (List a)
+ */
+pub+
+type Contained a fa = Contained (Equals a) (a -> fa -> Boolean)
+
+/**
+ * Returns true if x is inside the container.
+ */
+pub
+in? : {{ Contained a fa }} -> a -> fa -> Boolean
+in? {{Contained _ con}} x container = con x container
+
+/**
+ * Returns true if x is *not* inside the container.
+ */
+pub
+notIn? : {{ Contained a fa }} -> a -> fa -> Boolean
+notIn? {{Contained _ con}} x container = not (con x container)
+
+pub instance
+containedCharString : Contained Char String
+containedCharString =
+  Contained eqChar \c (str : String) -> str#indexOf(Core#charToInt(c)) >= 0
+
+pub instance
+containedString : Contained String String
+containedString =
+  Contained eqString \(s : String) (str : String) -> str#indexOf(s) >= 0
+
+pub instance
+containedSet : {{ Equals a }} -> Contained a (Set a)
+containedSet {{eq}} = Contained eq \x (s : Set a) -> s#contains(x)
+
+pub instance
+containedList : {{ Equals a }} -> Contained a (List a)
+containedList {{(Equals eq) as equals}} =
+  Contained equals \x (l : List a) -> Core#findList(eq x, l)#isPresent()
+
+pub instance
+containedOption : {{ Equals a }} -> Contained a (Option a)
+containedOption {{(Equals eq) as equals}} =
+  Contained equals \x -> case _ of
+    Some v -> eq x v
+    None -> false
+
+pub instance
+containedResult : {{ Equals a }} -> Contained a (Result a a)
+containedResult {{(Equals eq) as equals}} =
+  Contained equals \x -> case _ of
+    Ok v -> eq x v
+    Err v -> eq x v
+
+pub instance
+containedRange : {{ Equals a }} -> Contained a (Range a)
+containedRange {{eq}} = Contained eq \x (r : Range a) -> r#contains(x)
 
 /**
  * The type of things that can be ordered.
@@ -1228,185 +1475,6 @@ bitOperatorInt64 =
     }
 
 /**
- * Represents a computation that can fail.
- * Should be used to represent errors instead of exceptions.
- */
-pub+
-type Result ok err
-  = Ok ok
-  | Err err
-
-equalsResult : Equals ok -> Equals err -> Result ok err -> Result ok err -> Boolean
-equalsResult (Equals eq1) (Equals eq2) =
-  case _, _ of
-    Ok x, Ok y -> eq1 x y
-    Err x, Err y -> eq2 x y
-    _, _ -> false
-
-pub instance
-eqResult : {{ Equals ok }} -> {{ Equals err }} -> Equals (Result ok err)
-eqResult {{eq1}} {{eq2}} = Equals (equalsResult eq1 eq2)
-
-showRes : Show ok -> Show err -> Result ok err -> String
-showRes (Show s1) (Show s2) =
-  case _ of
-    Ok x -> format "(Ok %s)" [s1 x]
-    Err x -> format "(Err %s)" [s2 x]
-
-pub instance
-showResult : {{ Show ok }} -> {{ Show err }} -> Show (Result ok err)
-showResult {{s1}} {{s2}} = Show (showRes s1 s2)
-
-/**
- * A Tuple containing two values.
- */
-pub+
-type Tuple a b = Tuple a b
-
-/**
- * Returns the first element of this tuple.
- * Runtime: O(1)
- */
-pub
-fst : Tuple a b -> a
-fst (Tuple x _) = x
-
-/**
- * Returns the second element of this tuple.
- * Runtime: O(1)
- */
-pub
-snd : Tuple a b -> b
-snd (Tuple _ x) = x
-
-equalsTuple : Equals a -> Equals b -> Tuple a b -> Tuple a b -> Boolean
-equalsTuple (Equals eq1) (Equals eq2) (Tuple x y) (Tuple x2 y2) = eq1 x x2 && eq2 y y2
-
-pub instance
-eqTuple : {{ Equals a }} -> {{ Equals b }} -> Equals (Tuple a b)
-eqTuple {{eq1}} {{eq2}} = Equals (equalsTuple eq1 eq2)
-
-showTup : Show a -> Show b -> Tuple a b -> String
-showTup (Show s1) (Show s2) (Tuple x y) = format "(%s, %s)" [s1 x, s2 y]
-
-pub instance
-showTuple : {{ Show a }} -> {{ Show b }} -> Show (Tuple a b)
-showTuple {{s1}} {{s2}} = Show (showTup s1 s2)
-
-concatTup : Concat a -> Concat b -> Tuple a b -> Tuple a b -> Tuple a b
-concatTup (Concat c1) (Concat c2) (Tuple x y) (Tuple x2 y2) = Tuple (c1 x x2) (c2 y y2)
-
-pub instance
-concatTuple : {{ Concat a }} -> {{ Concat b }} -> Concat (Tuple a b)
-concatTuple {{c1}} {{c2}} = Concat (concatTup c1 c2)
-
-plusTup : Plus a -> Plus b -> Tuple a b -> Tuple a b -> Tuple a b
-plusTup (Plus p1) (Plus p2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (p1.plus x1 x2) (p2.plus y1 y2)
-
-pub instance
-plusTuple : {{ Plus a }} -> {{ Plus b }} -> Plus (Tuple a b)
-plusTuple {{(Plus p1) as plusp1}} {{(Plus p2) as plusp2}} =
-  Plus
-    { plus: plusTup plusp1 plusp2
-    , identity: Tuple p1.identity p2.identity
-    }
-
-minusTup : Minus a -> Minus b -> Tuple a b -> Tuple a b -> Tuple a b
-minusTup (Minus m1) (Minus m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2) (m2 y1 y2)
-
-pub instance
-minusTuple : {{ Minus a }} -> {{ Minus b }} -> Minus (Tuple a b)
-minusTuple {{m1}} {{m2}} = Minus (minusTup m1 m2)
-
-multTup : Mult a -> Mult b -> Tuple a b -> Tuple a b -> Tuple a b
-multTup (Mult p1) (Mult p2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (p1.mult x1 x2) (p2.mult y1 y2)
-
-pub instance
-multTuple : {{ Mult a }} -> {{ Mult b }} -> Mult (Tuple a b)
-multTuple {{(Mult p1) as multp1}} {{(Mult p2) as multp2}} =
-  Mult
-    { mult: multTup multp1 multp2
-    , identity: Tuple p1.identity p2.identity
-    }
-
-divideTup : Divide a -> Divide b -> Tuple a b -> Tuple a b -> Tuple a b
-divideTup (Divide m1) (Divide m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2) (m2 y1 y2)
-
-pub instance
-divideTuple : {{ Divide a }} -> {{ Divide b }} -> Divide (Tuple a b)
-divideTuple {{m1}} {{m2}} = Divide (divideTup m1 m2)
-
-/**
- * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
- */
-pub
-opaque type Atom a = AtomicReference a
-
-/**
- * Creates a new Atom to hold x.
- * Should *not* be used to hold a mutable value.
- */
-pub
-atom : a -> Atom a
-atom x = Atom AtomicReference#new(x)
-
-/**
- * Returns the value inside this Atom.
- */
-pub
-deref : Atom a -> a
-deref (Atom a) = a#get()
-
-/**
- * Resets the value of this Atom to x, discarding the old value.
- * Returns x.
- */
-pub
-reset : a -> Atom a -> a
-reset x (Atom a) =
-  a#set(x)
-  x
-
-/**
- * Swaps the value of this atom by applying a function to the old value.
- * The function *should be free of side effects* as it may be executed
- * multiple times.
- */
-pub
-swap : (a -> a) -> Atom a -> a
-swap f (Atom a) = Core#swapAtom(a, f)
-
-/**
- * Low-level function that receives the old value, the new value and attempts
- * to set the atom to new if old matches.
- * Returns true if it succeeded.
- * Always prefer `swap` over `compareAndSet`.
- */
-pub
-compareAndSet : a -> a -> Atom a -> Boolean
-compareAndSet old new (Atom atm) = atm#compareAndSet(old, new)
-
-equalsAtom : Equals a -> Atom a -> Atom a -> Boolean
-equalsAtom (Equals eq) x y = eq (deref x) (deref y)
-
-pub instance
-eqAtom : {{ Equals a }} -> Equals (Atom a)
-eqAtom {{eq}} = Equals (equalsAtom eq)
-
-pub instance
-showAtom : {{ Show a }} -> Show (Atom a)
-showAtom {{Show sh}} = Show \atm -> format "(Atom %s)" [sh (deref atm)]
-
-/**
- * Executes the function for every number from begin (inclusive) to end (exclusive).
- * The for breaks if the function returns a number < 0.
- */
-pub
-forEachBreak : Int32 -> Int32 -> (Int32 -> Int32) -> Unit
-forEachBreak begin end f =
-  Core#eachRangeBreak(begin, end, f)
-
-/**
  * Types that can range over some values.
  */
 pub+
@@ -1457,13 +1525,6 @@ range {{RangedStep r}} start end step = r.range start end step
 pub
 rangeOpen : {{ RangedStep a }} -> a -> a -> a -> Range a
 rangeOpen {{RangedStep r}} start end step = r.rangeOpen start end step
-
-/**
- * Returns true if the value is inside the range.
- */
-pub
-inRange : a -> Range a -> Boolean
-inRange x ran = ran#contains(x)
 
 /**
  * Executes the function for every value in this range.
@@ -1563,11 +1624,3 @@ rangedStepChar =
     { range: \start end step -> CharRange#new(start, end, Core#charToInt(step)) as Range Char
     , rangeOpen: \start end step -> CharOpenRange#new(start, end, Core#charToInt(step)) as Range Char
     }
-
-pub instance
-showRange : {{ Show a }} -> Show (Range a)
-showRange {{_}} = Show toString
-
-pub instance
-equalsRange : {{ Equals a }} -> Equals (Range a)
-equalsRange {{_}} = Equals \(one : Range a) (other : Range a) -> (one as Object)#equals(other as Object)
