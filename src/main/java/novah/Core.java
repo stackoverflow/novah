@@ -769,20 +769,6 @@ public class Core {
         return i % i2;
     }
 
-    public static void eachRangeBreak(int begin, int end, Function<Integer, Integer> f) {
-        if (begin <= end) {
-            for (int i = begin; i < end; i++) {
-                var res = f.apply(i);
-                if (res < 0) break;
-            }
-        } else {
-            for (int i = begin; i > end; i--) {
-                var res = f.apply(i);
-                if (res < 0) break;
-            }
-        }
-    }
-
     public static <T> Comparator<T> makeComparator(Function<T, Function<T, Integer>> compare) {
         return (o1, o2) -> compare.apply(o1).apply(o2);
     }
@@ -860,20 +846,6 @@ public class Core {
             acc = f.apply(acc).apply(set.nth(i));
         }
         return acc;
-    }
-
-    public static <T> boolean listEvery(Function<T, Boolean> pred, List<T> list) {
-        for (T elem : list) {
-            if (!pred.apply(elem)) return false;
-        }
-        return true;
-    }
-
-    public static <T> boolean setEvery(Function<T, Boolean> pred, Set<T> set) {
-        for (T elem : set) {
-            if (!pred.apply(elem)) return false;
-        }
-        return true;
     }
 
     public static <K, V> boolean mapEvery(Function<K, Function<V, Boolean>> pred, Map<K, V> map) {

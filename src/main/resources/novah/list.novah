@@ -259,13 +259,11 @@ find pred list =
 pub
 findIndex : (a -> Boolean) -> List a -> Option Int32
 findIndex pred list =
-  let res = Ref#new(None)
-  forEachBreak 0 (size list) \i ->
-    if pred list.[i] then
-      res#-val <- Some i
-      -1
-    else 0
-  res#-val
+  let t = size list
+  let go i =
+    if i >= t then None
+    else if pred list.[i] then Some i else go (i + 1)
+  go 0
 
 /**
  * Sorts this list according to the comparing function.
@@ -475,7 +473,13 @@ reverse list =
 pub
 all : (a -> Boolean) -> List a -> Boolean
 all pred list =
-  Core#listEvery(pred, list)
+  let t = list#size()
+  let go i =
+    if i >= t then true
+    else
+      let e = list#nth(i)
+      if pred e then go (i + 1L) else false
+  go 0L
 
 /**
  * Returns true if the predicate is true for any element in this list.
@@ -484,13 +488,13 @@ all pred list =
 pub
 any : (a -> Boolean) -> List a -> Boolean
 any pred list =
-  let res = Ref#new(false)
-  forEachBreak 0 (size list) \i ->
-    if pred list.[i] then
-      res#-val <- true
-      -1
-    else 0
-  res#-val
+  let t = list#size()
+  let go i =
+    if i >= t then false
+    else
+      let e = list#nth(i)
+      if pred e then true else go (i + 1L)
+  go 0L
 
 /**
  * Returns the number of elements matching the given predicate.

@@ -8,7 +8,6 @@ foreign import java.util.Arrays
 foreign import java.util.Comparator
 foreign import java.util.stream.Stream
 foreign import novah.Core
-foreign import novah.Ref
 
 import novah.java (toComparator)
 import novah.option as Option
@@ -54,16 +53,16 @@ nth index arr =
  * Runtime: O(1)
  */
 pub
-isEmpty : Array a -> Boolean
-isEmpty arr = size arr == 0
+empty? : Array a -> Boolean
+empty? arr = size arr == 0
 
 /**
  * Returns true if the array is not empty.
  * Runtime: O(1)
  */
 pub
-isNotEmpty : Array a -> Boolean
-isNotEmpty arr = size arr != 0
+notEmpty? : Array a -> Boolean
+notEmpty? arr = size arr != 0
 
 /**
  * Returns the first occurrence of elem in the array for which the predicate returns true.
@@ -72,23 +71,19 @@ isNotEmpty arr = size arr != 0
 pub
 find : (a -> Boolean) -> Array a -> Option a
 find pred arr =
-  let atm = atom None
-  forEachBreak 0 (size arr) \i ->
-    let elem = aget i arr
-    if pred elem
-      then
-        reset (Some elem) atm
-        -1
-      else 0
-  deref atm
+  let t = Core#getArrayLength(arr)
+  let go i =
+    if i >= t then None
+    else
+      let e = arr.[i]
+      if pred e then Some e else go (i + 1)
 
-/**
- * Returns true if the element is inside the array.
- * Runtime: O(n)
- */
-pub
-contains : {{ Equals a }} -> a -> Array a -> Boolean
-contains {{Equals eq}} elem arr = find (\x -> eq x elem) arr |> Option.isSome
+  go 0
+
+pub instance
+containedArray : {{ Equals a }} -> Contained a (Array a)
+containedArray {{(Equals eq) as equals}} =
+  Contained equals \x arr -> find (\elem -> eq x elem) arr |> Option.isSome
 
 /**
  * Runs function f for every element of this array, ignoring the result.
@@ -248,11 +243,11 @@ copy arr =
 pub
 emptyCopy : Array a -> Array a
 emptyCopy arr =
-  if isEmpty arr
-    then arr
-    else
-      let elem = aget 0 arr as Object
-      arrayOf elem#getClass() (size arr) as Array a
+  if empty? arr then
+    arr
+  else
+    let elem = aget 0 arr as Object
+    arrayOf elem#getClass() (size arr) as Array a
 
 /**
  * Sets the element of this byte array at the specified index.
@@ -326,130 +321,98 @@ pub
 charaset : Int32 -> Char -> CharArray -> Unit
 charaset index x arr = Core#charArraySet(index, x, arr)
 
-/**
- * Returns true if the byte is inside the array.
- * Runtime: O(n)
- */
-pub
-containsByte : Byte -> ByteArray -> Boolean
-containsByte elem arr =
-  let found = Ref#new(false)
-  let i = Ref#new(0)
-  let max = Core#byteArraySize(arr)
-  while i#-val < max && not found#-val do
-    if arr.[i#-val] == elem then
-      found#-val <- true
-    i#-val <- i#-val + 1
-  found#-val
+pub instance
+containedByteArray : Contained Byte ByteArray
+containedByteArray =
+  Contained eqByte \x arr ->
+    let t = Core#byteArraySize(arr)
+    let go i =
+      if i >= t then false
+      else
+        let e = arr.[i]
+        if e == x then true else go (i + 1)
+    go 0
 
-/**
- * Returns true if the int is inside the array.
- * Runtime: O(n)
- */
-pub
-containsInt : Int32 -> Int32Array -> Boolean
-containsInt elem arr =
-  let found = Ref#new(false)
-  let i = Ref#new(0)
-  let max = Core#intArraySize(arr)
-  while i#-val < max && not found#-val do
-    if arr.[i#-val] == elem then
-      found#-val <- true
-    i#-val <- i#-val + 1
-  found#-val
+pub instance
+containedInt16Array : Contained Int16 Int16Array
+containedInt16Array =
+  Contained eqInt16 \x arr ->
+    let t = Core#shortArraySize(arr)
+    let go i =
+      if i >= t then false
+      else
+        let e = arr.[i]
+        if e == x then true else go (i + 1)
+    go 0
 
-/**
- * Returns true if the int16 is inside the array.
- * Runtime: O(n)
- */
-pub
-containsInt16 : Int16 -> Int16Array -> Boolean
-containsInt16 elem arr =
-  let found = Ref#new(false)
-  let i = Ref#new(0)
-  let max = Core#shortArraySize(arr)
-  while i#-val < max && not found#-val do
-    if arr.[i#-val] == elem then
-      found#-val <- true
-    i#-val <- i#-val + 1
-  found#-val
+pub instance
+containedInt32Array : Contained Int32 Int32Array
+containedInt32Array =
+  Contained eqInt32 \x arr ->
+    let t = Core#intArraySize(arr)
+    let go i =
+      if i >= t then false
+      else
+        let e = arr.[i]
+        if e == x then true else go (i + 1)
+    go 0
 
-/**
- * Returns true if the int64 is inside the array.
- * Runtime: O(n)
- */
-pub
-containsInt64 : Int64 -> Int64Array -> Boolean
-containsInt64 elem arr =
-  let found = Ref#new(false)
-  let i = Ref#new(0)
-  let max = Core#longArraySize(arr)
-  while i#-val < max && not found#-val do
-    if arr.[i#-val] == elem then
-      found#-val <- true
-    i#-val <- i#-val + 1
-  found#-val
+pub instance
+containedInt64Array : Contained Int64 Int64Array
+containedInt64Array =
+  Contained eqInt64 \x arr ->
+    let t = Core#longArraySize(arr)
+    let go i =
+      if i >= t then false
+      else
+        let e = arr.[i]
+        if e == x then true else go (i + 1)
+    go 0
 
-/**
- * Returns true if the float32 is inside the array.
- * Runtime: O(n)
- */
-pub
-containsFloat32 : Float32 -> Float32Array -> Boolean
-containsFloat32 elem arr =
-  let found = Ref#new(false)
-  let i = Ref#new(0)
-  let max = Core#floatArraySize(arr)
-  while i#-val < max && not found#-val do
-    if arr.[i#-val] == elem then
-      found#-val <- true
-    i#-val <- i#-val + 1
-  found#-val
+pub instance
+containedFloat32Array : Contained Float32 Float32Array
+containedFloat32Array =
+  Contained eqFloat32 \x arr ->
+    let t = Core#floatArraySize(arr)
+    let go i =
+      if i >= t then false
+      else
+        let e = arr.[i]
+        if e == x then true else go (i + 1)
+    go 0
 
-/**
- * Returns true if the float64 is inside the array.
- * Runtime: O(n)
- */
-pub
-containsFloat64 : Float64 -> Float64Array -> Boolean
-containsFloat64 elem arr =
-  let found = Ref#new(false)
-  let i = Ref#new(0)
-  let max = Core#doubleArraySize(arr)
-  while i#-val < max && not found#-val do
-    if arr.[i#-val] == elem then
-      found#-val <- true
-    i#-val <- i#-val + 1
-  found#-val
+pub instance
+containedFloat64Array : Contained Float64 Float64Array
+containedFloat64Array =
+  Contained eqFloat64 \x arr ->
+    let t = Core#doubleArraySize(arr)
+    let go i =
+      if i >= t then false
+      else
+        let e = arr.[i]
+        if e == x then true else go (i + 1)
+    go 0
 
-/**
- * Returns true if the boolean is inside the array.
- * Runtime: O(n)
- */
-pub
-containsBoolean : Boolean -> BooleanArray -> Boolean
-containsBoolean elem arr =
-  let found = Ref#new(false)
-  let i = Ref#new(0)
-  let max = Core#booleanArraySize(arr)
-  while i#-val < max && not found#-val do
-    if arr.[i#-val] == elem then
-      found#-val <- true
-    i#-val <- i#-val + 1
-  found#-val
+pub instance
+containedBoolean : Contained Boolean BooleanArray
+containedBoolean =
+  Contained eqBoolean \x arr ->
+    let t = Core#booleanArraySize(arr)
+    let go i =
+      if i >= t then false
+      else
+        let e = arr.[i]
+        if e == x then true else go (i + 1)
+    go 0
 
-/**
- * Returns true if the char is inside the array.
- * Runtime: O(n)
- */
-pub
-containsChar : Char -> CharArray -> Boolean
-containsChar elem arr =
-  let found = Ref#new(false)
-  let i = Ref#new(0)
-  let max = Core#charArraySize(arr)
-  while i#-val < max && not found#-val do
-    if arr.[i#-val] == elem then
-      found#-val <- true
-    i#-val <- i#-val + 1
-  found#-val
+pub instance
+containedChar : Contained Char CharArray
+containedChar =
+  Contained eqChar \x arr ->
+    let t = Core#charArraySize(arr)
+    let go i =
+      if i >= t then false
+      else
+        let e = arr.[i]
+        if e == x then true else go (i + 1)
+    go 0

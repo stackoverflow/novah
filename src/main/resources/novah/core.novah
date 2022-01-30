@@ -460,15 +460,6 @@ snd : Tuple a b -> b
 snd (Tuple _ x) = x
 
 /**
- * Executes the function for every number from begin (inclusive) to end (exclusive).
- * The for breaks if the function returns a number < 0.
- */
-pub
-forEachBreak : Int32 -> Int32 -> (Int32 -> Int32) -> Unit
-forEachBreak begin end f =
-  Core#eachRangeBreak(begin, end, f)
-
-/**
  * The type of things that can be concatenated.
  */
 pub+
@@ -1026,7 +1017,7 @@ containedSet {{eq}} = Contained eq \x (s : Set a) -> s#contains(x)
 pub instance
 containedList : {{ Equals a }} -> Contained a (List a)
 containedList {{(Equals eq) as equals}} =
-  Contained equals \x (l : List a) -> Core#findList(eq x, l)#isPresent()
+  Contained equals \x l -> Core#findList(eq x, l)#isPresent()
 
 pub instance
 containedOption : {{ Equals a }} -> Contained a (Option a)
