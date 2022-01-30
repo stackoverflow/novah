@@ -290,6 +290,13 @@ object Optimization {
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$dotDotDot" -> {
                         makeRangeCtor(e, fn.arg, arg, open = true)
                     }
+                    // optimize rangeToList and rangeToSet
+                    fn is Var && fn.fullname() == "$coreMod.rangeToList" -> {
+                        Expr.NativeMethod(rangeToList, arg, emptyList(), e.type, e.span)
+                    }
+                    fn is Var && fn.fullname() == "$coreMod.rangeToSet" -> {
+                        Expr.NativeMethod(rangeToSet, arg, emptyList(), e.type, e.span)
+                    }
                     // optimize `Array.size array` to `array.length`
                     fn is Var && fn.fullname() == "novah/array/\$Module.size" -> {
                         Expr.ArrayLength(arg, e.type, e.span)
@@ -406,6 +413,8 @@ object Optimization {
     private val newCharRange = CharRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newCharOpenRange = CharOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val forEachRange = Range::class.java.methods.find { it.name == "foreach" }!!
+    private val rangeToList = Range::class.java.methods.find { it.name == "toList" }!!
+    private val rangeToSet = Range::class.java.methods.find { it.name == "toSet" }!!
 }
 
 private typealias App = Expr.App

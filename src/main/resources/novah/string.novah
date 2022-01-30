@@ -82,28 +82,6 @@ endsWith : String -> String -> Boolean
 endsWith suffix str = str#endsWith(suffix)
 
 /**
- * Returns true if this string contains the string represented by another.
- */
-pub
-contains : String -> String -> Boolean
-contains another str = str#contains(another as CharSequence)
-
-/**
- * Returns true if this string contains the string represented by another.
- * An alias to `contains`.
- */
-pub
-isIn : String -> String -> Boolean
-isIn another str = str#contains(another as CharSequence)
-
-/**
- * Returns true if this string contains the character.
- */
-pub
-containsChar : Char -> String -> Boolean
-containsChar char str = str#contains(toString char as CharSequence)
-
-/**
  * Returns a substring from the given string
  * starting at begin (inclusive) and ending in end (exclusive).
  */

@@ -14,7 +14,6 @@ foreign import java.lang.Throwable
 foreign import novah.Core
 
 import novah.list (forEach, toTypedArray)
-import novah.set as Set
 
 pub
 typealias TestFun = Unit -> Unit
@@ -160,9 +159,9 @@ shouldNotBe {{_}} x y =
 pub
 recordShouldBe : { | r } -> { | r } -> Unit
 recordShouldBe r1 r2 =
-  if recordEquals r1 r2
-    then ()
-    else throw AssertionError#new(format "%s is not equals %s" [r1, r2] as Object)
+  if recordEquals r1 r2 then
+    ()
+  else throw AssertionError#new(format "%s is not equals %s" [r1, r2] as Object)
 
 /**
  * Fails the test if the record r1 is equals r2.
@@ -170,40 +169,40 @@ recordShouldBe r1 r2 =
 pub
 recordShouldNotBe : { | r } -> { | r } -> Unit
 recordShouldNotBe r1 r2 =
-  if not (recordEquals r1 r2)
-    then ()
-    else throw AssertionError#new(format "%s is equals %s" [r1, r2] as Object)
+  if not (recordEquals r1 r2) then
+    ()
+  else throw AssertionError#new(format "%s is equals %s" [r1, r2] as Object)
 
 /**
- * Fails the test if the element is not inside the set.
+ * Fails the test if the element is not inside the container.
  */
 pub
-shouldBeIn : a -> Set a -> Unit
-shouldBeIn x set =
-  if Set.contains x set
-    then ()
-    else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
+shouldBeIn : {{ Contained a b }} -> a -> b -> Unit
+shouldBeIn {{_}} x box =
+  if x `in?` box then
+    ()
+  else throw AssertionError#new(format "%s is not inside %s" [toString x, toString box] as Object)
 
 /**
- * Fails the test if the element is inside the set.
+ * Fails the test if the element is inside the container.
  */
 pub
-shouldNotBeIn : a -> Set a -> Unit
-shouldNotBeIn x set =
-  if not (Set.contains x set)
-    then ()
-    else throw AssertionError#new(format "%s is inside %s" [toString x, toString set] as Object)
+shouldNotBeIn : {{ Contained a b }} -> a -> b -> Unit
+shouldNotBeIn {{_}} x box =
+  if x `notIn?` box then
+    ()
+  else throw AssertionError#new(format "%s is inside %s" [toString x, toString box] as Object)
 
 /**
- * Fails the test if some element of the list is not inside the set.
+ * Fails the test if some element of the list is not inside the container.
  */
 pub
-shouldAllBeIn : List a -> Set a -> Unit
-shouldAllBeIn list set =
+shouldAllBeIn : {{ Contained a b }} -> List a -> b -> Unit
+shouldAllBeIn {{_}} list set =
   forEach list \x ->
-    if Set.contains x set
-      then ()
-      else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
+    if x `in?` set then
+      ()
+    else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
 
 /**
  * Fails the test if this option is empty.

@@ -3,7 +3,7 @@ module test.string
 import novah.test
 
 isVowel : Char -> Boolean
-isVowel c = Set.contains c #{'a', 'e', 'i', 'o', 'u'}
+isVowel c = c `in?` #{'a', 'e', 'i', 'o', 'u'}
 
 stringTests : Unit
 stringTests =
@@ -16,8 +16,8 @@ stringTests =
     String.upperCase "Some NaMe" `shouldBe` "SOME NAME"
     String.startsWith "some" "some body" `shouldBe` true
     String.endsWith "dy" "some body" `shouldBe` true
-    String.contains "cat" "a purple caterpillar" `shouldBe` true
-    String.containsChar 'z' "azure" `shouldBe` true
+    ("cat" `in?` "caterpillar") `shouldBe` true
+    ('z' `in?` "azure") `shouldBe` true
     String.join " " ["the", "lazy", "fox"] `shouldBe` "the lazy fox"
     String.strip "  string    " `shouldBe` "string"
     String.stripl "  string    " `shouldBe` "string    "
