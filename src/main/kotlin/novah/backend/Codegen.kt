@@ -230,7 +230,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
                 mv.visitMethodInsn(
                     INVOKEINTERFACE,
-                    "java/util/function/Function",
+                    "novah/Function",
                     "apply",
                     "(Ljava/lang/Object;)Ljava/lang/Object;",
                     true
@@ -991,7 +991,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
         main.visitMethodInsn(
             INVOKEINTERFACE,
-            "java/util/function/Function",
+            "novah/Function",
             "apply",
             "(Ljava/lang/Object;)Ljava/lang/Object;",
             true

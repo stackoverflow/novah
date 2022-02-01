@@ -4,6 +4,7 @@
 module novah.stream
 
 foreign import java.util.function.Consumer
+foreign import java.util.function.Function
 foreign import java.util.function.Predicate
 foreign import java.util.stream.Stream
 foreign import novah.Core
@@ -59,14 +60,14 @@ filter f st = st#filter(Core#makePredicate(f) as Predicate Object)
  */
 pub
 map : (a -> b) -> Stream a -> Stream b
-map f st = st#map(f as Object -> b)
+map f st = st#map(f as Function Object b)
 
 /**
  * Like `map` but it will flatten the resulting stream.
  */
 pub
 flatMap : (a -> Stream b) -> Stream a -> Stream b
-flatMap f st = st#flatMap(f as Object -> Object)
+flatMap f st = st#flatMap(f as Function Object Object)
 
 /**
  * Returns a new stream with a limited number of elements.

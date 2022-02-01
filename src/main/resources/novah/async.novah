@@ -9,6 +9,7 @@ import novah.list as List
 import novah.option as Option
 
 foreign import java.lang.Throwable
+foreign import java.util.function.Function
 foreign import java.util.function.BiFunction
 foreign import java.util.concurrent.CompletableFuture
 foreign import java.util.concurrent.CompletionStage
@@ -92,7 +93,7 @@ sleep time tunit = new (\_ -> tunit#sleep(time))
  */
 pub
 map : (a -> b) -> CompletableFuture a -> CompletableFuture b
-map fun fut = fut#thenApply(fun as Object -> b)
+map fun fut = fut#thenApply(fun as Function Object b)
 
 /**
  * Maps the given function asynchronously taking the result of this future as argument.
@@ -100,7 +101,7 @@ map fun fut = fut#thenApply(fun as Object -> b)
  */
 pub
 flatMap : (a -> CompletableFuture b) -> CompletableFuture a -> CompletableFuture b
-flatMap fun fut = fut#thenCompose(fun as Object -> Object)
+flatMap fun fut = fut#thenCompose(fun as Function Object Object)
 
 /**
  * Runs the given function asynchronously with the result of both futures, returning a new future.
@@ -135,7 +136,7 @@ any futs =
  */
 pub
 exceptionally : (Throwable -> a) -> CompletableFuture a -> CompletableFuture a
-exceptionally fun fut = fut#exceptionally(fun)
+exceptionally fun fut = fut#exceptionally(fun as Function Throwable a)
 
 /**
  * Adds a handler to this future.
