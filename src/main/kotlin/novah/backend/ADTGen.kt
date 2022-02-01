@@ -276,7 +276,7 @@ class ADTGen(
             )
             mw.visitInvokeDynamicInsn(
                 "apply",
-                "(${desc})Ljava/util/function/Function;",
+                "(${desc})Lnovah/Function;",
                 lambdaHandle,
                 lambdaMethodType,
                 handle,

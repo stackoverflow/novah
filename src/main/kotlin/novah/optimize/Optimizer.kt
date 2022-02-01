@@ -18,6 +18,7 @@ package novah.optimize
 import io.lacuna.bifurcan.Map
 import novah.ast.canonical.Metadata
 import novah.Core
+import novah.Function
 import novah.RecFunction
 import novah.Util.internalError
 import novah.ast.Desugar
@@ -40,7 +41,6 @@ import novah.main.Environment
 import novah.range.Range
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
-import java.util.function.Function
 import kotlin.collections.List
 import kotlin.collections.component1
 import kotlin.collections.component2

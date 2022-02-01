@@ -15,8 +15,6 @@
  */
 package novah;
 
-import java.util.function.Function;
-
 /**
  * A recursive function used for recursive let bindings.
  */

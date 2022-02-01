@@ -1,7 +1,5 @@
 package novah;
 
-import java.util.function.Function;
-
 /**
  * A simple mutable reference.
  * Should only be used for local mutation, never exposed.

@@ -4,6 +4,7 @@
 module novah.regex
 
 foreign import java.lang.CharSequence
+foreign import java.util.function.Function
 foreign import java.util.regex.Matcher
 foreign import java.util.regex.MatchResult
 foreign import java.util.regex.Pattern
@@ -128,7 +129,7 @@ replaceFirstWith : Pattern -> (List String -> String) -> String -> String
 replaceFirstWith pat fun input =
   let mat = matcher pat input
   let repl m = fun (resultToGroups m)
-  mat#replaceFirst(repl)
+  mat#replaceFirst(repl as Function MatchResult String)
 
 /**
  * Replaces all occurrences of this regex with the
@@ -139,4 +140,4 @@ replaceAllWith : Pattern -> (List String -> String) -> String -> String
 replaceAllWith pat fun input =
   let mat = matcher pat input
   let repl m = fun (resultToGroups m)
-  mat#replaceAll(repl)
+  mat#replaceAll(repl as Function MatchResult String)

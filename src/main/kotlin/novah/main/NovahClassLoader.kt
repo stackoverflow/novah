@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package novah.main
 import com.github.ajalt.clikt.output.TermUi
 import novah.Metadata
 import novah.Core
+import novah.Function
 import novah.Ref
 import novah.collections.ListValue
 import novah.collections.Record
@@ -42,6 +43,7 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
 
     override fun findClass(name: String): Class<*> {
         if (name == "novah.Core") return Core::class.java
+        if (name == "novah.Function") return Function::class.java
         if (name == "novah.Ref") return Ref::class.java
         if (name == "novah.collections.Record") return Record::class.java
         if (name == "novah.collections.ListValue") return ListValue::class.java

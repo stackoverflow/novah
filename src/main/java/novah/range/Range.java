@@ -2,10 +2,10 @@ package novah.range;
 
 import io.lacuna.bifurcan.List;
 import io.lacuna.bifurcan.Set;
+import novah.Function;
 import novah.Unit;
 
 import java.util.Iterator;
-import java.util.function.Function;
 
 public interface Range<T> extends Iterable<T> {
 

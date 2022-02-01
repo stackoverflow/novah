@@ -408,7 +408,7 @@ data class Clazz(val type: Type, val pars: List<Clazz> = emptyList(), val labels
     fun isFloat32() = type.className == "java.lang.Float"
     fun isFloat64() = type.className == "java.lang.Double"
     fun isString() = type.className == "java.lang.String"
-    fun isFunction() = type.className == "java.util.function.Function"
+    fun isFunction() = type.className == "novah.Function"
 }
 
 fun Expr.Var.fullname() = "$className.$name"
