@@ -549,3 +549,12 @@ fun Pattern.everywhereUnit(f: (Pattern) -> Unit) {
 }
 
 fun Expr.resolvedImplicits(): List<Expr> = implicitContext?.resolveds ?: emptyList()
+
+/**
+ * Returns true if the expression is a lambda with implicit parameters.
+ */
+fun Expr.hasImplicitVars(): Boolean = when (this) {
+    is Expr.Ann -> exp.hasImplicitVars()
+    is Expr.Lambda -> binder.isImplicit || body.hasImplicitVars()
+    else -> false
+}

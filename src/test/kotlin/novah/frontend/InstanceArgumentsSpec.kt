@@ -113,4 +113,15 @@ class InstanceArgumentsSpec : StringSpec({
 
         TestUtil.compileCode(code)
     }
+
+    "let implicits" {
+        val code = """
+            inside : Set Int -> Boolean
+            inside box =
+              let isIn {{_}} x = x `in?` box
+              isIn 3
+        """.module()
+
+        TestUtil.compileCode(code)
+    }
 })
