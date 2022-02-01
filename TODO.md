@@ -16,8 +16,7 @@
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
 - [ ] Add support for primitive types
-- [ ] Better implicit type inference
-- [ ] This was not support to type check:
+- [ ] This was not supposed to type check:
       ```
       findIndex : (a -> Boolean) -> List a -> Option Int32
       findIndex pred list =
