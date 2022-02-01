@@ -33,12 +33,10 @@ linkedListTests =
 
   test "List traversing functions" \_ ->
     let l = fv [1, 2, 3]
-    let revSort : {{ Ord a }} -> a -> a -> Ordering
-        revSort {{ord}} x y =
-          case compare x y of
-            GT -> LT
-            LT -> GT
-            EQ -> EQ
+    let revSort {{_}} x y = case compare x y of
+      GT -> LT
+      LT -> GT
+      EQ -> EQ
     LinkedList.map (_ + 1) l `shouldBe` fv [2, 3, 4]
     LinkedList.filter Math.odd? l `shouldBe` fv [1, 3]
     LinkedList.find Math.even? l `shouldBe` Some 2

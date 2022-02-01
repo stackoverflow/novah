@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ class PatternMatchingSpec : StringSpec({
         ty.simpleName() shouldBe "Unit -> Int32"
     }
 
-    "pattern match lambdas - ignore pattern" {
+    "pattern match lambdas - wildcard pattern" {
         val code = """
             constant _ = 10
         """.module()

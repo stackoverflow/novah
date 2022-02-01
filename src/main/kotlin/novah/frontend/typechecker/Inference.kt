@@ -34,7 +34,7 @@ import novah.frontend.error.Errors as E
 
 class Inference(private val tc: Typechecker, private val classLoader: NovahClassLoader) {
 
-    private val implicitsToCheck = mutableListOf<Expr>()
+    private var implicitsToCheck = mutableListOf<Expr>()
     private val errors = mutableSetOf<CompilerProblem>()
 
     private val env = tc.env
@@ -177,6 +177,9 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         is Expr.Let -> {
             val name = exp.letDef.binder.name
             checkShadow(env, name, exp.letDef.binder.span)
+
+            val tmpImplicitsToCheck = implicitsToCheck
+            implicitsToCheck = mutableListOf()
             val varTy = if (exp.letDef.recursive) {
                 inferRecursive(name, exp.letDef.expr, env, level + 1)
             } else infer(env, level + 1, exp.letDef.expr)
@@ -184,6 +187,13 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             if (exp.letDef.recursive && varTy.realType() !is TArrow) {
                 inferError(E.RECURSIVE_LET, exp.letDef.binder.span)
             }
+            // if the let has implicit vars find the instances before infering the body
+            if (implicitsToCheck.isNotEmpty() && exp.letDef.expr.hasImplicitVars()) {
+                instances.instanceSearch(implicitsToCheck)
+                implicitsToCheck.clear()
+            }
+            implicitsToCheck = tmpImplicitsToCheck.apply { addAll(implicitsToCheck) }
+
             val genTy = generalize(level, varTy)
             val newEnv = env.fork().extend(name, genTy)
             if (exp.letDef.isInstance) newEnv.extendInstance(name, genTy)

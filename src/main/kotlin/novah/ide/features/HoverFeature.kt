@@ -74,7 +74,7 @@ class HoverFeature(private val server: NovahServer) {
                     else "pub\n"
                 }
                 val name = if (Lexer.isOperator(ctx.name)) "(${ctx.name})" else ctx.name
-                source += "$name : ${ref.type.show(qualified = true, typeVarsMap = ctx.tvars)}"
+                source += "$name : ${ref.type.show(qualified = false, typeVarsMap = ctx.tvars)}"
                 makeHover(source, ref.comment)
             }
             is ImportTypeDeclCtx -> {
@@ -82,7 +82,7 @@ class HoverFeature(private val server: NovahServer) {
                 var source = "module ${ctx.module}\n\n"
                 if (ref.visibility.isPublic()) source += "pub\n"
                 if (ref.isOpaque) source += "opaque "
-                source += "type ${ctx.name} : ${ref.type.show(qualified = true, typeVarsMap = ctx.tvars)}"
+                source += "type ${ctx.name} : ${ref.type.show(qualified = false, typeVarsMap = ctx.tvars)}"
                 makeHover(source, ref.comment)
             }
             is DeclCtx -> {
@@ -95,7 +95,7 @@ class HoverFeature(private val server: NovahServer) {
                 source += if (d.isOperator) "(${d.name.value})" else d.name.value
                 val type = d.signature?.type ?: d.exp.type
                 if (type != null) {
-                    source += " : ${type.show(qualified = true, typeVarsMap = typeVarsMap)}"
+                    source += " : ${type.show(qualified = false, typeVarsMap = typeVarsMap)}"
                 }
                 makeHover(source, d.comment)
             }
@@ -103,12 +103,12 @@ class HoverFeature(private val server: NovahServer) {
                 val name = if (Lexer.isOperator(ctx.let.binder.name)) "(${ctx.let.binder.name})"
                 else ctx.let.binder.name
                 var source = if (ctx.let.isInstance) "instance\n$name" else name
-                source += " : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}"
+                source += " : ${ctx.type.show(qualified = false, typeVarsMap = typeVarsMap)}"
                 novah(source)
             }
             is LocalRefCtx -> {
                 val name = if (Lexer.isOperator(ctx.name)) "(${ctx.name})" else ctx.name
-                novah("$name : ${ctx.type.show(qualified = true, typeVarsMap = typeVarsMap)}")
+                novah("$name : ${ctx.type.show(qualified = false, typeVarsMap = typeVarsMap)}")
             }
             is MethodCtx -> java(ctx.method.toString())
             is CtorCtx -> java(ctx.ctor.toString())
