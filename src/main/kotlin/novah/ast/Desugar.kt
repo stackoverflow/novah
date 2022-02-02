@@ -119,7 +119,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     // auto derive type classes
                     AutoDerive.derive(this, ::makeAddError)?.let { autoDerives += it }
                     val ctors = dataCtors.map { it.desugar() }
-                    Decl.TypeDecl(binder, tyVars, ctors, span, visibility, isOpaque, comment).withMeta(meta)
+                    Decl.TypeDecl(binder, tyVars, ctors, span, visibility, comment).withMeta(meta)
                 }
             }
             is SDecl.ValDecl -> {

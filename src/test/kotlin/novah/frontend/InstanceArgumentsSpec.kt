@@ -24,7 +24,7 @@ class InstanceArgumentsSpec : StringSpec({
 
     "constrained types" {
         val code = """
-            opaque type View a = { view : a -> String }
+            type View a = View { view : a -> String }
             
             view : {{ View a }} -> a -> String
             view {{View s}} x = s.view x
@@ -64,7 +64,7 @@ class InstanceArgumentsSpec : StringSpec({
         val code = """
             import novah.list as L
             
-            opaque type View a = { view : a -> String }
+            type View a = View { view : a -> String }
             
             view : {{ View a }} -> a -> String
             view {{View s}} x = s.view x
