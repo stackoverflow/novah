@@ -298,7 +298,6 @@ data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: B
 data class TypeDeclRef(
     val type: Type,
     val visibility: Visibility,
-    val isOpaque: Boolean,
     val ctors: List<String>,
     val comment: Comment?
 )

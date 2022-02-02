@@ -372,7 +372,7 @@ type Result ok err
  * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
  */
 pub
-opaque type Atom a = AtomicReference a
+type Atom a = Atom (AtomicReference a)
 
 /**
  * Creates a new Atom to hold x.
@@ -463,7 +463,7 @@ snd (Tuple _ x) = x
  * The type of things that can be concatenated.
  */
 pub+
-opaque type Concat a = a -> a -> a
+type Concat a = Concat (a -> a -> a)
 
 /**
  * Concatenate 2 concatenable values together.
@@ -506,10 +506,11 @@ concatTuple {{c1}} {{c2}} = Concat (concatTup c1 c2)
  * using the + operator.
  */
 pub+
-opaque type Plus a =
-  { plus : a -> a -> a
-  , identity : a
-  }
+type Plus a =
+  Plus
+    { plus : a -> a -> a
+    , identity : a
+    }
 
 /**
  * Adds x and y.
@@ -566,7 +567,7 @@ plusTuple {{(Plus p1) as plusp1}} {{(Plus p2) as plusp2}} =
  * using the - operator.
  */
 pub+
-opaque type Minus a = a -> a -> a
+type Minus a = Minus (a -> a -> a)
 
 /**
  * Subtracts x and y.
@@ -603,10 +604,11 @@ minusTuple {{m1}} {{m2}} = Minus (minusTup m1 m2)
  * using the * operator.
  */
 pub+
-opaque type Mult a =
-  { mult : a -> a -> a
-  , identity : a
-  }
+type Mult a =
+  Mult
+    { mult : a -> a -> a
+    , identity : a
+    }
 
 /**
  * Multiplies x and y.
@@ -663,7 +665,7 @@ multTuple {{(Mult p1) as multp1}} {{(Mult p2) as multp2}} =
  * using the / operator.
  */
 pub+
-opaque type Divide a = a -> a -> a
+type Divide a = Divide (a -> a -> a)
 
 /**
  * Divides x by y.
@@ -699,7 +701,7 @@ divideTuple {{m1}} {{m2}} = Divide (divideTup m1 m2)
  * The type of things that have a String representation.
  */
 pub+
-opaque type Show a = a -> String
+type Show a = Show (a -> String)
 
 /**
  * Converts this value to a String.
@@ -829,7 +831,7 @@ showRange {{_}} = Show toString
  * The type of things that support equality comparison.
  */
 pub+
-opaque type Equals a = a -> a -> Boolean
+type Equals a = Equals (a -> a -> Boolean)
 
 /**
  * Returns true if the two values are equal.
@@ -1172,13 +1174,14 @@ ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption
  * A type for some miscelaneous number operations.
  */
 pub+
-opaque type NumberOps a =
-  { remainder : a -> a -> a
-  , even: a -> Boolean
-  , min: a -> a -> a
-  , max: a -> a -> a
-  , abs: a -> a
-  }
+type NumberOps a =
+  NumberOps
+    { remainder : a -> a -> a
+    , even: a -> Boolean
+    , min: a -> a -> a
+    , max: a -> a -> a
+    , abs: a -> a
+    }
 
 /**
  * Returns the remainder of dividing x by y.
@@ -1238,12 +1241,13 @@ numberOpsFloat64 =
  * Booleans are converted to 1 for true and 0 for false.
  */
 pub+
-opaque type ToNumber a =
-  { int : a -> Int32
-  , int64 : a -> Int64
-  , float32 : a -> Float32
-  , float64 : a -> Float64
-  }
+type ToNumber a =
+  ToNumber
+    { int : a -> Int32
+    , int64 : a -> Int64
+    , float32 : a -> Float32
+    , float64 : a -> Float64
+    }
 
 /**
  * Converts this value to a 32-bit integer.
@@ -1347,15 +1351,16 @@ toNumberBoolean =
  * Represents a type that supports bitwise operations.
  */
 pub+
-opaque type BitOperator a =
-  { and : a -> a -> a
-  , or : a -> a -> a
-  , xor : a -> a -> a
-  , not : a -> a
-  , shiftLeft : a -> a -> a
-  , shiftRight : a -> a -> a
-  , unsignedShiftRight: a -> a -> a
-  }
+type BitOperator a =
+  BitOperator
+    { and : a -> a -> a
+    , or : a -> a -> a
+    , xor : a -> a -> a
+    , not : a -> a
+    , shiftLeft : a -> a -> a
+    , shiftRight : a -> a -> a
+    , unsignedShiftRight: a -> a -> a
+    }
 
 /**
  * Returns the biwise and between x and y.
@@ -1469,19 +1474,21 @@ bitOperatorInt64 =
  * Types that can range over some values.
  */
 pub+
-opaque type Ranged a =
-  { range : a -> a -> Range a
-  , rangeOpen : a -> a -> Range a
-  }
+type Ranged a =
+  Ranged
+    { range : a -> a -> Range a
+    , rangeOpen : a -> a -> Range a
+    }
 
 /**
  * Types that can range over some values with a step.
  */
 pub+
-opaque type RangedStep a =
-  { range : a -> a -> a -> Range a
-  , rangeOpen : a -> a -> a -> Range a
-  }
+type RangedStep a =
+  RangedStep
+    { range : a -> a -> a -> Range a
+    , rangeOpen : a -> a -> a -> Range a
+    }
 
 /**
  * Returns a range from begin (inclusive) to end (inclusive).

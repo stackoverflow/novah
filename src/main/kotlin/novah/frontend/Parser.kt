@@ -264,10 +264,6 @@ class Parser(
                 if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
                 parseTypeDecl(visibility, offside).withMeta(meta)
             }
-            is Opaque -> {
-                if (isInstance) throwError(E.INSTANCE_ERROR to tk.span)
-                parseOpaqueDecl(visibility, offside).withMeta(meta)
-            }
             is Ident -> parseVarDecl(visibility, isInstance, offside).withMeta(meta)
             is LParen -> parseVarDecl(visibility, isInstance, offside, true).withMeta(meta)
             is TypealiasT -> {
@@ -299,28 +295,8 @@ class Parser(
                 if (iter.peekIsOffside() || iter.peek().value is EOF) break
                 expect<Pipe>(withError(E.pipeExpected("constructor")))
             }
-            Decl.TypeDecl(name, tyVars, ctors, vis, false)
+            Decl.TypeDecl(name, tyVars, ctors, vis)
                 .withSpan(typ.span, iter.current().span)
-        }
-    }
-
-    private fun parseOpaqueDecl(visibility: Token?, offside: Int): Decl {
-        val vis = if (visibility != null) Visibility.PUBLIC else Visibility.PRIVATE
-        val tk = expect<Opaque>(noErr())
-        expect<TypeT>(withError(E.INVALID_OPAQUE))
-        return withOffside(offside + 1) {
-            val nameTk = expect<UpperIdent>(withError(E.DATA_NAME))
-            val name = Spanned(nameTk.span, nameTk.value.v)
-
-            val tyVars = parseListOf(::parseTypeVar) { it is Ident }
-            expect<Equals>(withError(E.DATA_EQUALS))
-
-            val ctorvis = if (visibility != null && visibility is PublicPlus) Visibility.PUBLIC else Visibility.PRIVATE
-            val innerType = parseType()
-
-            val ctors = listOf(DataConstructor(name, listOf(innerType), ctorvis, innerType.span))
-            Decl.TypeDecl(name, tyVars, ctors, vis, true)
-                .withSpan(tk.span, iter.current().span)
         }
     }
 
@@ -560,9 +536,7 @@ class Parser(
                 parseFor()
             }
             else -> null
-        }
-
-        if (exp == null) return exp
+        } ?: return null
 
         // record selection, index (.[x]), unwrap (!!) and method/field call have the highest precedence
         return parseSelection(exp)
@@ -1020,8 +994,7 @@ class Parser(
                 } else null
             }
             else -> null
-        }
-        if (pat == null) return pat
+        } ?: return null
 
         // named, tuple and annotation patterns
         return when (iter.peek().value) {

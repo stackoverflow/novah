@@ -75,8 +75,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 Environment.cacheConstructorType("${ast.name.value}.$dcname", dcty)
                 decls[dcname] = DeclRef(dcty, dc.visibility, false, null)
             }
-            types[d.name.value] =
-                TypeDeclRef(ty, d.visibility, d.isOpaque, d.dataCtors.map { it.name.value }, d.comment)
+            types[d.name.value] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name.value }, d.comment)
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->
