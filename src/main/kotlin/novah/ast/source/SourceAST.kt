@@ -113,8 +113,7 @@ sealed class Decl(val name: String, val visibility: Visibility) {
         val binder: Spanned<String>,
         val tyVars: List<String>,
         val dataCtors: List<DataConstructor>,
-        visibility: Visibility,
-        val isOpaque: Boolean
+        visibility: Visibility
     ) : Decl(binder.value, visibility)
 
     class ValDecl(

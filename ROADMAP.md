@@ -4,7 +4,7 @@
 - [ ] REPL
 - [ ] Website
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
-- [ ] Primitive types support
+- [ ] Primitive types support (wait for valhalla)
 - [X] IDE support (WIP)
 - [X] LSP implemented in the compiler (WIP)
 - [X] Auto derive Show and maybe some other type classes
@@ -16,7 +16,6 @@
 - [X] Full pattern destructuring for function and let parameters
 - [X] Multi-expression pattern matching
 - [X] Full support for pattern matching (records, lists, named, guards)
-- [X] Opaque/newtypes
 - [X] Generic programming with instance arguments (implicits)
 - [X] Literal syntax for basic data structures
 - [X] Persistent data structures

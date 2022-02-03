@@ -277,7 +277,7 @@ fun findJavaType(novahType: String) = when (novahType) {
     else -> novahType
 }
 
-private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, false, emptyList(), null)
+private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList(), null)
 private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC, false, null)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 private fun tapp(name: String, vararg ids: Id): TApp {
@@ -367,6 +367,5 @@ private fun primType(name: String, comment: String) =
         emptyList(),
         Span.empty(),
         Visibility.PUBLIC,
-        false,
         Comment(comment, Span.empty(), true)
     )

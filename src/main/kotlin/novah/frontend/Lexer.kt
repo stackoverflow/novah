@@ -63,7 +63,6 @@ sealed class Token {
     object PublicT : Token()
     object PublicPlus : Token()
     object Instance : Token()
-    object Opaque : Token()
     object ThrowT : Token()
     object TryT : Token()
     object CatchT : Token()
@@ -325,7 +324,6 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "in" -> In
             "foreign" -> ForeignT
             "instance" -> Instance
-            "opaque" -> Opaque
             "throw" -> ThrowT
             "try" -> TryT
             "catch" -> CatchT
