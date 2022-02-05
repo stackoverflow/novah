@@ -206,6 +206,10 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             }
         }
         is SExpr.ImplicitVar -> {
+            if (alias == null) {
+                unusedVars.remove(name)
+                usedVars += name
+            }
             if (alias != null) checkAlias(alias, span)
             val importedModule = imports[fullname()]
             if (importedModule != null) usedImports += importedModule
