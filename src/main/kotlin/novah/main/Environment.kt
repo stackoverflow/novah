@@ -71,10 +71,12 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
      */
     fun parseSources(sources: Sequence<Source>): Map<String, FullModuleEnv> {
         // stdlib
-        if (stdlibCompiled.isNotEmpty()) modules.putAll(stdlibCompiled)
-        else {
-            innerParseSources(stdlib, isStdlib = true)
-            stdlibCompiled.putAll(modules)
+        if (opts.stdlib) {
+            if (stdlibCompiled.isNotEmpty()) modules.putAll(stdlibCompiled)
+            else {
+                innerParseSources(stdlib, isStdlib = true)
+                stdlibCompiled.putAll(modules)
+            }
         }
         val allSources = sources.plus(sourceLoader.loadSources())
         return innerParseSources(allSources, isStdlib = false)
@@ -96,7 +98,7 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
 
             source.withIterator { iter ->
                 val lexer = Lexer(iter)
-                val parser = Parser(lexer, isStdlib, path.toFile().invariantSeparatorsPath)
+                val parser = Parser(lexer, isStdlib, path.toFile().invariantSeparatorsPath, opts.stdlib)
                 parser.parseFullModule().mapBoth(
                     { mod ->
                         val module = mod.name.value

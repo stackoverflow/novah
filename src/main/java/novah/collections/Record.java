@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package novah.collections;
 
 import io.lacuna.bifurcan.*;
+import novah.function.Function;
 
 import java.util.Objects;
 import java.util.OptionalLong;
@@ -167,7 +168,7 @@ public class Record implements IMap<String, ListValue> {
      * as the typechecker disallows it.
      */
     @SuppressWarnings("OptionalGetWithoutIsPresent")
-    public <T> Record update(String key, Function<T, T> update) {
+    public <T> Record update(String key, novah.function.Function<T, T> update) {
         var idx = inner.indexOf(key).getAsLong();
         var list = inner.nth(idx).value();
         var newVal = ListValue.of(update.apply((T) list.value), list.next);

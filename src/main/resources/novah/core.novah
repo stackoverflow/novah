@@ -295,7 +295,7 @@ printfln form args = println (format form args)
  * Should only be used for Java interoperability
  * when a foreign imported value can be null
  * or a method can return null.
- * `let possibleNullResult = foreignFunction x y z |> nullable`
+ * `let possibleNullResult = obj#foreignFunction(x, y, z) |> nullable`
  */
 pub
 nullable : a -> Nullable a

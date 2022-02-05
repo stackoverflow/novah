@@ -69,10 +69,10 @@ object TestUtil {
         return out
     }
 
-    fun compilerFor(path: String, verbose: Boolean = false, devMode: Boolean = true): Compiler {
+    fun compilerFor(path: String, verbose: Boolean = false, devMode: Boolean = true, stdlib: Boolean = true): Compiler {
         val sources = File("src/test/resources/$path").walkBottomUp().filter { it.extension == "novah" }
             .map { it.toPath() }
-        return Compiler.new(sources, null, null, Options(verbose, devMode))
+        return Compiler.new(sources, null, null, Options(verbose, devMode, stdlib))
     }
 
     private fun compilerForCode(code: String, verbose: Boolean = false, devMode: Boolean = true): Compiler {

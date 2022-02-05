@@ -20,11 +20,10 @@ import novah.ast.optimized.DataConstructor
 import novah.ast.optimized.Decl
 import novah.ast.optimized.Expr
 import novah.ast.source.Visibility
+import novah.backend.TypeUtil.isDouble
+import novah.backend.TypeUtil.isLong
 import novah.frontend.Span
-import org.objectweb.asm.Handle
-import org.objectweb.asm.Label
-import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.Opcodes
+import org.objectweb.asm.*
 
 object GenUtil {
 
@@ -34,7 +33,7 @@ object GenUtil {
     const val INSTANCE = "INSTANCE"
     const val LAMBDA_CTOR = "CREATE"
 
-    const val NOVAH_GENCLASS_VERSION = Opcodes.V15
+    const val NOVAH_GENCLASS_VERSION = Opcodes.V17
 
     fun visibility(decl: Decl.TypeDecl): Int =
         if (decl.visibility == Visibility.PUBLIC) Opcodes.ACC_PUBLIC else 0
@@ -53,6 +52,15 @@ object GenUtil {
         "(Ljava/lang/invoke/MethodHandles\$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
         false
     )
+
+    // Handle used for bootstrap methods for ADTs
+    val bootstrapHandle = Handle(
+        Opcodes.H_INVOKESTATIC,
+        "java/lang/runtime/ObjectMethods",
+        "bootstrap",
+        "(Ljava/lang/invoke/MethodHandles\$Lookup;Ljava/lang/String;Ljava/lang/invoke/TypeDescriptor;Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/invoke/MethodHandle;)Ljava/lang/Object;",
+        false
+    )
 }
 
 class GenContext {
@@ -61,7 +69,14 @@ class GenContext {
 
     private val locals = mutableMapOf<String, InnerLocal>()
 
-    fun nextLocal(): Int = localsCount++
+    fun nextLocal(ty: Type = TypeUtil.objectType): Int {
+        // doubles and longs take 2 words
+        return if (ty.isDouble() || ty.isLong()) {
+            val tmp = localsCount
+            localsCount += 2
+            tmp
+        } else localsCount++
+    }
 
     operator fun get(v: String): Int? = locals[v]?.num
 
@@ -70,7 +85,12 @@ class GenContext {
     }
 
     fun putParameter(name: String, type: Clazz, startLabel: Label) {
-        val num = localsCount++
+        // doubles and longs take 2 words
+        val num = if (type.type.isDouble() || type.type.isLong()) {
+            val tmp = localsCount
+            localsCount += 2
+            tmp
+        } else localsCount++
         locals[name] = InnerLocal(num, startLabel, localVar = Expr.LocalVar(name, type, Span.empty()))
     }
 

@@ -15,6 +15,8 @@
  */
 package novah;
 
+import novah.function.Function;
+
 /**
  * A recursive function used for recursive let bindings.
  */

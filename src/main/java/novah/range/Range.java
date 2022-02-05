@@ -2,7 +2,7 @@ package novah.range;
 
 import io.lacuna.bifurcan.List;
 import io.lacuna.bifurcan.Set;
-import novah.Function;
+import novah.function.Function;
 import novah.Unit;
 
 import java.util.Iterator;

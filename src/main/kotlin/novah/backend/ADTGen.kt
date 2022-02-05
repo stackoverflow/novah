@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,19 +25,23 @@ import novah.backend.GenUtil.LAMBDA_CTOR
 import novah.backend.GenUtil.NOVAH_GENCLASS_VERSION
 import novah.backend.GenUtil.OBJECT_CLASS
 import novah.backend.GenUtil.STATIC_INIT
+import novah.backend.GenUtil.bootstrapHandle
 import novah.backend.GenUtil.lambdaHandle
 import novah.backend.GenUtil.visibility
 import novah.backend.TypeUtil.FUNCTION_DESC
+import novah.backend.TypeUtil.JAVA_RECORD_CLASS
+import novah.backend.TypeUtil.OBJECT_DESC
 import novah.backend.TypeUtil.buildClassSignature
 import novah.backend.TypeUtil.descriptor
-import novah.backend.TypeUtil.lambdaMethodType
+import novah.backend.TypeUtil.isDouble
+import novah.backend.TypeUtil.isLong
 import org.objectweb.asm.*
 import org.objectweb.asm.Opcodes.*
 import java.util.*
 
 /**
  * Generate bytecode for Algebraic Data Types.
- * Each ADT and constructor is a separate class
+ * Each ADT and constructor is a separate record class
  */
 class ADTGen(
     private val adt: Decl.TypeDecl,
@@ -68,7 +72,7 @@ class ADTGen(
         val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)
         cw.visit(
             NOVAH_GENCLASS_VERSION,
-            vis + ACC_ABSTRACT,
+            vis + ACC_ABSTRACT + ACC_INTERFACE,
             adtClassName,
             sig,
             OBJECT_CLASS,
@@ -76,24 +80,14 @@ class ADTGen(
         )
         cw.visitSource(ast.sourceName, null)
 
-        cw.visitInnerClass(
-            "java/lang/invoke/MethodHandles\$Lookup",
-            "java/lang/invoke/MethodHandles",
-            "Lookup",
-            ACC_PUBLIC + ACC_STATIC + ACC_FINAL
-        )
-
-        genEmptyConstructor(cw, ACC_PUBLIC)
-
-        genToString(cw, adtClassName, adt.name, emptyList())
-
         cw.visitEnd()
         onGenClass(moduleName, adt.name, cw.toByteArray())
     }
 
     private fun genConstructor(ctor: DataConstructor) {
         val className = "$moduleName/${ctor.name}"
-        val superClass = if (singleSameCtor) OBJECT_CLASS else adtClassName
+        val superClass = JAVA_RECORD_CLASS
+        val interfaces = if (singleSameCtor) emptyArray() else arrayOf(adtClassName)
         val sig = buildClassSignature(adt.tyVars, superClass)
         val vis = visibility(ctor)
         val args = ctor.args
@@ -101,11 +95,11 @@ class ADTGen(
         val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)
         cw.visit(
             NOVAH_GENCLASS_VERSION,
-            ACC_PUBLIC + ACC_FINAL,
+            ACC_PUBLIC + ACC_FINAL + ACC_RECORD,
             className,
             sig,
             superClass,
-            emptyArray<String>()
+            interfaces
         )
         cw.visitSource(ast.sourceName, null)
 
@@ -115,6 +109,8 @@ class ADTGen(
             "Lookup",
             ACC_PUBLIC + ACC_STATIC + ACC_FINAL
         )
+
+        args.forEachIndexed { i, clazz -> cw.visitRecordComponent("v${i + 1}", clazz.type.descriptor, null) }
 
         if (args.isEmpty()) {
             genEmptyConstructor(cw, ACC_PRIVATE, superClass)
@@ -145,15 +141,24 @@ class ADTGen(
             val desc = args.joinToString("", prefix = "(", postfix = ")V") { it.type.descriptor }
             val ct = cw.visitMethod(vis, INIT, desc, null, emptyArray())
             ct.visitCode()
+            val l0 = Label()
+            ct.visitLabel(l0)
             ct.visitVarInsn(ALOAD, 0)
             ct.visitMethodInsn(INVOKESPECIAL, superClass, INIT, "()V", false)
+            var index = 1
             args.forEachIndexed { i, type ->
-                val index = i + 1
                 ct.visitVarInsn(ALOAD, 0)
-                ct.visitVarInsn(ALOAD, index)
-                ct.visitFieldInsn(PUTFIELD, className, "v$index", type.type.descriptor)
+                ct.visitVarInsn(type.type.getOpcode(ILOAD), index)
+                ct.visitFieldInsn(PUTFIELD, className, "v${i + 1}", type.type.descriptor)
+                if (type.type.isDouble() || type.type.isLong()) index += 2 else index++
             }
             ct.visitInsn(RETURN)
+            val l1 = Label()
+            ct.visitLabel(l1)
+            ct.visitLocalVariable("this", descriptor(className), null, l0, l1, 0)
+            args.forEachIndexed { i, clazz ->
+                ct.visitLocalVariable("v${i + 1}", clazz.type.descriptor, null, l0, l1, i + 1)
+            }
             ct.visitMaxs(0, 0)
             ct.visitEnd()
 
@@ -171,11 +176,9 @@ class ADTGen(
             genFunctionalConstructor(cw, className, args)
         }
 
-        genToString(cw, className, ctor.name, args)
-        if (args.isNotEmpty()) {
-            genEquals(cw, className, args)
-            genHashCode(cw, className, args)
-        }
+        genToString(cw, className, args)
+        genEquals(cw, className, args)
+        genHashCode(cw, className, args)
 
         cw.visitEnd()
         onGenClass(moduleName, ctor.name, cw.toByteArray())
@@ -226,7 +229,6 @@ class ADTGen(
             ctorDesc: String
         ) {
             val totalApplied = appliedTypes.size
-            val totalArgs = totalApplied + toApplyTypes.size
             val desc = appliedTypes.joinToString("") { it.type.descriptor }
             val ret = if (toApplyTypes.size > 1) FUNCTION_DESC else descriptor(className)
             val nextArg = toApplyTypes.first()
@@ -244,10 +246,16 @@ class ADTGen(
             if (end) {
                 lam.visitTypeInsn(NEW, className)
                 lam.visitInsn(DUP)
-                repeat(totalArgs) { lam.visitVarInsn(ALOAD, it) }
+                var index = 0
+                (appliedTypes + toApplyTypes).forEach { clazz ->
+                    lam.visitVarInsn(clazz.type.getOpcode(ILOAD), index)
+                    if (clazz.type.isDouble() || clazz.type.isLong()) index += 2 else index++
+                }
                 lam.visitMethodInsn(INVOKESPECIAL, className, INIT, ctorDesc, false)
             } else {
-                repeat(totalApplied + 1) { lam.visitVarInsn(ALOAD, it) }
+                (appliedTypes + nextArg).forEachIndexed { i, clazz ->
+                    lam.visitVarInsn(clazz.type.getOpcode(ILOAD), i)
+                }
                 createLambda(lam, className, appliedTypes + nextArg, toApplyTypes.drop(1))
             }
             lam.visitInsn(ARETURN)
@@ -274,11 +282,16 @@ class ADTGen(
                 "($desc$arg)$ret",
                 false
             )
+            val argTy = nextArg.type
+            val retTy = Type.getType(ret)
+            val method = TypeUtil.lambdaMethodName(argTy, retTy)
+            val actualLambdaType = TypeUtil.lambdaType(argTy, retTy).descriptor
+            val lambdaType = Type.getMethodType(TypeUtil.lambdaMethodDesc(argTy, retTy))
             mw.visitInvokeDynamicInsn(
-                "apply",
-                "(${desc})Lnovah/Function;",
+                method,
+                "($desc)$actualLambdaType",
                 lambdaHandle,
-                lambdaMethodType,
+                lambdaType,
                 handle,
                 Type.getMethodType("($arg)$ret")
             )
@@ -288,23 +301,33 @@ class ADTGen(
          * Generates a default toString method for this class
          * which prints all the variables
          */
-        private fun genToString(cw: ClassWriter, className: String, simpleName: String, fields: List<Clazz>) {
-            val ts = cw.visitMethod(ACC_PUBLIC, "toString", "()Ljava/lang/String;", null, emptyArray())
+        private fun genToString(cw: ClassWriter, className: String, fields: List<Clazz>) {
+            val ts = cw.visitMethod(ACC_PUBLIC + ACC_FINAL, "toString", "()Ljava/lang/String;", null, emptyArray())
             ts.visitCode()
-            if (fields.isEmpty()) {
-                ts.visitLdcInsn(simpleName)
-            } else {
-                var args = ""
-                fields.forEachIndexed { index, type ->
-                    ts.visitVarInsn(ALOAD, 0)
-                    args += type.type.descriptor
-                    ts.visitFieldInsn(GETFIELD, className, "v${index + 1}", type.type.descriptor)
-                }
-                val pars = fields.indices.joinToString(", ") { "\u0001" }
-                val arg = "$simpleName($pars)"
-                ts.visitInvokeDynamicInsn("makeConcatWithConstants", "($args)Ljava/lang/String;", toStringHandle, arg)
-            }
+            val l0 = Label()
+            ts.visitLabel(l0)
+
+            ts.visitVarInsn(ALOAD, 0)
+            val desc = descriptor(className)
+
+            val fieldStr = (1..fields.size).joinToString(";") { "v$it" }
+            val fieldhandles = fields.mapIndexed { i, field ->
+                Handle(H_GETFIELD, className, "v${i + 1}", field.type.descriptor, false)
+            }.toTypedArray()
+            ts.visitInvokeDynamicInsn(
+                "toString",
+                "($desc)Ljava/lang/String;",
+                bootstrapHandle,
+                Type.getType(desc),
+                fieldStr,
+                *fieldhandles
+            )
             ts.visitInsn(ARETURN)
+
+            val l1 = Label()
+            ts.visitLabel(l1)
+            ts.visitLocalVariable("this", desc, null, l0, l1, 0)
+
             ts.visitMaxs(0, 0)
             ts.visitEnd()
         }
@@ -314,65 +337,33 @@ class ADTGen(
          * which compares every field
          */
         private fun genEquals(cw: ClassWriter, className: String, fields: List<Clazz>) {
-            val eq = cw.visitMethod(ACC_PUBLIC, "equals", "(Ljava/lang/Object;)Z", null, emptyArray())
+            val eq = cw.visitMethod(ACC_PUBLIC + ACC_FINAL, "equals", "(Ljava/lang/Object;)Z", null, emptyArray())
             eq.visitCode()
             val l0 = Label()
             eq.visitLabel(l0)
 
-            // if they are the same, return true
             eq.visitVarInsn(ALOAD, 0)
             eq.visitVarInsn(ALOAD, 1)
-            val l1 = Label()
-            eq.visitJumpInsn(IF_ACMPNE, l1)
-            eq.visitInsn(ICONST_1)
-            eq.visitInsn(IRETURN)
-
-            // if they are different classes or null, return false
-            eq.visitLabel(l1)
-            val l2 = Label()
-            eq.visitVarInsn(ALOAD, 1)
-            eq.visitJumpInsn(IFNULL, l2)
-            eq.visitVarInsn(ALOAD, 0)
-            eq.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false)
-            eq.visitVarInsn(ALOAD, 1)
-            eq.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false)
-            val l3 = Label()
-            eq.visitJumpInsn(IF_ACMPEQ, l3)
-            eq.visitLabel(l2)
-            eq.visitInsn(ICONST_0)
-            eq.visitInsn(IRETURN)
-            eq.visitLabel(l3)
-
-            // check attributes are the same
-            eq.visitVarInsn(ALOAD, 1)
-            eq.visitTypeInsn(CHECKCAST, className)
-            eq.visitVarInsn(ASTORE, 2)
-            val l4 = Label()
-            eq.visitLabel(l4)
-            val l5 = Label()
-            val l6 = Label()
-            fields.forEachIndexed { i, field ->
-                val ty = field.type
-                eq.visitVarInsn(ALOAD, 0)
-                eq.visitFieldInsn(GETFIELD, className, "v${i + 1}", ty.descriptor)
-                eq.visitVarInsn(ALOAD, 2)
-                eq.visitFieldInsn(GETFIELD, className, "v${i + 1}", ty.descriptor)
-                eq.visitMethodInsn(INVOKEVIRTUAL, ty.internalName, "equals", "(Ljava/lang/Object;)Z", false)
-                eq.visitJumpInsn(IFEQ, l5)
-            }
-            eq.visitInsn(ICONST_1)
-            eq.visitJumpInsn(GOTO, l6)
-            eq.visitLabel(l5)
-            eq.visitInsn(ICONST_0)
-            eq.visitLabel(l6)
-            eq.visitInsn(IRETURN)
-
             val desc = descriptor(className)
-            val l7 = Label()
-            eq.visitLabel(l7)
-            eq.visitLocalVariable("this", desc, null, l0, l7, 0)
-            eq.visitLocalVariable("other", desc, null, l0, l7, 1)
-            eq.visitLocalVariable("same", desc, null, l4, l7, 2)
+
+            val fieldStr = (1..fields.size).joinToString(";") { "v$it" }
+            val fieldhandles = fields.mapIndexed { i, field ->
+                Handle(H_GETFIELD, className, "v${i + 1}", field.type.descriptor, false)
+            }.toTypedArray()
+            eq.visitInvokeDynamicInsn(
+                "equals",
+                "($desc$OBJECT_DESC)Z",
+                bootstrapHandle,
+                Type.getType(desc),
+                fieldStr,
+                *fieldhandles
+            )
+            eq.visitInsn(IRETURN)
+
+            val l1 = Label()
+            eq.visitLabel(l1)
+            eq.visitLocalVariable("this", desc, null, l0, l1, 0)
+            eq.visitLocalVariable("o", OBJECT_DESC, null, l0, l1, 1)
 
             eq.visitMaxs(0, 0)
             eq.visitEnd()
@@ -383,21 +374,25 @@ class ADTGen(
          * based on all attributes.
          */
         private fun genHashCode(cw: ClassWriter, className: String, fields: List<Clazz>) {
-            val mv = cw.visitMethod(ACC_PUBLIC, "hashCode", "()I", null, emptyArray())
+            val mv = cw.visitMethod(ACC_PUBLIC + ACC_FINAL, "hashCode", "()I", null, emptyArray())
             mv.visitCode()
             val l0 = Label()
             mv.visitLabel(l0)
 
-            loadSmallNumber(fields.size, mv)
-            mv.visitTypeInsn(ANEWARRAY, OBJECT_CLASS)
-            fields.forEachIndexed { i, type ->
-                mv.visitInsn(DUP)
-                loadSmallNumber(i, mv)
-                mv.visitVarInsn(ALOAD, 0)
-                mv.visitFieldInsn(GETFIELD, className, "v${i + 1}", type.type.descriptor)
-                mv.visitInsn(AASTORE)
-            }
-            mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "hash", "([Ljava/lang/Object;)I", false)
+            mv.visitVarInsn(ALOAD, 0)
+            val desc = descriptor(className)
+            val fieldStr = (1..fields.size).joinToString(";") { "v$it" }
+            val fieldhandles = fields.mapIndexed { i, field ->
+                Handle(H_GETFIELD, className, "v${i + 1}", field.type.descriptor, false)
+            }.toTypedArray()
+            mv.visitInvokeDynamicInsn(
+                "hashCode",
+                "($desc)I",
+                bootstrapHandle,
+                Type.getType(desc),
+                fieldStr,
+                *fieldhandles
+            )
             mv.visitInsn(IRETURN)
 
             val l1 = Label()
@@ -407,25 +402,5 @@ class ADTGen(
             mv.visitMaxs(0, 0)
             mv.visitEnd()
         }
-
-        private fun loadSmallNumber(i: Int, mv: MethodVisitor) {
-            when (i) {
-                0 -> mv.visitInsn(ICONST_0)
-                1 -> mv.visitInsn(ICONST_1)
-                2 -> mv.visitInsn(ICONST_2)
-                3 -> mv.visitInsn(ICONST_3)
-                4 -> mv.visitInsn(ICONST_4)
-                5 -> mv.visitInsn(ICONST_5)
-                else -> mv.visitIntInsn(SIPUSH, i)
-            }
-        }
-
-        private val toStringHandle = Handle(
-            H_INVOKESTATIC,
-            "java/lang/invoke/StringConcatFactory",
-            "makeConcatWithConstants",
-            "(Ljava/lang/invoke/MethodHandles\$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;",
-            false
-        )
     }
 }

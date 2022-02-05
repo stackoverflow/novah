@@ -28,7 +28,8 @@ import novah.frontend.error.Errors as E
 class Parser(
     tokens: Iterator<Spanned<Token>>,
     private val isStdlib: Boolean,
-    private val sourceName: String = "Unknown"
+    private val sourceName: String = "Unknown",
+    private val stdlib: Boolean = true
 ) {
     private val iter = PeekableIterator(tokens, ::throwMismatchedIndentation)
 
@@ -176,6 +177,7 @@ class Parser(
      */
     private fun addDefaultImports(imports: MutableList<Import>) {
         imports += primImport
+        if (!stdlib) return
         if (imports.none { it.module.value == CORE_MODULE } && moduleName != CORE_MODULE) {
             imports += coreImport
         }

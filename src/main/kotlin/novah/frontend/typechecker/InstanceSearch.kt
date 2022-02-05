@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,7 +116,11 @@ class InstanceSearch(private val tc: Typechecker) {
     }
 
     private tailrec fun getReturn(ty: Type): Type = when (ty) {
-        is TArrow -> getReturn(ty.ret)
+        is TArrow -> ty.ret
+        is TVar -> {
+            if (ty.tvar is TypeVar.Link) getReturn((ty.tvar as TypeVar.Link).type)
+            else ty
+        }
         else -> ty
     }
 
