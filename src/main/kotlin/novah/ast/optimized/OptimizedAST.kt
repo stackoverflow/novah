@@ -17,7 +17,9 @@ package novah.ast.optimized
 
 import novah.ast.source.Visibility
 import novah.data.LabelMap
+import novah.data.isEmpty
 import novah.data.mapList
+import novah.data.show
 import novah.frontend.Span
 import org.objectweb.asm.Label
 import org.objectweb.asm.Type
@@ -199,6 +201,10 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
     data class ArrayLength(val expr: Expr, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ClassConstant(val clazz: String, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class Return(val exp: Expr) : Expr(exp.type, exp.span)
+
+    fun isPrimitive(): Boolean =
+        this is Int32 || this is Bool || this is CharE || this is Int64 || this is Float64
+                || this is Float32 || this is ByteE || this is Int16
 }
 
 data class Catch(val exception: Clazz, val binder: String?, val expr: Expr, val span: Span) {
@@ -403,12 +409,20 @@ fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = w
 }
 
 data class Clazz(val type: Type, val pars: List<Clazz> = emptyList(), val labels: LabelMap<Clazz>? = null) {
-    fun isInt32() = type.className == "java.lang.Integer"
-    fun isInt64() = type.className == "java.lang.Long"
-    fun isFloat32() = type.className == "java.lang.Float"
-    fun isFloat64() = type.className == "java.lang.Double"
+    fun isInt32() = type.sort == 5
+    fun isInt64() = type.sort == 7
+    fun isFloat32() = type.sort == 6
+    fun isFloat64() = type.sort == 8
     fun isString() = type.className == "java.lang.String"
-    fun isFunction() = type.className == "novah.Function"
+    fun isFunction() = type.className == "novah.function.Function"
+
+    override fun toString(): String {
+        var ty = type.className
+        if (pars.isNotEmpty()) ty += pars.joinToString(prefix = "<", postfix = ">")
+        if (labels != null && !labels.isEmpty())
+            ty += "{" + labels.show { l, clazz -> "$l: ${clazz.type.className}" } + "}"
+        return ty
+    }
 }
 
 fun Expr.Var.fullname() = "$className.$name"

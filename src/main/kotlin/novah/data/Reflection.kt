@@ -51,7 +51,7 @@ object Reflection {
         "List" -> "io.lacuna.bifurcan.List"
         "Set" -> "io.lacuna.bifurcan.Set"
         "Map" -> "io.lacuna.bifurcan.Map"
-        "Function" -> "novah.Function"
+        "Function" -> "novah.function.Function"
         "Unit" -> "novah.Unit"
         "Range" -> "novah.range.Range"
         else -> type
@@ -59,7 +59,7 @@ object Reflection {
 
     tailrec fun findJavaType(type: Type): String? = when (type) {
         is TRecord -> "novah.collections.Record"
-        is TArrow -> "novah.Function"
+        is TArrow -> "novah.function.Function"
         is TConst -> findJavaType(type.name)
         is TApp -> findJavaType(type.type)
         else -> null
@@ -119,7 +119,7 @@ object Reflection {
             is ParameterizedType -> {
                 val arity = ty.actualTypeArguments.size
                 val kind = if (arity == 0) Kind.Star else Kind.Constructor(arity)
-                if (ty.rawType.typeName == "novah.Function") {
+                if (ty.rawType.typeName == "novah.function.Function") {
                     val args = listOf(collectType(tc, ty.actualTypeArguments[0], level, cache))
                     TArrow(args, collectType(tc, ty.actualTypeArguments[1], level, cache))
                 } else {

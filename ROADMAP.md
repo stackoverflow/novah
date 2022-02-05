@@ -4,7 +4,7 @@
 - [ ] REPL
 - [ ] Website
 - [ ] Add javadoc like capabilities to comments (using markdown probably)
-- [ ] Primitive types support (wait for valhalla)
+- [X] Primitive types support
 - [X] IDE support (WIP)
 - [X] LSP implemented in the compiler (WIP)
 - [X] Auto derive Show and maybe some other type classes

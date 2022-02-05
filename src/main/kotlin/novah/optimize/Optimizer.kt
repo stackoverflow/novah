@@ -16,9 +16,7 @@
 package novah.optimize
 
 import io.lacuna.bifurcan.Map
-import novah.ast.canonical.Metadata
 import novah.Core
-import novah.Function
 import novah.RecFunction
 import novah.Util.internalError
 import novah.ast.Desugar
@@ -26,6 +24,7 @@ import novah.ast.canonical.*
 import novah.ast.optimized.*
 import novah.ast.optimized.Decl
 import novah.ast.source.Visibility
+import novah.backend.TypeUtil.wrapper
 import novah.data.allList
 import novah.data.forEachKeyList
 import novah.data.mapList
@@ -37,6 +36,7 @@ import novah.frontend.matching.Ctor
 import novah.frontend.matching.PatternCompilationResult
 import novah.frontend.matching.PatternMatchingCompiler
 import novah.frontend.typechecker.*
+import novah.function.Function
 import novah.main.Environment
 import novah.range.Range
 import org.objectweb.asm.Type
@@ -277,10 +277,9 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             } else {
                 val conv = type.convert()
                 if (conv.type.className == primNullable) {
-                    types[0].convert()
-                } else {
-                    Clazz(conv.type, types.map { it.convert() })
-                }
+                    val ty = types[0].convert()
+                    ty.copy(type = ty.type.wrapper())
+                } else Clazz(conv.type, types.map { it.convert() })
             }
         }
         // the only functions that can have more than 1 argument are native ones
@@ -532,7 +531,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
 
                 val ctor = p.ctor.convert(locals) as Expr.Constructor
                 val name = p.ctor.fullname(p.ctor.moduleName ?: ast.name.value)
-                val ctorType = Clazz(Type.getObjectType(internalize(name)))
+                val ctorType = Clazz(Type.getObjectType(internalize(name)), pars = ctor.type.pars.dropLast(1))
                 conds += Expr.InstanceOf(exp, ctorType, p.span)
 
                 val (fieldTypes, _) = peelArgs(Environment.findConstructor(name)!!)
@@ -720,14 +719,14 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
     companion object {
 
         private fun getPrimitiveTypeName(tvar: TConst): Type = when (tvar.name) {
-            primByte -> Type.getType(Byte::class.javaObjectType)
-            primInt16 -> Type.getType(Short::class.javaObjectType)
-            primInt32 -> Type.getType(Int::class.javaObjectType)
-            primInt64 -> LONG_TYPE
-            primFloat32 -> Type.getType(Float::class.javaObjectType)
-            primFloat64 -> Type.getType(Double::class.javaObjectType)
-            primBoolean -> Type.getType(Boolean::class.javaObjectType)
-            primChar -> Type.getType(Char::class.javaObjectType)
+            primByte -> Type.getType(Byte::class.java)
+            primInt16 -> Type.getType(Short::class.java)
+            primInt32 -> Type.getType(Int::class.java)
+            primInt64 -> Type.getType(Long::class.java)
+            primFloat32 -> Type.getType(Float::class.java)
+            primFloat64 -> Type.getType(Double::class.java)
+            primBoolean -> Type.getType(Boolean::class.java)
+            primChar -> Type.getType(Char::class.java)
             primString -> Type.getType(String::class.java)
             primUnit -> UNIT_TYPE
             primObject -> OBJECT_TYPE
@@ -748,14 +747,13 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         }
 
         private fun getPrimitiveArrayTypeName(of: Type): Type {
-            return Type.getType("[${of.descriptor}")
+            return Type.getType("[${of.wrapper().descriptor}")
         }
 
         private fun internalize(name: String) = name.replace('.', '/')
 
         private val RECORD_TYPE = Type.getType(novah.collections.Record::class.java)
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
-        private val LONG_TYPE = Type.getType(Long::class.javaObjectType)
         private val LIST_TYPE = Type.getType(PList::class.java)
         private val UNIT_TYPE = Type.getObjectType(internalize("novah.Unit"))
         val OBJECT_TYPE = Type.getType(Object::class.java)!!

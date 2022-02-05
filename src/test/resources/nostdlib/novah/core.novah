@@ -1,0 +1,17 @@
+module novah.core
+
+foreign import novah.Core
+foreign import java.lang.System
+
+pub
+not : Boolean -> Boolean
+not b = Core#not(b)
+
+pub
+println : a -> Unit
+println x = System#-out#println(x as Object)
+
+pub
+main : Array String -> Unit
+main _ =
+  println (not false)

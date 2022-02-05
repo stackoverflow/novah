@@ -13,331 +13,332 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package novah;
+package novah.function;
 
 /**
  * Represents a function in Novah.
  */
 @FunctionalInterface
+@SuppressWarnings("unchecked")
 public interface Function<T, R> extends java.util.function.Function<T, R> {
 
     default R applyI(int arg) {
-        throw new RuntimeException("Not implemented");
+        return apply((T) Integer.valueOf(arg));
     }
 
     default R applyB(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return apply((T) Byte.valueOf(arg));
     }
 
     default R applyS(short arg) {
-        throw new RuntimeException("Not implemented");
+        return apply((T) Short.valueOf(arg));
     }
 
     default R applyJ(long arg) {
-        throw new RuntimeException("Not implemented");
+        return apply((T) Long.valueOf(arg));
     }
 
     default R applyF(float arg) {
-        throw new RuntimeException("Not implemented");
+        return apply((T) Float.valueOf(arg));
     }
 
     default R applyD(double arg) {
-        throw new RuntimeException("Not implemented");
+        return apply((T) Double.valueOf(arg));
     }
 
     default R applyC(char arg) {
-        throw new RuntimeException("Not implemented");
+        return apply((T) Character.valueOf(arg));
     }
 
     default R applyZ(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return apply((T) Boolean.valueOf(arg));
     }
 
     default int applyInt(T arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply(arg);
     }
 
     default int applyInt(int arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply((T) Integer.valueOf(arg));
     }
 
     default int applyInt(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply((T) Byte.valueOf(arg));
     }
-    
+
     default int applyInt(short arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply((T) Short.valueOf(arg));
     }
 
     default int applyInt(long arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply((T) Long.valueOf(arg));
     }
 
     default int applyInt(float arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply((T) Float.valueOf(arg));
     }
 
     default int applyInt(double arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply((T) Double.valueOf(arg));
     }
 
     default int applyInt(char arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply((T) Character.valueOf(arg));
     }
 
     default int applyInt(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return (Integer) apply((T) Boolean.valueOf(arg));
     }
 
     default byte applyByte(T arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply(arg);
     }
 
     default byte applyByte(int arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply((T) Integer.valueOf(arg));
     }
 
     default byte applyByte(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply((T) Byte.valueOf(arg));
     }
 
     default byte applyByte(short arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply((T) Short.valueOf(arg));
     }
 
     default byte applyByte(long arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply((T) Long.valueOf(arg));
     }
 
     default byte applyByte(float arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply((T) Float.valueOf(arg));
     }
 
     default byte applyByte(double arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply((T) Double.valueOf(arg));
     }
 
     default byte applyByte(char arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply((T) Character.valueOf(arg));
     }
 
     default byte applyByte(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return (Byte) apply((T) Boolean.valueOf(arg));
     }
 
     default short applyShort(T arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply(arg);
     }
 
     default short applyShort(int arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply((T) Integer.valueOf(arg));
     }
 
     default short applyShort(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply((T) Byte.valueOf(arg));
     }
 
     default short applyShort(short arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply((T) Short.valueOf(arg));
     }
 
     default short applyShort(long arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply((T) Long.valueOf(arg));
     }
 
     default short applyShort(float arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply((T) Float.valueOf(arg));
     }
 
     default short applyShort(double arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply((T) Double.valueOf(arg));
     }
 
     default short applyShort(char arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply((T) Character.valueOf(arg));
     }
 
     default short applyShort(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return (Short) apply((T) Boolean.valueOf(arg));
     }
 
     default long applyLong(T arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply(arg);
     }
 
     default long applyLong(int arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply((T) Integer.valueOf(arg));
     }
 
     default long applyLong(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply((T) Byte.valueOf(arg));
     }
 
     default long applyLong(short arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply((T) Short.valueOf(arg));
     }
 
     default long applyLong(long arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply((T) Long.valueOf(arg));
     }
 
     default long applyLong(float arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply((T) Float.valueOf(arg));
     }
 
     default long applyLong(double arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply((T) Double.valueOf(arg));
     }
 
     default long applyLong(char arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply((T) Character.valueOf(arg));
     }
 
     default long applyLong(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return (Long) apply((T) Boolean.valueOf(arg));
     }
 
     default float applyFloat(T arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply(arg);
     }
 
     default float applyFloat(int arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply((T) Integer.valueOf(arg));
     }
 
     default float applyFloat(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply((T) Byte.valueOf(arg));
     }
 
     default float applyFloat(short arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply((T) Short.valueOf(arg));
     }
 
     default float applyFloat(long arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply((T) Long.valueOf(arg));
     }
 
     default float applyFloat(float arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply((T) Float.valueOf(arg));
     }
 
     default float applyFloat(double arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply((T) Double.valueOf(arg));
     }
 
     default float applyFloat(char arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply((T) Character.valueOf(arg));
     }
 
     default float applyFloat(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return (Float) apply((T) Boolean.valueOf(arg));
     }
 
     default double applyDouble(T arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply(arg);
     }
 
     default double applyDouble(int arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply((T) Integer.valueOf(arg));
     }
 
     default double applyDouble(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply((T) Byte.valueOf(arg));
     }
 
     default double applyDouble(short arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply((T) Short.valueOf(arg));
     }
 
     default double applyDouble(long arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply((T) Long.valueOf(arg));
     }
 
     default double applyDouble(float arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply((T) Float.valueOf(arg));
     }
 
     default double applyDouble(double arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply((T) Double.valueOf(arg));
     }
 
     default double applyDouble(char arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply((T) Character.valueOf(arg));
     }
 
     default double applyDouble(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return (Double) apply((T) Boolean.valueOf(arg));
     }
 
     default char applyChar(T arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply(arg);
     }
 
     default char applyChar(int arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply((T) Integer.valueOf(arg));
     }
 
     default char applyChar(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply((T) Byte.valueOf(arg));
     }
 
     default char applyChar(short arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply((T) Short.valueOf(arg));
     }
 
     default char applyChar(long arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply((T) Long.valueOf(arg));
     }
 
     default char applyChar(float arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply((T) Float.valueOf(arg));
     }
 
     default char applyChar(double arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply((T) Double.valueOf(arg));
     }
 
     default char applyChar(char arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply((T) Character.valueOf(arg));
     }
 
     default char applyChar(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return (Character) apply((T) Boolean.valueOf(arg));
     }
 
     default boolean applyBoolean(T arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply(arg);
     }
 
     default boolean applyBoolean(int arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply((T) Integer.valueOf(arg));
     }
 
     default boolean applyBoolean(byte arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply((T) Byte.valueOf(arg));
     }
 
     default boolean applyBoolean(short arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply((T) Short.valueOf(arg));
     }
 
     default boolean applyBoolean(long arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply((T) Long.valueOf(arg));
     }
 
     default boolean applyBoolean(float arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply((T) Float.valueOf(arg));
     }
 
     default boolean applyBoolean(double arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply((T) Double.valueOf(arg));
     }
 
     default boolean applyBoolean(char arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply((T) Character.valueOf(arg));
     }
 
     default boolean applyBoolean(boolean arg) {
-        throw new RuntimeException("Not implemented");
+        return (Boolean) apply((T) Boolean.valueOf(arg));
     }
 }

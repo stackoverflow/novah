@@ -92,10 +92,10 @@ object Optimization {
     )
 
     private val numericClasses = setOf(
-        "java.lang.Integer",
-        "java.lang.Long",
-        "java.lang.Float",
-        "java.lang.Double",
+        "int",
+        "long",
+        "float",
+        "double",
     )
 
     private val longClass = Clazz(Type.LONG_TYPE)
@@ -312,22 +312,22 @@ object Optimization {
     }
 
     private fun makeRangeCtor(e: Expr, arg1: Expr, arg2: Expr, open: Boolean): Expr =
-        when (arg2.type.type.className) {
-            "java.lang.Integer" -> {
+        when (arg2.type.type.sort) {
+            5 -> {
                 val ctor = if (open) newIntOpenRange else newIntRange
                 Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }
-            "java.lang.Long" -> {
+            7 -> {
                 val ctor = if (open) newLongOpenRange else newLongRange
                 Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }
-            "java.lang.Float" -> {
+            6 -> {
                 Expr.NativeCtor(newFloatRange, listOf(arg1, arg2), e.type, e.span)
             }
-            "java.lang.Double" -> {
+            8 -> {
                 Expr.NativeCtor(newDoubleRange, listOf(arg1, arg2), e.type, e.span)
             }
-            "java.lang.Character" -> {
+            2 -> {
                 val ctor = if (open) newCharOpenRange else newCharRange
                 Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }

@@ -29,6 +29,11 @@ class NovahSpec : StringSpec({
         compiler.run(TestUtil.cleanAndGetOutDir())
     }
 
+    fun compileNoStdlibTests() {
+        val compiler = TestUtil.compilerFor("nostdlib", devMode = false, stdlib = false)
+        compiler.run(TestUtil.cleanAndGetOutDir())
+    }
+
     fun runCommand(command: String, cwd: File): Int {
         return try {
             val parts = command.split("\\s".toRegex())
@@ -52,5 +57,10 @@ class NovahSpec : StringSpec({
     "run standard library tests" {
         compileStdlibTests()
         runStdlibTests() shouldBe 0
+    }
+
+    "!run no standard library tests" {
+        compileNoStdlibTests()
+        runCommand("java -cp output novah.core.\$Module", File("."))
     }
 })
