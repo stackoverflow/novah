@@ -767,25 +767,25 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         private val listAccess = PList::class.java.methods.find { it.name == "nth" }!!
         private val listDrop = Core::class.java.methods.find { it.name == "listDrop" }!!
         private val listMinSize = Core::class.java.methods.find { it.name == "listMinSize" }!!
-        val eqInt = Core::class.java.methods.find {
+        private val eqInt = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
         }!!
-        val eqLong = Core::class.java.methods.find {
+        private val eqLong = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Long::class.java
         }!!
-        val eqFloat = Core::class.java.methods.find {
+        private val eqFloat = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Float::class.java
         }!!
-        val eqDouble = Core::class.java.methods.find {
+        private val eqDouble = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Double::class.java
         }!!
-        val eqChar = Core::class.java.methods.find {
+        private val eqChar = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Char::class.java
         }!!
-        val eqBoolean = Core::class.java.methods.find {
+        private val eqBoolean = Core::class.java.methods.find {
             it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
         }!!
-        val eqString = String::class.java.methods.find { it.name == "equals" }!!
+        private val eqString = String::class.java.methods.find { it.name == "equals" }!!
         val newRecFun: Constructor<*> = RecFunction::class.java.constructors.first()
         val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
         val patternMatches = java.util.regex.Pattern::class.java.methods.find { it.name == "matches" }!!

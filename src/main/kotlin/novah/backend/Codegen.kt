@@ -243,6 +243,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.OperatorApp -> when (e.name) {
                 "&&" -> genOperatorAnd(e, mv, ctx)
                 "||" -> genOperatorOr(e, mv, ctx)
+                "==" -> genOperatorEquals(e, mv, ctx)
+                "!=" -> genOperatorNotEquals(e, mv, ctx)
                 ">" -> genOperatorGreater(e, mv, ctx)
                 ">=" -> genOperatorGreaterOrEquals(e, mv, ctx)
                 "<" -> genOperatorSmaller(e, mv, ctx)
@@ -906,6 +908,74 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitJumpInsn(IFGT, fail)
             }
         }
+        mv.visitInsn(ICONST_1)
+        mv.visitJumpInsn(GOTO, end)
+        mv.visitLabel(fail)
+        mv.visitInsn(ICONST_0)
+        mv.visitLabel(end)
+    }
+
+    private fun genOperatorEquals(e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
+        val type = e.operands[0].type.type
+        genExpr(e.operands[0], mv, ctx)
+        genExpr(e.operands[1], mv, ctx)
+
+        val fail = Label()
+        val end = Label()
+        when (type.sort) {
+            // boolean, char, byte, short, int
+            1, 2, 3, 4, 5 -> mv.visitJumpInsn(IF_ICMPNE, fail)
+            // long
+            7 -> {
+                mv.visitInsn(LCMP)
+                mv.visitJumpInsn(IFNE, fail)
+            }
+            // float
+            6 -> {
+                mv.visitInsn(FCMPL)
+                mv.visitJumpInsn(IFNE, fail)
+            }
+            // double
+            8 -> {
+                mv.visitInsn(DCMPL)
+                mv.visitJumpInsn(IFNE, fail)
+            }
+        }
+
+        mv.visitInsn(ICONST_1)
+        mv.visitJumpInsn(GOTO, end)
+        mv.visitLabel(fail)
+        mv.visitInsn(ICONST_0)
+        mv.visitLabel(end)
+    }
+
+    private fun genOperatorNotEquals(e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
+        val type = e.operands[0].type.type
+        genExpr(e.operands[0], mv, ctx)
+        genExpr(e.operands[1], mv, ctx)
+
+        val fail = Label()
+        val end = Label()
+        when (type.sort) {
+            // boolean, char, byte, short, int
+            1, 2, 3, 4, 5 -> mv.visitJumpInsn(IF_ICMPEQ, fail)
+            // long
+            7 -> {
+                mv.visitInsn(LCMP)
+                mv.visitJumpInsn(IFEQ, fail)
+            }
+            // float
+            6 -> {
+                mv.visitInsn(FCMPL)
+                mv.visitJumpInsn(IFEQ, fail)
+            }
+            // double
+            8 -> {
+                mv.visitInsn(DCMPL)
+                mv.visitJumpInsn(IFEQ, fail)
+            }
+        }
+
         mv.visitInsn(ICONST_1)
         mv.visitJumpInsn(GOTO, end)
         mv.visitLabel(fail)
