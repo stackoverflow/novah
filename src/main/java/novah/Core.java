@@ -140,34 +140,9 @@ public class Core {
     }
 
     public static <T> boolean equivalentObject(T o1, T o2) {
-        if (o1 instanceof Integer && o2 instanceof Integer) {
-            return ((Integer) o1).intValue() == ((Integer) o2).intValue();
-        }
-        if (o1 instanceof Byte && o2 instanceof Byte) {
-            return ((Byte) o1).byteValue() == ((Byte) o2).byteValue();
-        }
-        if (o1 instanceof Short && o2 instanceof Short) {
-            return ((Short) o1).shortValue() == ((Short) o2).shortValue();
-        }
-        if (o1 instanceof Long && o2 instanceof Long) {
-            return ((Long) o1).longValue() == ((Long) o2).longValue();
-        }
-        if (o1 instanceof Float && o2 instanceof Float) {
-            return ((Float) o1).floatValue() == ((Float) o2).floatValue();
-        }
-        if (o1 instanceof Double && o2 instanceof Double) {
-            return ((Double) o1).doubleValue() == ((Double) o2).doubleValue();
-        }
-        if (o1 instanceof Character && o2 instanceof Character) {
-            return ((Character) o1).charValue() == ((Character) o2).charValue();
-        }
-        if (o1 instanceof Boolean && o2 instanceof Boolean) {
-            return ((Boolean) o1).booleanValue() == ((Boolean) o2).booleanValue();
-        }
         return o1 == o2;
     }
 
-    // TODO: do we really need this?
     public static novah.function.Function<Integer, novah.function.Function<Integer, Object>> compareInt(Object lt, Object eq, Object gt) {
         return xx -> yy -> {
             int x = xx;
@@ -204,54 +179,6 @@ public class Core {
             int comp = x.compareTo(y);
             return comp == 0 ? eq : (comp < 0 ? lt : gt);
         };
-    }
-
-    public static boolean greaterInt(int i1, int i2) {
-        return i1 > i2;
-    }
-
-    public static boolean smallerInt(int i1, int i2) {
-        return i1 < i2;
-    }
-
-    public static boolean greaterOrEqualsInt(int i1, int i2) {
-        return i1 >= i2;
-    }
-
-    public static boolean smallerOrEqualsInt(int i1, int i2) {
-        return i1 <= i2;
-    }
-
-    public static boolean greaterLong(long i1, long i2) {
-        return i1 > i2;
-    }
-
-    public static boolean smallerLong(long i1, long i2) {
-        return i1 < i2;
-    }
-
-    public static boolean greaterOrEqualsLong(long i1, long i2) {
-        return i1 >= i2;
-    }
-
-    public static boolean smallerOrEqualsLong(long i1, long i2) {
-        return i1 <= i2;
-    }
-
-    public static boolean greaterDouble(double d1, double d2) {
-        return d1 > d2;
-    }
-
-    public static boolean smallerDouble(double d1, double d2) {
-        return d1 < d2;
-    }
-
-    public static boolean greaterOrEqualsDouble(double d1, double d2) {
-        return d1 >= d2;
-    }
-
-    public static boolean smallerOrEqualsDouble(double d1, double d2) {
-        return d1 <= d2;
     }
 
     public static byte[] mkByteArray(int size) {
@@ -441,10 +368,6 @@ public class Core {
 
     public static boolean not(boolean b) {
         return !b;
-    }
-
-    public static boolean listNotEmpty(List<?> list) {
-        return list.size() != 0;
     }
 
     public static <T> T listGet(int index, List<T> list) {
