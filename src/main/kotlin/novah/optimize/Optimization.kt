@@ -91,12 +91,7 @@ object Optimization {
         "\$slash" to "/"
     )
 
-    private val numericClasses = setOf(
-        "int",
-        "long",
-        "float",
-        "double",
-    )
+    private val numericClasses = 5..8
 
     private val longClass = Clazz(Type.LONG_TYPE)
 
@@ -143,7 +138,7 @@ object Optimization {
                     }
                     // optimize fully applied numeric operators like +, -, etc
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.className == coreMod
-                            && fn.fn.fn.name in binOps.keys && arg.type.type.className in numericClasses -> {
+                            && fn.fn.fn.name in binOps.keys && arg.type.type.sort in numericClasses -> {
                         Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize list access
@@ -174,55 +169,23 @@ object Optimization {
                     }
                     // optimize > for some types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gt"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(gtInt, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gt"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(gtLong, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gt"
-                            && arg.type.isFloat64() -> {
-                        Expr.NativeStaticMethod(gtDouble, listOf(fn.arg, arg), e.type, e.span)
+                            && arg.type.type.sort in numericClasses -> {
+                        Expr.OperatorApp(">", listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize < for some types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$lt"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(ltInt, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$lt"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(ltLong, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$lt"
-                            && arg.type.isFloat64() -> {
-                        Expr.NativeStaticMethod(ltDouble, listOf(fn.arg, arg), e.type, e.span)
+                            && arg.type.type.sort in numericClasses -> {
+                        Expr.OperatorApp("<", listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize >= for some types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gtEq"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(gtEqInt, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gtEq"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(gtEqLong, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gtEq"
-                            && arg.type.isFloat64() -> {
-                        Expr.NativeStaticMethod(gtEqDouble, listOf(fn.arg, arg), e.type, e.span)
+                            && arg.type.type.sort in numericClasses -> {
+                        Expr.OperatorApp(">=", listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize <= for some types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$ltEq"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(ltEqInt, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$ltEq"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(ltEqLong, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$ltEq"
-                            && arg.type.isFloat64() -> {
-                        Expr.NativeStaticMethod(ltEqDouble, listOf(fn.arg, arg), e.type, e.span)
+                            && arg.type.type.sort in numericClasses -> {
+                        Expr.OperatorApp("<=", listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize bitwise operations for Int and Long
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.bitNot" && arg.type.isInt32() -> {
@@ -342,18 +305,6 @@ object Optimization {
         it.name == "format" && it.parameterTypes[0] == String::class.java
     }!!
     private val vecNth = List::class.java.methods.find { it.name == "nth" }!!
-    private lateinit var gtInt: Method
-    private lateinit var ltInt: Method
-    private lateinit var gtEqInt: Method
-    private lateinit var ltEqInt: Method
-    private lateinit var gtLong: Method
-    private lateinit var ltLong: Method
-    private lateinit var gtEqLong: Method
-    private lateinit var ltEqLong: Method
-    private lateinit var gtDouble: Method
-    private lateinit var ltDouble: Method
-    private lateinit var gtEqDouble: Method
-    private lateinit var ltEqDouble: Method
     private lateinit var bitAndInt: Method
     private lateinit var bitOrInt: Method
     private lateinit var bitXorInt: Method
@@ -373,18 +324,6 @@ object Optimization {
     init {
         Core::class.java.methods.forEach {
             when (it.name) {
-                "greaterInt" -> gtInt = it
-                "smallerInt" -> ltInt = it
-                "greaterOrEqualsInt" -> gtEqInt = it
-                "smallerOrEqualsInt" -> ltEqInt = it
-                "greaterLong" -> gtLong = it
-                "smallerLong" -> ltLong = it
-                "greaterOrEqualsLong" -> gtEqLong = it
-                "smallerOrEqualsLong" -> ltEqLong = it
-                "greaterDouble" -> gtDouble = it
-                "smallerDouble" -> ltDouble = it
-                "greaterOrEqualsDouble" -> gtEqDouble = it
-                "smallerOrEqualsDouble" -> ltEqDouble = it
                 "bitAndInt" -> bitAndInt = it
                 "bitOrInt" -> bitOrInt = it
                 "bitXorInt" -> bitXorInt = it
