@@ -411,9 +411,6 @@ fun nestLets(binds: List<Pair<String, Expr>>, body: Expr, type: Clazz): Expr = w
 data class Clazz(val type: Type, val pars: List<Clazz> = emptyList(), val labels: LabelMap<Clazz>? = null) {
     fun isInt32() = type.sort == 5
     fun isInt64() = type.sort == 7
-    fun isFloat32() = type.sort == 6
-    fun isFloat64() = type.sort == 8
-    fun isString() = type.className == "java.lang.String"
     fun isFunction() = type.className == "novah.function.Function"
 
     override fun toString(): String {

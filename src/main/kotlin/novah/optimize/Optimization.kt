@@ -18,13 +18,9 @@ package novah.optimize
 import io.lacuna.bifurcan.List
 import novah.Core
 import novah.ast.optimized.*
+import novah.backend.TypeUtil.isPrimitive
 import novah.optimize.Optimizer.Companion.ARRAY_TYPE
 import novah.optimize.Optimizer.Companion.OBJECT_TYPE
-import novah.optimize.Optimizer.Companion.eqDouble
-import novah.optimize.Optimizer.Companion.eqFloat
-import novah.optimize.Optimizer.Companion.eqInt
-import novah.optimize.Optimizer.Companion.eqLong
-import novah.optimize.Optimizer.Companion.eqString
 import novah.range.*
 import novah.range.CharRange
 import novah.range.IntRange
@@ -76,6 +72,7 @@ object Optimization {
     private const val and = "\$and\$and"
     private const val or = "\$pipe\$pipe"
     private const val eq = "\$equals\$equals"
+    private const val neq = "\$bang\$equals"
     private const val rail = "\$pipe\$greater"
     private const val gt = "\$greater"
     private const val gtEq = "\$greater\$equals"
@@ -91,7 +88,7 @@ object Optimization {
         "\$slash" to "/"
     )
 
-    private val numericClasses = 5..8
+    private val numericClasses = 3..8
 
     private val longClass = Clazz(Type.LONG_TYPE)
 
@@ -146,43 +143,32 @@ object Optimization {
                         val toLongFn = Expr.NativeMethod(toLong, arg, listOf(), longClass, arg.span)
                         Expr.NativeMethod(vecNth, fn.arg, listOf(toLongFn), e.type, e.span)
                     }
-                    // optimize == for some types
+                    // optimize == for primitives types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(eqInt, listOf(fn.arg, arg), e.type, e.span)
+                            && arg.type.type.isPrimitive() -> {
+                        Expr.OperatorApp("==", listOf(fn.arg, arg), e.type, e.span)
                     }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(eqLong, listOf(fn.arg, arg), e.type, e.span)
+                    // optimize != for primitives types
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$neq"
+                            && arg.type.type.isPrimitive() -> {
+                        Expr.OperatorApp("!=", listOf(fn.arg, arg), e.type, e.span)
                     }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
-                            && arg.type.isFloat32() -> {
-                        Expr.NativeStaticMethod(eqFloat, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
-                            && arg.type.isFloat64() -> {
-                        Expr.NativeStaticMethod(eqDouble, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
-                            && arg.type.isString() -> {
-                        Expr.NativeMethod(eqString, arg, listOf(fn.arg), e.type, e.span)
-                    }
-                    // optimize > for some types
+                    // optimize > for numeric types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gt"
                             && arg.type.type.sort in numericClasses -> {
                         Expr.OperatorApp(">", listOf(fn.arg, arg), e.type, e.span)
                     }
-                    // optimize < for some types
+                    // optimize < for numeric types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$lt"
                             && arg.type.type.sort in numericClasses -> {
                         Expr.OperatorApp("<", listOf(fn.arg, arg), e.type, e.span)
                     }
-                    // optimize >= for some types
+                    // optimize >= for numeric types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$gtEq"
                             && arg.type.type.sort in numericClasses -> {
                         Expr.OperatorApp(">=", listOf(fn.arg, arg), e.type, e.span)
                     }
-                    // optimize <= for some types
+                    // optimize <= for numeric types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$ltEq"
                             && arg.type.type.sort in numericClasses -> {
                         Expr.OperatorApp("<=", listOf(fn.arg, arg), e.type, e.span)
