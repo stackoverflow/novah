@@ -482,7 +482,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         fun mkListSizeCheck(exp: Expr, size: Int): Expr {
             val sizeExp = Expr.NativeMethod(listSize, exp, emptyList(), longType, exp.span)
             val longe = Expr.Int64(size.toLong(), longType, exp.span)
-            return Expr.NativeStaticMethod(eqLong, listOf(sizeExp, longe), boolType, exp.span)
+            return Expr.OperatorApp("==", listOf(sizeExp, longe), boolType, exp.span)
         }
 
         fun mkListMinSizeCheck(exp: Expr, size: Int): Expr {
@@ -504,20 +504,11 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is Pattern.Var -> PatternResult(tru, listOf(VarDef(Names.convert(p.v.name), exp)))
             is Pattern.Unit -> PatternResult(tru)
             is Pattern.LiteralP -> {
-                val method = when (p.lit) {
-                    is LiteralPattern.Int32Literal -> eqInt
-                    is LiteralPattern.Int64Literal -> eqLong
-                    is LiteralPattern.Float32Literal -> eqFloat
-                    is LiteralPattern.Float64Literal -> eqDouble
-                    is LiteralPattern.CharLiteral -> eqChar
-                    is LiteralPattern.BoolLiteral -> eqBoolean
-                    is LiteralPattern.StringLiteral -> eqString
-                }
                 val lit = p.lit.e.convert(locals)
                 if (p.lit is LiteralPattern.StringLiteral) {
-                    PatternResult(Expr.NativeMethod(method, lit, listOf(exp), boolType, exp.span))
+                    PatternResult(Expr.NativeMethod(eqString, lit, listOf(exp), boolType, exp.span))
                 } else {
-                    PatternResult(Expr.NativeStaticMethod(method, listOf(exp, lit), boolType, exp.span))
+                    PatternResult(Expr.OperatorApp("==", listOf(lit, exp), boolType, exp.span))
                 }
             }
             is Pattern.Regex -> {
@@ -767,24 +758,6 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         private val listAccess = PList::class.java.methods.find { it.name == "nth" }!!
         private val listDrop = Core::class.java.methods.find { it.name == "listDrop" }!!
         private val listMinSize = Core::class.java.methods.find { it.name == "listMinSize" }!!
-        private val eqInt = Core::class.java.methods.find {
-            it.name == "equivalent" && it.parameterTypes[0] == Int::class.java
-        }!!
-        private val eqLong = Core::class.java.methods.find {
-            it.name == "equivalent" && it.parameterTypes[0] == Long::class.java
-        }!!
-        private val eqFloat = Core::class.java.methods.find {
-            it.name == "equivalent" && it.parameterTypes[0] == Float::class.java
-        }!!
-        private val eqDouble = Core::class.java.methods.find {
-            it.name == "equivalent" && it.parameterTypes[0] == Double::class.java
-        }!!
-        private val eqChar = Core::class.java.methods.find {
-            it.name == "equivalent" && it.parameterTypes[0] == Char::class.java
-        }!!
-        private val eqBoolean = Core::class.java.methods.find {
-            it.name == "equivalent" && it.parameterTypes[0] == Boolean::class.java
-        }!!
         private val eqString = String::class.java.methods.find { it.name == "equals" }!!
         val newRecFun: Constructor<*> = RecFunction::class.java.constructors.first()
         val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
