@@ -378,6 +378,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         }
         is SExpr.BinApp -> {
             if (op is SExpr.Operator && op.name == "<-") {
+                // Java field setter
                 desugarSetter(left.desugar(locals, tvars), right.desugar(locals, tvars), span)
             } else {
                 val args = listOf(left, right).map {
@@ -386,8 +387,15 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                         Binder(v, it.span) to Expr.Var(v, it.span)
                     } else null to it.desugar(locals, tvars)
                 }
-                val inner = Expr.App(op.desugar(locals, tvars), args[0].second, Span.new(left.span, op.span))
-                val app = Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
+                val ope = op.desugar(locals, tvars)
+                val app = if (ope is Expr.Var && ope.fullname() == "novah.core.|>") { // operator |>
+                    Expr.App(args[1].second, args[0].second, Span.new(left.span, right.span))
+                } else if (ope is Expr.Var && ope.fullname() == "novah.core.<|") { // operator <|
+                    Expr.App(args[0].second, args[1].second, Span.new(left.span, right.span))
+                } else {
+                    val inner = Expr.App(ope, args[0].second, Span.new(left.span, op.span))
+                    Expr.App(inner, args[1].second, Span.new(inner.span, right.span))
+                }
                 nestLambdas(args.mapNotNull { it.first }, app)
             }
         }
