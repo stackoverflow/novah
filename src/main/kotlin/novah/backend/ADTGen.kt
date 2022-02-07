@@ -95,7 +95,7 @@ class ADTGen(
         val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)
         cw.visit(
             NOVAH_GENCLASS_VERSION,
-            ACC_PUBLIC + ACC_FINAL + ACC_RECORD,
+            ACC_PUBLIC + ACC_RECORD,
             className,
             sig,
             superClass,
@@ -156,8 +156,10 @@ class ADTGen(
             val l1 = Label()
             ct.visitLabel(l1)
             ct.visitLocalVariable("this", descriptor(className), null, l0, l1, 0)
-            args.forEachIndexed { i, clazz ->
-                ct.visitLocalVariable("v${i + 1}", clazz.type.descriptor, null, l0, l1, i + 1)
+            index = 1
+            args.forEachIndexed { i, type ->
+                ct.visitLocalVariable("v${i + 1}", type.type.descriptor, null, l0, l1, index)
+                if (type.type.isDouble() || type.type.isLong()) index += 2 else index++
             }
             ct.visitMaxs(0, 0)
             ct.visitEnd()
@@ -253,8 +255,10 @@ class ADTGen(
                 }
                 lam.visitMethodInsn(INVOKESPECIAL, className, INIT, ctorDesc, false)
             } else {
+                var index = 0
                 (appliedTypes + nextArg).forEachIndexed { i, clazz ->
-                    lam.visitVarInsn(clazz.type.getOpcode(ILOAD), i)
+                    lam.visitVarInsn(clazz.type.getOpcode(ILOAD), index)
+                    if (clazz.type.isDouble() || clazz.type.isLong()) index += 2 else index++
                 }
                 createLambda(lam, className, appliedTypes + nextArg, toApplyTypes.drop(1))
             }
