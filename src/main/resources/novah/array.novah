@@ -37,7 +37,7 @@ fromStream = Stream.toArray
 
 /**
  * Returns some value at index for this array if it exists or none.
- * This is a safe version of `arrayGet`.
+ * This is a safe version of `aget`.
  * Runtime: O(1)
  */
 pub
