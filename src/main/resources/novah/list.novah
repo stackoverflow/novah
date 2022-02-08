@@ -7,7 +7,9 @@ module novah.list
 
 foreign import java.lang.Class
 foreign import java.util.Arrays
+foreign import java.util.Collections
 foreign import java.util.Comparator
+foreign import java.util.concurrent.ThreadLocalRandom
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.IList
 foreign import novah.Core
@@ -153,6 +155,33 @@ empty? list = list#size() == 0L
 pub
 notEmpty? : List a -> Boolean
 notEmpty? list = list#size() != 0L
+
+/**
+ * Returns a random element of this list if the list is not empty.
+ * Runtime: O(1)
+ */
+pub
+randNth : List a -> Option a
+randNth = case _ of
+  [] -> None
+  [x] -> Some x
+  list ->
+    let i = ThreadLocalRandom#current()#nextInt(size list)
+    Some list.[i]
+
+/**
+ * Returns a list with the same values as the input list in random order.
+ * Runtime: O(n)
+ */
+pub
+shuffle : List a -> List a
+shuffle list = case list of
+  [] -> list
+  [_] -> list
+  l ->
+    let arr = Arrays#asList(l#toArray())
+    Collections#shuffle(arr)
+    List#`of`(arr#toArray()) as List a
 
 /**
  * Converts this list into a typed array.

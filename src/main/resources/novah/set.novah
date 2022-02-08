@@ -5,6 +5,7 @@
 module novah.set
 
 foreign import java.lang.Iterable
+foreign import java.util.concurrent.ThreadLocalRandom
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.ISet
 foreign import io.lacuna.bifurcan.Maps
@@ -80,6 +81,18 @@ nth index set =
   if index < 0 || index >= len
     then None
     else Some set#nth(index#longValue())
+
+/**
+ * Returns a random element of this set if the set is not empty.
+ * Runtime: O(1)
+ */
+pub
+randNth : Set a -> Option a
+randNth set =
+  if empty? set then None
+  else
+    let i = ThreadLocalRandom#current()#nextInt(size set)
+    Some set#nth(i#longValue())
 
 /**
  * Returns the union of these 2 sets.
