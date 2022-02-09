@@ -28,7 +28,7 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.util.concurrent.CompletableFuture
 
-class RerefencesFeature(private val server: NovahServer) {
+class ReferencesFeature(private val server: NovahServer) {
 
     /**
      * Finds all references to the symbol at the cursor.
