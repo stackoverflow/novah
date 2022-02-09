@@ -25,6 +25,7 @@ import novah.main.Environment
 import novah.main.Options
 import novah.main.Source
 import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.jsonrpc.Endpoint
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import java.io.File
@@ -43,14 +44,14 @@ import kotlin.system.exitProcess
 
 class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClientAware {
 
-    private var logger: IdeLogger? = null
-    private var root: String? = null
+    private lateinit var logger: IdeLogger
+    private lateinit var root: String
     private var lastSuccessfulEnv: Environment? = null
     private val fileWatcher = Executors.newSingleThreadExecutor()
     private val paths = ConcurrentHashMap<String, String>()
     private var runningEnv = CompletableFuture<EnvResult>()
 
-    private var client: LanguageClient? = null
+    private lateinit var client: LanguageClient
     private var errorCode = 1
 
     private var workspaceService: NovahWorkspaceService = NovahWorkspaceService(this)
@@ -58,45 +59,47 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     override fun initialize(params: InitializeParams): CompletableFuture<InitializeResult> {
         if (params.workspaceFolders.isEmpty()) {
-            logger!!.error("no root supplied")
+            logger.error("no root supplied")
             exitProcess(1)
         }
 
         root = params.workspaceFolders[0].uri
 
-        logger!!.info("starting server on $root")
+        logger.info("starting server on $root")
 
-        val initializeResult = InitializeResult(ServerCapabilities())
-        initializeResult.capabilities.textDocumentSync = Either.forLeft(TextDocumentSyncKind.Full)
+        val res = InitializeResult(ServerCapabilities())
+        res.capabilities.textDocumentSync = Either.forLeft(TextDocumentSyncKind.Full)
 
         // Hover capability
-        initializeResult.capabilities.setHoverProvider(true)
+        res.capabilities.setHoverProvider(true)
         // Formatting capability
-        initializeResult.capabilities.setDocumentFormattingProvider(true)
+        res.capabilities.setDocumentFormattingProvider(true)
         // Document symbols capability
-        initializeResult.capabilities.setDocumentSymbolProvider(true)
+        res.capabilities.setDocumentSymbolProvider(true)
         // Folding capability
-        initializeResult.capabilities.setFoldingRangeProvider(true)
+        res.capabilities.setFoldingRangeProvider(true)
         // Completion capability
-        initializeResult.capabilities.completionProvider = CompletionOptions(false, listOf(".", "#"))
+        res.capabilities.completionProvider = CompletionOptions(false, listOf(".", "#"))
         // Semantic tokens capability
         val semOpts =
             SemanticTokensWithRegistrationOptions(SemanticTokensFeature.legend, SemanticTokensServerFull(false))
-        initializeResult.capabilities.semanticTokensProvider = semOpts
+        res.capabilities.semanticTokensProvider = semOpts
         // Go to definition capability
-        initializeResult.capabilities.definitionProvider = Either.forLeft(true)
+        res.capabilities.definitionProvider = Either.forLeft(true)
         // Code actions capability
         val caOpts = CodeActionOptions(mutableListOf("quickfix"))
-        initializeResult.capabilities.codeActionProvider = Either.forRight(caOpts)
+        res.capabilities.codeActionProvider = Either.forRight(caOpts)
         // Find references capability
-        initializeResult.capabilities.referencesProvider = Either.forLeft(true)
+        res.capabilities.referencesProvider = Either.forLeft(true)
         // Rename capability
         val renOpt = RenameOptions(true)
-        initializeResult.capabilities.renameProvider = Either.forRight(renOpt)
+        res.capabilities.renameProvider = Either.forRight(renOpt)
+        // Code lens capability
+        res.capabilities.codeLensProvider = CodeLensOptions(false)
 
         // see if there's a project created and save the class/sourcepaths
-        val hasProject = checkNovahProject(root!!)
-        if (hasProject) fileWatcher.submit { watchClasspathChanges(root!!) }
+        val hasProject = checkNovahProject(root)
+        if (hasProject) fileWatcher.submit { watchClasspathChanges(root) }
 
         // initial build
         runningEnv = CompletableFuture.supplyAsync { build(null) }
@@ -104,7 +107,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         // unpack stdlib
         unpackStdlib()
 
-        return CompletableFuture.supplyAsync { initializeResult }
+        return CompletableFuture.supplyAsync { res }
     }
 
     override fun shutdown(): CompletableFuture<Any> {
@@ -133,7 +136,9 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
 
     fun lastSuccessfulEnv() = lastSuccessfulEnv
 
-    fun logger(): IdeLogger = logger!!
+    fun logger(): IdeLogger = logger
+
+    fun client(): Endpoint = client as Endpoint
 
     fun addChange(uri: String, text: String? = null) {
         runningEnv = CompletableFuture.supplyAsync { build(FileChange(uri, text)) }
@@ -147,7 +152,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val diag = diags[uri] ?: listOf()
         //logger().log("publishing diagnostics for $uri")
         val params = PublishDiagnosticsParams(uri, diag)
-        client!!.publishDiagnostics(params)
+        client.publishDiagnostics(params)
     }
 
     private fun saveDiagnostics(errors: Set<CompilerProblem>) {
@@ -172,7 +177,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     }
 
     private fun build(change: FileChange?): EnvResult {
-        val rootPath = IdeUtil.uriToFile(root!!)
+        val rootPath = IdeUtil.uriToFile(root)
         val sources = rootPath.walkTopDown().filter { it.isFile && it.extension == "novah" }
             .map {
                 val path = Path.of(it.absolutePath)
@@ -215,14 +220,14 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
     private fun checkNovahProject(rootPath: String): Boolean {
         fun storeSources(cpfile: File, spfile: File): Boolean {
             return try {
-                logger!!.info("storing class and source paths")
+                logger.info("storing class and source paths")
                 val cp = cpfile.readText(Charsets.UTF_8)
                 val sp = spfile.readText(Charsets.UTF_8)
                 paths["classpath"] = cp
                 paths["sourcepath"] = sp
                 true
             } catch (_: IOException) {
-                logger!!.error("error reading test classpath")
+                logger.error("error reading test classpath")
                 false
             }
         }
@@ -257,7 +262,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
             val key = watcher.take()
             // we don't care what actually changed, just re-read the file
             key.pollEvents()
-            logger!!.info("change detected in class path cache")
+            logger.info("change detected in class path cache")
             paths.clear()
             checkNovahProject(rootPath)
             poll = key.reset()

@@ -30,8 +30,9 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
     private val semanticTokens = SemanticTokensFeature(server)
     private val completion = CompletionFeature(server)
     private val gotoDefinition = GotoDefinitionFeature(server)
-    private val references = RerefencesFeature(server)
+    private val references = ReferencesFeature(server)
     val codeAction = CodeActionFeature(server)
+    private val codeLens = CodeLensFeature(server)
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val uri = params.textDocument.uri
@@ -105,5 +106,9 @@ class NovahTextDocumentService(private val server: NovahServer) : TextDocumentSe
 
     override fun rename(params: RenameParams): CompletableFuture<WorkspaceEdit> {
         return references.onRename(params)
+    }
+
+    override fun codeLens(params: CodeLensParams): CompletableFuture<MutableList<out CodeLens>> {
+        return codeLens.onCodeLens(params)
     }
 }
