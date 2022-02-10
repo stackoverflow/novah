@@ -507,6 +507,18 @@ public class Core {
         return list.size() >= minSize;
     }
 
+    public static <T> int listSize(List<T> list) {
+        return (int) list.size();
+    }
+
+    public static <T> int setSize(Set<T> set) {
+        return (int) set.size();
+    }
+
+    public static <K, V> int mapSize(Map<K, V> map) {
+        return (int) map.size();
+    }
+
     public static <T> boolean equalsList(List<T> v1, List<T> v2, novah.function.Function<T, novah.function.Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
         if (v1.hashCode() == v2.hashCode()) return true;

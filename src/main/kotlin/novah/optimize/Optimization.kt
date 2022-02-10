@@ -169,59 +169,54 @@ object Optimization {
                         Expr.OperatorApp("<=", listOf(fn.arg, arg), e.type, e.span)
                     }
                     // optimize bitwise operations for Int and Long
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.bitNot" && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(bitNotInt, listOf(arg), e.type, e.span)
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.bitNot" -> {
+                        if (arg.type.isInt32())
+                            Expr.NativeStaticMethod(bitNotInt, listOf(arg), e.type, e.span)
+                        else if (arg.type.isInt64())
+                            Expr.NativeStaticMethod(bitNotLong, listOf(arg), e.type, e.span)
+                        else e
                     }
-                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.bitNot" && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(bitNotLong, listOf(arg), e.type, e.span)
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitAnd" -> {
+                        if (arg.type.isInt32())
+                            Expr.NativeStaticMethod(bitAndInt, listOf(fn.arg, arg), e.type, e.span)
+                        else if (arg.type.isInt64())
+                            Expr.NativeStaticMethod(bitAndLong, listOf(fn.arg, arg), e.type, e.span)
+                        else e
                     }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitAnd"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(bitAndInt, listOf(fn.arg, arg), e.type, e.span)
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitOr" -> {
+                        if (arg.type.isInt32())
+                            Expr.NativeStaticMethod(bitOrInt, listOf(fn.arg, arg), e.type, e.span)
+                        else if (arg.type.isInt64())
+                            Expr.NativeStaticMethod(bitOrLong, listOf(fn.arg, arg), e.type, e.span)
+                        else e
                     }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitAnd"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(bitAndLong, listOf(fn.arg, arg), e.type, e.span)
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitXor" -> {
+                        if (arg.type.isInt32())
+                            Expr.NativeStaticMethod(bitXorInt, listOf(fn.arg, arg), e.type, e.span)
+                        else if (arg.type.isInt64())
+                            Expr.NativeStaticMethod(bitXorLong, listOf(fn.arg, arg), e.type, e.span)
+                        else e
                     }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitOr"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(bitOrInt, listOf(fn.arg, arg), e.type, e.span)
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftLeft" -> {
+                        if (arg.type.isInt32())
+                            Expr.NativeStaticMethod(bitShiftLeftInt, listOf(fn.arg, arg), e.type, e.span)
+                        else if (arg.type.isInt64())
+                            Expr.NativeStaticMethod(bitShiftLeftLong, listOf(fn.arg, arg), e.type, e.span)
+                        else e
                     }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitOr"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(bitOrLong, listOf(fn.arg, arg), e.type, e.span)
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftRight" -> {
+                        if (arg.type.isInt32())
+                            Expr.NativeStaticMethod(bitShiftRightInt, listOf(fn.arg, arg), e.type, e.span)
+                        else if (arg.type.isInt64())
+                            Expr.NativeStaticMethod(bitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
+                        else e
                     }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitXor"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(bitXorInt, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitXor"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(bitXorLong, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftLeft"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(bitShiftLeftInt, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftLeft"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(bitShiftLeftLong, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftRight"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(bitShiftRightInt, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitShiftRight"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(bitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitUnsignedShiftRight"
-                            && arg.type.isInt32() -> {
-                        Expr.NativeStaticMethod(unsignedBitShiftRightInt, listOf(fn.arg, arg), e.type, e.span)
-                    }
-                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitUnsignedShiftRight"
-                            && arg.type.isInt64() -> {
-                        Expr.NativeStaticMethod(unsignedBitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
+                    fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.bitUnsignedShiftRight" -> {
+                        if (arg.type.isInt32())
+                            Expr.NativeStaticMethod(unsignedBitShiftRightInt, listOf(fn.arg, arg), e.type, e.span)
+                        else if (arg.type.isInt64())
+                            Expr.NativeStaticMethod(unsignedBitShiftRightLong, listOf(fn.arg, arg), e.type, e.span)
+                        else e
                     }
                     // optimize `forEachRange`
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.forEachRange" -> {
@@ -241,9 +236,16 @@ object Optimization {
                     fn is Var && fn.fullname() == "$coreMod.rangeToSet" -> {
                         Expr.NativeMethod(rangeToSet, arg, emptyList(), e.type, e.span)
                     }
-                    // optimize `Array.size array` to `array.length`
-                    fn is Var && fn.fullname() == "novah/array/\$Module.size" -> {
-                        Expr.ArrayLength(arg, e.type, e.span)
+                    // optimize `len` function
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.len" -> {
+                        when {
+                            arg.type.isString() -> Expr.NativeMethod(stringLength, arg, emptyList(), e.type, e.span)
+                            arg.type.isList() -> Expr.NativeStaticMethod(listSize, listOf(arg), e.type, e.span)
+                            arg.type.isSet() -> Expr.NativeStaticMethod(setSize, listOf(arg), e.type, e.span)
+                            arg.type.isMap() -> Expr.NativeStaticMethod(mapSize, listOf(arg), e.type, e.span)
+                            arg.type.isArray() -> Expr.ArrayLength(arg, arg.type, e.span)
+                            else -> e
+                        }
                     }
                     // optimize `not`
                     fn is Var && fn.fullname() == "$coreMod.not" -> {
@@ -301,6 +303,9 @@ object Optimization {
     private lateinit var bitShiftRightLong: Method
     private lateinit var unsignedBitShiftRightLong: Method
     private lateinit var negate: Method
+    private lateinit var listSize: Method
+    private lateinit var setSize: Method
+    private lateinit var mapSize: Method
 
     init {
         Core::class.java.methods.forEach {
@@ -320,9 +325,13 @@ object Optimization {
                 "bitShiftRightLong" -> bitShiftRightLong = it
                 "unsignedBitShiftRightLong" -> unsignedBitShiftRightLong = it
                 "not" -> negate = it
+                "listSize" -> listSize = it
+                "setSize" -> setSize = it
+                "mapSize" -> mapSize = it
             }
         }
     }
+
     private val toLong = java.lang.Integer::class.java.methods.find { it.name == "longValue" }!!
     private val newIntRange = IntRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newIntOpenRange = IntOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
@@ -335,6 +344,7 @@ object Optimization {
     private val forEachRange = Range::class.java.methods.find { it.name == "foreach" }!!
     private val rangeToList = Range::class.java.methods.find { it.name == "toList" }!!
     private val rangeToSet = Range::class.java.methods.find { it.name == "toSet" }!!
+    private val stringLength = String::class.java.methods.find { it.name == "length" }!!
 }
 
 private typealias App = Expr.App

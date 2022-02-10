@@ -14,6 +14,8 @@
 - [ ] Add `Ord` requirement to `NumberOps`
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
+- [ ] Allow nested if elses
+- [ ] Improve comments
 - [ ] This was not supposed to type check:
       ```
       findIndex : (a -> Boolean) -> List a -> Option Int32

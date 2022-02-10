@@ -77,8 +77,8 @@ notEmpty? set = set#size() != 0L
 pub
 nth : Int32 -> Set a -> Option a
 nth index set =
-  let len = set#size()#intValue()
-  if index < 0 || index >= len
+  let length = set#size()#intValue()
+  if index < 0 || index >= length
     then None
     else Some set#nth(index#longValue())
 

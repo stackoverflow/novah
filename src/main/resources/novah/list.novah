@@ -102,8 +102,8 @@ mapSome f = map f >> removeNones
 pub
 nth : Int32 -> List a -> Option a
 nth index list =
-  let len = list#size()#intValue()
-  if index < 0 || index >= len
+  let length = list#size()#intValue()
+  if index < 0 || index >= length
     then None
     else Some list.[index]
 
@@ -402,9 +402,9 @@ take n list =
 pub
 drop : Int32 -> List a -> List a
 drop n list =
-  let len = list#size()#intValue()
-  let actualN = Math.min n len
-  slice actualN len list
+  let length = list#size()#intValue()
+  let actualN = Math.min n length
+  slice actualN length list
 
 /**
  * Keeps taking elements of this list while the predicate holds.
@@ -957,9 +957,9 @@ zipWith fun l1 l2 =
 pub
 zipAll : List (List a) -> List (List a)
 zipAll list =
-  let len = (map size list |> min) ?: 0
+  let length = (map size list |> min) ?: 0
   let res = []#linear()
-  forEachRange (0 ... len) \i ->
+  forEachRange (0 ... length) \i ->
     addLast (map (_ ! i) list) res
     ()
   res#forked()

@@ -42,7 +42,7 @@ class CodeLensFeature(private val server: NovahServer) {
     private fun findSignatureLenses(menv: FullModuleEnv): MutableList<CodeLens> {
         val lenses = mutableListOf<CodeLens>()
         for (decl in menv.ast.decls) {
-            if (decl is Decl.ValDecl && decl.signature == null) {
+            if (decl is Decl.ValDecl && decl.signature == null && decl.exp.type != null) {
                 val range = IdeUtil.spanToRange(decl.name.span)
                 val type = decl.exp.type!!.show(qualified = false)
                 val title = "${decl.name.value} : $type"

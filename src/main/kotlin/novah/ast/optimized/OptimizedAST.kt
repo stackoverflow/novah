@@ -412,6 +412,11 @@ data class Clazz(val type: Type, val pars: List<Clazz> = emptyList(), val labels
     fun isInt32() = type.sort == 5
     fun isInt64() = type.sort == 7
     fun isFunction() = type.className == "novah.function.Function"
+    fun isString() = type.className == "java.lang.String"
+    fun isArray() = type.descriptor.startsWith("[")
+    fun isList() = type.className == "io.lacuna.bifurcan.List"
+    fun isSet() = type.className == "io.lacuna.bifurcan.Set"
+    fun isMap() = type.className == "io.lacuna.bifurcan.Map"
 
     override fun toString(): String {
         var ty = type.className
