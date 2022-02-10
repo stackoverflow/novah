@@ -14,9 +14,7 @@ import novah.java as Java
 import novah.option as Option
 import novah.list as List
 
-/**
- * Creates a new map with the supplied entries.
- */
+// Creates a new map with the supplied entries.
 pub
 new : List (Tuple k v) -> Map k v
 new list =
@@ -131,6 +129,7 @@ keys map = map#keys()
 
 /**
  * Returns a list of all values in this map.
+ * Runtime: O(n)
  */
 pub
 values : Map k v -> List v
@@ -167,6 +166,10 @@ filter pred map =
       ()
   lmap#forked()
 
+/**
+ * Folds this map into a single value according to the folding function.
+ * Runtime: O(n)
+ */
 pub
 foldl : (b -> k -> v -> b) -> b -> Map k v -> b
 foldl fun init map =

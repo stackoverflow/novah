@@ -20,9 +20,7 @@ import novah.stream as S
 import novah.option as O
 import novah.math as Math
 
-/**
- * Returns a stream for this list.
- */
+// Returns a stream for this list.
 pub
 stream : List a -> Stream a
 stream list = (list as IList a)#stream()
@@ -294,9 +292,7 @@ findIndex pred list =
     else if pred list.[i] then Some i else go (i + 1)
   go 0
 
-/**
- * Sorts this list according to the comparing function.
- */
+// Sorts this list according to the comparing function.
 pub
 sortWith : (a -> a -> Ordering) -> List a -> List a
 sortWith cmp =
@@ -309,9 +305,7 @@ sortWith cmp =
       Arrays#sort(arr, comp as Comparator Object)
       List#`of`(arr) as List a
 
-/**
- * Sorts this list according to the element's Ord instance.
- */
+// Sorts this list according to the element's Ord instance.
 pub
 sort : {{ Ord a }} -> List a -> List a
 sort {{Ord _ ord}} = sortWith ord.compare

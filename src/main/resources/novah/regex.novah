@@ -11,23 +11,17 @@ foreign import java.util.regex.Pattern
 
 import novah.list as List
 
-/**
- * Compiles this string into a regular expression.
- */
+// Compiles this string into a regular expression.
 pub
 new : String -> Pattern
 new pat = Pattern#compile(pat)
 
-/**
- * Compiles this string and flags into a regular expression.
- */
+// Compiles this string and flags into a regular expression.
 pub
 withFlags : String -> Int32 -> Pattern
 withFlags pat flags = Pattern#compile(pat, flags)
 
-/**
- * Returns a matcher for the given regex and string.
- */
+// Returns a matcher for the given regex and string.
 pub
 matcher : Pattern -> String -> Matcher
 matcher pat str = pat#matcher(str as CharSequence)
@@ -84,18 +78,14 @@ find? pat str =
   let mat = matcher pat str
   mat#find()
 
-/**
- * Returns true if this regex matches the whole input string.
- */
+// Returns true if this regex matches the whole input string.
 pub
 matches? : Pattern -> String -> Boolean
 matches? pat str =
   let mat = matcher pat str
   mat#matches()
 
-/**
- * Splits this string around matches of this pattern.
- */
+// Splits this string around matches of this pattern.
 pub
 split : Pattern -> String -> List String
 split pat str = pat#split(str as CharSequence) |> List.fromArray

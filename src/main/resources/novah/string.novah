@@ -9,37 +9,27 @@ import novah.set as Set
 foreign import java.lang.CharSequence
 foreign import java.lang.StringBuilder
 
-/**
- * Returns true if this string is empty or only contains whitespace codepoints.
- */
+// Returns true if this string is empty or only contains whitespace codepoints.
 pub
 blank? : String -> Boolean
 blank? s = s#isBlank()
 
-/**
- * Returns true if this string is not empty or only contains whitespace codepoints.
- */
+// Returns true if this string is not empty or only contains whitespace codepoints.
 pub
 notBlank? : String -> Boolean
 notBlank? s = not s#isBlank()
 
-/**
- * Returns true if this string is empty.
- */
+// Returns true if this string is empty.
 pub
 empty? : String -> Boolean
 empty? s = s#isEmpty()
 
-/**
- * Returns true if this string is not empty.
- */
+// Returns true if this string is not empty.
 pub
 notEmpty? : String -> Boolean
 notEmpty? s = not s#isEmpty()
 
-/**
- * Returns the size of this string.
- */
+// Returns the size of this string.
 pub
 size : String -> Int32
 size s = s#length()
@@ -52,30 +42,22 @@ pub
 lastIndex : String -> Int32
 lastIndex s = s#length() - 1
 
-/**
- * Returns a lower case version of this string.
- */
+// Returns a lower case version of this string.
 pub
 lowerCase : String -> String
 lowerCase str = str#toLowerCase()
 
-/**
- * Returns a upper case version of this string.
- */
+// Returns a upper case version of this string.
 pub
 upperCase : String -> String
 upperCase str = str#toUpperCase()
 
-/**
- * Returns true if this string starts with prefix.
- */
+// Returns true if this string starts with prefix.
 pub
 startsWith? : String -> String -> Boolean
 startsWith? prefix str = str#startsWith(prefix)
 
-/**
- * Returns true if this string ends with suffix.
- */
+// Returns true if this string ends with suffix.
 pub
 endsWith? : String -> String -> Boolean
 endsWith? suffix str = str#endsWith(suffix)
@@ -88,59 +70,43 @@ pub
 substring : Int32 -> Int32 -> String -> String
 substring begin end str = str#substring(begin, end)
 
-/**
- * Returns a substring from the given string starting from begin.
- */
+// Returns a substring from the given string starting from begin.
 pub
 startFrom : Int32 -> String -> String
 startFrom begin str = str#substring(begin)
 
-/**
- * Encodes this string into an array of bytes using the platform's default charset.
- */
+// Encodes this string into an array of bytes using the platform's default charset.
 pub
 getBytes : String -> ByteArray
 getBytes str = str#getBytes()
 
-/**
- * Joins all strings in this list separated by delimiter.
- */
+// Joins all strings in this list separated by delimiter.
 pub
 join : String -> List String -> String
 join delimiter list =
   String#join(delimiter as CharSequence, List.toTypedArray CharSequence#-class (list as List CharSequence))
 
-/**
- * Returns this string with all leading and trailing white spaces removed.
- */
+// Returns this string with all leading and trailing white spaces removed.
 pub
 strip : String -> String
 strip str = str#strip()
 
-/**
- * Returns this string with all leading white spaces removed.
- */
+// Returns this string with all leading white spaces removed.
 pub
 stripl : String -> String
 stripl str = str#stripLeading()
 
-/**
- * Returns this string with all trailing white spaces removed.
- */
+// Returns this string with all trailing white spaces removed.
 pub
 stript : String -> String
 stript str = str#stripTrailing()
 
-/**
- * Returns a string that represents the input string repeated n times.
- */
+// Returns a string that represents the input string repeated n times.
 pub
 repeat : Int32 -> String -> String
 repeat n str = str#repeat(n)
 
-/**
- * Returns this string with the first character converted to upper-case and the rest converted to lower-case.
- */
+// Returns this string with the first character converted to upper-case and the rest converted to lower-case.
 pub
 capitalize : String -> String
 capitalize str =
@@ -278,9 +244,7 @@ find pred str =
 
   go 0
 
-/**
- * Finds the first index in this string to which predicate returns true.
- */
+// Finds the first index in this string to which predicate returns true.
 pub
 findIndex : (Char -> Boolean) -> String -> Int32
 findIndex pred str =
@@ -291,16 +255,12 @@ findIndex pred str =
 
   go 0
 
-/**
- * Drops the first n chars from this string.
- */
+// Drops the first n chars from this string.
 pub
 drop : Int32 -> String -> String
 drop = startFrom
 
-/**
- * Takes the first n chars from this string.
- */
+// Takes the first n chars from this string.
 pub
 take : Int32 -> String -> String
 take n str = substring 0 n str
@@ -329,23 +289,17 @@ dropWhile pred str =
     |> List.dropWhile pred
     |> fromList
 
-/**
- * Replaces all occurrences of old char with new.
- */
+// Replaces all occurrences of old char with new.
 pub
 replaceChar : Char -> Char -> String -> String
 replaceChar old new str = str#replace(old, new)
 
-/**
- * Replaces all substrings of this string that matches target with the given replacement. 
- */
+// Replaces all substrings of this string that matches target with the given replacement.
 pub
 replace : String -> String -> String -> String
 replace target repl str = str#replace(target as CharSequence, repl as CharSequence)
 
-/**
- * Returns this string reversed.
- */
+// Returns this string reversed.
 pub
 reverse : String -> String
 reverse str =

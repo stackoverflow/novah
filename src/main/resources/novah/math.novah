@@ -5,177 +5,127 @@ module novah.math
 
 foreign import java.lang.Math
 
-/**
- * The base of natural logarithms.
- */
+// The base of natural logarithms.
 pub
 e : Float64
 e = Math#-`E`
 
-/**
- * The ratio of the circumference of a circle to its diameter.
- */
+// The ratio of the circumference of a circle to its diameter.
 pub
 pi : Float64
 pi = Math#-`PI`
 
-/**
- * Returns the smaller of two numbers.
- */
+// Returns the smaller of two numbers.
 pub
 min : {{ NumberOps a }} -> a -> a -> a
 min {{NumberOps ops}} x y = ops.min x y
 
-/**
- * Returns the bigger of two numbers.
- */
+// Returns the bigger of two numbers.
 pub
 max : {{ NumberOps a }} -> a -> a -> a
 max {{NumberOps ops}} x y = ops.max x y
 
-/**
- * Returns the absolute value of the input.
- */
+// Returns the absolute value of the input.
 pub
 abs : {{ NumberOps a }} -> a -> a
 abs {{NumberOps ops}} x = ops.abs x
 
-/**
- * Returns true if this number is odd.
- */
+// Returns true if this number is odd.
 pub
 odd? : {{ NumberOps a }} -> a -> Boolean
 odd? {{NumberOps r}} x = not (r.even x)
 
-/**
- * Returns true if this number is even.
- */
+// Returns true if this number is even.
 pub
 even? : {{ NumberOps a }} -> a -> Boolean
 even? {{NumberOps r}} x = r.even x
 
-/**
- * Returns n clamped between min and max.
- */
+// Returns n clamped between min and max.
 pub
 clamp : {{ NumberOps a }} -> a -> a -> a -> a
 clamp {{NumberOps ops}} min_ max_ n = min max_ (max min_ n)
 
-/**
- * Returns the trigonometric sine of an angle (in radians).
- */
+// Returns the trigonometric sine of an angle (in radians).
 pub
 sin : Float64 -> Float64
 sin x = Math#sin(x)
 
-/**
- * Returns the trigonometric cosine of an angle (in radians).
- */
+// Returns the trigonometric cosine of an angle (in radians).
 pub
 cos : Float64 -> Float64
 cos x = Math#cos(x)
 
-/**
- * Returns the trigonometric tangent of an angle (in radians).
- */
+// Returns the trigonometric tangent of an angle (in radians).
 pub
 tan : Float64 -> Float64
 tan x = Math#tan(x)
 
-/**
- * Returns the arc sine of a value; the returned angle is in the range -pi/2 through pi/2.
- */
+// Returns the arc sine of a value; the returned angle is in the range -pi/2 through pi/2.
 pub
 asin : Float64 -> Float64
 asin x = Math#asin(x)
 
-/**
- * Returns the arc cosine of a value; the returned angle is in the range 0.0 through pi.
- */
+// Returns the arc cosine of a value; the returned angle is in the range 0.0 through pi.
 pub
 acos : Float64 -> Float64
 acos x = Math#acos(x)
 
-/**
- * Returns the arc tangent of a value; the returned angle is in the range -pi/2 through pi/2.
- */
+// Returns the arc tangent of a value; the returned angle is in the range -pi/2 through pi/2.
 pub
 atan : Float64 -> Float64
 atan x = Math#atan(x)
 
-/**
- * Converts an angle in degrees to its approximation in radians.
- */
+// Converts an angle in degrees to its approximation in radians.
 pub
 toRadians : Float64 -> Float64
 toRadians angle = Math#toRadians(angle)
 
-/**
- * Converts an angle in radians to its approximation in degrees.
- */
+// Converts an angle in radians to its approximation in degrees.
 pub
 toDegrees : Float64 -> Float64
 toDegrees angle = Math#toDegrees(angle)
 
-/**
- * Returns Euler's number e raised to the power of x.
- */
+// Returns Euler's number e raised to the power of x.
 pub
 exp : Float64 -> Float64
 exp x = Math#exp(x)
 
-/**
- * Returns the natural logarithm (base e) of x.
- */
+// Returns the natural logarithm (base e) of x.
 pub
 log : Float64 -> Float64
 log x = Math#log(x)
 
-/**
- * Returns the base 10 logarithm of x.
- */
+// Returns the base 10 logarithm of x.
 pub
 log10 : Float64 -> Float64
 log10 x = Math#log10(x)
 
-/**
- * Returns the square root of x.
- */
+// Returns the square root of x.
 pub
 sqrt : Float64 -> Float64
 sqrt x = Math#sqrt(x)
 
-/**
- * Returns the cube root of x.
- */
+// Returns the cube root of x.
 pub
 cbrt : Float64 -> Float64
 cbrt x = Math#cbrt(x)
 
-/**
- * Returns the smallest Float64 number that is greater than x and equals to an integer (round up).
- */
+// Returns the smallest Float64 number that is greater than x and equals to an integer (round up).
 pub
 ceil : Float64 -> Float64
 ceil x = Math#ceil(x)
 
-/**
- * Returns the greatest Float64 number that is less than or equal x and equals to an integer (round down).
- */
+// Returns the greatest Float64 number that is less than or equal x and equals to an integer (round down).
 pub
 floor : Float64 -> Float64
 floor x = Math#floor(x)
 
-/**
- * Returns the Int32 closest to x.
- */
+// Returns the Int32 closest to x.
 pub
 round : Float32 -> Int32
-round (x : Float32) = Math#round(x)
+round x = Math#round(x)
 
-/**
- * Returns the Int64 closest to x.
- */
+// Returns the Int64 closest to x.
 pub
 round64 : Float64 -> Int64
-round64 (x : Float64) = Math#round(x)
+round64 x = Math#round(x)

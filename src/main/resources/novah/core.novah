@@ -24,9 +24,7 @@ foreign import java.lang.Class
 foreign import java.lang.Math
 foreign import java.lang.System
 
-/**
- * A 32-bits Integer
- */
+// A 32-bits Integer
 pub
 typealias Int = Int32
 
@@ -40,37 +38,27 @@ pub
 unsafeCast : a -> b
 unsafeCast x = x as b
 
-/**
- * Negates a boolean value.
- */
+// Negates a boolean value.
 pub
 not : Boolean -> Boolean
 not b = Core#not(b)
 
-/**
- * Returns the exclusive disjunction of p and q.
- */
+// Returns the exclusive disjunction of p and q.
 pub
 xor : Boolean -> Boolean -> Boolean
 xor p q = Core#xor(p, q)
 
-/**
- * Returns its argument unmodified.
- */
+// Returns its argument unmodified.
 pub
 identity : a -> a
 identity x = x
 
-/**
- * Flips the arguments of a 2-arguments function.
- */
+// Flips the arguments of a 2-arguments function.
 pub
 flip : (a -> b -> c) -> (b -> a -> c)
 flip f y x = f x y
 
-/**
- * Takes two parameters and returns the first, ignoring the second.
- */
+// Takes two parameters and returns the first, ignoring the second.
 pub
 const : a -> b -> a
 const x _ = x
@@ -102,16 +90,12 @@ pub
 (<|) : (a -> b) -> a -> b
 (<|) f x = f x
 
-/**
- * Forward function composition operator: `(f >> g) x = g (f x)`
- */
+// Forward function composition operator: `(f >> g) x = g (f x)`
 pub
 (>>) : (a -> b) -> (b -> c) -> (a -> c)
 (>>) f g x = g (f x)
 
-/**
- * Backward function composition operator: `(f << g) x = f (g x)`
- */
+// Backward function composition operator: `(f << g) x = f (g x)`
 pub
 (<<) : (b -> c) -> (a -> b) -> (a -> c)
 (<<) f g x = f (g x)
@@ -150,16 +134,12 @@ pub
 (||) : Boolean -> Boolean -> Boolean
 (||) cond1 cond2 = Core#or(cond1, cond2)
 
-/**
- * Prints x to stdout and appends a new line.
- */
+// Prints x to stdout and appends a new line.
 pub
 println : a -> Unit
 println x = System#-out#println(x as Object)
 
-/**
- * Prints x to the stdout.
- */
+// Prints x to the stdout.
 pub
 print : a -> Unit
 print x = System#-out#print(x as Object)
@@ -268,9 +248,7 @@ pub
 aupdate : Int32 -> (a -> a) -> Array a -> Unit
 aupdate index updateFn arr = Core#setArray(index, updateFn Core#getArray(index, arr), arr)
 
-/**
- * Creates an array of the specified class and size.
- */
+// Creates an array of the specified class and size.
 pub
 arrayOf : Class a -> Int32 -> Array a
 arrayOf clazz length = Core#mkArray(clazz, length)
@@ -283,9 +261,7 @@ pub
 format : String -> List a -> String
 format str list = String#format(str, list#toArray())
 
-/**
- * Prints the formated string to stdout.
- */
+// Prints the formated string to stdout.
 pub
 printfln : String -> List a -> Unit
 printfln form args = println (format form args)
@@ -301,9 +277,7 @@ pub
 nullable : a -> Nullable a
 nullable x = unsafeCast x
 
-/**
- * Represents the possibility of a missing value.
- */
+// Represents the possibility of a missing value.
 pub+
 type Option a = Some a | None
 
@@ -368,9 +342,7 @@ type Result ok err
   = Ok ok
   | Err err
 
-/**
- * Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
- */
+// Atoms are a shared, uncoordinated, synchronous reference to an immutable value.
 pub
 type Atom a = Atom (AtomicReference a)
 
@@ -382,9 +354,7 @@ pub
 atom : a -> Atom a
 atom x = Atom AtomicReference#new(x)
 
-/**
- * Returns the value inside this Atom.
- */
+// Returns the value inside this Atom.
 pub
 deref : Atom a -> a
 deref (Atom a) = a#get()
@@ -437,9 +407,7 @@ pub
 pub+
 type Ordering = GT | LT | EQ
 
-/**
- * A Tuple containing two values.
- */
+// A Tuple containing two values.
 pub+
 type Tuple a b = Tuple a b
 
@@ -524,9 +492,7 @@ sizedCharArray = Sized \arr -> Core#charArraySize(arr)
 pub+
 type Concat a = Concat (a -> a -> a)
 
-/**
- * Concatenate 2 concatenable values together.
- */
+// Concatenate 2 concatenable values together.
 pub
 (++) : {{ Concat a }} -> a -> a -> a
 (++) {{Concat concat}} x y = concat x y
@@ -571,9 +537,7 @@ type Plus a =
     , identity : a
     }
 
-/**
- * Adds x and y.
- */
+// Adds x and y.
 pub
 (+) : {{ Plus a }} -> a -> a -> a
 (+) {{Plus plus}} x y = plus.plus x y
@@ -628,9 +592,7 @@ plusTuple {{(Plus p1) as plusp1}} {{(Plus p2) as plusp2}} =
 pub+
 type Minus a = Minus (a -> a -> a)
 
-/**
- * Subtracts x and y.
- */
+// Subtracts x and y.
 pub
 (-) : {{ Minus a }} -> a -> a -> a
 (-) {{Minus minus}} x y = minus x y
@@ -669,9 +631,7 @@ type Mult a =
     , identity : a
     }
 
-/**
- * Multiplies x and y.
- */
+// Multiplies x and y.
 pub
 (*) : {{ Mult a }} -> a -> a -> a
 (*) {{Mult mult}} x y = mult.mult x y
@@ -726,9 +686,7 @@ multTuple {{(Mult p1) as multp1}} {{(Mult p2) as multp2}} =
 pub+
 type Divide a = Divide (a -> a -> a)
 
-/**
- * Divides x by y.
- */
+// Divides x by y.
 pub
 (/) : {{ Divide a }} -> a -> a -> a
 (/) {{Divide divide}} x y = divide x y
@@ -756,15 +714,11 @@ pub instance
 divideTuple : {{ Divide a }} -> {{ Divide b }} -> Divide (Tuple a b)
 divideTuple {{m1}} {{m2}} = Divide (divideTup m1 m2)
 
-/**
- * The type of things that have a String representation.
- */
+// The type of things that have a String representation.
 pub+
 type Show a = Show (a -> String)
 
-/**
- * Converts this value to a String.
- */
+// Converts this value to a String.
 pub
 show : {{ Show a }} -> a -> String
 show {{Show sh}} x = sh x
@@ -886,22 +840,16 @@ pub instance
 showRange : {{ Show a }} -> Show (Range a)
 showRange {{_}} = Show toString
 
-/**
- * The type of things that support equality comparison.
- */
+// The type of things that support equality comparison.
 pub+
 type Equals a = Equals (a -> a -> Boolean)
 
-/**
- * Returns true if the two values are equal.
- */
+// Returns true if the two values are equal.
 pub
 (==) : {{ Equals a }} -> a -> a -> Boolean
 (==) {{Equals eq}} x y = eq x y
 
-/**
- * Returns true if the two values are *not* equal.
- */
+// Returns true if the two values are *not* equal.
 pub
 (!=) : {{ Equals a }} -> a -> a -> Boolean
 (!=) {{Equals eq}} x y = not (eq x y)
@@ -1047,16 +995,12 @@ recordEquals r1 r2 = (r1 as Record)#equals(r2 as Object)
 pub+
 type Contained a fa = Contained (Equals a) (a -> fa -> Boolean)
 
-/**
- * Returns true if x is inside the container.
- */
+// Returns true if x is inside the container.
 pub
 in? : {{ Contained a fa }} -> a -> fa -> Boolean
 in? {{Contained _ con}} x container = con x container
 
-/**
- * Returns true if x is *not* inside the container.
- */
+// Returns true if x is *not* inside the container.
 pub
 notIn? : {{ Contained a fa }} -> a -> fa -> Boolean
 notIn? {{Contained _ con}} x container = not (con x container)
@@ -1098,22 +1042,16 @@ pub instance
 containedRange : {{ Equals a }} -> Contained a (Range a)
 containedRange {{eq}} = Contained eq \x (r : Range a) -> r#contains(x)
 
-/**
- * The type of things that can be ordered.
- */
+// The type of things that can be ordered.
 pub+
 type Ord a = Ord (Equals a) { compare : a -> a -> Ordering }
 
-/**
- * Returns the result of comparing two Ord instances.
- */
+// Returns the result of comparing two Ord instances.
 pub
 compare : {{ Ord a }} -> a -> a -> Ordering
 compare {{Ord _ o}} x y = o.compare x y
 
-/**
- * Returns true if x is greater than y.
- */
+// Returns true if x is greater than y.
 pub
 (>) : {{ Ord a }} -> a -> a -> Boolean
 (>) {{Ord _ o}} x y =
@@ -1121,9 +1059,7 @@ pub
     GT -> true
     _ -> false
 
-/**
- * Returns true if x is smaller than y.
- */
+// Returns true if x is smaller than y.
 pub
 (<) : {{ Ord a }} -> a -> a -> Boolean
 (<) {{Ord _ o}} x y =
@@ -1131,9 +1067,7 @@ pub
     LT -> true
     _ -> false
 
-/**
- * Returns true if x is greater than or equal y.
- */
+// Returns true if x is greater than or equal y.
 pub
 (>=) : {{ Ord a }} -> a -> a -> Boolean
 (>=) {{Ord _ o}} x y =
@@ -1141,9 +1075,7 @@ pub
     LT -> false
     _ -> true
 
-/**
- * Returns true if x is smaller than or equal y.
- */
+// Returns true if x is smaller than or equal y.
 pub
 (<=) : {{ Ord a }} -> a -> a -> Boolean
 (<=) {{Ord _ o}} x y =
@@ -1229,9 +1161,7 @@ pub instance
 ordOption : {{ Ord a }} -> Ord (Option a)
 ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption ord }
 
-/**
- * A type for some miscelaneous number operations.
- */
+// A type for some miscelaneous number operations.
 pub+
 type NumberOps a =
   NumberOps
@@ -1242,9 +1172,7 @@ type NumberOps a =
     , abs: a -> a
     }
 
-/**
- * Returns the remainder of dividing x by y.
- */
+// Returns the remainder of dividing x by y.
 pub
 (%) : {{ NumberOps a }} -> a -> a -> a
 (%) {{NumberOps r}} x y = r.remainder x y
@@ -1308,30 +1236,22 @@ type ToNumber a =
     , float64 : a -> Float64
     }
 
-/**
- * Converts this value to a 32-bit integer.
- */
+// Converts this value to a 32-bit integer.
 pub
 int : {{ ToNumber a }} -> a -> Int32
 int {{ToNumber t}} x = t.int x
 
-/**
- * Converts this value to a 64-bit integer.
- */
+// Converts this value to a 64-bit integer.
 pub
 int64 : {{ ToNumber a }} -> a -> Int64
 int64 {{ToNumber t}} x = t.int64 x
 
-/**
- * Converts this value to a 32-bit float.
- */
+// Converts this value to a 32-bit float.
 pub
 float32 : {{ ToNumber a }} -> a -> Float32
 float32 {{ToNumber t}} x = t.float32 x
 
-/**
- * Converts this value to a 64-bit float.
- */
+// Converts this value to a 64-bit float.
 pub
 float64 : {{ ToNumber a }} -> a -> Float64
 float64 {{ToNumber t}} x = t.float64 x
@@ -1406,9 +1326,7 @@ toNumberBoolean =
     , float64: if _ then 1.0 else 0.0
     }
 
-/**
- * Represents a type that supports bitwise operations.
- */
+// Represents a type that supports bitwise operations.
 pub+
 type BitOperator a =
   BitOperator
@@ -1529,9 +1447,7 @@ bitOperatorInt64 =
     , not: \x -> Core#bitNotLong(x)
     }
 
-/**
- * Types that can range over some values.
- */
+// Types that can range over some values.
 pub+
 type Ranged a =
   Ranged
@@ -1539,9 +1455,7 @@ type Ranged a =
     , rangeOpen : a -> a -> Range a
     }
 
-/**
- * Types that can range over some values with a step.
- */
+// Types that can range over some values with a step.
 pub+
 type RangedStep a =
   RangedStep
@@ -1583,37 +1497,27 @@ pub
 rangeOpen : {{ RangedStep a }} -> a -> a -> a -> Range a
 rangeOpen {{RangedStep r}} start end step = r.rangeOpen start end step
 
-/**
- * Executes the function for every value in this range.
- */
+// Executes the function for every value in this range.
 pub
 forEachRange : Range a -> (a -> Unit) -> Unit
 forEachRange ran fun = ran#foreach(fun)
 
-/**
- * Returns a list with all the elements of this range.
- */
+// Returns a list with all the elements of this range.
 pub
 rangeToList : Range a -> List a
 rangeToList r = r#toList()
 
-/**
- * Returns a set with all the elements of this range.
- */
+// Returns a set with all the elements of this range.
 pub
 rangeToSet : Range a -> Set a
 rangeToSet r = r#toSet()
 
-/**
- * The starting value of this range.
- */
+// The starting value of this range.
 pub
 rangeStart : Range a -> a
 rangeStart r = r#start()
 
-/**
- * The ending value of this range.
- */
+// The ending value of this range.
 pub
 rangeEnd : Range a -> a
 rangeEnd r = r#end()

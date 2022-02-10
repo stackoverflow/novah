@@ -18,18 +18,14 @@ import novah.list (forEach, toTypedArray)
 pub
 typealias TestFun = Unit -> Unit
 
-/**
- * Represents one or more tests to be run.
- */
+// Represents one or more tests to be run.
 pub+
 type Suite
   = Test String TestFun
   | Tests String (List TestFun)
   | Setup { before : TestFun, after : TestFun, suite : Suite }
 
-/**
- * All possible results for a test suite.
- */
+// All possible results for a test suite.
 pub+
 type TestResult
   = Success
@@ -39,18 +35,14 @@ type TestResult
 allRegisteredtests : List Suite
 allRegisteredtests = []#linear()
 
-/**
- * Register a test function.
- */
+// Register a test function.
 pub
 test : String -> TestFun -> Unit
 test description testFun =
   addLast (Test description testFun) allRegisteredtests
   ()
 
-/**
- * Register a test function with a before and after hook.
- */
+// Register a test function with a before and after hook.
 pub
 testWith : TestFun -> TestFun -> String -> TestFun -> Unit
 testWith before after description testFun =
@@ -74,9 +66,7 @@ pub
 withTable : List { | r } -> ({ | r } -> Unit) -> Unit
 withTable = forEach
 
-/**
- * Run the specified tests.
- */
+// Run the specified tests.
 pub
 runTests : List Suite -> TestResult
 runTests suites =
@@ -133,9 +123,7 @@ runTestsFor package =
   Core#loadAllClasses(package)
   runTests allRegisteredtests
 
-/**
- * Fails the test if x is not equals y.
- */
+// Fails the test if x is not equals y.
 pub
 shouldBe : {{ Equals a }} -> a -> a -> Unit
 shouldBe {{_}} x y =
@@ -143,9 +131,7 @@ shouldBe {{_}} x y =
     ()
   else throw AssertionError#new(format "`%s` is not equals `%s`" [x, y] as Object)
 
-/**
- * Fails the test if x is equals y.
- */
+// Fails the test if x is equals y.
 pub
 shouldNotBe : {{ Equals a }} -> a -> a -> Unit
 shouldNotBe {{_}} x y =
@@ -153,9 +139,7 @@ shouldNotBe {{_}} x y =
     ()
   else throw AssertionError#new(format "`%s` is equals `%s`" [x, y] as Object)
 
-/**
- * Fails the test if the record r1 is not equals r2.
- */
+// Fails the test if the record r1 is not equals r2.
 pub
 recordShouldBe : { | r } -> { | r } -> Unit
 recordShouldBe r1 r2 =
@@ -163,9 +147,7 @@ recordShouldBe r1 r2 =
     ()
   else throw AssertionError#new(format "%s is not equals %s" [r1, r2] as Object)
 
-/**
- * Fails the test if the record r1 is equals r2.
- */
+// Fails the test if the record r1 is equals r2.
 pub
 recordShouldNotBe : { | r } -> { | r } -> Unit
 recordShouldNotBe r1 r2 =
@@ -173,9 +155,7 @@ recordShouldNotBe r1 r2 =
     ()
   else throw AssertionError#new(format "%s is equals %s" [r1, r2] as Object)
 
-/**
- * Fails the test if the element is not inside the container.
- */
+// Fails the test if the element is not inside the container.
 pub
 shouldBeIn : {{ Contained a b }} -> a -> b -> Unit
 shouldBeIn {{_}} x box =
@@ -183,9 +163,7 @@ shouldBeIn {{_}} x box =
     ()
   else throw AssertionError#new(format "%s is not inside %s" [toString x, toString box] as Object)
 
-/**
- * Fails the test if the element is inside the container.
- */
+// Fails the test if the element is inside the container.
 pub
 shouldNotBeIn : {{ Contained a b }} -> a -> b -> Unit
 shouldNotBeIn {{_}} x box =
@@ -193,9 +171,7 @@ shouldNotBeIn {{_}} x box =
     ()
   else throw AssertionError#new(format "%s is inside %s" [toString x, toString box] as Object)
 
-/**
- * Fails the test if some element of the list is not inside the container.
- */
+// Fails the test if some element of the list is not inside the container.
 pub
 shouldAllBeIn : {{ Contained a b }} -> List a -> b -> Unit
 shouldAllBeIn {{_}} list set =
@@ -204,9 +180,7 @@ shouldAllBeIn {{_}} list set =
       ()
     else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
 
-/**
- * Fails the test if this option is empty.
- */
+// Fails the test if this option is empty.
 pub
 shouldBeSome : Option a -> Unit
 shouldBeSome opt =
@@ -214,9 +188,7 @@ shouldBeSome opt =
     Some _ -> ()
     None -> throw AssertionError#new(format "%s is not Some" [opt] as Object)
 
-/**
- * Fails the test if this option is not empty.
- */
+// Fails the test if this option is not empty.
 pub
 shouldBeNone : Option a -> Unit
 shouldBeNone opt =
@@ -224,9 +196,7 @@ shouldBeNone opt =
     Some _ -> throw AssertionError#new(format "%s is not None" [opt] as Object)
     None -> ()
 
-/**
- * Fails the test if this list is not empty.
- */
+// Fails the test if this list is not empty.
 pub
 shouldBeEmpty : List a -> Unit
 shouldBeEmpty list =
@@ -234,9 +204,7 @@ shouldBeEmpty list =
     [] -> ()
     _ -> throw AssertionError#new(format "list %s is not empty" [list] as Object)
 
-/**
- * Fails the test if this list is empty.
- */
+// Fails the test if this list is empty.
 pub
 shouldNotBeEmpty : List a -> Unit
 shouldNotBeEmpty list =

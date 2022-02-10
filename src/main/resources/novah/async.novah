@@ -17,9 +17,7 @@ foreign import java.util.concurrent.Executor
 foreign import java.util.concurrent.TimeoutException
 foreign import java.util.concurrent.TimeUnit
 
-/**
- * Blocks the future until it returns a result.
- */
+// Blocks the future until it returns a result.
 pub
 get : CompletableFuture a -> a
 get fut = fut#get()
@@ -52,23 +50,17 @@ pub
 complete : CompletableFuture a -> a -> Boolean
 complete fut value = fut#complete(value)
 
-/**
- * Returns true if this future is completed in any form.
- */
+// Returns true if this future is completed in any form.
 pub
 done? : CompletableFuture a -> Boolean
 done? fut = fut#isDone()
 
-/**
- * Returns true if this future is cancelled.
- */
+// Returns true if this future is cancelled.
 pub
 cancelled? : CompletableFuture a -> Boolean
 cancelled? fut = fut#isCancelled()
 
-/**
- * Creates a future that will run this function asynchronously.
- */
+// Creates a future that will run this function asynchronously.
 pub
 new : (Unit -> a) -> CompletableFuture a
 new fun = CompletableFuture#supplyAsync(Java.supplier fun)
@@ -81,16 +73,12 @@ pub
 newWith : Executor -> (Unit -> a) -> CompletableFuture a
 newWith exe fun = CompletableFuture#supplyAsync(Java.supplier fun, exe)
 
-/**
- * Creates a future that will do nothing for the given time.
- */
+// Creates a future that will do nothing for the given time.
 pub
 sleep : Int64 -> TimeUnit -> CompletableFuture Unit
 sleep time tunit = new (\_ -> tunit#sleep(time))
 
-/**
- * Maps the given function asynchronously taking the result of this future as argument.
- */
+// Maps the given function asynchronously taking the result of this future as argument.
 pub
 map : (a -> b) -> CompletableFuture a -> CompletableFuture b
 map fun fut = fut#thenApply(fun as Function Object b)
@@ -112,18 +100,14 @@ combine : (a -> b -> c) -> CompletableFuture a -> CompletableFuture b -> Complet
 combine (fun : a -> b -> c) fut other =
   fut#thenCombine(other as CompletionStage b, Java.biFunction fun)
 
-/**
- * Creates a single future that will be completed when all the given futures are completed.
- */
+// Creates a single future that will be completed when all the given futures are completed.
 pub
 all : List (CompletableFuture a) -> CompletableFuture Unit
 all futs =
   let arr = (List.toTypedArray CompletableFuture#-class futs) as Array (CompletableFuture a)
   CompletableFuture#allOf(arr) as CompletableFuture Unit
 
-/**
- * Creates a single future that will be completed when any the given futures are completed.
- */
+// Creates a single future that will be completed when any the given futures are completed.
 pub
 any : List (CompletableFuture a) -> CompletableFuture a
 any futs =

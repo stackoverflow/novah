@@ -36,36 +36,28 @@ unwrap = case _ of
   Ok x -> x
   _ -> throw AssertionError#new("Empty Result" as Object)
 
-/**
- * Returns true if this result is ok.
- */
+// Returns true if this result is ok.
 pub
 ok? : Result a b -> Boolean
 ok? = case _ of
   Ok _ -> true
   _ -> false
 
-/**
- * Returns true if this result is an error.
- */
+// Returns true if this result is an error.
 pub
 err? : Result a b -> Boolean
 err? = case _ of
   Err _ -> true
   _ -> false
 
-/**
- * Transforms this result into an option discarding the error.
- */
+// Transforms this result into an option discarding the error.
 pub
 ok : Result a b -> Option a
 ok = case _ of
   Ok x -> Some x
   _ -> None
 
-/**
- * Transforms this result into an option discarding the success.
- */
+// Transforms this result into an option discarding the success.
 pub
 err : Result a b -> Option b
 err = case _ of

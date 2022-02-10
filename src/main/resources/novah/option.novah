@@ -1,6 +1,4 @@
-/**
- * Functions to work with optional values.
- */
+// Functions to work with optional values.
 module novah.option
 
 foreign import java.util.Optional
@@ -37,18 +35,14 @@ maybe def f = case _ of
   Some x -> f x
   None -> def
 
-/**
- * Returns true if this option contains a value.
- */
+// Returns true if this option contains a value.
 pub
 some? : Option a -> Boolean
 some? = case _ of
   Some _ -> true
   None -> false
 
-/**
- * Returns true if this option *doesn't* contain a value.
- */
+// Returns true if this option *doesn't* contain a value.
 pub
 none? : Option a -> Boolean
 none? = case _ of
@@ -98,16 +92,12 @@ caseNull def f nul =
   else
     f (nul as a)
 
-/**
- * Transforms a `java.util.Optional` into an option.
- */
+// Transforms a `java.util.Optional` into an option.
 pub
 fromOptional : Optional a -> Option a
 fromOptional opt = if opt#isPresent() then Some opt#get() else None
 
-/**
- * Transforms an option into a `java.util.Optional`.
- */
+// Transforms an option into a `java.util.Optional`.
 pub
 toOptional : Option a -> Optional a
 toOptional = case _ of
