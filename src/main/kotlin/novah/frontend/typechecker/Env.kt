@@ -194,6 +194,9 @@ fun isListOf(type: Type, of: Type) =
 fun isSetOf(type: Type, of: Type) =
     type is TApp && type.type is TConst && type.type.name == primSet && type.types[0] == of
 
+fun isArrayOf(type: Type, of: Type) =
+    type is TApp && type.type is TConst && type.type.name == primArray && type.types[0] == of
+
 fun Type.isList() = this is TApp && type is TConst && type.name == primList
 fun Type.isSet() = this is TApp && type is TConst && type.name == primSet
 fun Type.isArray() = this is TApp && type is TConst && type.name == primArray

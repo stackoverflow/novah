@@ -1,6 +1,7 @@
 package novah.ide.features
 
 import novah.ast.canonical.Decl
+import novah.frontend.typechecker.*
 import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
@@ -20,17 +21,22 @@ class CodeLensFeature(private val server: NovahServer) {
             server.logger().info("got code lenses request for ${file.absolutePath}")
             val moduleName = env.sourceMap()[file.toPath()] ?: return null
             val mod = env.modules()[moduleName] ?: return null
-            //getMain(mod)
-            return findSignatureLenses(mod)
+            val comms = findSignatureLenses(mod)
+            comms += findMain(mod)
+            return comms
         }
         return server.runningEnv().thenApply(::run)
     }
 
-    fun getMain(menv: FullModuleEnv) {
+    private fun findMain(menv: FullModuleEnv): MutableList<CodeLens> {
         val mainRef = menv.ast.decls.firstOrNull {
-            it is Decl.ValDecl && it.visibility.isPublic() && it.name.value == "main"
-        } ?: return
-        server.client().notify("custom/setMain", listOf((mainRef as Decl.ValDecl).name.span.startLine))
+            it is Decl.ValDecl && it.visibility.isPublic()
+                    && it.name.value == "main" && it.exp.type != null && isMain(it.exp.type!!)
+        } as? Decl.ValDecl ?: return mutableListOf()
+
+        val range = IdeUtil.spanToRange(mainRef.span)
+        val com = Command("Run main function", "runMain", listOf(menv.ast.name.value))
+        return mutableListOf(CodeLens(range, com, null))
     }
 
     private fun findSignatureLenses(menv: FullModuleEnv): MutableList<CodeLens> {
@@ -45,5 +51,11 @@ class CodeLensFeature(private val server: NovahServer) {
             }
         }
         return lenses
+    }
+
+    private fun isMain(type: Type): Boolean {
+        if (type !is TArrow) return false
+        val arg = type.args[0]
+        return isArrayOf(arg, tString) && type.ret == tUnit
     }
 }
