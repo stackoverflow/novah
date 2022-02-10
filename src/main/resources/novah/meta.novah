@@ -30,16 +30,12 @@ pub
 modulesForTag : String -> Set String
 modulesForTag tag = Metadata#modulesForTag(tag)
 
-/**
- * Returns all declarations where the tag is defined.
- */
+// Returns all declarations where the tag is defined.
 pub
 declarationsForTag : String -> List Field
 declarationsForTag tag = Metadata#declarationsForTag(tag)
 
-/**
- * Returns all declarations in the given module where the tag is defined.
- */
+// Returns all declarations in the given module where the tag is defined.
 pub
 declarationsInModuleForTag : String -> String -> List Field
 declarationsInModuleForTag moduleName tag = Metadata#declarationsForTag(moduleName, tag)

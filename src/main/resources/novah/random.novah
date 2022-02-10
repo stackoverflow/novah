@@ -6,73 +6,55 @@ module novah.random
 
 foreign import java.util.concurrent.ThreadLocalRandom
 
-/**
- * Returns a random boolean value.
- */
+// Returns a random boolean value.
 pub
 randBoolean : Unit -> Boolean
 randBoolean _ =
   ThreadLocalRandom#current()#nextBoolean()
 
-/**
- * Returns an int between 0 (inclusive) and bound (exclusive).
- */
+// Returns an int between 0 (inclusive) and bound (exclusive).
 pub
 randInt : Int32 -> Int32
 randInt bound =
   ThreadLocalRandom#current()#nextInt(bound)
 
-/**
- * Returns an int between start (inclusive) and end (exclusive).
- */
+// Returns an int between start (inclusive) and end (exclusive).
 pub
 randIntBetween : Int32 -> Int32 -> Int32
 randIntBetween start end =
   ThreadLocalRandom#current()#nextInt(start, end)
 
-/**
- * Returns an int64 between 0 (inclusive) and bound (exclusive).
- */
+// Returns an int64 between 0 (inclusive) and bound (exclusive).
 pub
 randInt64 : Int64 -> Int64
 randInt64 bound =
   ThreadLocalRandom#current()#nextLong(bound)
 
-/**
- * Returns an int64 between start (inclusive) and end (exclusive).
- */
+// Returns an int64 between start (inclusive) and end (exclusive).
 pub
 randInt64Between : Int64 -> Int64 -> Int64
 randInt64Between start end =
   ThreadLocalRandom#current()#nextLong(start, end)
 
-/**
- * Returns an float32 between 0 (inclusive) and bound (exclusive).
- */
+// Returns an float32 between 0 (inclusive) and bound (exclusive).
 pub
 randFloat32 : Float32 -> Float32
 randFloat32 bound =
   ThreadLocalRandom#current()#nextFloat(bound)
 
-/**
- * Returns an float32 between start (inclusive) and end (exclusive).
- */
+// Returns an float32 between start (inclusive) and end (exclusive).
 pub
 randFloat32Between : Float32 -> Float32 -> Float32
 randFloat32Between start end =
   ThreadLocalRandom#current()#nextFloat(start, end)
 
-/**
- * Returns an float64 between 0 (inclusive) and bound (exclusive).
- */
+// Returns an float64 between 0 (inclusive) and bound (exclusive).
 pub
 randFloat64 : Float64 -> Float64
 randFloat64 bound =
   ThreadLocalRandom#current()#nextDouble(bound)
 
-/**
- * Returns an float64 between start (inclusive) and end (exclusive).
- */
+// Returns an float64 between start (inclusive) and end (exclusive).
 pub
 randFloat64Between : Float64 -> Float64 -> Float64
 randFloat64Between start end =

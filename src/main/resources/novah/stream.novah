@@ -11,16 +11,12 @@ foreign import novah.Core
 
 import novah.option as Option
 
-/**
- * Creates a new empty stream.
- */
+// Creates a new empty stream.
 pub
 empty : Unit -> Stream a
 empty _ = Stream#empty()
 
-/**
- * Creates a stream with a single element.
- */
+// Creates a stream with a single element.
 pub
 from : a -> Stream a
 from x = Stream#`of`(x)
@@ -33,23 +29,17 @@ pub
 forEach : Stream a -> (a -> b) -> Unit
 forEach stream f = stream#forEach(Core#makeConsumer(f) as Consumer Object)
 
-/**
- * Collects this Stream into an Array.
- */
+// Collects this Stream into an Array.
 pub
 toArray : Stream a -> Array Object
 toArray st = st#toArray()
 
-/**
- * Returns the size of this stream.
- */
+// Returns the size of this stream.
 pub
 size : Stream a -> Int64
 size st = st#count()
 
-/**
- * Returns a stream of the elements that match the given predicate.
- */
+// Returns a stream of the elements that match the given predicate.
 pub
 filter : (a -> Boolean) -> Stream a -> Stream a
 filter f st = st#filter(Core#makePredicate(f) as Predicate Object)
@@ -62,51 +52,37 @@ pub
 map : (a -> b) -> Stream a -> Stream b
 map f st = st#map(f as Function Object b)
 
-/**
- * Like `map` but it will flatten the resulting stream.
- */
+// Like `map` but it will flatten the resulting stream.
 pub
 flatMap : (a -> Stream b) -> Stream a -> Stream b
 flatMap f st = st#flatMap(f as Function Object Object)
 
-/**
- * Returns a new stream with a limited number of elements.
- */
+// Returns a new stream with a limited number of elements.
 pub
 limit : Int64 -> Stream a -> Stream a
 limit lim st = st#limit(lim)
 
-/**
- * Returns a stream with the first n elements skipped.
- */
+// Returns a stream with the first n elements skipped.
 pub
 skip : Int64 -> Stream a -> Stream a
 skip n st = st#skip(n)
 
-/**
- * Takes elements from this stream while the predicates holds.
- */
+// Takes elements from this stream while the predicates holds.
 pub
 takeWhile : (a -> Boolean) -> Stream a -> Stream a
 takeWhile pred st = st#takeWhile(Core#makePredicate(pred) as Predicate Object)
 
-/**
- * Drops elements from this stream while the predicates holds.
- */
+// Drops elements from this stream while the predicates holds.
 pub
 dropWhile : (a -> Boolean) -> Stream a -> Stream a
 dropWhile pred st = st#dropWhile(Core#makePredicate(pred) as Predicate Object)
 
-/**
- * Reduces this stream to a single value according to the reducing function.
- */
+// Reduces this stream to a single value according to the reducing function.
 pub
 reduce : (a -> a -> a) -> Stream a -> Option a
 reduce f st = st#reduce(Core#makeBinaryOperator(f)) |> Option.fromOptional
 
-/**
- * Reduces this stream to a single value according to the reducing function.
- */
+// Reduces this stream to a single value according to the reducing function.
 pub
 reduceInit : (a -> a -> a) -> a -> Stream a -> a
 reduceInit f init st = st#reduce(init, Core#makeBinaryOperator(f))

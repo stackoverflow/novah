@@ -2,57 +2,43 @@ module novah.number
 
 foreign import java.lang.NumberFormatException
 
-/**
- * A constant representing Not-a-Number (Float64)
- */
+// A constant representing Not-a-Number (Float64)
 pub
 nan : Float64
 nan =
   Float64#-`NaN`
 
-/**
- * A constant representing Not-a-Number (Float32)
- */
+// A constant representing Not-a-Number (Float32)
 pub
 nanf : Float32
 nanf =
   Float32#-`NaN`
 
-/**
- * A constant representing the positive infinity (Float64)
- */
+// A constant representing the positive infinity (Float64)
 pub
 positiveInfinity : Float64
 positiveInfinity =
   Float64#-`POSITIVE_INFINITY`
 
-/**
- * A constant representing the negative infinity (Float64)
- */
+// A constant representing the negative infinity (Float64)
 pub
 negativeInfinity : Float64
 negativeInfinity =
   Float64#-`NEGATIVE_INFINITY`
 
-/**
- * A constant representing the positive infinity (Float32)
- */
+// A constant representing the positive infinity (Float32)
 pub
 positiveInfinityF : Float32
 positiveInfinityF =
   Float32#-`POSITIVE_INFINITY`
 
-/**
- * A constant representing the negative infinity (Float32)
- */
+// A constant representing the negative infinity (Float32)
 pub
 negativeInfinityF : Float32
 negativeInfinityF =
   Float32#-`NEGATIVE_INFINITY`
 
-/**
- * Tries to parse a string to an int in base 10.
- */
+// Tries to parse a string to an int in base 10.
 pub
 parseInt : String -> Option Int32
 parseInt str =
@@ -61,9 +47,7 @@ parseInt str =
   catch
     :? NumberFormatException -> None
 
-/**
- * Tries to parse a string to an int in base `radix`.
- */
+// Tries to parse a string to an int in base `radix`.
 pub
 parseIntRadix : Int32 -> String -> Option Int32
 parseIntRadix radix str =
@@ -72,9 +56,7 @@ parseIntRadix radix str =
   catch
     :? NumberFormatException -> None
 
-/**
- * Tries to parse a string to an int64 in base 10.
- */
+// Tries to parse a string to an int64 in base 10.
 pub
 parseInt64 : String -> Option Int64
 parseInt64 str =
@@ -83,9 +65,7 @@ parseInt64 str =
   catch
     :? NumberFormatException -> None
 
-/**
- * Tries to parse a string to an int64 in base `radix`.
- */
+// Tries to parse a string to an int64 in base `radix`.
 pub
 parseInt64Radix : Int32 -> String -> Option Int64
 parseInt64Radix radix str =
@@ -94,9 +74,7 @@ parseInt64Radix radix str =
   catch
     :? NumberFormatException -> None
 
-/**
- * Tries to parse a string to an float32.
- */
+// Tries to parse a string to an float32.
 pub
 parseFloat32 : String -> Option Float32
 parseFloat32 str =
@@ -105,9 +83,7 @@ parseFloat32 str =
   catch
     :? NumberFormatException -> None
 
-/**
- * Tries to parse a string to an float64.
- */
+// Tries to parse a string to an float64.
 pub
 parseFloat64 : String -> Option Float64
 parseFloat64 str =

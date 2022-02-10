@@ -21,16 +21,12 @@ pub
 size : Array a -> Int32
 size arr = Core#getArrayLength(arr)
 
-/**
- * Returns a stream for this array.
- */
+// Returns a stream for this array.
 pub
 stream : Array a -> Stream a
 stream arr = Arrays#stream(arr) as Stream a
 
-/**
- * Collects this stream into an array.
- */
+// Collects this stream into an array.
 pub
 fromStream : Stream a -> Array Object
 fromStream = Stream.toArray
@@ -127,18 +123,14 @@ pub
 filter : (a -> Boolean) -> Array a -> Array Object
 filter f arr = stream arr |> Stream.filter f |> fromStream
 
-/**
- * Sorts this array in place according to the comparing function.
- */
+// Sorts this array in place according to the comparing function.
 pub
 sortBy : (a -> a -> Ordering) -> Array a -> Unit
 sortBy cmp arr =
   let comp = toComparator cmp
   Arrays#sort(arr, comp as Comparator Object)
 
-/**
- * Sorts this array in place according to the elements Ord instance.
- */
+// Sorts this array in place according to the elements Ord instance.
 pub
 sort : {{ Ord a }} -> Array a -> Unit
 sort {{Ord _ ord}} arr = sortBy ord.compare arr
@@ -171,65 +163,47 @@ reversed arr =
     aset i (aget (length - i - 1) arr) arr
     aset (length - i - 1) temp arr
 
-/**
- * Creates a byte array of the specified size.
- */
+// Creates a byte array of the specified size.
 pub
 byteArray : Int -> ByteArray
 byteArray length = Core#mkByteArray(length)
 
-/**
- * Creates a int16 array of the specified size.
- */
+// Creates a int16 array of the specified size.
 pub
 int16Array : Int -> Int16Array
 int16Array length = Core#mkInt16Array(length)
 
-/**
- * Creates a int32 array of the specified size.
- */
+// Creates a int32 array of the specified size.
 pub
 int32Array : Int -> Int32Array
 int32Array length = Core#mkInt32Array(length)
 
-/**
- * Creates a int64 array of the specified size.
- */
+// Creates a int64 array of the specified size.
 pub
 int64Array : Int -> Int64Array
 int64Array length = Core#mkInt64Array(length)
 
-/**
- * Creates a float32 array of the specified size.
- */
+// Creates a float32 array of the specified size.
 pub
 float32Array : Int -> Float32Array
 float32Array length = Core#mkFloat32Array(length)
 
-/**
- * Creates a float64 array of the specified size.
- */
+// Creates a float64 array of the specified size.
 pub
 float64Array : Int -> Float64Array
 float64Array length = Core#mkFloat64Array(length)
 
-/**
- * Creates a char array of the specified size.
- */
+// Creates a char array of the specified size.
 pub
 charArray : Int -> CharArray
 charArray length = Core#mkCharArray(length)
 
-/**
- * Creates a boolean array of the specified size.
- */
+// Creates a boolean array of the specified size.
 pub
 booleanArray : Int -> BooleanArray
 booleanArray length = Core#mkBooleanArray(length)
 
-/**
- * Returns a copy of this array.
- */
+// Returns a copy of this array.
 pub
 copy : Array a -> Array a
 copy arr =
@@ -237,9 +211,7 @@ copy arr =
   System#arraycopy(arr as Object, 0, dest as Object, 0, size arr)
   dest
 
-/**
- * Returns a new array of the same size and type as the supplied array.
- */
+// Returns a new array of the same size and type as the supplied array.
 pub
 emptyCopy : Array a -> Array a
 emptyCopy arr =

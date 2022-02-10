@@ -11,23 +11,17 @@ foreign import java.nio.file.OpenOption
 foreign import java.nio.file.Path
 foreign import java.nio.file.StandardOpenOption
 
-/**
- * The UTF-8 charset.
- */
+// The UTF-8 charset.
 pub
 utf8 : Charset
 utf8 = StandardCharsets#-`UTF_8`
 
-/**
- * Creates a new file from the specified path.
- */
+// Creates a new file from the specified path.
 pub
 newFile : String -> File
 newFile path = File#new(path)
 
-/**
- * Returns a file which represents a child of the given directory.
- */
+// Returns a file which represents a child of the given directory.
 pub
 child : File -> String -> File
 child dir child_ = File#new(dir, child_)
@@ -41,9 +35,7 @@ pathOf : String -> List String -> Path
 pathOf first paths =
   Path#`of`(first, List.toTypedArray String#-class paths)
 
-/**
- * Returns the path of this file.
- */
+// Returns the path of this file.
 pub
 fileToPath : File -> Path
 fileToPath file = file#toPath()
@@ -79,23 +71,17 @@ fopToOp =
     Sync -> StandardOpenOption#-`SYNC`
     Dsync -> StandardOpenOption#-`DSYNC`
 
-/**
- * Reads the contents of the file using the UTF-8 charset.
- */
+// Reads the contents of the file using the UTF-8 charset.
 pub
 readTextFromPath : Path -> String
 readTextFromPath path = Files#readString(path)
 
-/**
- * Reads the contents of the file using the given charset.
- */
+// Reads the contents of the file using the given charset.
 pub
 readTextWithCharset : Path -> Charset -> String
 readTextWithCharset path charset = Files#readString(path, charset)
 
-/**
- * Reads the contents of this file using the UTF-8 charset.
- */
+// Reads the contents of this file using the UTF-8 charset.
 pub
 readText : File -> String
 readText file =

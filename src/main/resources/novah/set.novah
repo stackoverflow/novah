@@ -102,23 +102,17 @@ pub
 union : Set a -> Set a -> Set a
 union s1 s2 = s1#union(s2 as ISet a)
 
-/**
- * Returns all elements in set 1 that are not in set 2.
- */
+// Returns all elements in set 1 that are not in set 2.
 pub
 difference : Set a -> Set a -> Set a
 difference s1 s2 = s1#difference(s2 as ISet a)
 
-/**
- * Returns the intersection between these 2 sets.
- */
+// Returns the intersection between these 2 sets.
 pub
 intersection : Set a -> Set a -> Set a
 intersection s1 s2 = s1#intersection(s2 as ISet a)
 
-/**
- * Returns a stream for this set.
- */
+// Returns a stream for this set.
 pub
 stream : Set a -> Stream a
 stream set = set#stream()
@@ -418,6 +412,7 @@ productOf {{Mult m}} fn =
 
 /**
  * Returns true if every element in the list is contained in the set.
+ * Runtime: O(n)
  */
 pub
 containsAll? : List a -> Set a -> Boolean
