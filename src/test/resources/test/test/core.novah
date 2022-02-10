@@ -43,6 +43,11 @@ coreTests =
     format "%s and %s" [5, 6] `shouldBe` "5 and 6"
     (Some 3 ?: 7) `shouldBe` 3
     (None ?: 7) `shouldBe` 7
+    len "banana" `shouldBe` 6
+    len [] `shouldBe` 0
+    len [3, 4, 5] `shouldBe` 3
+    len #{4, 0} `shouldBe` 2
+    len (arrayOf Int32#-class 12) `shouldBe` 12
     [1 .. 5] `shouldBe` [1, 2, 3, 4, 5]
     [1 ... 5] `shouldBe` [1, 2, 3, 4]
     [7 .. 3] `shouldBe` [7, 6, 5, 4, 3]

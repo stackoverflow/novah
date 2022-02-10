@@ -273,7 +273,7 @@ aupdate index updateFn arr = Core#setArray(index, updateFn Core#getArray(index, 
  */
 pub
 arrayOf : Class a -> Int32 -> Array a
-arrayOf clazz len = Core#mkArray(clazz, len)
+arrayOf clazz length = Core#mkArray(clazz, length)
 
 /**
  * Returns a formatted string using the specified format string and arguments.
@@ -459,9 +459,68 @@ pub
 snd : Tuple a b -> b
 snd (Tuple _ x) = x
 
-/**
- * The type of things that can be concatenated.
- */
+// The type of things that have size.
+pub+
+type Sized a = Sized (a -> Int32)
+
+// Returns the length of this sized value.
+pub
+len : {{ Sized a }} -> a -> Int32
+len {{Sized size}} x = size x
+
+pub instance
+sizedString : Sized String
+sizedString = Sized \(str : String) -> str#length()
+
+pub instance
+sizedList : Sized (List a)
+sizedList = Sized \(list : List a) -> list#size()#intValue()
+
+pub instance
+sizedSet : Sized (Set a)
+sizedSet = Sized \(set : Set a) -> set#size()#intValue()
+
+pub instance
+sizedMap : Sized (Map k v)
+sizedMap = Sized \(map : Map k v) -> map#size()#intValue()
+
+pub instance
+sizedArray : Sized (Array a)
+sizedArray = Sized \arr -> Core#getArrayLength(arr)
+
+pub instance
+sizedByteArray : Sized ByteArray
+sizedByteArray = Sized \arr -> Core#byteArraySize(arr)
+
+pub instance
+sizedInt16Array : Sized Int16Array
+sizedInt16Array = Sized \arr -> Core#shortArraySize(arr)
+
+pub instance
+sizedInt32Array : Sized Int32Array
+sizedInt32Array = Sized \arr -> Core#intArraySize(arr)
+
+pub instance
+sizedInt64Array : Sized Int64Array
+sizedInt64Array = Sized \arr -> Core#longArraySize(arr)
+
+pub instance
+sizedFloat32Array : Sized Float32Array
+sizedFloat32Array = Sized \arr -> Core#floatArraySize(arr)
+
+pub instance
+sizedFloat64Array : Sized Float64Array
+sizedFloat64Array = Sized \arr -> Core#doubleArraySize(arr)
+
+pub instance
+sizedBooleanArray : Sized BooleanArray
+sizedBooleanArray = Sized \arr -> Core#booleanArraySize(arr)
+
+pub instance
+sizedCharArray : Sized CharArray
+sizedCharArray = Sized \arr -> Core#charArraySize(arr)
+
+// The type of things that can be concatenated.
 pub+
 type Concat a = Concat (a -> a -> a)
 

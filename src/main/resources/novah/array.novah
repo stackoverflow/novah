@@ -43,8 +43,8 @@ fromStream = Stream.toArray
 pub
 nth : Int -> Array a -> Option a
 nth index arr =
-  let len = size arr
-  if index < 0 || index >= len
+  let length = size arr
+  if index < 0 || index >= length
     then None
     else Some (aget index arr)
 
@@ -113,9 +113,9 @@ forEachIndexed arr f =
 pub
 map : (a -> b) -> Array a -> Array Object
 map f arr =
-  let len = size arr
-  let res = arrayOf Object#-class len
-  forEachRange (0 ... len) \i ->
+  let length = size arr
+  let res = arrayOf Object#-class length
+  forEachRange (0 ... length) \i ->
     aset i (f (aget i arr) as Object) res
   res
 
@@ -150,10 +150,10 @@ sort {{Ord _ ord}} arr = sortBy ord.compare arr
 pub
 reverse : Array a -> Array a
 reverse arr =
-  let len = size arr
+  let length = size arr
   let res = emptyCopy arr
-  forEachRange (0 ... len) \idx ->
-    let i = len - idx - 1
+  forEachRange (0 ... length) \idx ->
+    let i = length - idx - 1
     let elem = aget idx arr
     aset i elem res
   res
@@ -165,67 +165,67 @@ reverse arr =
 pub
 reversed : Array a -> Unit
 reversed arr =
-  let len = size arr
-  forEachRange (0 ... (len / 2)) \i ->
+  let length = size arr
+  forEachRange (0 ... (length / 2)) \i ->
     let temp = aget i arr
-    aset i (aget (len - i - 1) arr) arr
-    aset (len - i - 1) temp arr
+    aset i (aget (length - i - 1) arr) arr
+    aset (length - i - 1) temp arr
 
 /**
  * Creates a byte array of the specified size.
  */
 pub
 byteArray : Int -> ByteArray
-byteArray len = Core#mkByteArray(len)
+byteArray length = Core#mkByteArray(length)
 
 /**
  * Creates a int16 array of the specified size.
  */
 pub
 int16Array : Int -> Int16Array
-int16Array len = Core#mkInt16Array(len)
+int16Array length = Core#mkInt16Array(length)
 
 /**
  * Creates a int32 array of the specified size.
  */
 pub
-intArray : Int -> Int32Array
-intArray len = Core#mkInt32Array(len)
+int32Array : Int -> Int32Array
+int32Array length = Core#mkInt32Array(length)
 
 /**
  * Creates a int64 array of the specified size.
  */
 pub
 int64Array : Int -> Int64Array
-int64Array len = Core#mkInt64Array(len)
+int64Array length = Core#mkInt64Array(length)
 
 /**
  * Creates a float32 array of the specified size.
  */
 pub
 float32Array : Int -> Float32Array
-float32Array len = Core#mkFloat32Array(len)
+float32Array length = Core#mkFloat32Array(length)
 
 /**
  * Creates a float64 array of the specified size.
  */
 pub
-floatArray : Int -> Float64Array
-floatArray len = Core#mkFloat64Array(len)
+float64Array : Int -> Float64Array
+float64Array length = Core#mkFloat64Array(length)
 
 /**
  * Creates a char array of the specified size.
  */
 pub
 charArray : Int -> CharArray
-charArray len = Core#mkCharArray(len)
+charArray length = Core#mkCharArray(length)
 
 /**
  * Creates a boolean array of the specified size.
  */
 pub
 booleanArray : Int -> BooleanArray
-booleanArray len = Core#mkBooleanArray(len)
+booleanArray length = Core#mkBooleanArray(length)
 
 /**
  * Returns a copy of this array.
