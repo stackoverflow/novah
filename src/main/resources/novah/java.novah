@@ -1,6 +1,4 @@
-/**
- * Functions for Java interoperability.
- */
+// Functions for Java interoperability.
 module novah.java
 
 foreign import java.lang.AssertionError
@@ -27,18 +25,14 @@ pub
 class : a -> Class a
 class obj = (obj as Object)#getClass() as Class a
 
-/**
- * Returns the hash code for this value using
- * the native Java `hashCode` method of x.
- */
+// Returns the hash code for this value using
+// the native Java `hashCode` method of x.
 pub
 hashCode : a -> Int32
 hashCode x = (x as Object)#hashCode()
 
-/**
- * Returns true if x is equals y using
- * the native Java `equals` method of x.
- */
+// Returns true if x is equals y using
+// the native Java `equals` method of x.
 pub
 equals? : a -> a -> Boolean
 equals? x y = (x as Object)#equals(y as Object)
@@ -61,20 +55,16 @@ assert cond msg =
     ()
   else throw AssertionError#new(format "Assert failed: %s" [msg] as Object)
 
-/**
- * Executes the function for each value in this iterator.
- * Runtime: O(n)
- */
+// Executes the function for each value in this iterator.
+// Runtime: O(n)
 pub
 forEach : Iterator a -> (a -> Unit) -> Unit
 forEach it fun =
   while it#hasNext() do
     fun it#next()
 
-/**
- * Terminates the currently running JVM with the given status.
- * A status different from 0 indicates abnormal termination.
- */
+// Terminates the currently running JVM with the given status.
+// A status different from 0 indicates abnormal termination.
 pub
 exit : Int32 -> Unit
 exit status = System#exit(status)

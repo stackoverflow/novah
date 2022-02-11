@@ -1,7 +1,5 @@
-/**
- * This module defines computation expressions
- * for some types like List and Option.
- */
+// This module defines computation expressions
+// for some types like List and Option.
 module novah.computation
 
 import novah.linkedList (LinkedList(..))
@@ -10,10 +8,8 @@ import novah.option as Option
 import novah.set as Set
 import novah.list as List
 
-/**
- * The builder for list computation expressions.
- * Allows to use `do.list` syntax for list comprehensions.
- */
+// The builder for list computation expressions.
+// Allows to use `do.list` syntax for list comprehensions.
 pub
 list :
   { "for" : List a -> (a -> List b) -> List b
@@ -28,10 +24,8 @@ list =
   , zero: []
   }
 
-/**
- * The builder for set computation expressions.
- * Allows to use `do.set` syntax for set comprehensions.
- */
+// The builder for set computation expressions.
+// Allows to use `do.set` syntax for set comprehensions.
 pub
 set :
   { "for" : Set a -> (a -> Set b) -> Set b
@@ -46,10 +40,8 @@ set =
   , zero: #{}
   }
 
-/**
- * The builder for linked list computation expressions.
- * Allows to use `do.linkedList` syntax for linked list comprehensions.
- */
+// The builder for linked list computation expressions.
+// Allows to use `do.linkedList` syntax for linked list comprehensions.
 pub
 linkedList :
   { "for" : LinkedList a -> (a -> LinkedList b) -> LinkedList b
@@ -64,10 +56,8 @@ linkedList =
   , zero: Nil
   }
 
-/**
- * The builder for optional computation expressions.
- * Allows to use `do.option` syntax for option workflows.
- */
+// The builder for optional computation expressions.
+// Allows to use `do.option` syntax for option workflows.
 pub
 option :
   { bind : Option a -> (a -> Option b) -> Option b
@@ -82,10 +72,8 @@ option =
   , zero: None
   }
 
-/**
- * The builder for success/error computation expressions.
- * Allows to use `do.result` syntax for failable workflows.
- */
+// The builder for success/error computation expressions.
+// Allows to use `do.result` syntax for failable workflows.
 pub
 result :
   { bind : Result a e -> (a -> Result b e) -> Result b e

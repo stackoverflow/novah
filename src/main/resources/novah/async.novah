@@ -1,7 +1,5 @@
-/**
- * Functions for working with asynchronous computations
- * using `java.util.concurrent.CompletableFuture`.
- */
+// Functions for working with asynchronous computations
+// using `java.util.concurrent.CompletableFuture`.
 module novah.async
 
 import novah.java as Java
@@ -22,18 +20,14 @@ pub
 get : CompletableFuture a -> a
 get fut = fut#get()
 
-/**
- * Returns the value inside the future if it's completed,
- * or return the default value.
- */
+// Returns the value inside the future if it's completed,
+// or return the default value.
 pub
 getOr : CompletableFuture a -> a -> a
 getOr fut def = fut#getNow(def)
 
-/**
- * Blocks the future until it returns a result.
- * If no result is returned until the timeout is reached, returns None.
- */
+// Blocks the future until it returns a result.
+// If no result is returned until the timeout is reached, returns None.
 pub
 wait : CompletableFuture a -> Int64 -> TimeUnit -> Option a
 wait fut time tunit =
@@ -42,10 +36,8 @@ wait fut time tunit =
   catch
     :? TimeoutException -> None
 
-/**
- * If this future is not yet completed, complete it with value.
- * Returns true if the future transitioned to a completed state.
- */
+// If this future is not yet completed, complete it with value.
+// Returns true if the future transitioned to a completed state.
 pub
 complete : CompletableFuture a -> a -> Boolean
 complete fut value = fut#complete(value)
@@ -65,10 +57,8 @@ pub
 new : (Unit -> a) -> CompletableFuture a
 new fun = CompletableFuture#supplyAsync(Java.supplier fun)
 
-/**
- * Creates a future that will run this function asynchronously.
- * The function will run in the given executor.
- */
+// Creates a future that will run this function asynchronously.
+// The function will run in the given executor.
 pub
 newWith : Executor -> (Unit -> a) -> CompletableFuture a
 newWith exe fun = CompletableFuture#supplyAsync(Java.supplier fun, exe)
@@ -83,18 +73,14 @@ pub
 map : (a -> b) -> CompletableFuture a -> CompletableFuture b
 map fun fut = fut#thenApply(fun as Function Object b)
 
-/**
- * Maps the given function asynchronously taking the result of this future as argument.
- * Flattens the result to a single future.
- */
+// Maps the given function asynchronously taking the result of this future as argument.
+// Flattens the result to a single future.
 pub
 flatMap : (a -> CompletableFuture b) -> CompletableFuture a -> CompletableFuture b
 flatMap fun fut = fut#thenCompose(fun as Function Object Object)
 
-/**
- * Runs the given function asynchronously with the result of both futures, returning a new future.
- * The two futures will run independently.
- */
+// Runs the given function asynchronously with the result of both futures, returning a new future.
+// The two futures will run independently.
 pub
 combine : (a -> b -> c) -> CompletableFuture a -> CompletableFuture b -> CompletableFuture c
 combine (fun : a -> b -> c) fut other =
@@ -114,18 +100,14 @@ any futs =
   let arr = (List.toTypedArray CompletableFuture#-class futs)
   CompletableFuture#anyOf(arr) as CompletableFuture a
 
-/**
- * Handles the exception in this future so it doesn't propagate down the chain.
- * The function will only be called in case of an exception.
- */
+// Handles the exception in this future so it doesn't propagate down the chain.
+// The function will only be called in case of an exception.
 pub
 exceptionally : (Throwable -> a) -> CompletableFuture a -> CompletableFuture a
 exceptionally fun fut = fut#exceptionally(fun as Function Throwable a)
 
-/**
- * Adds a handler to this future.
- * This function is similar to `map` but it handles exceptions as well.
- */
+// Adds a handler to this future.
+// This function is similar to `map` but it handles exceptions as well.
 pub
 handle : (Result a Throwable -> b) -> CompletableFuture a -> CompletableFuture b
 handle fun fut =

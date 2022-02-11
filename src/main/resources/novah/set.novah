@@ -1,7 +1,5 @@
-/**
- * Functions to work with persistent sets.
- * Literal sets can be created using `#{}`.
- */
+// Functions to work with persistent sets.
+// Literal sets can be created using `#{}`.
 module novah.set
 
 foreign import java.lang.Iterable
@@ -17,63 +15,50 @@ import novah.java as J
 import novah.option as Option
 import novah.list as List
 
-/**
- * Creates a new set which uses the element equality function and the provided hash function, or the default object hash function.
- * This function should always be used to create new sets for types that have equality implementations that differ from its own
- * `equals` function.
- * Note that Novah creates default, sensible `equals` and `hashCode` implementations for every type, so this function is only needed
- * for types where the `equals` function and the `Equals` type class implementation diverge.
- */
+// Creates a new set which uses the element equality function and the provided hash function, or the default object hash function.
+// This function should always be used to create new sets for types that have equality implementations that differ from its own
+// `equals` function.
+// Note that Novah creates default, sensible `equals` and `hashCode` implementations for every type, so this function is only needed
+// for types where the `equals` function and the `Equals` type class implementation diverge.
 pub
 new : {{ Equals a }} -> Option (a -> Int64) -> Set a
 new {{Equals eq}} hashFn =
   let hash = Option.map J.toLongFunction hashFn ?: Maps#-`DEFAULT_HASH_CODE`
   Set#new(hash, J.bipredicate eq)
 
-/**
- * Inserts this element in the set.
- * Runtime: ~O(1)
- */
+// Inserts this element in the set.
+// Runtime: ~O(1)
 pub
 add : a -> Set a -> Set a
 add x set = set#add(x)
 
-/**
- * Removes this element from the set.
- * Runtime: ~O(1)
- */
+// Removes this element from the set.
+// Runtime: ~O(1)
 pub
 remove : a -> Set a -> Set a
 remove x set = set#remove(x)
 
-/**
- * Returns the size of this set.
- * Runtime: O(1)
- */
+// Returns the size of this set.
+// Runtime: O(1)
 pub
 size : Set a -> Int32
 size set =
   set#size()#intValue()
 
-/**
- * Returns true if this set is empty.
- */
+// Returns true if this set is empty.
+// Runtime: O(1)
 pub
 empty? : Set a -> Boolean
 empty? set = set#size() == 0L
 
-/**
- * Returns true if this set is not empty.
- * Runtime: O(1)
- */
+// Returns true if this set is not empty.
+// Runtime: O(1)
 pub
 notEmpty? : Set a -> Boolean
 notEmpty? set = set#size() != 0L
 
-/**
- * Returns some value at index for this set if it exists or none.
- * Runtime: ~O(1)
- */
+// Returns some value at index for this set if it exists or none.
+// Runtime: ~O(1)
 pub
 nth : Int32 -> Set a -> Option a
 nth index set =
@@ -82,10 +67,8 @@ nth index set =
     then None
     else Some set#nth(index#longValue())
 
-/**
- * Returns a random element of this set if the set is not empty.
- * Runtime: O(1)
- */
+// Returns a random element of this set if the set is not empty.
+// Runtime: O(1)
 pub
 randNth : Set a -> Option a
 randNth set =
@@ -94,10 +77,8 @@ randNth set =
     let i = ThreadLocalRandom#current()#nextInt(size set)
     Some set#nth(i#longValue())
 
-/**
- * Returns the union of these 2 sets.
- * This is the same as `set1 ++ set2`.
- */
+// Returns the union of these 2 sets.
+// This is the same as `set1 ++ set2`.
 pub
 union : Set a -> Set a -> Set a
 union s1 s2 = s1#union(s2 as ISet a)
@@ -117,10 +98,8 @@ pub
 stream : Set a -> Stream a
 stream set = set#stream()
 
-/**
- * Collects this stream into a set.
- * Runtime: O(n)
- */
+// Collects this stream into a set.
+// Runtime: O(n)
 pub
 fromStream : Stream a -> Set a
 fromStream st =
@@ -128,31 +107,25 @@ fromStream st =
   S.forEach st \x -> add x lset
   lset#forked()
 
-/**
- * Runs function f for every element of this set, ignoring the result.
- * Runtime: O(n)
- */
+// Runs function f for every element of this set, ignoring the result.
+// Runtime: O(n)
 pub
 forEach : Set a -> (a -> Unit) -> Unit
 forEach set f =
   forEachRange (0L ... set#size()) \idx ->
     f set#nth(idx)
 
-/**
- * Runs function f for every index and element of this set, ignoring the result.
- * Runtime: O(n)
- */
+// Runs function f for every index and element of this set, ignoring the result.
+// Runtime: O(n)
 pub
 forEachIndexed : Set a -> (Int32 -> a -> Unit) -> Unit
 forEachIndexed set f =
   forEachRange (0L ... set#size()) \(idx : Int64) ->
     f idx#intValue() set#nth(idx)
 
-/**
- * Maps function f over all elements of this set
- * returning a set of the same size.
- * Runtime: O(n)
- */
+// Maps function f over all elements of this set
+// returning a set of the same size.
+// Runtime: O(n)
 pub
 map : (a -> b) -> Set a -> Set b
 map f set =
@@ -162,10 +135,8 @@ map f set =
     ()
   lset#forked()
 
-/**
- * Returns an array of the elements that match the given predicate.
- * Runtime: O(n)
- */
+// Returns an array of the elements that match the given predicate.
+// Runtime: O(n)
 pub
 filter : (a -> Boolean) -> Set a -> Set a
 filter pred set =
@@ -177,11 +148,9 @@ filter pred set =
       ()
   lset#forked()
 
-/**
- * Returns the first occurrence of elem in the set for which the predicate returns true.
- * This function uses the set's equality function, set at creation time.
- * Runtime: O(n)
- */
+// Returns the first occurrence of elem in the set for which the predicate returns true.
+// This function uses the set's equality function, set at creation time.
+// Runtime: O(n)
 pub
 find : (a -> Boolean) -> Set a -> Option a
 find pred set =
@@ -193,20 +162,16 @@ find pred set =
       if pred e then Some e else go (i + 1L)
   go 0L
 
-/**
- * Reduces this set to a single value according to the reducing function.
- * Goes from the left to the right.
- * Runtime: O(n)
- */
+// Reduces this set to a single value according to the reducing function.
+// Goes from the left to the right.
+// Runtime: O(n)
 pub
 foldl : (b -> a -> b) -> b -> Set a -> b
 foldl f init set = Core#foldSet(f, init, set)
 
-/**
- * A specialized version of `foldl` where the first element of the set is used as initial value.
- * Returns none if the set is empty
- * Runtime: O(n)
- */
+// A specialized version of `foldl` where the first element of the set is used as initial value.
+// Returns none if the set is empty
+// Runtime: O(n)
 pub
 reduce : (a -> a -> a) -> Set a -> Option a
 reduce f set =
@@ -216,10 +181,8 @@ reduce f set =
     let rest = remove first set
     Some (foldl f first rest)
 
-/**
- * Flattens a set of sets into a single set by concatenating them together.
- * Runtime: O(n)
- */
+// Flattens a set of sets into a single set by concatenating them together.
+// Runtime: O(n)
 pub
 flatten : Set (Set a) -> Set a
 flatten sets =
@@ -230,19 +193,15 @@ flatten sets =
       let ssets = remove first sets
       foldl (\s1 s2 -> s1 ++ s2) first ssets
 
-/**
- * Like map, but the mapping function should return a set.
- * Flattens the result.
- * Runtime: O(n)
- */
+// Like map, but the mapping function should return a set.
+// Flattens the result.
+// Runtime: O(n)
 pub
 flatMap : (a -> Set b) -> Set a -> Set b
 flatMap f set = flatten (map f set)
 
-/**
- * Returns true if the predicate is true for all elements in this set.
- * Runtime: O(n)
- */
+// Returns true if the predicate is true for all elements in this set.
+// Runtime: O(n)
 pub
 all? : (a -> Boolean) -> Set a -> Boolean
 all? pred set =
@@ -254,10 +213,8 @@ all? pred set =
       if pred e then go (i + 1L) else false
   go 0L
 
-/**
- * Returns true if the predicate is true for any element in this set.
- * Runtime: O(n)
- */
+// Returns true if the predicate is true for any element in this set.
+// Runtime: O(n)
 pub
 any? : (a -> Boolean) -> Set a -> Boolean
 any? pred set =
@@ -270,10 +227,8 @@ any? pred set =
   go 0L
 
 
-/**
- * Returns the number of elements matching the given predicate.
- * Runtime: O(n)
- */
+// Returns the number of elements matching the given predicate.
+// Runtime: O(n)
 pub
 count : (a -> Boolean) -> Set a -> Int32
 count pred set =
@@ -282,38 +237,30 @@ count pred set =
     if pred elem then counter#update(_ + 1)
   counter#-val
 
-/**
- * Returns the smallest number in the set, if the list is not empty.
- * Runtime: O(n)
- */
+// Returns the smallest number in the set, if the list is not empty.
+// Runtime: O(n)
 pub
 min : {{ NumberOps a }} -> Set a -> Option a
 min {{NumberOps ops}} = reduce (\n n2 -> ops.min n n2)
 
-/**
- * Returns the smallest number in the set, or the default value.
- * Runtime: O(n)
- */
+// Returns the smallest number in the set, or the default value.
+// Runtime: O(n)
 pub
 minOr : {{ NumberOps a }} -> a -> Set a -> a
 minOr {{NumberOps ops}} default set =
   reduce (\n n2 -> ops.min n n2) set ?: default
 
-/**
- * Returns the smallest element in the set according to the
- * given function, if the set is not empty.
- * Runtime: O(n)
- */
+// Returns the smallest element in the set according to the
+// given function, if the set is not empty.
+// Runtime: O(n)
 pub
 minBy : {{ Ord b }} -> (a -> b) -> Set a -> Option a
 minBy {{_}} fn =
   reduce (\n n2 -> if (fn n) <= (fn n2) then n else n2)
 
-/**
- * Returns the smallest element returned by applying the
- * function to every element in the set, if the set is not empty.
- * Runtime: O(n)
- */
+// Returns the smallest element returned by applying the
+// function to every element in the set, if the set is not empty.
+// Runtime: O(n)
 pub
 minOf : {{ NumberOps b }} -> (a -> b) -> Set a -> Option b
 minOf {{NumberOps ops}} fn set =
@@ -327,38 +274,30 @@ minOf {{NumberOps ops}} fn set =
       val#-val <- ops.min val#-val (fn e)
     Some val#-val
 
-/**
- * Returns the biggest number in the set, if the list is not empty.
- * Runtime: O(n)
- */
+// Returns the biggest number in the set, if the list is not empty.
+// Runtime: O(n)
 pub
 max : {{ NumberOps a }} -> Set a -> Option a
 max {{NumberOps ops}} = reduce (\n n2 -> ops.max n n2)
 
-/**
- * Returns the biggest number in the set, or the default value.
- * Runtime: O(n)
- */
+// Returns the biggest number in the set, or the default value.
+// Runtime: O(n)
 pub
 maxOr : {{ NumberOps a }} -> a -> Set a -> a
 maxOr {{NumberOps ops}} default set =
   reduce (\n n2 -> ops.max n n2) set ?: default
 
-/**
- * Returns the biggest element in the set according to the
- * given function, if the set is not empty.
- * Runtime: O(n)
- */
+// Returns the biggest element in the set according to the
+// given function, if the set is not empty.
+// Runtime: O(n)
 pub
 maxBy : {{ Ord b }} -> (a -> b) -> Set a -> Option a
 maxBy {{_}} fn =
   reduce (\n n2 -> if (fn n) >= (fn n2) then n else n2)
 
-/**
- * Returns the biggest element returned by applying the
- * function to every element in the set, if the set is not empty.
- * Runtime: O(n)
- */
+// Returns the biggest element returned by applying the
+// function to every element in the set, if the set is not empty.
+// Runtime: O(n)
 pub
 maxOf : {{ NumberOps b }} -> (a -> b) -> Set a -> Option b
 maxOf {{NumberOps ops}} fn set =
@@ -372,61 +311,49 @@ maxOf {{NumberOps ops}} fn set =
       val#-val <- ops.max val#-val (fn e)
     Some val#-val
 
-/**
- * Returns the sum of all elements in this set.
- * Runtime: O(n)
- */
+// Returns the sum of all elements in this set.
+// Runtime: O(n)
 pub
 sum : {{ Plus a }} -> Set a -> a
 sum {{Plus p}} =
   foldl p.plus p.identity
 
-/**
- * Returns the sum of all elements by first applying the
- * function to every element in this set.
- * Runtime: O(n)
- */
+// Returns the sum of all elements by first applying the
+// function to every element in this set.
+// Runtime: O(n)
 pub
 sumOf : {{ Plus b }} -> (a -> b) -> Set a -> b
 sumOf {{Plus p}} fn =
   foldl (\acc x -> p.plus acc (fn x)) p.identity
 
-/**
- * Returns the product of all elements in this set.
- * Runtime: O(n)
- */
+// Returns the product of all elements in this set.
+// Runtime: O(n)
 pub
 product : {{ Mult a }} -> Set a -> a
 product {{Mult m}} =
   foldl m.mult m.identity
 
-/**
- * Returns the product of all elements by first applying the
- * function to every element in this set.
- * Runtime: O(n)
- */
+// Returns the product of all elements by first applying the
+// function to every element in this set.
+// Runtime: O(n)
 pub
 productOf : {{ Mult b }} -> (a -> b) -> Set a -> b
 productOf {{Mult m}} fn =
   foldl (\acc x -> m.mult acc (fn x)) m.identity
 
-/**
- * Returns true if every element in the list is contained in the set.
- * Runtime: O(n)
- */
+// Returns true if every element in the list is contained in the set.
+// Runtime: O(n)
 pub
 containsAll? : List a -> Set a -> Boolean
 containsAll? list set = List.all? set#contains(_) list
 
-/**
- * Groups the elements of the set according
- * to the the function.
- * Ex:
- * ```novah
- * groupBy isOdd #{1, 2, 3, 4, 5, 6}
- * // => { true: #{1, 3, 5}, false: #{2, 4, 6} }
- * ```
- */
+// Groups the elements of the set according
+// to the the function.
+// Ex:
+// ```novah
+// groupBy isOdd #{1, 2, 3, 4, 5, 6}
+// // => { true: #{1, 3, 5}, false: #{2, 4, 6} }
+// ```
 pub
 groupBy : (a -> b) -> Set a -> Map b (Set a)
 groupBy f set =
@@ -440,20 +367,16 @@ groupBy f set =
   forEach set grouper
   m#forked()
 
-/**
- * Returns a set with the same elements as the list,
- * with duplicates removed.
- * Runtime: O(n)
- */
+// Returns a set with the same elements as the list,
+// with duplicates removed.
+// Runtime: O(n)
 pub
 fromList : List a -> Set a
 fromList list =
   Set#from(list as Iterable a)
 
-/**
- * Returns a list of all elements in this set.
- * Runtime: O(n)
- */
+// Returns a list of all elements in this set.
+// Runtime: O(n)
 pub
 toList : Set a -> List a
 toList set =
@@ -463,20 +386,18 @@ toList set =
     ()
   lin#forked()
 
-/**
- * Creates a linear (mutable) version of the given set and applies the function to it.
- * Returns a forked (persistent) version of the returned linear set.
- * This function should be used when lots of expensive mutating operations have to be run on a set
- * and can be seen as a builder for the resulting set.
- * All functions that alter sets like `add`, `remove`, etc.
- * will mutate a linear set.
- * Ex:
- *   withLinear #{1, 2, 3} \set ->
- *     add 4 set
- *     remove 1 set
- *
- *   -> #{2, 3, 4}
- */
+// Creates a linear (mutable) version of the given set and applies the function to it.
+// Returns a forked (persistent) version of the returned linear set.
+// This function should be used when lots of expensive mutating operations have to be run on a set
+// and can be seen as a builder for the resulting set.
+// All functions that alter sets like `add`, `remove`, etc.
+// will mutate a linear set.
+// Ex:
+//   withLinear #{1, 2, 3} \set ->
+//     add 4 set
+//     remove 1 set
+//
+//   -> #{2, 3, 4}
 pub
 withLinear : Set a -> (Set a -> b) -> Set a
 withLinear set f =

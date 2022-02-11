@@ -1,6 +1,4 @@
-/**
- * Functions to work with Java streams.
- */
+// Functions to work with Java streams.
 module novah.stream
 
 foreign import java.util.function.Consumer
@@ -21,10 +19,8 @@ pub
 from : a -> Stream a
 from x = Stream#`of`(x)
 
-/**
- * Runs function f for every element of this Stream, ignoring the result.
- * Runtime: O(n)
- */
+// Runs function f for every element of this Stream, ignoring the result.
+// Runtime: O(n)
 pub
 forEach : Stream a -> (a -> b) -> Unit
 forEach stream f = stream#forEach(Core#makeConsumer(f) as Consumer Object)
@@ -44,10 +40,8 @@ pub
 filter : (a -> Boolean) -> Stream a -> Stream a
 filter f st = st#filter(Core#makePredicate(f) as Predicate Object)
 
-/**
- * Maps function f over all elements of this Stream returning a Stream.
- * Runtime: O(n)
- */
+// Maps function f over all elements of this Stream returning a Stream.
+// Runtime: O(n)
 pub
 map : (a -> b) -> Stream a -> Stream b
 map f st = st#map(f as Function Object b)

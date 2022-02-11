@@ -3,12 +3,17 @@ module comments
 // comments on type definitions work
 type Maybe a = Just a | Nothing
 
-/**
- * comments on var
- * types work
- */
+/*
+ comments on var
+ types work
+*/
 myFun : Int -> Int
 myFun x = x + 1
 
 // comments on var declaration work
+// and are concatenated
 other = "hello"
+
+// comments with a empty line are not added
+
+foo = 2

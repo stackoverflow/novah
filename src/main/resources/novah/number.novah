@@ -1,3 +1,4 @@
+// Function and other numeric constants
 module novah.number
 
 foreign import java.lang.NumberFormatException

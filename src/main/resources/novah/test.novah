@@ -1,11 +1,9 @@
-/**
- * A lightweight test library.
- * Tests can be either automatically registered
- * with the `test` and `testWith` function
- * and ran with `runAllTests` or `runTestsFor`
- * or manually created with the `Test`, `Tests` and `Setup` constructors
- * and ran with `runTests`.
- */
+// A lightweight test library.
+// Tests can be either automatically registered
+// with the `test` and `testWith` function
+// and ran with `runAllTests` or `runTestsFor`
+// or manually created with the `Test`, `Tests` and `Setup` constructors
+// and ran with `runTests`.
 module novah.test
 
 foreign import java.lang.AssertionError
@@ -50,18 +48,16 @@ testWith before after description testFun =
   addLast suite allRegisteredtests
   ()
 
-/**
- * Executes the function for every entry in the table.
- * Ex:
- * ```novah
- * withTable
- *   [ { animal: "Cat", sound: "meow" }
- *   , { animal: "Dog", sound: "woof" }
- *   , { animal: "Duck", sound: "quack" }
- *   ]
- *   \{animal, sound} -> makeSound animal `shouldBe` sound
- * ```
- */
+// Executes the function for every entry in the table.
+// Ex:
+// ```novah
+// withTable
+//   [ { animal: "Cat", sound: "meow" }
+//   , { animal: "Dog", sound: "woof" }
+//   , { animal: "Duck", sound: "quack" }
+//   ]
+//   \{animal, sound} -> makeSound animal `shouldBe` sound
+// ```
 pub
 withTable : List { | r } -> ({ | r } -> Unit) -> Unit
 withTable = forEach
@@ -102,21 +98,17 @@ runTests suites =
     _, 0 -> Failure
     _, _ -> Error
 
-/**
- * Run all registered tests.
- * Tests need to be located in a root `test` package.
- */
+// Run all registered tests.
+// Tests need to be located in a root `test` package.
 pub
 runAllTests : Unit -> TestResult
 runAllTests _ =
   Core#loadAllClasses("test")
   runTests allRegisteredtests
 
-/**
- * Run all registered tests.
- * Modules containing tests will be searched
- * in the given root package.
- */
+// Run all registered tests.
+// Modules containing tests will be searched
+// in the given root package.
 pub
 runTestsFor : String -> TestResult
 runTestsFor package =

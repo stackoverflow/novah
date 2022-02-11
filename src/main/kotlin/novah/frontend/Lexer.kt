@@ -116,6 +116,9 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
     fun after(line: Int, col: Int) =
         line > endLine || (line == endLine && col > endColumn)
 
+    // returns true if there's no lines between these spans
+    fun adjacent(other: Span) = endLine + 1 == other.startLine
+
     companion object {
         private val emptySpan = Span(-1, -1, -1, -1)
         fun empty() = emptySpan
@@ -205,7 +208,14 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
-                    if (next.comment != null) return next
+                    val nextComm = next.comment
+                    // concat // comments
+                    if (nextComm != null && !nextComm.isMulti && endSpan.adjacent(nextComm.span)) {
+                        val newComm = Comment("$comm\n${nextComm.comment}", Span.new(endSpan, nextComm.span))
+                        return next.copy(comment = newComm)
+                    }
+                    // if there's a blank line between the comment the definition don't add
+                    if (next.comment != null || !endSpan.adjacent(next.span)) return next
                     comment = Comment(comm, endSpan)
                     return next.copy(comment = comment)
                 }
@@ -214,7 +224,8 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
-                    if (next.comment != null) return next
+                    // if there's a blank line between the comment the definition don't add
+                    if (next.comment != null || !endSpan.adjacent(next.span)) return next
                     comment = Comment(comm, endSpan, isMulti = true)
                     return next.copy(comment = comment)
                 }
@@ -554,7 +565,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         while (iter.hasNext() && iter.peek() != '\n') {
             builder.append(iter.next())
         }
-        return builder.toString().trimStart()
+        return builder.toString()
     }
 
     private fun multiLineComment(): String {
@@ -573,8 +584,9 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             builder.append(c)
             last = c
         }
+        builder.deleteCharAt(builder.length - 1)
 
-        return builder.toString().trimMargin("*").trimIndent()
+        return builder.toString()
     }
 
     private fun accept(chars: String): Char? {

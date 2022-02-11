@@ -1,6 +1,4 @@
-/**
- * Functions to work with strings.
- */
+// Functions to work with strings.
 module novah.string
 
 import novah.list as List
@@ -34,10 +32,8 @@ pub
 size : String -> Int32
 size s = s#length()
 
-/**
- * Returns the index of the last element of this string or -1 if the string is empty.
- * Runtime: O(1)
- */
+// Returns the index of the last element of this string or -1 if the string is empty.
+// Runtime: O(1)
 pub
 lastIndex : String -> Int32
 lastIndex s = s#length() - 1
@@ -62,10 +58,8 @@ pub
 endsWith? : String -> String -> Boolean
 endsWith? suffix str = str#endsWith(suffix)
 
-/**
- * Returns a substring from the given string
- * starting at begin (inclusive) and ending in end (exclusive).
- */
+// Returns a substring from the given string
+// starting at begin (inclusive) and ending in end (exclusive).
 pub
 substring : Int32 -> Int32 -> String -> String
 substring begin end str = str#substring(begin, end)
@@ -118,18 +112,14 @@ capitalize str =
       let tail = str#substring(1)#toLowerCase()
       format "%s%s" [head, tail]
 
-/**
- * Splits the string using the given regular expression.
- * Runtime: O(n)
- */
+// Splits the string using the given regular expression.
+// Runtime: O(n)
 pub
 split : String -> String -> List String
 split regex str = str#split(regex) |> List.fromArray
 
-/**
- * Returns the character at the specified index if it exists.
- * Runtime: O(1)
- */
+// Returns the character at the specified index if it exists.
+// Runtime: O(1)
 pub
 nth : Int32 -> String -> Option Char
 nth idx str =
@@ -137,101 +127,79 @@ nth idx str =
     Some str#charAt(idx)
   else None
 
-/**
- * Returns the character at the specified index if it exists.
- * **Unsafe**: will throw an exception in case the index is invalid.
- * `String.nth` should be prefered instead of this function.
- * Runtime: O(1)
- */
+// Returns the character at the specified index if it exists.
+// **Unsafe**: will throw an exception in case the index is invalid.
+// `String.nth` should be prefered instead of this function.
+// Runtime: O(1)
 pub
 charAt : Int32 -> String -> Char
 charAt idx str = str#charAt(idx)
 
-/**
- * Returns the index of the given sub string inside the string
- * or -1 if none found.
- * Runtime: O(1)
- */
+// Returns the index of the given sub string inside the string
+// or -1 if none found.
+// Runtime: O(1)
 pub
 indexOf : String -> String -> Int32
 indexOf sub str = str#indexOf(sub)
 
-/**
- * Returns a list of all chars in this string.
- * Runtime: O(n)
- */
+// Returns a list of all chars in this string.
+// Runtime: O(n)
 pub
 toList : String -> List Char
 toList str =
   str#toCharArray() |> List.fromCharArray
 
-/**
- * Returns a set of all the characters in this string.
- * Runtime: O(n)
- */
+// Returns a set of all the characters in this string.
+// Runtime: O(n)
 pub
 toSet : String -> Set Char
 toSet = toList >> Set.fromList
 
-/**
- * Returns a string from a list of chars.
- * Runtime: O(n)
- */
+// Returns a string from a list of chars.
+// Runtime: O(n)
 pub
 fromList : List Char -> String
 fromList (list : List Char) = String#new(List.toCharArray list)
 
-/**
- * Maps a function over every char in this string.
- * Runtime: O(n)
- */
+// Maps a function over every char in this string.
+// Runtime: O(n)
 pub
 map : (Char -> b) -> String -> List b
 map f str =
   List.map f (toList str)
 
-/**
- * Maps a function over every char in this string
- * returning a new string.
- * Runtime: O(n)
- */
+// Maps a function over every char in this string
+// returning a new string.
+// Runtime: O(n)
 pub
 mapString : (Char -> Char) -> String -> String
 mapString f str =
   List.map f (toList str) |> fromList
 
-/**
- * Executes this function for every character in the string.
- * Runtime: O(n)
- */
+// Executes this function for every character in the string.
+// Runtime: O(n)
 pub
 forEach : String -> (Char -> Unit) -> Unit
 forEach str fun =
   forEachRange (0 ... size str) \idx ->
     fun (charAt idx str)
 
-/**
- * Filters chars of this string with the given predicate.
- * Runtime: O(n)
- */
+// Filters chars of this string with the given predicate.
+// Runtime: O(n)
 pub
 filter : (Char -> Boolean) -> String -> String
 filter pred str =
   toList str |> List.filter pred |> fromList
 
-/**
- * Remove chars of this string with the given predicate.
- * Runtime: O(n)
- */
+// Remove chars of this string with the given predicate.
+// Runtime: O(n)
 pub
 remove : (Char -> Boolean) -> String -> String
 remove pred str =
   toList str |> List.filter (not << pred) |> fromList
 
-/**
- * Returns the first occurrence of a char to which the predicate returns true.
- * Runtime: O(n)
- */
+// Returns the first occurrence of a char to which the predicate returns true.
+// Runtime: O(n)
 pub
 find : (Char -> Boolean) -> String -> Option Char
 find pred str =
@@ -265,11 +233,9 @@ pub
 take : Int32 -> String -> String
 take n str = substring 0 n str
 
-/**
- * Keeps taking chars from this string while
- * the predicate holds.
- * Runtime: O(n)
- */
+// Keeps taking chars from this string while
+// the predicate holds.
+// Runtime: O(n)
 pub
 takeWhile : (Char -> Boolean) -> String -> String
 takeWhile pred str =
@@ -277,11 +243,9 @@ takeWhile pred str =
     |> List.takeWhile pred
     |> fromList
 
-/**
- * Keeps droping chars from this string while
- * the predicate holds.
- * Runtime: O(n)
- */
+// Keeps droping chars from this string while
+// the predicate holds.
+// Runtime: O(n)
 pub
 dropWhile : (Char -> Boolean) -> String -> String
 dropWhile pred str =
@@ -306,41 +270,33 @@ reverse str =
   let sb = StringBuilder#new(str)
   sb#reverse()#toString()
 
-/**
- * Returns the number of characters matching the given predicate.
- * Runtime: O(n)
- */
+// Returns the number of characters matching the given predicate.
+// Runtime: O(n)
 pub
 count : (Char -> Boolean) -> String -> Int32
 count pred str =
   toList str |> List.count pred
 
-/**
- * Returns a list of all the indices from the input string.
- * Ex:
- * ```novah
- * indices "abc" // => [0, 1, 2]
- * ```
- */
+// Returns a list of all the indices from the input string.
+// Ex:
+// ```novah
+// indices "abc" // => [0, 1, 2]
+// ```
 pub
 indices : String -> List Int32
 indices str = [0 ... size str]
 
-/**
- * Returns a list of the lines in this string, separated by line terminators.
- * Runtime: O(n)
- */
+// Returns a list of the lines in this string, separated by line terminators.
+// Runtime: O(n)
 pub
 lines : String -> List String
 lines str =
   str#lines() |> List.fromStream
 
-/**
- * Finds the smallest common indentation of all lines in this string
- * and removes it.
- * Blank lines will be removed.
- * Does not preserve line endings.
- */
+// Finds the smallest common indentation of all lines in this string
+// and removes it.
+// Blank lines will be removed.
+// Does not preserve line endings.
 pub
 stripIndent : String -> String
 stripIndent str =

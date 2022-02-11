@@ -1,3 +1,4 @@
+// function for working with IO
 module novah.io
 
 import novah.list as List
@@ -26,10 +27,8 @@ pub
 child : File -> String -> File
 child dir child_ = File#new(dir, child_)
 
-/**
- * Returns a path by joining the first path with
- * the list of paths using the platform separator.
- */
+// Returns a path by joining the first path with
+// the list of paths using the platform separator.
 pub
 pathOf : String -> List String -> Path
 pathOf first paths =
@@ -40,10 +39,8 @@ pub
 fileToPath : File -> Path
 fileToPath file = file#toPath()
 
-/**
- * Possible file open options.
- * Look at `java.nio.file.StandardOpenOption` for more information.
- */
+// Possible file open options.
+// Look at `java.nio.file.StandardOpenOption` for more information.
 pub+
 type FileOpenOption
   = Read
@@ -87,29 +84,23 @@ readText : File -> String
 readText file =
   Files#readString(file#toPath())
 
-/**
- * Writes the given string to the specified path using the given charset.
- * Returns the path.
- */
+// Writes the given string to the specified path using the given charset.
+// Returns the path.
 pub
 writeTextToPath : Path -> String -> Charset -> List FileOpenOption -> Path
 writeTextToPath path text charset options =
   let ops = List.map fopToOp options |> List.toTypedArray StandardOpenOption#-class
   Files#writeString(path, text as CharSequence, charset, ops as Array OpenOption)
 
-/**
- * Writes the given string to the specified file using the UTF-8 charset.
- * Returns the path.
- */
+// Writes the given string to the specified file using the UTF-8 charset.
+// Returns the path.
 pub
 writeText : File -> String -> Path
 writeText file text =
   writeTextToPath file#toPath() text utf8 [Write, Create]
 
-/**
- * Appends the given string to the specified file using the UTF-8 charset.
- * Returns the path.
- */
+// Appends the given string to the specified file using the UTF-8 charset.
+// Returns the path.
 pub
 appendText : File -> String -> Path
 appendText file text =

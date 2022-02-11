@@ -1,6 +1,4 @@
-/**
- * Common mathematical functions and constants.
- */
+// Common mathematical functions and constants.
 module novah.math
 
 foreign import java.lang.Math

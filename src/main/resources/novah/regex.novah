@@ -1,6 +1,4 @@
-/**
- * Functions to work with regular expressions.
- */
+// Functions to work with regular expressions.
 module novah.regex
 
 foreign import java.lang.CharSequence
@@ -34,19 +32,15 @@ resultToGroups mat =
   else
     List.map mat#group(_) [0 .. count]
 
-/**
- * Returns a list of all matched groups for
- * the most recent match on this matcher.
- * The first element represents the whole match.
- */
+// Returns a list of all matched groups for
+// the most recent match on this matcher.
+// The first element represents the whole match.
 pub
 groups : Matcher -> List String
 groups mat = resultToGroups (mat as MatchResult)
 
-/**
- * Returns the first match of this regex for the given string.
- * Returns an empty list if there was no match.
- */
+// Returns the first match of this regex for the given string.
+// Returns an empty list if there was no match.
 pub
 find : Pattern -> String -> List String
 find pat str =
@@ -55,10 +49,8 @@ find pat str =
     then groups mat
     else []
 
-/**
- * Returns all the matches of this regex for the given string.
- * Returns an empty list if there was no match.
- */
+// Returns all the matches of this regex for the given string.
+// Returns an empty list if there was no match.
 pub
 findAll : Pattern -> String -> List (List String)
 findAll pat str =
@@ -68,10 +60,8 @@ findAll pat str =
     addLast (groups mat) seq
   seq#forked()
 
-/**
- * Returns true if there is at least one match of this pattern
- * in the given string.
- */
+// Returns true if there is at least one match of this pattern
+// in the given string.
 pub
 find? : Pattern -> String -> Boolean
 find? pat str =
@@ -90,30 +80,24 @@ pub
 split : Pattern -> String -> List String
 split pat str = pat#split(str as CharSequence) |> List.fromArray
 
-/**
- * Replaces the first occurrence of this regex with the
- * given replacement.
- */
+// Replaces the first occurrence of this regex with the
+// given replacement.
 pub
 replaceFirst : Pattern -> String -> String -> String
 replaceFirst pat repl input =
   let mat = matcher pat input
   mat#replaceFirst(repl)
 
-/**
- * Replaces all occurrences of this regex with the
- * given replacement.
- */
+// Replaces all occurrences of this regex with the
+// given replacement.
 pub
 replaceAll : Pattern -> String -> String -> String
 replaceAll pat repl input =
   let mat = matcher pat input
   mat#replaceAll(repl)
 
-/**
- * Replaces the first occurrence of this regex with the
- * application of the given function to the match result.
- */
+// Replaces the first occurrence of this regex with the
+// application of the given function to the match result.
 pub
 replaceFirstWith : Pattern -> (List String -> String) -> String -> String
 replaceFirstWith pat fun input =
@@ -121,10 +105,8 @@ replaceFirstWith pat fun input =
   let repl m = fun (resultToGroups m)
   mat#replaceFirst(repl as Function MatchResult String)
 
-/**
- * Replaces all occurrences of this regex with the
- * application of the given function to the match result.
- */
+// Replaces all occurrences of this regex with the
+// application of the given function to the match result.
 pub
 replaceAllWith : Pattern -> (List String -> String) -> String -> String
 replaceAllWith pat fun input =
