@@ -73,6 +73,8 @@ object Optimization {
     private const val or = "\$pipe\$pipe"
     private const val eq = "\$equals\$equals"
     private const val neq = "\$bang\$equals"
+    private const val rail = "\$pipe\$greater"
+    private const val backRail = "\$smaller\$pipe"
     private const val gt = "\$greater"
     private const val gtEq = "\$greater\$equals"
     private const val lt = "\$smaller"
@@ -115,6 +117,14 @@ object Optimization {
                         } else {
                             Expr.OperatorApp(op, listOf(fn.arg, arg), e.type, e.span)
                         }
+                    }
+                    // optimize |>
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.$rail" -> {
+                        Expr.App(arg, fn.arg, e.type, e.span)
+                    }
+                    // optimize <|
+                    fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.$backRail" -> {
+                        Expr.App(fn.arg, arg, e.type, e.span)
                     }
                     // optimize unsafeCast
                     fn is Var && fn.fullname() == "$coreMod.unsafeCast" -> {
