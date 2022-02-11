@@ -99,14 +99,14 @@ class ParserSpec : StringSpec({
     }
 
     "Lexer and Parser correctly parse comments" {
-        val ast = parseResource("Comments.novah")
+        val ast = parseResource("comments.novah")
 
         val data = ast.decls[0] as Decl.TypeDecl
         val type = ast.decls[1] as Decl.ValDecl
         val vard = ast.decls[2] as Decl.ValDecl
 
         data.comment?.comment should contain("comments on type definitions work")
-        type.comment?.comment should contain("comments on var\ntypes work")
+        type.comment?.comment should contain("\n comments on var\n types work\n")
         vard.comment?.comment should contain("comments on var declaration work")
     }
 

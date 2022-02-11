@@ -1,35 +1,27 @@
-/**
- * Functions to work with values that may fail.
- * Result should always be prefered over throwing exceptions.
- */
+// Functions to work with values that may fail.
+// Result should always be prefered over throwing exceptions.
 module novah.result
 
 foreign import java.lang.AssertionError
 
-/**
- * Maps a function over this result if it is ok.
- * Runtime: O(1)
- */
+// Maps a function over this result if it is ok.
+// Runtime: O(1)
 pub
 map : (a -> b) -> Result a err -> Result b err
 map f = case _ of
   Ok x -> Ok (f x)
   Err e -> Err e
 
-/**
- * Maps a function over this result if it is an error.
- * Runtime: O(1)
- */
+// Maps a function over this result if it is an error.
+// Runtime: O(1)
 pub
 mapErr : (a -> b) -> Result ok a -> Result ok b
 mapErr f = case _ of
   Ok x -> Ok x
   Err e -> Err (f e)
 
-/**
- * Extracts the value out of this result.
- * *Unsafe*: Will thrown an exception if the result is an error.
- */
+// Extracts the value out of this result.
+// *Unsafe*: Will thrown an exception if the result is an error.
 pub
 unwrap : Result a b -> a
 unwrap = case _ of
@@ -64,10 +56,8 @@ err = case _ of
   Err x -> Some x
   _ -> None
 
-/**
- * Handles this result by either applying the first function
- * in case the result is ok, or the second, if the result is an error.
- */
+// Handles this result by either applying the first function
+// in case the result is ok, or the second, if the result is an error.
 pub
 handle : (a -> c) -> (b -> c) -> Result a b -> c
 handle f1 f2 = case _ of

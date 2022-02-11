@@ -149,10 +149,10 @@ class PatternMatchingSpec : StringSpec({
                 [] -> 0
                 [x :: _] -> x
             
-            len l =
+            length l =
               case l of
                 [] -> 0
-                [_ :: xs] -> 1 + len xs
+                [_ :: xs] -> 1 + length xs
             
             foo = case _ of
               [] -> 0
@@ -163,7 +163,7 @@ class PatternMatchingSpec : StringSpec({
         val ds = TestUtil.compileCode(code).env.decls
         ds["f1"]?.type?.simpleName() shouldBe "Int32"
         ds["f2"]?.type?.simpleName() shouldBe "List Int32 -> Int32"
-        ds["len"]?.type?.simpleName() shouldBe "List t1 -> Int32"
+        ds["length"]?.type?.simpleName() shouldBe "List t1 -> Int32"
         ds["foo"]?.type?.simpleName() shouldBe "List Int32 -> Int32"
     }
 

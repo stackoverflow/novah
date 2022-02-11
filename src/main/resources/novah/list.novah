@@ -1,8 +1,6 @@
-/**
- * Functions to work with persistent lists.
- * They can also be used as queues or stacks.
- * Literal lists can be created using `[]`.
- */
+// Functions to work with persistent lists.
+// They can also be used as queues or stacks.
+// Literal lists can be created using `[]`.
 module novah.list
 
 foreign import java.lang.Class
@@ -25,10 +23,8 @@ pub
 stream : List a -> Stream a
 stream list = (list as IList a)#stream()
 
-/**
- * Collects this stream into a list.
- * Runtime: O(n)
- */
+// Collects this stream into a list.
+// Runtime: O(n)
 pub
 fromStream : Stream a -> List a
 fromStream st =
@@ -36,29 +32,23 @@ fromStream st =
   S.forEach st \x -> addLast x llist
   llist#forked()
 
-/**
- * Runs function f for every element of this list, ignoring the result.
- * Runtime: O(n)
- */
+// Runs function f for every element of this list, ignoring the result.
+// Runtime: O(n)
 pub
 forEach : List a -> (a -> Unit) -> Unit
 forEach list f =
   forEachRange (0L ... list#size()) \idx -> f list#nth(idx)
 
-/**
- * Runs function f for every index and element of this list, ignoring the result.
- * Runtime: O(n)
- */
+// Runs function f for every index and element of this list, ignoring the result.
+// Runtime: O(n)
 pub
 forEachIndexed : List a -> (Int32 -> a -> Unit) -> Unit
 forEachIndexed list fun =
   forEachRange (0 ... list#size()#intValue()) \i -> fun i list.[i]
 
-/**
- * Maps function f over all elements of this list
- * returning a list of the same size.
- * Runtime: O(n)
- */
+// Maps function f over all elements of this list
+// returning a list of the same size.
+// Runtime: O(n)
 pub
 map : (a -> b) -> List a -> List b
 map f list =
@@ -68,12 +58,10 @@ map f list =
     ()
   llist#forked()
 
-/**
- * Maps function f over all elements of this list
- * returning a list of the same size.
- * Also receives the index of the element as a parameter.
- * Runtime: O(n)
- */
+// Maps function f over all elements of this list
+// returning a list of the same size.
+// Also receives the index of the element as a parameter.
+// Runtime: O(n)
 pub
 mapIndexed : (Int32 -> a -> b) -> List a -> List b
 mapIndexed f list =
@@ -83,20 +71,16 @@ mapIndexed f list =
     ()
   llist#forked()
 
-/**
- * Maps a function over a list and returns
- * only the non-empty values.
- * Runtime: O(n)
- */
+// Maps a function over a list and returns
+// only the non-empty values.
+// Runtime: O(n)
 pub
 mapSome : (a -> Option b) -> List a -> List b
 mapSome f = map f >> removeNones
 
-/**
- * Returns some value at index for this list if it exists or none.
- * This is a safe version of the index operator: `list.[index]`.
- * Runtime: ~O(1)
- */
+// Returns some value at index for this list if it exists or none.
+// This is a safe version of the index operator: `list.[index]`.
+// Runtime: ~O(1)
 pub
 nth : Int32 -> List a -> Option a
 nth index list =
@@ -105,59 +89,45 @@ nth index list =
     then None
     else Some list.[index]
 
-/**
- * Returns the size of this list.
- * Runtime: O(1)
- */
+// Returns the size of this list.
+// Runtime: O(1)
 pub
 size : List a -> Int32
 size list = list#size()#intValue()
 
-/**
- * Returns the index of the last element of this list or -1 if the list is empty.
- * Runtime: O(1)
- */
+// Returns the index of the last element of this list or -1 if the list is empty.
+// Runtime: O(1)
 pub
 lastIndex : List a -> Int32
 lastIndex list = list#size()#intValue() - 1
 
-/**
- * Returns the first element of this list if it's not empty.
- * Runtime: ~O(1)
- */
+// Returns the first element of this list if it's not empty.
+// Runtime: ~O(1)
 pub
 first : List a -> Option a
 first list = nth 0 list
 
-/**
- * Returns the last element of this list if it's not empty.
- * Runtime: ~O(1)
- */
+// Returns the last element of this list if it's not empty.
+// Runtime: ~O(1)
 pub
 last : List a -> Option a
 last list =
   nth (list#size()#intValue() - 1) list
 
-/**
- * Returns true if this list is empty.
- * Runtime: O(1)
- */
+// Returns true if this list is empty.
+// Runtime: O(1)
 pub
 empty? : List a -> Boolean
 empty? list = list#size() == 0L
 
-/**
- * Returns true if this list is not empty.
- * Runtime: O(1)
- */
+// Returns true if this list is not empty.
+// Runtime: O(1)
 pub
 notEmpty? : List a -> Boolean
 notEmpty? list = list#size() != 0L
 
-/**
- * Returns a random element of this list if the list is not empty.
- * Runtime: O(1)
- */
+// Returns a random element of this list if the list is not empty.
+// Runtime: O(1)
 pub
 randNth : List a -> Option a
 randNth = case _ of
@@ -167,10 +137,8 @@ randNth = case _ of
     let i = ThreadLocalRandom#current()#nextInt(size list)
     Some list.[i]
 
-/**
- * Returns a list with the same values as the input list in random order.
- * Runtime: O(n)
- */
+// Returns a list with the same values as the input list in random order.
+// Runtime: O(n)
 pub
 shuffle : List a -> List a
 shuffle list = case list of
@@ -181,36 +149,28 @@ shuffle list = case list of
     Collections#shuffle(arr)
     List#`of`(arr#toArray()) as List a
 
-/**
- * Converts this list into a typed array.
- * Runtime: O(n)
- */
+// Converts this list into a typed array.
+// Runtime: O(n)
 pub
 toTypedArray : Class a -> List a -> Array a
 toTypedArray clazz list =
   let maker i = Core#mkArray(clazz, i)
   (list as IList a)#toArray(intFunction maker)
 
-/**
- * Converts this list into an object array.
- * Runtime: O(n)
- */
+// Converts this list into an object array.
+// Runtime: O(n)
 pub
 toArray : List a -> Array Object
 toArray list = (list as IList a)#toArray()
 
-/**
- * Converts this array into a list.
- * Runtime: O(n)
- */
+// Converts this array into a list.
+// Runtime: O(n)
 pub
 fromArray : Array a -> List a
 fromArray arr = List#`of`(arr)
 
-/**
- * Returns a list of the elements that match the given predicate.
- * Runtime: O(n)
- */
+// Returns a list of the elements that match the given predicate.
+// Runtime: O(n)
 pub
 filter : (a -> Boolean) -> List a -> List a
 filter f list =
@@ -222,11 +182,9 @@ filter f list =
       ()
   llist#forked()
 
-/**
- * Returns a list of the elements that match the given predicate.
- * Also receives the index of the list as parameter.
- * Runtime: O(n)
- */
+// Returns a list of the elements that match the given predicate.
+// Also receives the index of the list as parameter.
+// Runtime: O(n)
 pub
 filterIndexed : (Int32 -> a -> Boolean) -> List a -> List a
 filterIndexed f list =
@@ -238,11 +196,9 @@ filterIndexed f list =
       ()
   llist#forked()
 
-/**
- * Returns a list of the elements that do not match the given predicate.
- * Does the opposite of `filter`.
- * Runtime: O(n)
- */
+// Returns a list of the elements that do not match the given predicate.
+// Does the opposite of `filter`.
+// Runtime: O(n)
 pub
 remove : (a -> Boolean) -> List a -> List a
 remove f list =
@@ -254,11 +210,9 @@ remove f list =
       ()
   llist#forked()
 
-/**
- * Returns a list of the elements that does not match the given predicate.
- * Also receives the index of the list as parameter.
- * Runtime: O(n)
- */
+// Returns a list of the elements that does not match the given predicate.
+// Also receives the index of the list as parameter.
+// Runtime: O(n)
 pub
 removeIndexed : (Int32 -> a -> Boolean) -> List a -> List a
 removeIndexed f list =
@@ -270,19 +224,15 @@ removeIndexed f list =
       ()
   llist#forked()
 
-/**
- * Returns the first occurrence of elem in this list for which the predicate returns true.
- * Runtime: O(n)
- */
+// Returns the first occurrence of elem in this list for which the predicate returns true.
+// Runtime: O(n)
 pub
 find : (a -> Boolean) -> List a -> Option a
 find pred list =
   Core#findList(pred, list) |> O.fromOptional
 
-/**
- * Returns the first index in this list for which the predicate returns true.
- * Runtime: O(n)
- */
+// Returns the first index in this list for which the predicate returns true.
+// Runtime: O(n)
 pub
 findIndex : (a -> Boolean) -> List a -> Option Int32
 findIndex pred list =
@@ -310,68 +260,54 @@ pub
 sort : {{ Ord a }} -> List a -> List a
 sort {{Ord _ ord}} = sortWith ord.compare
 
-/**
- * Sorts this list based on the natural sort order of
- * the values returned by the function.
- */
+// Sorts this list based on the natural sort order of
+// the values returned by the function.
 pub
 sortBy : {{ Ord b }} -> (a -> b) -> List a -> List a
 sortBy {{Ord _ ord}} fun =
   sortWith (\x y -> ord.compare (fun x) (fun y))
 
-/**
- * An alias to `addFirst`.
- * Should be used when using this list as a stack.
- * Runtime: ~O(1)
- */
+// An alias to `addFirst`.
+// Should be used when using this list as a stack.
+// Runtime: ~O(1)
 pub
 push : a -> List a -> List a
 push = addFirst
 
-/**
- * An alias to `removeFirst`.
- * Should be used when using this list as a stack.
- * Runtime: ~O(1)
- */
+// An alias to `removeFirst`.
+// Should be used when using this list as a stack.
+// Runtime: ~O(1)
 pub
 pop : List a -> List a
 pop = removeFirst
 
-/**
- * Returns the tail of this list if it's not empty.
- * Runtime: ~O(1)
- */
+// Returns the tail of this list if it's not empty.
+// Runtime: ~O(1)
 pub
 tail : List a -> Option (List a)
 tail = case _ of
   [] -> None
   [_ :: xs] -> Some xs
 
-/**
- * Returns a slice of this list starting at from (inclusive)
- * and ending at to (exclusive).
- * Runtime: ~O(1)
- */
+// Returns a slice of this list starting at from (inclusive)
+// and ending at to (exclusive).
+// Runtime: ~O(1)
 pub
 slice : Int32 -> Int32 -> List a -> List a
 slice from to list =
   list#slice(from#longValue(), to#longValue())
 
-/**
- * Splits this list into elements before the index
- * and elements after the index.
- * Runtime: ~O(1)
- */
+// Splits this list into elements before the index
+// and elements after the index.
+// Runtime: ~O(1)
 pub
 splitIndex : Int32 -> List a -> Tuple (List a) (List a)
 splitIndex i list = take i list ; drop (i + 1) list
 
-/**
- * Splits this list into elements before the given element
- * and elements after it.
- * Considers only the first occurence of the element.
- * Runtime: O(n)
- */
+// Splits this list into elements before the given element
+// and elements after it.
+// Considers only the first occurence of the element.
+// Runtime: O(n)
 pub
 split : {{ Equals a }} -> a -> List a -> Tuple (List a) (List a)
 split {{Equals eq}} x list =
@@ -379,20 +315,16 @@ split {{Equals eq}} x list =
     Some i -> splitIndex i list
     None -> list ; []
 
-/**
- * Returns the first n elements of this list.
- * Runtime: ~O(1)
- */
+// Returns the first n elements of this list.
+// Runtime: ~O(1)
 pub
 take : Int32 -> List a -> List a
 take n list =
   let actualN = Math.min n list#size()#intValue()
   slice 0 actualN list
 
-/**
- * Returns this list without the first n elements.
- * Runtime: ~O(1)
- */
+// Returns this list without the first n elements.
+// Runtime: ~O(1)
 pub
 drop : Int32 -> List a -> List a
 drop n list =
@@ -400,10 +332,8 @@ drop n list =
   let actualN = Math.min n length
   slice actualN length list
 
-/**
- * Keeps taking elements of this list while the predicate holds.
- * Runtime: O(n)
- */
+// Keeps taking elements of this list while the predicate holds.
+// Runtime: O(n)
 pub
 takeWhile : (a -> Boolean) -> List a -> List a
 takeWhile pred list =
@@ -414,10 +344,8 @@ takeWhile pred list =
     removeFirst v
   res#forked()
 
-/**
- * Keeps droping elements from this list while the predicate holds.
- * Runtime: O(n)
- */
+// Keeps droping elements from this list while the predicate holds.
+// Runtime: O(n)
 pub
 dropWhile : (a -> Boolean) -> List a -> List a
 dropWhile pred list =
@@ -426,20 +354,16 @@ dropWhile pred list =
     removeFirst v
   v#forked()
 
-/**
- * Reduces this list to a single value according to the reducing function.
- * Goes from the left to the right.
- * Runtime: O(n)
- */
+// Reduces this list to a single value according to the reducing function.
+// Goes from the left to the right.
+// Runtime: O(n)
 pub
 foldl : (b -> a -> b) -> b -> List a -> b
 foldl f init list = Core#foldList(f, init, list)
 
-/**
- * A specialized version of `foldl` where the first element of the list is used as initial value.
- * Returns none if the list is empty
- * Runtime: O(n)
- */
+// A specialized version of `foldl` where the first element of the list is used as initial value.
+// Returns none if the list is empty
+// Runtime: O(n)
 pub
 reduce : (a -> a -> a) -> List a -> Option a
 reduce f =
@@ -447,19 +371,15 @@ reduce f =
     [] -> None
     [x :: xs] -> Some (foldl f x xs)
 
-/**
- * Reduces this list to a single value according to the reducing function.
- * Goes from the right to the left.
- * Runtime: O(n)
- */
+// Reduces this list to a single value according to the reducing function.
+// Goes from the right to the left.
+// Runtime: O(n)
 pub
 foldr : (a -> b -> b) -> b -> List a -> b
 foldr f init = foldl (flip f) init << reverse
 
-/**
- * Flattens a list of lists into a single list by concatenating them together.
- * Runtime: O(n)
- */
+// Flattens a list of lists into a single list by concatenating them together.
+// Runtime: O(n)
 pub
 flatten : List (List a) -> List a
 flatten =
@@ -467,19 +387,15 @@ flatten =
     [] -> []
     [x :: xs] -> foldl (\v1 v2 -> v1 ++ v2) x xs
 
-/**
- * Like map, but the mapping function should return a list.
- * Flattens the result.
- * Runtime: O(n)
- */
+// Like map, but the mapping function should return a list.
+// Flattens the result.
+// Runtime: O(n)
 pub
 flatMap : (a -> List b) -> List a -> List b
 flatMap f list = flatten (map f list)
 
-/**
- * Returns a reversed version of this list.
- * Runtime: O(n)
- */
+// Returns a reversed version of this list.
+// Runtime: O(n)
 pub
 reverse : List a -> List a
 reverse list =
@@ -489,10 +405,8 @@ reverse list =
     ()
   llist#forked()
 
-/**
- * Returns true if the predicate is true for all elements in this list.
- * Runtime: O(n)
- */
+// Returns true if the predicate is true for all elements in this list.
+// Runtime: O(n)
 pub
 all? : (a -> Boolean) -> List a -> Boolean
 all? pred list =
@@ -504,10 +418,8 @@ all? pred list =
       if pred e then go (i + 1L) else false
   go 0L
 
-/**
- * Returns true if the predicate is true for any element in this list.
- * Runtime: O(n)
- */
+// Returns true if the predicate is true for any element in this list.
+// Runtime: O(n)
 pub
 any? : (a -> Boolean) -> List a -> Boolean
 any? pred list =
@@ -519,10 +431,8 @@ any? pred list =
       if pred e then true else go (i + 1L)
   go 0L
 
-/**
- * Returns the number of elements matching the given predicate.
- * Runtime: O(n)
- */
+// Returns the number of elements matching the given predicate.
+// Runtime: O(n)
 pub
 count : (a -> Boolean) -> List a -> Int32
 count pred list =
@@ -531,39 +441,31 @@ count pred list =
     if pred elem then counter#update(_ + 1)
   counter#-val
 
-/**
- * Returns the smallest number in the list, if the list is not empty.
- * Runtime: O(n)
- */
+// Returns the smallest number in the list, if the list is not empty.
+// Runtime: O(n)
 pub
 min : {{ NumberOps a }} -> List a -> Option a
 min {{NumberOps ops}} =
   reduce (\n n2 -> ops.min n n2)
 
-/**
- * Returns the smallest number in the list, or the default value.
- * Runtime: O(n)
- */
+// Returns the smallest number in the list, or the default value.
+// Runtime: O(n)
 pub
 minOr : {{ NumberOps a }} -> a -> List a -> a
 minOr {{NumberOps ops}} default list =
   reduce (\n n2 -> ops.min n n2) list ?: default
 
-/**
- * Returns the smallest element in the list according to the
- * given function, if the list is not empty.
- * Runtime: O(n)
- */
+// Returns the smallest element in the list according to the
+// given function, if the list is not empty.
+// Runtime: O(n)
 pub
 minBy : {{ Ord b }} -> (a -> b) -> List a -> Option a
 minBy {{_}} fn =
   reduce (\n n2 -> if (fn n) <= (fn n2) then n else n2)
 
-/**
- * Returns the smallest element returned by applying the
- * function to every element in the list, if the list is not empty.
- * Runtime: O(n)
- */
+// Returns the smallest element returned by applying the
+// function to every element in the list, if the list is not empty.
+// Runtime: O(n)
 pub
 minOf : {{ NumberOps b }} -> (a -> b) -> List a -> Option b
 minOf {{NumberOps ops}} fn =
@@ -575,38 +477,30 @@ minOf {{NumberOps ops}} fn =
         val#-val <- ops.min val#-val (fn e)
       Some val#-val
 
-/**
- * Returns the biggest number in the list, if the list is not empty.
- * Runtime: O(n)
- */
+// Returns the biggest number in the list, if the list is not empty.
+// Runtime: O(n)
 pub
 max : {{ NumberOps a }} -> List a -> Option a
 max {{NumberOps ops}} = reduce (\n n2 -> ops.max n n2)
 
-/**
- * Returns the biggest number in the list, or the default value.
- * Runtime: O(n)
- */
+// Returns the biggest number in the list, or the default value.
+// Runtime: O(n)
 pub
 maxOr : {{ NumberOps a }} -> a -> List a -> a
 maxOr {{NumberOps ops}} default list =
   reduce (\n n2 -> ops.max n n2) list ?: default
 
-/**
- * Returns the biggest element in the list according to the
- * given function, if the list is not empty.
- * Runtime: O(n)
- */
+// Returns the biggest element in the list according to the
+// given function, if the list is not empty.
+// Runtime: O(n)
 pub
 maxBy : {{ Ord b }} -> (a -> b) -> List a -> Option a
 maxBy {{_}} fn =
   reduce (\n n2 -> if (fn n) >= (fn n2) then n else n2)
 
-/**
- * Returns the biggest element returned by applying the
- * function to every element in the list, if the list is not empty.
- * Runtime: O(n)
- */
+// Returns the biggest element returned by applying the
+// function to every element in the list, if the list is not empty.
+// Runtime: O(n)
 pub
 maxOf : {{ NumberOps b }} -> (a -> b) -> List a -> Option b
 maxOf {{NumberOps ops}} fn =
@@ -618,181 +512,139 @@ maxOf {{NumberOps ops}} fn =
         val#-val <- ops.max val#-val (fn e)
       Some val#-val
 
-/**
- * Returns the sum of all elements in this list.
- * Runtime: O(n)
- */
+// Returns the sum of all elements in this list.
+// Runtime: O(n)
 pub
 sum : {{ Plus a }} -> List a -> a
 sum {{Plus p}} =
   foldl p.plus p.identity
 
-/**
- * Returns the sum of all elements by first applying the
- * function to every element in this list.
- * Runtime: O(n)
- */
+// Returns the sum of all elements by first applying the
+// function to every element in this list.
+// Runtime: O(n)
 pub
 sumOf : {{ Plus b }} -> (a -> b) -> List a -> b
 sumOf {{Plus p}} fn =
   foldl (\acc x -> p.plus acc (fn x)) p.identity
 
-/**
- * Returns the product of all elements in this list.
- * Runtime: O(n)
- */
+// Returns the product of all elements in this list.
+// Runtime: O(n)
 pub
 product : {{ Mult a }} -> List a -> a
 product {{Mult m}} =
   foldl m.mult m.identity
 
-/**
- * Returns the product of all elements by first applying the
- * function to every element in this list.
- * Runtime: O(n)
- */
+// Returns the product of all elements by first applying the
+// function to every element in this list.
+// Runtime: O(n)
 pub
 productOf : {{ Mult b }} -> (a -> b) -> List a -> b
 productOf {{Mult m}} fn =
   foldl (\acc x -> m.mult acc (fn x)) m.identity
 
-/**
- * Converts this byte array to a list of bytes.
- * Runtime: O(n)
- */
+// Converts this byte array to a list of bytes.
+// Runtime: O(n)
 pub
 fromByteArray : ByteArray -> List Byte
 fromByteArray arr = Core#fromByteArray(arr)
 
-/**
- * Converts this int16 array to a list of int16s.
- * Runtime: O(n)
- */
+// Converts this int16 array to a list of int16s.
+// Runtime: O(n)
 pub
 fromInt16Array : Int16Array -> List Int16
 fromInt16Array arr = Core#fromInt16Array(arr)
 
-/**
- * Converts this int array to a list of ints.
- * Runtime: O(n)
- */
+// Converts this int array to a list of ints.
+// Runtime: O(n)
 pub
 fromInt32Array : Int32Array -> List Int32
 fromInt32Array arr = Core#fromInt32Array(arr)
 
-/**
- * Converts this int64 array to a list of int64s.
- * Runtime: O(n)
- */
+// Converts this int64 array to a list of int64s.
+// Runtime: O(n)
 pub
 fromInt64Array : Int64Array -> List Int64
 fromInt64Array arr = Core#fromInt64Array(arr)
 
-/**
- * Converts this float32 array to a list of float32s.
- * Runtime: O(n)
- */
+// Converts this float32 array to a list of float32s.
+// Runtime: O(n)
 pub
 fromFloat32Array : Float32Array -> List Float32
 fromFloat32Array arr = Core#fromFloat32Array(arr)
 
-/**
- * Converts this float64 array to a list of float64s.
- * Runtime: O(n)
- */
+// Converts this float64 array to a list of float64s.
+// Runtime: O(n)
 pub
 fromFloat64Array : Float64Array -> List Float64
 fromFloat64Array arr = Core#fromFloat64Array(arr)
 
-/**
- * Converts this boolean array to a list of booleans.
- * Runtime: O(n)
- */
+// Converts this boolean array to a list of booleans.
+// Runtime: O(n)
 pub
 fromBooleanArray : BooleanArray -> List Boolean
 fromBooleanArray arr = Core#fromBooleanArray(arr)
 
-/**
- * Converts this char array to a list of chars.
- * Runtime: O(n)
- */
+// Converts this char array to a list of chars.
+// Runtime: O(n)
 pub
 fromCharArray : CharArray -> List Char
 fromCharArray arr = Core#fromCharArray(arr)
 
-/**
- * Converts this list of bytes to a byte array.
- * Runtime: O(n)
- */
+// Converts this list of bytes to a byte array.
+// Runtime: O(n)
 pub
 toByteArray : List Byte -> ByteArray
 toByteArray list = Core#toByteArray(list)
 
-/**
- * Converts this list of int16s to a int16 array.
- * Runtime: O(n)
- */
+// Converts this list of int16s to a int16 array.
+// Runtime: O(n)
 pub
 toInt16Array : List Int16 -> Int16Array
 toInt16Array list = Core#toInt16Array(list)
 
-/**
- * Converts this list of ints to a int array.
- * Runtime: O(n)
- */
+// Converts this list of ints to a int array.
+// Runtime: O(n)
 pub
 toInt32Array : List Int32 -> Int32Array
 toInt32Array list = Core#toInt32Array(list)
 
-/**
- * Converts this list of int64s to a int64 array.
- * Runtime: O(n)
- */
+// Converts this list of int64s to a int64 array.
+// Runtime: O(n)
 pub
 toInt64Array : List Int64 -> Int64Array
 toInt64Array list = Core#toInt64Array(list)
 
-/**
- * Converts this list of float32s to a float32 array.
- * Runtime: O(n)
- */
+// Converts this list of float32s to a float32 array.
+// Runtime: O(n)
 pub
 toFloat32Array : List Float32 -> Float32Array
 toFloat32Array list = Core#toFloat32Array(list)
 
-/**
- * Converts this list of float64s to a float64 array.
- * Runtime: O(n)
- */
+// Converts this list of float64s to a float64 array.
+// Runtime: O(n)
 pub
 toFloat64Array : List Float64 -> Float64Array
 toFloat64Array list = Core#toFloat64Array(list)
 
-/**
- * Converts this list of booleans to a boolean array.
- * Runtime: O(n)
- */
+// Converts this list of booleans to a boolean array.
+// Runtime: O(n)
 pub
 toBooleanArray : List Boolean -> BooleanArray
 toBooleanArray list = Core#toBooleanArray(list)
 
-/**
- * Converts this list of chars to a char array.
- * Runtime: O(n)
- */
+// Converts this list of chars to a char array.
+// Runtime: O(n)
 pub
 toCharArray : List Char -> CharArray
 toCharArray list = Core#toCharArray(list)
 
-/**
- * Groups the elements of the list according
- * to the the function.
- * Ex:
- * ```novah
- * groupBy isOdd [1, 2, 3, 4, 5, 6]
- * // => { true: [1, 3, 5], false: [2, 4, 6] }
- * ```
- */
+// Groups the elements of the list according
+// to the the function.
+// Ex:
+// ```novah
+// groupBy isOdd [1, 2, 3, 4, 5, 6]
+// // => { true: [1, 3, 5], false: [2, 4, 6] }
+// ```
 pub
 groupBy : (a -> b) -> List a -> Map b (List a)
 groupBy f list =
@@ -806,14 +658,12 @@ groupBy f list =
   forEach list grouper
   m#forked()
 
-/**
- * Returns the list partitioned in lists of size n and going forward by step.
- * Ex:
- * ```novah
- * partitionStep 3L 2L [1, 2, 3, 4, 5, 6, 7, 8]
- * // => [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
- * ```
- */
+// Returns the list partitioned in lists of size n and going forward by step.
+// Ex:
+// ```novah
+// partitionStep 3L 2L [1, 2, 3, 4, 5, 6, 7, 8]
+// // => [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+// ```
 pub
 partitionStep : Int32 -> Int32 -> List a -> List (List a)
 partitionStep n step list =
@@ -826,15 +676,13 @@ partitionStep n step list =
 
   go list []
 
-/**
- * Returns the list partitioned in lists of size n and going forward by step.
- * May include sub lists smaller than n if there's some leftovers.
- * Ex:
- * ```novah
- * partitionAllStep 3L 2L [1, 2, 3, 4, 5, 6, 7, 8]
- * // => [[1, 2, 3], [3, 4, 5], [5, 6, 7], [7, 8]]
- * ```
- */
+// Returns the list partitioned in lists of size n and going forward by step.
+// May include sub lists smaller than n if there's some leftovers.
+// Ex:
+// ```novah
+// partitionAllStep 3L 2L [1, 2, 3, 4, 5, 6, 7, 8]
+// // => [[1, 2, 3], [3, 4, 5], [5, 6, 7], [7, 8]]
+// ```
 pub
 partitionAllStep : Int32 -> Int32 -> List a -> List (List a)
 partitionAllStep n step list =
@@ -847,37 +695,31 @@ partitionAllStep n step list =
 
   go list []
 
-/**
- * Returns the list partitioned in lists of size n.
- * Ex:
- * ```novah
- * partition 3L [1, 2, 3, 4, 5, 6, 7, 8]
- * // => [[1, 2, 3], [4, 5, 6]]
- * ```
- */
+// Returns the list partitioned in lists of size n.
+// Ex:
+// ```novah
+// partition 3L [1, 2, 3, 4, 5, 6, 7, 8]
+// // => [[1, 2, 3], [4, 5, 6]]
+// ```
 pub
 partition : Int32 -> List a -> List (List a)
 partition n =
   partitionStep n n
 
-/**
- * Returns the list partitioned in lists of size n.
- * May include sub lists smaller than n if there's some leftovers.
- * Ex:
- * ```novah
- * partitionAll 3L [1, 2, 3, 4, 5, 6, 7, 8]
- * // => [[1, 2, 3], [4, 5, 6], [7, 8]]
- * ```
- */
+// Returns the list partitioned in lists of size n.
+// May include sub lists smaller than n if there's some leftovers.
+// Ex:
+// ```novah
+// partitionAll 3L [1, 2, 3, 4, 5, 6, 7, 8]
+// // => [[1, 2, 3], [4, 5, 6], [7, 8]]
+// ```
 pub
 partitionAll : Int32 -> List a -> List (List a)
 partitionAll n =
   partitionAllStep n n
 
-/**
- * Returns a list consisting of the given element repeated n times.
- * Runtime: O(n)
- */
+// Returns a list consisting of the given element repeated n times.
+// Runtime: O(n)
 pub
 repeat : Int32 -> a -> List a
 repeat n x =
@@ -887,27 +729,23 @@ repeat n x =
     ()
   lin#forked()
 
-/**
- * Returns a list of all the indices from the input list.
- * Ex:
- * ```novah
- * indices ["a", "b", "c"] // => [0, 1, 2]
- * ```
- */
+// Returns a list of all the indices from the input list.
+// Ex:
+// ```novah
+// indices ["a", "b", "c"] // => [0, 1, 2]
+// ```
 pub
 indices : List a -> List Int32
 indices list = [0 ... size list]
 
-/**
- * Zips the two lists together.
- * The resulting list will be as big as the smallest one.
- * Ex:
- * ```novah
- * zip [1, 2, 3, 4, 5] ["a", "b", "c"]
- * // => [1 ; "a", 2 ; "b", 3 ; "c"]
- * ```
- * Runtime: O(n)
- */
+// Zips the two lists together.
+// The resulting list will be as big as the smallest one.
+// Ex:
+// ```novah
+// zip [1, 2, 3, 4, 5] ["a", "b", "c"]
+// // => [1 ; "a", 2 ; "b", 3 ; "c"]
+// ```
+// Runtime: O(n)
 pub
 zip : List a -> List b -> List (Tuple a b)
 zip l1 l2 =
@@ -918,16 +756,14 @@ zip l1 l2 =
     ()
   lin#forked()
 
-/**
- * Zips the two lists together according to the function.
- * The resulting list will be as big as the smallest one.
- * Ex:
- * ```novah
- * zipWith (+) [1, 2, 3, 4, 5] [10, 11, 12]
- * // => [11, 13, 15]
- * ```
- * Runtime: O(n)
- */
+// Zips the two lists together according to the function.
+// The resulting list will be as big as the smallest one.
+// Ex:
+// ```novah
+// zipWith (+) [1, 2, 3, 4, 5] [10, 11, 12]
+// // => [11, 13, 15]
+// ```
+// Runtime: O(n)
 pub
 zipWith : (a -> b -> c) -> List a -> List b -> List c
 zipWith fun l1 l2 =
@@ -938,16 +774,14 @@ zipWith fun l1 l2 =
     ()
   lin#forked()
 
-/**
- * Zips all lists together. The resulting list will
- * as big as the smallest sub list.
- * Ex:
- * ```novah
- * zipAll [[1, 2, 3], [4, 5], [6, 7, 8]]
- * // => [[1, 4, 6], [2, 5, 7]]
- * ```
- * Runtime: O(n*m)
- */
+// Zips all lists together. The resulting list will
+// as big as the smallest sub list.
+// Ex:
+// ```novah
+// zipAll [[1, 2, 3], [4, 5], [6, 7, 8]]
+// // => [[1, 4, 6], [2, 5, 7]]
+// ```
+// Runtime: O(n*m)
 pub
 zipAll : List (List a) -> List (List a)
 zipAll list =
@@ -958,16 +792,14 @@ zipAll list =
     ()
   res#forked()
 
-/**
- * Unzips a list into two lists.
- * The opposite of `zip`.
- * Ex:
- * ```novah
- * unzip [1 ; "a", 2 ; "b", 3 ; "c"]
- * // => [1, 2, 3, 4, 5] ; ["a", "b", "c"]
- * ```
- * Runtime: O(n)
- */
+// Unzips a list into two lists.
+// The opposite of `zip`.
+// Ex:
+// ```novah
+// unzip [1 ; "a", 2 ; "b", 3 ; "c"]
+// // => [1, 2, 3, 4, 5] ; ["a", "b", "c"]
+// ```
+// Runtime: O(n)
 pub
 unzip : List (Tuple a b) -> Tuple (List a) (List b)
 unzip list =
@@ -979,10 +811,8 @@ unzip list =
     ()
   lin#forked() ; lin2#forked()
 
-/**
- * Removes all empty options from the list.
- * Runtime: O(n)
- */
+// Removes all empty options from the list.
+// Runtime: O(n)
 pub
 removeNones : List (Option a) -> List a
 removeNones list =
@@ -995,20 +825,18 @@ removeNones list =
       None -> ()
   lin#forked()
 
-/**
- * Creates a linear (mutable) version of the given list and applies the function to it.
- * Returns a forked (persistent) version of the returned linear list.
- * This function should be used when lots of expensive mutating operations have to be run on a list
- * and can be seen as a builder for the resulting list.
- * All functions that alter lists like `addFirst`, `setAt`, `removeLast`, etc.
- * will mutate a linear list.
- * Ex:
- *   withLinear [1, 2, 3] \list ->
- *     addFirst 0 list
- *     addLast 4 list
- *
- *   -> [0, 1, 2, 3, 4]
- */
+// Creates a linear (mutable) version of the given list and applies the function to it.
+// Returns a forked (persistent) version of the returned linear list.
+// This function should be used when lots of expensive mutating operations have to be run on a list
+// and can be seen as a builder for the resulting list.
+// All functions that alter lists like `addFirst`, `setAt`, `removeLast`, etc.
+// will mutate a linear list.
+// Ex:
+//   withLinear [1, 2, 3] \list ->
+//     addFirst 0 list
+//     addLast 4 list
+//
+//   -> [0, 1, 2, 3, 4]
 pub
 withLinear : List a -> (List a -> b) -> List a
 withLinear list f =

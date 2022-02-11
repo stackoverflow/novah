@@ -3,32 +3,26 @@ module novah.option
 
 foreign import java.util.Optional
 
-/**
- * Maps the function over this option if it has a value.
- * Runtime: O(1)
- */
+// Maps the function over this option if it has a value.
+// Runtime: O(1)
 pub
 map : (a -> b) -> Option a -> Option b
 map f = case _ of
   Some x -> Some (f x)
   None -> None
 
-/**
- * Maps the function over this option if it has a value,
- * but don't wrap the result in another option.
- * Runtime: O(1)
- */
+// Maps the function over this option if it has a value,
+// but don't wrap the result in another option.
+// Runtime: O(1)
 pub
 flatMap : (a -> Option b) -> Option a -> Option b
 flatMap f opt = case opt of
   Some x -> f x
   None -> None
 
-/**
- * Takes a default value, a function and an option
- * and returns the result of the function applied to this option's value
- * or the default value if the option is empty.
- */
+// Takes a default value, a function and an option
+// and returns the result of the function applied to this option's value
+// or the default value if the option is empty.
 pub
 maybe : b -> (a -> b) -> Option a -> b
 maybe def f = case _ of
@@ -49,19 +43,15 @@ none? = case _ of
   Some _ -> false
   None -> true
 
-/**
- * Extracts the value out of this option.
- * *Unsafe*: Will thrown an exception if the option is empty.
- * An alias for `unwrapOptions` and the `!!` syntactic sugar.
- */
+// Extracts the value out of this option.
+// *Unsafe*: Will thrown an exception if the option is empty.
+// An alias for `unwrapOptions` and the `!!` syntactic sugar.
 pub
 unwrap : Option a -> a
 unwrap = unwrapOption
 
-/**
- * Transforms this nullable value into an option.
- * `null` is represented as `None`.
- */
+// Transforms this nullable value into an option.
+// `null` is represented as `None`.
 pub
 toOption : Nullable a -> Option a
 toOption x =
@@ -69,21 +59,17 @@ toOption x =
     None
   else Some (x as a)
 
-/**
- * Transforms this option into an nullable value.
- * This function should only be used to interact with Java methods.
- */
+// Transforms this option into an nullable value.
+// This function should only be used to interact with Java methods.
 pub
 toNullable : Option a -> Nullable a
 toNullable = case _ of
   Some x -> (x as Nullable a)
   None -> null
 
-/**
- * Receives a default value, a function `f` and a possible null value.
- * If the value is null returns the default value, otherwise returns
- * f applied to the value.
- */
+// Receives a default value, a function `f` and a possible null value.
+// If the value is null returns the default value, otherwise returns
+// f applied to the value.
 pub
 caseNull : b -> (a -> b) -> Nullable a -> b
 caseNull def f nul =

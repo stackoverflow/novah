@@ -1,6 +1,4 @@
-/**
- * Functions to work with persistent maps.
- */
+// Functions to work with persistent maps.
 module novah.map
 
 foreign import java.lang.StringBuilder
@@ -24,55 +22,43 @@ new list =
     ()
   lmap#forked()
 
-/**
- * Creates a new map which uses the key equality function and the provided hash function, or the default object hash function.
- * This function should always be used to create new maps for types that have equality implementations that differ from its own
- * `equals` function.
- * Note that Novah creates default, sensible `equals` and `hashCode` implementations for every type.
- */
+// Creates a new map which uses the key equality function and the provided hash function, or the default object hash function.
+// This function should always be used to create new maps for types that have equality implementations that differ from its own
+// `equals` function.
+// Note that Novah creates default, sensible `equals` and `hashCode` implementations for every type.
 pub
 newEq : {{ Equals k }} -> Option (k -> Int64) -> Map k v
 newEq {{Equals eq}} hashFn =
   let hash = Option.map Java.toLongFunction hashFn ?: Maps#-`DEFAULT_HASH_CODE`
   Map#new(hash, Java.bipredicate eq)
 
-/**
- * Returns the size of the map.
- * Runtime: O(1)
- */
+// Returns the size of the map.
+// Runtime: O(1)
 pub
 size : Map k v -> Int64
 size m = m#size()
 
-/**
- * Inserts or replaces a new key/value pair in the map.
- * Runtime: ~O(1)
- */
+// Inserts or replaces a new key/value pair in the map.
+// Runtime: ~O(1)
 pub
 put : k -> v -> Map k v -> Map k v
 put key val map = (map as IMap k v)#put(key, val) as Map k v
 
-/**
- * Returns the value under key if it exists.
- * Runtime: ~O(1)
- */
+// Returns the value under key if it exists.
+// Runtime: ~O(1)
 pub
 get : k -> Map k v -> Option v
 get k map = (map as IMap k v)#get(k) |> Option.fromOptional
 
-/**
- * Returns the value under key if it exists, or the default value.
- * Runtime: ~O(1)
- */
+// Returns the value under key if it exists, or the default value.
+// Runtime: ~O(1)
 pub
 getOr : k -> v -> Map k v -> v
 getOr k default map = map#get(k, default)
 
-/**
- * Applies the function to the value represented by the key, updating it.
- * Does nothing if the key is not present.
- * Runtime: ~O(1)
- */
+// Applies the function to the value represented by the key, updating it.
+// Does nothing if the key is not present.
+// Runtime: ~O(1)
 pub
 update : k -> (v -> v) -> Map k v -> Map k v
 update key fun map =
@@ -81,11 +67,9 @@ update key fun map =
   else
     map
 
-/**
- * Applies the function to the value represented by the key, updating it.
- * Inserts the or value if the key is not present.
- * Runtime: ~O(1)
- */
+// Applies the function to the value represented by the key, updating it.
+// Inserts the or value if the key is not present.
+// Runtime: ~O(1)
 pub
 updateOr : k -> (v -> v) -> v -> Map k v -> Map k v
 updateOr key fun default map =
@@ -94,68 +78,52 @@ updateOr key fun default map =
   else
     put key default map
 
-/**
- * Removes the key from this map.
- * Runtime: ~O(1)
- */
+// Removes the key from this map.
+// Runtime: ~O(1)
 pub
 remove : k -> Map k v -> Map k v
 remove key map = map#remove(key)
 
-/**
- * Returns true if this map contains the key.
- * Runtime: ~O(1)
- */
+// Returns true if this map contains the key.
+// Runtime: ~O(1)
 pub
 hasKey? : k -> Map k v -> Boolean
 hasKey? key map = map#contains(key)
 
-/**
- * Returns the result of merging the two maps.
- * Repeated keys in the second map will overwrite keys from the first.
- * An alias for `++`.
- */
+// Returns the result of merging the two maps.
+// Repeated keys in the second map will overwrite keys from the first.
+// An alias for `++`.
 pub
 merge : Map k v -> Map k v -> Map k v
 merge m1 m2 = m1#union(m2 as IMap k v)
 
-/**
- * Returns a set of all keys in this map.
- * Runtime: O(1)
- */
+// Returns a set of all keys in this map.
+// Runtime: O(1)
 pub
 keys : Map k v -> Set k
 keys map = map#keys()
 
-/**
- * Returns a list of all values in this map.
- * Runtime: O(n)
- */
+// Returns a list of all values in this map.
+// Runtime: O(n)
 pub
 values : Map k v -> List v
 values map = List#from(map#values())
 
-/**
- * Executes the function for every key/value pair in this map
- * Runtime: O(n)
- */
+// Executes the function for every key/value pair in this map
+// Runtime: O(n)
 pub
 forEach : Map k v -> (k -> v -> Unit) -> Unit
 forEach map f =
   Java.forEach map#iterator() \(entry : IEntry k v) -> f entry#key() entry#value()
 
-/**
- * Maps function f over all entries of this map.
- * Runtime: O(n)
- */
+// Maps function f over all entries of this map.
+// Runtime: O(n)
 pub
 mapValues : (k -> v -> v2) -> Map k v -> Map k v2
 mapValues f map = map#mapValues(Java.biFunction f)
 
-/**
- * Returns a map of the elements that match the given predicate.
- * Runtime: O(n)
- */
+// Returns a map of the elements that match the given predicate.
+// Runtime: O(n)
 pub
 filter : (k -> v -> Boolean) -> Map k v -> Map k v
 filter pred map =
@@ -166,10 +134,8 @@ filter pred map =
       ()
   lmap#forked()
 
-/**
- * Folds this map into a single value according to the folding function.
- * Runtime: O(n)
- */
+// Folds this map into a single value according to the folding function.
+// Runtime: O(n)
 pub
 foldl : (b -> k -> v -> b) -> b -> Map k v -> b
 foldl fun init map =
@@ -178,10 +144,8 @@ foldl fun init map =
     val#update(\acc -> fun acc k v)
   val#-val
 
-/**
- * Returns true if the predicate is true for every entry in this map.
- * Runtime: O(n)
- */
+// Returns true if the predicate is true for every entry in this map.
+// Runtime: O(n)
 pub
 all? : (k -> v -> Boolean) -> Map k v -> Boolean
 all? pred map = Core#mapEvery(pred, map)
@@ -190,10 +154,8 @@ pub instance
 concatMap : Concat (Map k v)
 concatMap = Concat merge
 
-/**
- * Returns a list containing every key/value pair from this map.
- * Runtime: O(n)
- */
+// Returns a list containing every key/value pair from this map.
+// Runtime: O(n)
 pub
 toList : Map k v -> List (Tuple k v)
 toList map =
@@ -207,20 +169,18 @@ pub instance
 eqMap : {{ Equals k }} -> {{ Equals v }} -> Equals (Map k v)
 eqMap {{Equals eqk}} {{Equals eqv}} = Equals \x y -> Core#equalsMap(x, y, eqk, eqv)
 
-/**
- * Creates a linear (mutable) version of the given map and applies the function to it.
- * Returns a forked (persistent) version of the returned linear map.
- * This function should be used when lots of expensive mutating operations have to be run on a map
- * and can be seen as a builder for the resulting map.
- * All functions that alter maps like `put`, `update`, `remove`, etc.
- * will mutate a linear map.
- * Ex:
- *   withLinear (Map.new ["a" ; 1, "b" ; 2, "c" ; 3]) \map ->
- *     put "d" 4 map
- *     remove "b" map
- *
- *   -> {"a" 1, "c" 3, "d" 4}
- */
+// Creates a linear (mutable) version of the given map and applies the function to it.
+// Returns a forked (persistent) version of the returned linear map.
+// This function should be used when lots of expensive mutating operations have to be run on a map
+// and can be seen as a builder for the resulting map.
+// All functions that alter maps like `put`, `update`, `remove`, etc.
+// will mutate a linear map.
+// Ex:
+//   withLinear (Map.new ["a" ; 1, "b" ; 2, "c" ; 3]) \map ->
+//     put "d" 4 map
+//     remove "b" map
+//
+//   -> {"a" 1, "c" 3, "d" 4}
 pub
 withLinear : Map k v -> (Map k v -> b) -> Map k v
 withLinear map f =
@@ -228,10 +188,8 @@ withLinear map f =
   f lin
   (lin : Map k v)#forked()
 
-/**
- * Creates a map out of a list based on the given function.
- * Runtime: O(n)
- */
+// Creates a map out of a list based on the given function.
+// Runtime: O(n)
 pub
 associate : (a -> Tuple k v) -> List a -> Map k v
 associate fun = List.map fun >> new

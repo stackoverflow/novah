@@ -1,7 +1,5 @@
-/**
- * Function for working with random numbers.
- * These functions are not cryptographically secure.
- */
+// Function for working with random numbers.
+// These functions are not cryptographically secure.
 module novah.random
 
 foreign import java.util.concurrent.ThreadLocalRandom

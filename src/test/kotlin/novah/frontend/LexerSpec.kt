@@ -39,21 +39,31 @@ class LexerSpec : StringSpec({
     }
 
     "Lex comments correctly" {
-        val tokens = lexResource("Comments.novah")
+        val tokens = lexResource("comments.novah")
 
         val typ = tokens.find { it.value is Token.TypeT }!!
         val myFun = tokens.find {
             val tk = it.value
             tk is Token.Ident && tk.v == "myFun"
         }!!
+        val foo = tokens.find {
+            it.value is Token.Ident && (it.value as Token.Ident).v == "foo"
+        }!!
+        val other = tokens.find {
+            it.value is Token.Ident && (it.value as Token.Ident).v == "other"
+        }!!
 
         typ.span shouldBe span(4 to 1, 4 to 5)
-        typ.comment shouldBe Comment("comments on type definitions work", Span(3, 1, 3, 37))
+        typ.comment shouldBe Comment(" comments on type definitions work", Span(3, 1, 3, 37))
 
         myFun.span shouldBe span(10 to 1, 10 to 6)
-        myFun.comment shouldBe Comment("comments on var\ntypes work", Span(6, 1, 9, 4), true)
+        myFun.comment shouldBe Comment("\n comments on var\n types work\n", Span(6, 1, 9, 3), true)
+
+        other.comment shouldBe Comment(" comments on var declaration work\n and are concatenated", Span(13, 1, 14, 24))
+
+        foo.comment shouldBe null
     }
-    
+
     "Lex UTF escapes correctly" {
         val tk = lexString(""" "bla bla \u0062 a" """)[0]
 

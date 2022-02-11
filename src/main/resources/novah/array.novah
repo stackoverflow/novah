@@ -1,6 +1,4 @@
-/**
- * Functions to work with native Java arrays.
- */
+// Functions to work with native Java arrays.
 module novah.array
 
 foreign import java.lang.System
@@ -13,10 +11,8 @@ import novah.java (toComparator)
 import novah.option as Option
 import novah.stream as Stream
 
-/**
- * Returns the size of this array.
- * Runtime: O(1)
- */
+// Returns the size of this array.
+// Runtime: O(1)
 pub
 size : Array a -> Int32
 size arr = Core#getArrayLength(arr)
@@ -31,11 +27,9 @@ pub
 fromStream : Stream a -> Array Object
 fromStream = Stream.toArray
 
-/**
- * Returns some value at index for this array if it exists or none.
- * This is a safe version of `aget`.
- * Runtime: O(1)
- */
+// Returns some value at index for this array if it exists or none.
+// This is a safe version of `aget`.
+// Runtime: O(1)
 pub
 nth : Int -> Array a -> Option a
 nth index arr =
@@ -44,26 +38,20 @@ nth index arr =
     then None
     else Some (aget index arr)
 
-/**
- * Returns true if the array is empty.
- * Runtime: O(1)
- */
+// Returns true if the array is empty.
+// Runtime: O(1)
 pub
 empty? : Array a -> Boolean
 empty? arr = size arr == 0
 
-/**
- * Returns true if the array is not empty.
- * Runtime: O(1)
- */
+// Returns true if the array is not empty.
+// Runtime: O(1)
 pub
 notEmpty? : Array a -> Boolean
 notEmpty? arr = size arr != 0
 
-/**
- * Returns the first occurrence of elem in the array for which the predicate returns true.
- * Runtime: O(n)
- */
+// Returns the first occurrence of elem in the array for which the predicate returns true.
+// Runtime: O(n)
 pub
 find : (a -> Boolean) -> Array a -> Option a
 find pred arr =
@@ -81,31 +69,25 @@ containedArray : {{ Equals a }} -> Contained a (Array a)
 containedArray {{(Equals eq) as equals}} =
   Contained equals \x arr -> find (\elem -> eq x elem) arr |> Option.some?
 
-/**
- * Runs function f for every element of this array, ignoring the result.
- * Runtime: O(n)
- */
+// Runs function f for every element of this array, ignoring the result.
+// Runtime: O(n)
 pub
 forEach : Array a -> (a -> Unit) -> Unit
 forEach arr f =
   forEachRange (0 ... size arr) \idx ->
     f (aget idx arr)
 
-/**
- * Runs function f for every index and element of this array, ignoring the result.
- * Runtime: O(n)
- */
+// Runs function f for every index and element of this array, ignoring the result.
+// Runtime: O(n)
 pub
 forEachIndexed : Array a -> (Int32 -> a -> Unit) -> Unit
 forEachIndexed arr f =
   forEachRange (0 ... size arr) \idx ->
     f idx (aget idx arr)
 
-/**
- * Maps function f over all elements of this array
- * returning an array of the same size.
- * Runtime: O(n)
- */
+// Maps function f over all elements of this array
+// returning an array of the same size.
+// Runtime: O(n)
 pub
 map : (a -> b) -> Array a -> Array Object
 map f arr =
@@ -115,10 +97,8 @@ map f arr =
     aset i (f (aget i arr) as Object) res
   res
 
-/**
- * Returns an array of the elements that match the given predicate.
- * Runtime: O(n)
- */
+// Returns an array of the elements that match the given predicate.
+// Runtime: O(n)
 pub
 filter : (a -> Boolean) -> Array a -> Array Object
 filter f arr = stream arr |> Stream.filter f |> fromStream
@@ -135,10 +115,8 @@ pub
 sort : {{ Ord a }} -> Array a -> Unit
 sort {{Ord _ ord}} arr = sortBy ord.compare arr
 
-/**
- * Returns a new array with the same elements in the reverse order of the input array.
- * Runtime: O(n)
- */
+// Returns a new array with the same elements in the reverse order of the input array.
+// Runtime: O(n)
 pub
 reverse : Array a -> Array a
 reverse arr =
@@ -150,10 +128,8 @@ reverse arr =
     aset i elem res
   res
 
-/**
- * Reverses this array in place.
- * Runtime: O(n/2)
- */
+// Reverses this array in place.
+// Runtime: O(n/2)
 pub
 reversed : Array a -> Unit
 reversed arr =
@@ -221,74 +197,58 @@ emptyCopy arr =
     let elem = aget 0 arr as Object
     arrayOf elem#getClass() (size arr) as Array a
 
-/**
- * Sets the element of this byte array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of this byte array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 byteaset : Int32 -> Byte -> ByteArray -> Unit
 byteaset index x arr = Core#byteArraySet(index, x, arr)
 
-/**
- * Sets the element of this int16 array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of this int16 array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 int16aset : Int32 -> Int16 -> Int16Array -> Unit
 int16aset index x arr = Core#shortArraySet(index, x, arr)
 
-/**
- * Sets the element of this int array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of this int array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 int32aset : Int32 -> Int32 -> Int32Array -> Unit
 int32aset index x arr = Core#intArraySet(index, x, arr)
 
-/**
- * Sets the element of this int64 array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of this int64 array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 int64aset : Int32 -> Int64 -> Int64Array -> Unit
 int64aset index x arr = Core#longArraySet(index, x, arr)
 
-/**
- * Sets the element of this float32 array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of this float32 array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 float32aset : Int32 -> Float32 -> Float32Array -> Unit
 float32aset index x arr = Core#floatArraySet(index, x, arr)
 
-/**
- * Sets the element of this float64 array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of this float64 array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 float64aset : Int32 -> Float64 -> Float64Array -> Unit
 float64aset index x arr = Core#doubleArraySet(index, x, arr)
 
-/**
- * Sets the element of this boolean array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of this boolean array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 booleanaset : Int32 -> Boolean -> BooleanArray -> Unit
 booleanaset index x arr = Core#booleanArraySet(index, x, arr)
 
-/**
- * Sets the element of this char array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of this char array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 charaset : Int32 -> Char -> CharArray -> Unit
 charaset index x arr = Core#charArraySet(index, x, arr)

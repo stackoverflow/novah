@@ -1,7 +1,5 @@
-/**
- * The core functions of the language.
- * Imported automatically in every module.
- */
+// The core functions of the language.
+// Imported automatically in every module.
 module novah.core
 
 foreign import io.lacuna.bifurcan.IList
@@ -28,12 +26,10 @@ foreign import java.lang.System
 pub
 typealias Int = Int32
 
-/**
- * Coerce parameter x from type a to b.
- * This is extremely unsafe and should be used only
- * when sure both types are compatible, otherwise
- * a runtime exception will be thrown.
- */
+// Coerce parameter x from type a to b.
+// This is extremely unsafe and should be used only
+// when sure both types are compatible, otherwise
+// a runtime exception will be thrown.
 pub
 unsafeCast : a -> b
 unsafeCast x = x as b
@@ -63,29 +59,25 @@ pub
 const : a -> b -> a
 const x _ = x
 
-/**
- * The railway operator.
- * Applies function f to x.
- * Used to minimize parentheses and have a
- * more intuitive order of execution:
- *
- * `1 .. 100 |> List.reverse |> List.map (_ * 10)`
- * instead of
- * `List.map (_ * 10) (List.reverse (1 .. 100))`
- */
+// The railway operator.
+// Applies function f to x.
+// Used to minimize parentheses and have a
+// more intuitive order of execution:
+//
+// `1 .. 100 |> List.reverse |> List.map (_ * 10)`
+// instead of
+// `List.map (_ * 10) (List.reverse (1 .. 100))`
 pub
 (|>) : a -> (a -> b) -> b
 (|>) x f = f x
 
-/**
- * The reverse of the `|>` (railway operator).
- * Applies function f to x.
- * Used to minimize parentheses:
- *
- * `List.map (_ * 10) <| List.reverse <| 1 .. 100`
- * instead of
- * `List.map (_ * 10) (List.sort (1 .. 100))`
- */
+// The reverse of the `|>` (railway operator).
+// Applies function f to x.
+// Used to minimize parentheses:
+//
+// `List.map (_ * 10) <| List.reverse <| 1 .. 100`
+// instead of
+// `List.map (_ * 10) (List.sort (1 .. 100))`
 pub
 (<|) : (a -> b) -> a -> b
 (<|) f x = f x
@@ -100,36 +92,28 @@ pub
 (<<) : (b -> c) -> (a -> b) -> (a -> c)
 (<<) f g x = f (g x)
 
-/**
- * Returns true if the 2 references point to the same object.
- * This is the same as Java's ==
- */
+// Returns true if the 2 references point to the same object.
+// This is the same as Java's ==
 pub
 (===) : a -> a -> Boolean
 (===) x y = Core#equivalentObject(x, y)
 
-/**
- * Returns true if the 2 objects *do not* point to the same object.
- * This is the same as Java's !=
- */
+// Returns true if the 2 objects *do not* point to the same object.
+// This is the same as Java's !=
 pub
 (!==) : a -> a -> Boolean
 (!==) x y = Core#not(Core#equivalentObject(x, y))
 
-/**
- * Logical `and` operator.
- * Returns true if both conditions are true.
- * This operator will short circuit if fully applied.
- */
+// Logical `and` operator.
+// Returns true if both conditions are true.
+// This operator will short circuit if fully applied.
 pub
 (&&) : Boolean -> Boolean -> Boolean
 (&&) cond1 cond2 = Core#and(cond1, cond2)
 
-/**
- * Logical `or` operator.
- * Returns true if at least one of the conditions is true.
- * This operator will short circuit if fully applied.
- */
+// Logical `or` operator.
+// Returns true if at least one of the conditions is true.
+// This operator will short circuit if fully applied.
 pub
 (||) : Boolean -> Boolean -> Boolean
 (||) cond1 cond2 = Core#or(cond1, cond2)
@@ -144,106 +128,82 @@ pub
 print : a -> Unit
 print x = System#-out#print(x as Object)
 
-/**
- * Converts a value to String using the
- * native Java toString method.
- */
+// Converts a value to String using the
+// native Java toString method.
 pub
 toString : a -> String
 toString x = (x as Object)#toString()
 
-/**
- * Throws an exception stating that this code is still undergoing implementation.
- * Should be used a placeholder for future code.
- */
+// Throws an exception stating that this code is still undergoing implementation.
+// Should be used a placeholder for future code.
 pub
 todo : String -> a
 todo msg = throw AssertionError#new(format "Not implemented: %s" [msg] as Object)
 
-/**
- * Returns some value at index for this list if it exists.
- * *Unsafe*: Will throw an exception if the index is out of bounds.
- * This function is similar to the index operator `list.[i]` but
- * it does not work on negative indexes.
- */
+// Returns some value at index for this list if it exists.
+// *Unsafe*: Will throw an exception if the index is out of bounds.
+// This function is similar to the index operator `list.[i]` but
+// it does not work on negative indexes.
 pub
 (!) : List a -> Int32 -> a
 (!) list idx = list#nth(idx#longValue())
 
-/**
- * Sets the value of this list at the specified index to x.
- * *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: ~O(1)
- */
+// Sets the value of this list at the specified index to x.
+// *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: ~O(1)
 pub
 setAt : Int32 -> a -> List a -> List a
 setAt index x list = list#set(index#longValue(), x)
 
-/**
- * Updates the value of this list at the specified index by applying function f to the old value.
- * *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: ~O(1)
- */
+// Updates the value of this list at the specified index by applying function f to the old value.
+// *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: ~O(1)
 pub
 updateAt : Int32 -> (a -> a) -> List a -> List a
 updateAt index f list = list#set(index#longValue(), f list.[index])
 
-/**
- * Appends x to the beginning of this list.
- * Runtime: ~O(1)
- */
+// Appends x to the beginning of this list.
+// Runtime: ~O(1)
 pub
 addFirst : a -> List a -> List a
 addFirst x list = list#addFirst(x)
 
-/**
- * Appends x to the end of this list.
- * Runtime: ~O(1)
- */
+// Appends x to the end of this list.
+// Runtime: ~O(1)
 pub
 addLast : a -> List a -> List a
 addLast x list = list#addLast(x)
 
-/**
- * Removes the first element of this list.
- * Runtime: ~O(1)
- */
+// Removes the first element of this list.
+// Runtime: ~O(1)
 pub
 removeFirst : List a -> List a
 removeFirst list = list#removeFirst()
 
-/**
- * Removes the last element of this list.
- * Runtime: ~O(1)
- */
+// Removes the last element of this list.
+// Runtime: ~O(1)
 pub
 removeLast : List a -> List a
 removeLast list = list#removeLast()
 
-/**
- * Gets the element of the array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Gets the element of the array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 aget : Int32 -> Array a -> a
 aget index arr = Core#getArray(index, arr)
 
-/**
- * Sets the element of the array at the specified index.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Sets the element of the array at the specified index.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 aset : Int32 -> a -> Array a -> Unit
 aset index x arr = Core#setArray(index, x, arr)
 
-/**
- * Updates the element of the array at the specified index by applying this function
- * to the old value.
- * *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
- * Runtime: O(1)
- */
+// Updates the element of the array at the specified index by applying this function
+// to the old value.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
 pub
 aupdate : Int32 -> (a -> a) -> Array a -> Unit
 aupdate index updateFn arr = Core#setArray(index, updateFn Core#getArray(index, arr), arr)
@@ -253,10 +213,8 @@ pub
 arrayOf : Class a -> Int32 -> Array a
 arrayOf clazz length = Core#mkArray(clazz, length)
 
-/**
- * Returns a formatted string using the specified format string and arguments.
- * See `java.util.Formatter` for format explanation.
- */
+// Returns a formatted string using the specified format string and arguments.
+// See `java.util.Formatter` for format explanation.
 pub
 format : String -> List a -> String
 format str list = String#format(str, list#toArray())
@@ -266,13 +224,11 @@ pub
 printfln : String -> List a -> Unit
 printfln form args = println (format form args)
 
-/**
- * Coerces a value to a nullable.
- * Should only be used for Java interoperability
- * when a foreign imported value can be null
- * or a method can return null.
- * `let possibleNullResult = obj#foreignFunction(x, y, z) |> nullable`
- */
+// Coerces a value to a nullable.
+// Should only be used for Java interoperability
+// when a foreign imported value can be null
+// or a method can return null.
+// `let possibleNullResult = obj#foreignFunction(x, y, z) |> nullable`
 pub
 nullable : a -> Nullable a
 nullable x = unsafeCast x
@@ -281,10 +237,8 @@ nullable x = unsafeCast x
 pub+
 type Option a = Some a | None
 
-/**
- * Returns the value contained in this option
- * or the default value.
- */
+// Returns the value contained in this option
+// or the default value.
 pub
 (?:) : Option a -> a -> a
 (?:) opt def =
@@ -292,51 +246,43 @@ pub
     Some x -> x
     None -> def
 
-/**
- * Extracts the value out of this option.
- * *Unsafe*: Will thrown an exception if the option is empty.
- * The `!!` syntactic sugar can be used instead,
- * but this function still needs to be in scope.
- */
+// Extracts the value out of this option.
+// *Unsafe*: Will thrown an exception if the option is empty.
+// The `!!` syntactic sugar can be used instead,
+// but this function still needs to be in scope.
 pub
 unwrapOption : Option a -> a
 unwrapOption = case _ of
   Some x -> x
   None -> throw AssertionError#new("Empty Option" as Object)
 
-/**
- * Threads optional values together stopping as soon as
- * the option is empty.
- * This is a flipped version of `Option.flatMap`.
- * Ex.:
- * ```novah
- * List.nth 1 [[1, 2], [3, 4]] ? List.nth 5 ?: 0
- * ```
- */
+// Threads optional values together stopping as soon as
+// the option is empty.
+// This is a flipped version of `Option.flatMap`.
+// Ex.:
+// ```novah
+// List.nth 1 [[1, 2], [3, 4]] ? List.nth 5 ?: 0
+// ```
 pub
 (?) : Option a -> (a -> Option b) -> Option b
 (?) opt fun = case opt of
   Some x -> fun x
   None -> None
 
-/**
- * Maps the function inside the option if it's not empty.
- * This is a flipped version of `Option.map`.
- * Ex.:
- * ```novah
- * Some [1, 2, 3] ?? List.size
- * ```
- */
+// Maps the function inside the option if it's not empty.
+// This is a flipped version of `Option.map`.
+// Ex.:
+// ```novah
+// Some [1, 2, 3] ?? List.size
+// ```
 pub
 (??) : Option a -> (a -> b) -> Option b
 (??) opt fun = case opt of
   Some x -> Some (fun x)
   None -> None
 
-/**
- * Represents a computation that can fail.
- * Should be used to represent errors instead of exceptions.
- */
+// Represents a computation that can fail.
+// Should be used to represent errors instead of exceptions.
 pub+
 type Result ok err
   = Ok ok
@@ -346,10 +292,8 @@ type Result ok err
 pub
 type Atom a = Atom (AtomicReference a)
 
-/**
- * Creates a new Atom to hold x.
- * Should *not* be used to hold a mutable value.
- */
+// Creates a new Atom to hold x.
+// Should *not* be used to hold a mutable value.
 pub
 atom : a -> Atom a
 atom x = Atom AtomicReference#new(x)
@@ -359,51 +303,41 @@ pub
 deref : Atom a -> a
 deref (Atom a) = a#get()
 
-/**
- * Resets the value of this Atom to x, discarding the old value.
- * Returns x.
- */
+// Resets the value of this Atom to x, discarding the old value.
+// Returns x.
 pub
 reset : a -> Atom a -> a
 reset x (Atom a) =
   a#set(x)
   x
 
-/**
- * Swaps the value of this atom by applying a function to the old value.
- * The function *should be free of side effects* as it may be executed
- * multiple times.
- */
+// Swaps the value of this atom by applying a function to the old value.
+// The function *should be free of side effects* as it may be executed
+// multiple times.
 pub
 swap : (a -> a) -> Atom a -> a
 swap f (Atom a) = Core#swapAtom(a, f)
 
-/**
- * Low-level function that receives the old value, the new value and attempts
- * to set the atom to new if old matches.
- * Returns true if it succeeded.
- * Always prefer `swap` over `compareAndSet`.
- */
+// Low-level function that receives the old value, the new value and attempts
+// to set the atom to new if old matches.
+// Returns true if it succeeded.
+// Always prefer `swap` over `compareAndSet`.
 pub
 compareAndSet : a -> a -> Atom a -> Boolean
 compareAndSet old new (Atom atm) = atm#compareAndSet(old, new)
 
-/**
- * Returns x raised to the power of y.
- * Follows the same special cases as `java.lang.Math.pow`.
- */
+// Returns x raised to the power of y.
+// Follows the same special cases as `java.lang.Math.pow`.
 pub
 (^) : Float64 -> Float64 -> Float64
 (^) x y = Math#pow(x, y)
 
-/**
- * The ordering type represents the outcome
- * of comparing 2 values:
- *
- * GT -> bigger than
- * EQ -> equals
- * LT -> less than
- */
+// The ordering type represents the outcome
+// of comparing 2 values:
+//
+// GT -> bigger than
+// EQ -> equals
+// LT -> less than
 pub+
 type Ordering = GT | LT | EQ
 
@@ -411,18 +345,14 @@ type Ordering = GT | LT | EQ
 pub+
 type Tuple a b = Tuple a b
 
-/**
- * Returns the first element of this tuple.
- * Runtime: O(1)
- */
+// Returns the first element of this tuple.
+// Runtime: O(1)
 pub
 fst : Tuple a b -> a
 fst (Tuple x _) = x
 
-/**
- * Returns the second element of this tuple.
- * Runtime: O(1)
- */
+// Returns the second element of this tuple.
+// Runtime: O(1)
 pub
 snd : Tuple a b -> b
 snd (Tuple _ x) = x
@@ -526,10 +456,8 @@ pub instance
 concatTuple : {{ Concat a }} -> {{ Concat b }} -> Concat (Tuple a b)
 concatTuple {{c1}} {{c2}} = Concat (concatTup c1 c2)
 
-/**
- * The type of things that can be added together
- * using the + operator.
- */
+// The type of things that can be added together
+// using the + operator.
 pub+
 type Plus a =
   Plus
@@ -585,10 +513,8 @@ plusTuple {{(Plus p1) as plusp1}} {{(Plus p2) as plusp2}} =
     , identity: Tuple p1.identity p2.identity
     }
 
-/**
- * The type of things that can be subtracted
- * using the - operator.
- */
+// The type of things that can be subtracted
+// using the - operator.
 pub+
 type Minus a = Minus (a -> a -> a)
 
@@ -620,10 +546,8 @@ pub instance
 minusTuple : {{ Minus a }} -> {{ Minus b }} -> Minus (Tuple a b)
 minusTuple {{m1}} {{m2}} = Minus (minusTup m1 m2)
 
-/**
- * The type of things that can be multiplied together
- * using the * operator.
- */
+// The type of things that can be multiplied together
+// using the * operator.
 pub+
 type Mult a =
   Mult
@@ -679,10 +603,8 @@ multTuple {{(Mult p1) as multp1}} {{(Mult p2) as multp2}} =
     , identity: Tuple p1.identity p2.identity
     }
 
-/**
- * The type of things that can be divided
- * using the / operator.
- */
+// The type of things that can be divided
+// using the / operator.
 pub+
 type Divide a = Divide (a -> a -> a)
 
@@ -723,18 +645,14 @@ pub
 show : {{ Show a }} -> a -> String
 show {{Show sh}} x = sh x
 
-/**
- * Prints x to stdout and appends a new line.
- * Transforms the argument to a String using `show` first.
- */
+// Prints x to stdout and appends a new line.
+// Transforms the argument to a String using `show` first.
 pub
 printlnShow : {{ Show a }} -> a -> Unit
 printlnShow {{Show sh}} x = println (sh x)
 
-/**
- * Prints x to stdout.
- * Transforms the argument to a String using `show` first.
- */
+// Prints x to stdout.
+// Transforms the argument to a String using `show` first.
 pub
 printShow : {{ Show a }} -> a -> Unit
 printShow {{Show sh}} x = print (sh x)
@@ -978,20 +896,16 @@ pub instance
 equalsRange : {{ Equals a }} -> Equals (Range a)
 equalsRange {{_}} = Equals \(one : Range a) (other : Range a) -> (one as Object)#equals(other as Object)
 
-/**
- * Compare if the two records are equals
- * according to Java's equality.
- */
+// Compare if the two records are equals
+// according to Java's equality.
 pub
 recordEquals : { | r } -> { | r } -> Boolean
 recordEquals r1 r2 = (r1 as Record)#equals(r2 as Object)
 
-/**
- * The type of things that can contain other values.
- * The first type variable is the type of the contained value,
- * the second is the type of the container itself.
- * Ex.: Contained a (List a)
- */
+// The type of things that can contain other values.
+// The first type variable is the type of the contained value,
+// the second is the type of the container itself.
+// Ex.: Contained a (List a)
 pub+
 type Contained a fa = Contained (Equals a) (a -> fa -> Boolean)
 
@@ -1153,10 +1067,8 @@ compareOption (Ord _ o) =
     None, Some _ -> LT
     None, None -> EQ
 
-/**
- * Compares two options if their values are comparable.
- * None values are always smaller then Some.
- */
+// Compares two options if their values are comparable.
+// None values are always smaller then Some.
 pub instance
 ordOption : {{ Ord a }} -> Ord (Option a)
 ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption ord }
@@ -1221,12 +1133,10 @@ numberOpsFloat64 =
     , abs: \(x : Float64) -> Math#abs(x)
     }
 
-/**
- * Types that can be converted to numbers.
- * Many of these conversions are unsafe like
- * int64 -> int, String -> int, etc.
- * Booleans are converted to 1 for true and 0 for false.
- */
+// Types that can be converted to numbers.
+// Many of these conversions are unsafe like
+// int64 -> int, String -> int, etc.
+// Booleans are converted to 1 for true and 0 for false.
 pub+
 type ToNumber a =
   ToNumber
@@ -1339,58 +1249,44 @@ type BitOperator a =
     , unsignedShiftRight: a -> a -> a
     }
 
-/**
- * Returns the biwise and between x and y.
- * Equivalent to Java's `&`.
- */
+// Returns the biwise and between x and y.
+// Equivalent to Java's `&`.
 pub
 bitAnd : {{ BitOperator a }} -> a -> a -> a
 bitAnd {{BitOperator b}} x y = b.and x y
 
-/**
- * Returns the biwise or between x and y.
- * Equivalent to Java's `|`.
- */
+// Returns the biwise or between x and y.
+// Equivalent to Java's `|`.
 pub
 bitOr : {{ BitOperator a }} -> a -> a -> a
 bitOr {{BitOperator b}} x y = b.or x y
 
-/**
- * Returns the biwise xor between x and y.
- * Equivalent to Java's `^`.
- */
+// Returns the biwise xor between x and y.
+// Equivalent to Java's `^`.
 pub
 bitXor : {{ BitOperator a }} -> a -> a -> a
 bitXor {{BitOperator b}} x y = b.xor x y
 
-/**
- * Returns the bit complement of x.
- * Equivalent to Java's `~`.
- */
+// Returns the bit complement of x.
+// Equivalent to Java's `~`.
 pub
 bitNot : {{ BitOperator a }} -> a -> a
 bitNot {{BitOperator b}} x = b.not x
 
-/**
- * Shifts `x` bitwise to the left by `amount`.
- * Equivalent to Java's `<<`.
- */
+// Shifts `x` bitwise to the left by `amount`.
+// Equivalent to Java's `<<`.
 pub
 bitShiftLeft : {{ BitOperator a }} -> a -> a -> a
 bitShiftLeft {{BitOperator b}} x amount = b.shiftLeft x amount
 
-/**
- * Shifts `x` bitwise to the right by `amount`.
- * Equivalent to Java's `>>`.
- */
+// Shifts `x` bitwise to the right by `amount`.
+// Equivalent to Java's `>>`.
 pub
 bitShiftRight : {{ BitOperator a }} -> a -> a -> a
 bitShiftRight {{BitOperator b}} x amount = b.shiftRight x amount
 
-/**
- * Shifts `x` bitwise to the right by `amount` (unsigned).
- * Equivalent to Java's `>>>`.
- */
+// Shifts `x` bitwise to the right by `amount` (unsigned).
+// Equivalent to Java's `>>>`.
 pub
 bitUnsignedShiftRight : {{ BitOperator a }} -> a -> a -> a
 bitUnsignedShiftRight {{BitOperator b}} x amount = b.unsignedShiftRight x amount
@@ -1463,36 +1359,28 @@ type RangedStep a =
     , rangeOpen : a -> a -> a -> Range a
     }
 
-/**
- * Returns a range from begin (inclusive) to end (inclusive).
- * If start > end the range will go down instead of up.
- * Runtime: O(1)
- */
+// Returns a range from begin (inclusive) to end (inclusive).
+// If start > end the range will go down instead of up.
+// Runtime: O(1)
 pub
 (..) : {{ Ranged a }} -> a -> a -> Range a
 (..) {{Ranged r}} begin end = r.range begin end
 
-/**
- * Returns a range from begin (inclusive) to end (exclusive).
- * If start > end the range will go down instead of up.
- * Runtime: O(1)
- */
+// Returns a range from begin (inclusive) to end (exclusive).
+// If start > end the range will go down instead of up.
+// Runtime: O(1)
 pub
 (...) : {{ Ranged a }} -> a -> a -> Range a
 (...) {{Ranged r}} begin end = r.rangeOpen begin end
 
-/**
- * Returns a range between begin (inclusive) and end (inclusive) going step by step.
- * Runtime: O(1)
- */
+// Returns a range between begin (inclusive) and end (inclusive) going step by step.
+// Runtime: O(1)
 pub
 range : {{ RangedStep a }} -> a -> a -> a -> Range a
 range {{RangedStep r}} start end step = r.range start end step
 
-/**
- * Returns a range between begin (inclusive) and end (exclusive) going step by step.
- * Runtime: O(1)
- */
+// Returns a range between begin (inclusive) and end (exclusive) going step by step.
+// Runtime: O(1)
 pub
 rangeOpen : {{ RangedStep a }} -> a -> a -> a -> Range a
 rangeOpen {{RangedStep r}} start end step = r.rangeOpen start end step

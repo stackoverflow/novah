@@ -1,31 +1,23 @@
-/**
- * Functions for reflecting on metadata.
- */
+// Functions for reflecting on metadata.
 module novah.meta
 
 foreign import java.lang.reflect.Field
 foreign import novah.Metadata
 
-/**
- * Returns the metadata attached to this module
- * or an empty map if none.
- */
+// Returns the metadata attached to this module
+// or an empty map if none.
 pub
 metaForModule : String -> Map String Object
 metaForModule mod = Metadata#allMetadataOf(mod)
 
-/**
- * Returns the metadata attached the given declaration
- * and module or an empty map if none.
- */
+// Returns the metadata attached the given declaration
+// and module or an empty map if none.
 pub
 metaFor : String -> String -> Map String Object
 metaFor mod decl = Metadata#allMetadataOf(mod, decl)
 
-/**
- * Returns all modules where the tag is defined
- * in at least one declaration.
- */
+// Returns all modules where the tag is defined
+// in at least one declaration.
 pub
 modulesForTag : String -> Set String
 modulesForTag tag = Metadata#modulesForTag(tag)
