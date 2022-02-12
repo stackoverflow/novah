@@ -336,9 +336,9 @@ class Parser(
             }
             val vars = tryParseListOf { tryParsePattern(true) }
 
-            expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
+            val eq = expect<Equals>(withError(E.equalsExpected("function parameters/patterns")))
 
-            val exp = parseDo()
+            val exp = if (eq.span.sameLine(iter.peek().span)) parseExpression() else parseDo()
             val binder = Spanned(if (nameTk2 != null) nameTk2!!.span else nameTk.span, name)
             if (isOperator && name.length > 3) throwError(E.opToolong(name) to binder.span)
             Decl.ValDecl(binder, vars, exp, sig, vis, isInstance, isOperator)
@@ -368,12 +368,13 @@ class Parser(
         return parseType()
     }
 
-    private fun parseExpression(): Expr {
+    private fun parseExpression(inDo: Boolean = false): Expr {
         if (iter.peekIsOffside()) throwMismatchedIndentation(iter.peek())
         val tk = iter.peek()
         val exps = mutableListOf<Expr>()
         exps += tryParseAtom() ?: throwError(E.MALFORMED_EXPR to tk.span)
-        return withOffside {
+        val offside = if (inDo) iter.offside() + 1 else iter.offside()
+        return withOffside(offside) {
             exps += tryParseListOf { tryParseAtom() }
             // sanity check
             if (exps.size > 1) {
@@ -490,7 +491,7 @@ class Parser(
             is DoDot -> parseComputation()
             is DoBang -> {
                 val dobang = iter.next()
-                val exp = parseExpression()
+                val exp = withOffside { parseExpression() }
                 Expr.DoBang(exp).withSpan(dobang.span, exp.span).withComment(dobang.comment)
             }
             is CaseT -> parseMatch()
@@ -519,24 +520,22 @@ class Parser(
             }
             is ThrowT -> {
                 val tk = iter.next()
-                val exp = parseExpression()
+                val exp = withOffside { parseExpression() }
                 Expr.Throw(exp).withSpan(tk.span, exp.span).withComment(tk.comment)
             }
             is TryT -> parseTryCatch()
             is WhileT -> parseWhile()
             is Return -> {
                 val ret = iter.next()
-                val exp = parseExpression()
+                val exp = withOffside { parseExpression() }
                 Expr.Return(exp).withSpan(ret.span, exp.span).withComment(ret.comment)
             }
             is Yield -> {
                 val ret = iter.next()
-                val exp = parseExpression()
+                val exp = withOffside { parseExpression() }
                 Expr.Yield(exp).withSpan(ret.span, exp.span).withComment(ret.comment)
             }
-            is For -> {
-                parseFor()
-            }
+            is For -> parseFor()
             else -> null
         } ?: return null
 
@@ -665,9 +664,9 @@ class Parser(
         val vars = tryParseListOf { tryParsePattern(true) }
         if (vars.isEmpty()) throwError(withError(E.LAMBDA_VAR)(iter.current()))
 
-        expect<Arrow>(withError(E.LAMBDA_ARROW))
+        val arr = expect<Arrow>(withError(E.LAMBDA_ARROW))
 
-        val exp = parseDo()
+        val exp = if (arr.span.sameLine(iter.peek().span)) parseExpression() else withOffside { parseDo() }
         return Expr.Lambda(vars, exp)
             .withSpan(begin.span, exp.span)
             .withComment(begin.comment)
@@ -675,23 +674,31 @@ class Parser(
 
     private fun parseIf(): Expr {
         val ifTk = expect<IfT>(noErr())
+        val offside = iter.offside() + 1
 
         var hasElse = false
+        var els: Spanned<*>? = null
         val (cond, thens) = withIgnoreOffside {
             val cond = parseExpression()
 
-            expect<Then>(withError(E.THEN))
+            val th = expect<Then>(withError(E.THEN))
 
-            val thens = parseDo()
+            val thens = withIgnoreOffside(false) {
+                withOffside(offside) {
+                    if (th.span.sameLine(iter.peek().span)) parseExpression() else parseDo()
+                }
+            }
 
             if (iter.peek().value is Else) {
-                expect<Else>(withError(E.ELSE))
+                els = expect<Else>(withError(E.ELSE))
                 hasElse = true
             }
             cond to thens
         }
 
-        val elses = if (hasElse) parseDo() else null
+        val elses = if (hasElse) {
+            if (els?.span?.sameLine(iter.peek().span) == true) parseExpression() else parseDo()
+        } else null
 
         return Expr.If(cond, thens, elses)
             .withSpan(ifTk.span, elses?.span ?: thens.span)
@@ -763,22 +770,19 @@ class Parser(
             val newIdent = expect<Ident>(withError(E.expectedLetDefinition(name)))
             if (newIdent.value.v != name) throwError(withError(E.expectedLetDefinition(name))(newIdent))
         }
-        return withOffside {
-            val vars = tryParseListOf { tryParsePattern(true) }
-            expect<Equals>(withError(E.LET_EQUALS))
-            val exp = parseDo()
-            LetDef.DefBind(Binder(ident.value.v, ident.span), vars, exp, isInstance, type)
-        }
+        val vars = tryParseListOf { tryParsePattern(true) }
+        val eq = expect<Equals>(withError(E.LET_EQUALS))
+        val exp = if (eq.span.sameLine(iter.peek().span)) parseExpression() else parseDo()
+        return LetDef.DefBind(Binder(ident.value.v, ident.span), vars, exp, isInstance, type)
     }
 
     private fun parseLetDefPattern(isFor: Boolean = false): LetDef {
         val pat = parsePattern(true)
-        return withOffside {
-            if (isFor) expect<In>(withError(E.FOR_IN))
-            else expect<Equals>(withError(E.LET_EQUALS))
-            val exp = parseExpression()
-            LetDef.DefPattern(pat, exp)
-        }
+
+        val tk = if (isFor) expect<In>(withError(E.FOR_IN))
+        else expect<Equals>(withError(E.LET_EQUALS))
+        val exp = if (tk.span.sameLine(iter.peek().span)) parseExpression() else parseDo()
+        return LetDef.DefPattern(pat, exp)
     }
 
     private fun parseTryCatch(): Expr {
@@ -1190,18 +1194,17 @@ class Parser(
 
         if (iter.peekIsOffside()) throwMismatchedIndentation(spanned)
         val align = spanned.offside()
-        val exps = mutableListOf<Expr>()
         return withIgnoreOffside(false) {
             withOffside(align) {
                 var tk: Spanned<Token>
+                val exps = mutableListOf<Expr>()
                 do {
-                    exps += parseExpression()
+                    exps += parseExpression(inDo = true)
                     tk = iter.peek()
                 } while (!iter.peekIsOffside() && tk.value !in statementEnding)
 
-                if (exps.size == 1) {
-                    exps[0]
-                } else {
+                if (exps.size == 1) exps[0]
+                else {
                     Expr.Do(exps).withSpan(spanned.span, iter.current().span).withComment(spanned.comment)
                 }
             }
@@ -1221,15 +1224,12 @@ class Parser(
         val align = iter.peek().offside()
         return withIgnoreOffside(false) {
             withOffside(align) {
+                var tk: Spanned<Token>
                 val exps = mutableListOf<Expr>()
-                val first = parseExpression()
-                exps += first
-
-                var tk = iter.peek()
-                while (!iter.peekIsOffside() && tk.value !in statementEnding) {
-                    exps += parseExpression()
+                do {
+                    exps += parseExpression(inDo = true)
                     tk = iter.peek()
-                }
+                } while (!iter.peekIsOffside() && tk.value !in statementEnding)
                 Expr.While(cond, exps).withSpan(whil.span, iter.current().span).withComment(whil.comment)
             }
         }
@@ -1243,15 +1243,12 @@ class Parser(
         val align = iter.peek().offside()
         return withIgnoreOffside(false) {
             withOffside(align) {
+                var tk: Spanned<Token>
                 val exps = mutableListOf<Expr>()
-                val first = parseExpression()
-                exps += first
-
-                var tk = iter.peek()
-                while (!iter.peekIsOffside() && tk.value !in statementEnding) {
-                    exps += parseExpression()
+                do {
+                    exps += parseExpression(inDo = true)
                     tk = iter.peek()
-                }
+                } while (!iter.peekIsOffside() && tk.value !in statementEnding)
                 Expr.Computation(builder, exps)
                     .withSpan(doo.span, iter.current().span).withComment(doo.comment)
             }

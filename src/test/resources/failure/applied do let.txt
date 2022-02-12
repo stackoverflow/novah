@@ -1,5 +1,5 @@
 module [33mtest[0m
-at src/test/resources/failure/applied do let.novah:5:3 - 5:12
+at src/test/resources/failure/applied do let.novah:5:3 - 6:6
 
-  Cannot apply let statement as a function.
+  Expected `in` after let definition.
 
