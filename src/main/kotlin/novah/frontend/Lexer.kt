@@ -110,13 +110,20 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
 
     fun matchesLine(line: Int) = line in startLine..endLine
 
+    /**
+     * Returns true if this ends on the same line as other starts
+     */
+    fun sameLine(other: Span) = endLine == other.startLine
+
     private fun before(line: Int, col: Int) =
         line < startLine || (line == startLine && col < startColumn)
 
     fun after(line: Int, col: Int) =
         line > endLine || (line == endLine && col > endColumn)
 
-    // returns true if there's no lines between these spans
+    /**
+     * Returns true if there's no lines between these spans
+     */
     fun adjacent(other: Span) = endLine + 1 == other.startLine
 
     companion object {
