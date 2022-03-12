@@ -253,7 +253,7 @@ object Optimization {
                             arg.type.isList() -> Expr.NativeStaticMethod(listSize, listOf(arg), e.type, e.span)
                             arg.type.isSet() -> Expr.NativeStaticMethod(setSize, listOf(arg), e.type, e.span)
                             arg.type.isMap() -> Expr.NativeStaticMethod(mapSize, listOf(arg), e.type, e.span)
-                            arg.type.isArray() -> Expr.ArrayLength(arg, arg.type, e.span)
+                            arg.type.isArray() -> Expr.ArrayLength(arg, e.type, e.span)
                             else -> e
                         }
                     }
