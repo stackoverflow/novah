@@ -14,18 +14,6 @@
 - [ ] Add `Ord` requirement to `NumberOps`
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
-- [ ] This was not supposed to type check:
-      ```
-      findIndex : (a -> Boolean) -> List a -> Option Int32
-      findIndex pred list =
-        let t = List.size list
-        let go i =
-          if i >= t then None
-          else
-           let e = list.[i]
-           if pred e then Some e else go (i + 1)
-        go 0
-      ```
 
 ## LSP / IDE
 

@@ -45,9 +45,9 @@ instance? o clazz = clazz#isInstance(o as Object)
 // Returns true if clazz1 is a superclass or superinterface of class2.
 pub
 assignableFrom? : Class a -> Class b -> Boolean
-assignableFrom? clazz1 clazz2 = clazz1#isAssignableFrom(clazz2)
+assignableFrom? clazz1 clazz2 = clazz1#isAssignableFrom(clazz2 as Class Object)
 
-// Throws an assetion error if the condition is false.
+// Throws an assertion error if the condition is false.
 pub
 assert : Boolean -> String -> Unit
 assert cond msg =
