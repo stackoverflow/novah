@@ -20,11 +20,11 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import novah.ide.NovahIde
 
-class IdeCommand : CliktCommand(name = "ide", help = "Run the Novah language server") {
+class IdeCommand : CliktCommand(name = "ide", help = "run the Novah language server") {
 
     private val verbose by option(
         "-v", "--verbose",
-        help = "Send debug messages to the client"
+        help = "send debug messages to the client"
     ).flag(default = false)
 
     override fun run() {

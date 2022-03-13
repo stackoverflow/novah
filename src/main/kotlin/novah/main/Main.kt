@@ -19,7 +19,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import novah.cli.command.*
 
-class MainCommand : CliktCommand(name = "") {
+class MainCommand : CliktCommand(name = "novah") {
     override fun run() {
     }
 }
@@ -27,8 +27,15 @@ class MainCommand : CliktCommand(name = "") {
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
-        val depsCommand = DepsCommand().subcommands(BuildCommand())
-        val comms = arrayOf(CompileCommand(), depsCommand, NewCommand(), RunCommand(), ClearCommand(), IdeCommand())
+        val comms = arrayOf(
+            CompileCommand(),
+            DepsCommand(),
+            BuildCommand(),
+            NewCommand(),
+            RunCommand(),
+            ClearCommand(),
+            IdeCommand()
+        )
         MainCommand().subcommands(*comms).main(args)
     }
 }

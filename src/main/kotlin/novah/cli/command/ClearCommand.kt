@@ -20,7 +20,7 @@ import novah.cli.DepsProcessor
 import novah.data.Err
 import java.io.File
 
-class ClearCommand : CliktCommand(name = "clear", help = "Clear the output directory") {
+class ClearCommand : CliktCommand(name = "clear", help = "clear the output directory") {
 
     override fun run() {
         val depsRes = DepsProcessor.readNovahFile()

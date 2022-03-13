@@ -16,18 +16,18 @@
 package novah.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.requireObject
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import novah.cli.Deps
 import novah.cli.DepsProcessor
+import novah.data.Err
 import novah.main.CompilationError
 import novah.main.Compiler
 import novah.main.Options
 import java.io.File
 import kotlin.system.exitProcess
 
-class BuildCommand : CliktCommand(name = "build", help = "Compile the project described by the `novah.json` file") {
+class BuildCommand : CliktCommand(name = "build", help = "compile the project described by the `novah.json` file") {
 
     private val alias by option(
         "-a", "--alias",
@@ -36,24 +36,27 @@ class BuildCommand : CliktCommand(name = "build", help = "Compile the project de
 
     private val check by option(
         "-c", "--check",
-        help = "Just check the code for errors, but don't generate code"
+        help = "just check the code for errors, but don't generate code"
     ).flag(default = false)
 
     private val verbose by option(
         "-v", "--verbose",
-        help = "Print information about the process"
+        help = "print information about the process"
     ).flag(default = false)
 
     private val devMode by option(
         "-d", "--dev",
-        help = "Run the compiler in dev mode: no optimizations will be applied and some errors will be warnings."
+        help = "run the compiler in dev mode: no optimizations will be applied and some errors will be warnings."
     ).flag(default = false)
 
-    private val config by requireObject<Map<String, Deps>>()
-
     override fun run() {
+        val depsRes = DepsProcessor.readNovahFile()
+        if (depsRes is Err) {
+            echo(depsRes.err, false)
+            return
+        }
+        val deps = depsRes.unwrap()
         val al = alias ?: DepsProcessor.defaultAlias
-        val deps = config["deps"] ?: return
 
         build(al, deps, verbose, devMode, check, ::echo, ::echo)
     }

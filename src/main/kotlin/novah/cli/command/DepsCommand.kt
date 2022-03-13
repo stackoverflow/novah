@@ -16,26 +16,22 @@
 package novah.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.findOrSetObject
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import novah.cli.Deps
 import novah.cli.DepsProcessor
 import novah.data.Err
 
 class DepsCommand : CliktCommand(
     name = "deps",
-    help = "Fetch and store all dependencies for this project",
+    help = "fetch and store all dependencies for this project",
     invokeWithoutSubcommand = true
 ) {
 
     private val verbose by option(
         "-v", "--verbose",
-        help = "Print information about the process"
+        help = "print information about the process"
     ).flag(default = false)
 
-    private val config by findOrSetObject { mutableMapOf<String, Deps>() }
-    
     override fun run() {
         val depsRes = DepsProcessor.readNovahFile()
         if (depsRes is Err) {
@@ -44,7 +40,6 @@ class DepsCommand : CliktCommand(
         }
         val processor = DepsProcessor(verbose) { msg, err -> echo(msg, err = err) }
         val deps = depsRes.unwrap()
-        config["deps"] = deps
         processor.run(deps)
     }
 }

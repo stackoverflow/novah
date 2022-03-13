@@ -21,18 +21,18 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import java.io.File
 
-class NewCommand : CliktCommand(name = "new", help = "Create a Novah project") {
+class NewCommand : CliktCommand(name = "new", help = "create a Novah project") {
 
-    private val name by argument(help = "The name of the new project")
+    private val name by argument(help = "the name of the new project")
 
     private val empty by option(
         "-e", "--empty",
-        help = "Don't create sample source and test file"
+        help = "don't create sample source and test file"
     ).flag(default = false)
 
     private val verbose by option(
         "-v", "--verbose",
-        help = "Verbose output"
+        help = "verbose output"
     ).flag(default = false)
 
     override fun run() {
