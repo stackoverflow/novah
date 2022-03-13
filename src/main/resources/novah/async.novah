@@ -83,21 +83,21 @@ flatMap fun fut = fut#thenCompose(fun as Function Object Object)
 // The two futures will run independently.
 pub
 combine : (a -> b -> c) -> CompletableFuture a -> CompletableFuture b -> CompletableFuture c
-combine (fun : a -> b -> c) fut other =
-  fut#thenCombine(other as CompletionStage b, Java.biFunction fun)
+combine fun fut other =
+  fut#thenCombine(other as CompletionStage b, Java.biFunction (unsafeCast fun))
 
 // Creates a single future that will be completed when all the given futures are completed.
 pub
 all : List (CompletableFuture a) -> CompletableFuture Unit
 all futs =
-  let arr = (List.toTypedArray CompletableFuture#-class futs) as Array (CompletableFuture a)
+  let arr = (List.toTypedArray CompletableFuture#-class (unsafeCast futs)) as Array (CompletableFuture a)
   CompletableFuture#allOf(arr) as CompletableFuture Unit
 
 // Creates a single future that will be completed when any the given futures are completed.
 pub
 any : List (CompletableFuture a) -> CompletableFuture a
 any futs =
-  let arr = (List.toTypedArray CompletableFuture#-class futs)
+  let arr = List.toTypedArray CompletableFuture#-class (unsafeCast futs)
   CompletableFuture#anyOf(arr) as CompletableFuture a
 
 // Handles the exception in this future so it doesn't propagate down the chain.

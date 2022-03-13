@@ -164,7 +164,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             val binder = exp.binder
             checkShadow(env, binder.name, binder.span)
             // if the binder is annotated, use it
-            val par = if (binder.type != null) binder.type!! else tc.newVar(level)
+            val par = if (binder.type != null) tc.instantiate(level, binder.type!!) else tc.newVar(level)
             val param = if (binder.isImplicit) TImplicit(par) else par
             val newEnv = env.fork().extend(binder.name, param)
             if (binder.isImplicit) newEnv.extendInstance(binder.name, param, true)

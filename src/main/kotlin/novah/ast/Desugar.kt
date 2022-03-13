@@ -280,7 +280,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.Do -> {
             if (exps.last() is SExpr.DoLet) parserError(E.LET_DO_LAST, exps.last().span)
             val converted = convertDoLets(exps)
-            Expr.Do(converted.map { it.desugar(locals, tvars) }, span)
+            if (converted.size == 1) converted[0].desugar(locals, tvars)
+            else Expr.Do(converted.map { it.desugar(locals, tvars) }, span)
         }
         is SExpr.DoLet -> parserError(E.LET_IN, span)
         is SExpr.Unit -> Expr.Unit(span)
