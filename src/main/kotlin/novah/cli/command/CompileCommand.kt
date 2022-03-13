@@ -29,11 +29,11 @@ import novah.main.Options
 import java.io.File
 import kotlin.system.exitProcess
 
-class CompileCommand : CliktCommand(name = "compile", help = "Compile source files") {
+class CompileCommand : CliktCommand(name = "compile", help = "compile source files") {
 
     private val out by option(
         "-o", "--out",
-        help = "Output directory for the generated classes (default output)"
+        help = "output directory for the generated classes (default output)"
     ).file(
         mustExist = false,
         canBeDir = true,
@@ -42,19 +42,19 @@ class CompileCommand : CliktCommand(name = "compile", help = "Compile source fil
 
     private val verbose by option(
         "-v", "--verbose",
-        help = "Print information about the compilation process to stdout"
+        help = "print information about the compilation process to stdout"
     ).flag(default = false)
 
-    private val classpath by option("-cp", "--classpath", help = "Where to find user class files and sources")
+    private val classpath by option("-cp", "--classpath", help = "where to find user class files and sources")
 
-    private val sourcepath by option("-sp", "--sourcepath", help = "Where to find novah sources")
+    private val sourcepath by option("-sp", "--sourcepath", help = "where to find novah sources")
 
     private val devMode by option(
         "-d", "--dev",
-        help = "Run the compiler in dev mode: no optimizations will be applied and some errors will be warnings."
+        help = "run the compiler in dev mode: no optimizations will be applied and some errors will be warnings."
     ).flag(default = false)
 
-    private val srcs by argument(help = "Source files").path(mustExist = true, canBeDir = false).multiple()
+    private val srcs by argument(help = "source files").path(mustExist = true, canBeDir = false).multiple()
 
     override fun run() {
         if (out.isFile) {
