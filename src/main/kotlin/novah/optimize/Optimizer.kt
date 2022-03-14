@@ -25,6 +25,7 @@ import novah.ast.optimized.*
 import novah.ast.optimized.Decl
 import novah.ast.source.Visibility
 import novah.backend.TypeUtil.wrapper
+import novah.collections.Record
 import novah.data.allList
 import novah.data.forEachKeyList
 import novah.data.mapList
@@ -743,7 +744,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
 
         private fun internalize(name: String) = name.replace('.', '/')
 
-        private val RECORD_TYPE = Type.getType(novah.collections.Record::class.java)
+        private val RECORD_TYPE = Type.getType(Record::class.java)
         private val FUNCTION_TYPE = Type.getType(Function::class.java)
         private val LIST_TYPE = Type.getType(PList::class.java)
         private val UNIT_TYPE = Type.getObjectType(internalize("novah.Unit"))
