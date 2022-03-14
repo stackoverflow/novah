@@ -76,10 +76,10 @@ class RunCommand : CliktCommand(name = "run", help = "run the main module if one
         val argsfile = File(".cpcache/$al.argsfile")
         if (!argsfile.exists()) {
             if (alias == null) {
-                echo("The project is not built. Build it with: `novah deps build`", err = true)
+                echo("The project is not built. Build it with: `novah build`", err = true)
             } else {
                 echo(
-                    "The project is not built for alias $alias. Build it with: `novah deps build -a $alias`",
+                    "The project is not built for alias $alias. Build it with: `novah build -a $alias`",
                     err = true
                 )
             }
