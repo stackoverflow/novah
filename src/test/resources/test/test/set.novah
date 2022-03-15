@@ -48,12 +48,14 @@ setTests =
     Set.groupBy Math.even? #{1, 2, 3, 4, 5} `shouldBe` Map.new [true ; #{2, 4}, false ; #{1, 3, 5}]
     Set.count Math.even? #{1, 2, 3, 4, 5, 6} `shouldBe` 3
     Set.min #{6, 2, 5, 9, 0, 4} `shouldBe` Some 0
+    Set.min! #{6, 2, 5, 9, 0, 4} `shouldBe` 0
     Set.min (#{} : Set Int32) `shouldBe` None
     Set.minOr 10 #{6, 2, 5, 9, 0, 4} `shouldBe` 0
     Set.minOr 10 #{} `shouldBe` 10
     Set.minBy List.size #{[1, 2, 3], [5], [6, 7]} `shouldBe` Some [5]
     Set.minOf List.size #{[1, 2, 3], [5], [6, 7]} `shouldBe` Some 1
     Set.max #{6, 2, 5, 9, 0, 4} `shouldBe` Some 9
+    Set.max! #{6, 2, 5, 9, 0, 4} `shouldBe` 9
     Set.maxOr 10 #{6, 2, 5, 9, 0, 4} `shouldBe` 9
     Set.maxOr 10 #{} `shouldBe` 10
     Set.maxBy List.size #{[1, 2, 3], [5], [6, 7]} `shouldBe` Some [1, 2, 3]
