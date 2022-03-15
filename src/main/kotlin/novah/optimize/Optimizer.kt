@@ -357,7 +357,12 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                 nestLets(newBinds, whil, e.type)
             }
         }
-        return updateLambdaBody(exp)
+        return try {
+            updateLambdaBody(exp)
+        } catch (e: TCOError) {
+            errors += mkWarn(E.cannotTCO(e.msg), exp.span)
+            exp
+        }
     }
 
     private fun Expr.toLoop(name: String, pars: List<String>, varCheck: (Expr) -> Boolean): Expr = when (this) {
@@ -387,7 +392,10 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                 }
                 args.reverse()
 
-                if (pars.size != args.size) internalError("cannot TCO $name in ${ast.name.value}")
+                if (pars.size != args.size) {
+                    val rname = name.split(".").last()
+                    throw TCOError(rname)
+                }
                 val newBinds = args.mapIndexed { i, arg -> "tmp$$i" to arg }
                 val body = pars.zip(newBinds).map { (par, v) ->
                     Expr.SetLocalVar(par, Expr.LocalVar(v.first, v.second.type, v.second.span))
@@ -709,6 +717,8 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         )
 
     companion object {
+
+        class TCOError(val msg: String) : java.lang.RuntimeException(msg)
 
         private fun getPrimitiveTypeName(tvar: TConst): Type = when (tvar.name) {
             primByte -> Type.getType(Byte::class.java)

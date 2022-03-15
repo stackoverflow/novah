@@ -477,6 +477,24 @@ object Errors {
 
     fun invalidIdent(name: String) = "Invalid identifier: $name"
 
+    fun cannotTCO(name: String) = """
+        Could not optimize tail-recursive function $name
+        
+        Make sure all parameters are made explicit in the function definition.
+        
+        Does not work:
+        
+            run (x ; y) = case _ of
+              [] -> (x ; y)
+              [_ :: ls] -> run (x ; y) ls
+        
+        Works:
+        
+            run (x ; y) list = case list of
+              [] -> (x ; y)
+              [_ :: ls] -> run (x ; y) ls
+    """.trimIndent()
+
     fun noAliasFound(alias: String) = "Could not find import alias $alias."
 
     fun equalsExpected(ctx: String) = "Expected `=` after $ctx."
