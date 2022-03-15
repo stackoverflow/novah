@@ -23,8 +23,8 @@ mapErr f = case _ of
 // Extracts the value out of this result.
 // *Unsafe*: Will thrown an exception if the result is an error.
 pub
-unwrap : Result a b -> a
-unwrap = case _ of
+unwrap! : Result a b -> a
+unwrap! = case _ of
   Ok x -> x
   _ -> throw AssertionError#new("Empty Result" as Object)
 

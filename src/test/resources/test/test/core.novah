@@ -68,8 +68,8 @@ coreTests =
 
   test "Core list functions" \_ ->
     [1, 2].[1] `shouldBe` 2
-    setAt 0 6 [1] `shouldBe` [6]
-    updateAt 0 (_ + 1) [1] `shouldBe` [2]
+    setAt! 0 6 [1] `shouldBe` [6]
+    updateAt! 0 (_ + 1) [1] `shouldBe` [2]
     addFirst 6 [1] `shouldBe` [6, 1]
     addLast 6 [1] `shouldBe` [1, 6]
     removeFirst [1, 2] `shouldBe` [2]
@@ -77,10 +77,10 @@ coreTests =
 
   test "Core array functions" \_ ->
     let arr = intArray [1, 2, 3]
-    aget 1 arr `shouldBe` 2
-    aset 1 6 arr
+    aget! 1 arr `shouldBe` 2
+    aset! 1 6 arr
     arr `shouldBe` intArray [1, 6, 3]
-    aupdate 1 (_ + 10) arr
+    aupdate! 1 (_ + 10) arr
     arr `shouldBe` intArray [1, 16, 3]
 
   test "Core concat class" \_ ->

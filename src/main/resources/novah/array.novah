@@ -36,7 +36,7 @@ nth index arr =
   let length = size arr
   if index < 0 || index >= length
     then None
-    else Some (aget index arr)
+    else Some (aget! index arr)
 
 // Returns true if the array is empty.
 // Runtime: O(1)
@@ -75,7 +75,7 @@ pub
 forEach : Array a -> (a -> Unit) -> Unit
 forEach arr f =
   forEachRange (0 ... size arr) \idx ->
-    f (aget idx arr)
+    f (aget! idx arr)
 
 // Runs function f for every index and element of this array, ignoring the result.
 // Runtime: O(n)
@@ -83,7 +83,7 @@ pub
 forEachIndexed : Array a -> (Int32 -> a -> Unit) -> Unit
 forEachIndexed arr f =
   forEachRange (0 ... size arr) \idx ->
-    f idx (aget idx arr)
+    f idx (aget! idx arr)
 
 // Maps function f over all elements of this array
 // returning an array of the same size.
@@ -94,7 +94,7 @@ map f arr =
   let length = size arr
   let res = arrayOf Object#-class length
   forEachRange (0 ... length) \i ->
-    aset i (f (aget i arr) as Object) res
+    aset! i (f (aget! i arr) as Object) res
   res
 
 // Returns an array of the elements that match the given predicate.
@@ -124,8 +124,8 @@ reverse arr =
   let res = emptyCopy arr
   forEachRange (0 ... length) \idx ->
     let i = length - idx - 1
-    let elem = aget idx arr
-    aset i elem res
+    let elem = aget! idx arr
+    aset! i elem res
   res
 
 // Reverses this array in place.
@@ -135,9 +135,9 @@ reversed : Array a -> Unit
 reversed arr =
   let length = size arr
   forEachRange (0 ... (length / 2)) \i ->
-    let temp = aget i arr
-    aset i (aget (length - i - 1) arr) arr
-    aset (length - i - 1) temp arr
+    let temp = aget! i arr
+    aset! i (aget! (length - i - 1) arr) arr
+    aset! (length - i - 1) temp arr
 
 // Creates a byte array of the specified size.
 pub
@@ -194,64 +194,64 @@ emptyCopy arr =
   if empty? arr then
     arr
   else
-    let elem = aget 0 arr as Object
+    let elem = aget! 0 arr as Object
     arrayOf elem#getClass() (size arr) as Array a
 
 // Sets the element of this byte array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-byteaset : Int32 -> Byte -> ByteArray -> Unit
-byteaset index x arr = Core#byteArraySet(index, x, arr)
+byteaset! : Int32 -> Byte -> ByteArray -> Unit
+byteaset! index x arr = Core#byteArraySet(index, x, arr)
 
 // Sets the element of this int16 array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-int16aset : Int32 -> Int16 -> Int16Array -> Unit
-int16aset index x arr = Core#shortArraySet(index, x, arr)
+int16aset! : Int32 -> Int16 -> Int16Array -> Unit
+int16aset! index x arr = Core#shortArraySet(index, x, arr)
 
 // Sets the element of this int array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-int32aset : Int32 -> Int32 -> Int32Array -> Unit
-int32aset index x arr = Core#intArraySet(index, x, arr)
+int32aset! : Int32 -> Int32 -> Int32Array -> Unit
+int32aset! index x arr = Core#intArraySet(index, x, arr)
 
 // Sets the element of this int64 array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-int64aset : Int32 -> Int64 -> Int64Array -> Unit
-int64aset index x arr = Core#longArraySet(index, x, arr)
+int64aset! : Int32 -> Int64 -> Int64Array -> Unit
+int64aset! index x arr = Core#longArraySet(index, x, arr)
 
 // Sets the element of this float32 array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-float32aset : Int32 -> Float32 -> Float32Array -> Unit
-float32aset index x arr = Core#floatArraySet(index, x, arr)
+float32aset! : Int32 -> Float32 -> Float32Array -> Unit
+float32aset! index x arr = Core#floatArraySet(index, x, arr)
 
 // Sets the element of this float64 array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-float64aset : Int32 -> Float64 -> Float64Array -> Unit
-float64aset index x arr = Core#doubleArraySet(index, x, arr)
+float64aset! : Int32 -> Float64 -> Float64Array -> Unit
+float64aset! index x arr = Core#doubleArraySet(index, x, arr)
 
 // Sets the element of this boolean array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-booleanaset : Int32 -> Boolean -> BooleanArray -> Unit
-booleanaset index x arr = Core#booleanArraySet(index, x, arr)
+booleanaset! : Int32 -> Boolean -> BooleanArray -> Unit
+booleanaset! index x arr = Core#booleanArraySet(index, x, arr)
 
 // Sets the element of this char array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-charaset : Int32 -> Char -> CharArray -> Unit
-charaset index x arr = Core#charArraySet(index, x, arr)
+charaset! : Int32 -> Char -> CharArray -> Unit
+charaset! index x arr = Core#charArraySet(index, x, arr)
 
 pub instance
 containedByteArray : Contained Byte ByteArray

@@ -129,11 +129,11 @@ nth idx str =
 
 // Returns the character at the specified index if it exists.
 // **Unsafe**: will throw an exception in case the index is invalid.
-// `String.nth` should be prefered instead of this function.
+// `String.nth` should be preferred instead of this function.
 // Runtime: O(1)
 pub
-charAt : Int32 -> String -> Char
-charAt idx str = str#charAt(idx)
+charAt! : Int32 -> String -> Char
+charAt! idx str = str#charAt(idx)
 
 // Returns the index of the given sub string inside the string
 // or -1 if none found.
@@ -182,7 +182,7 @@ pub
 forEach : String -> (Char -> Unit) -> Unit
 forEach str fun =
   forEachRange (0 ... size str) \idx ->
-    fun (charAt idx str)
+    fun (charAt! idx str)
 
 // Filters chars of this string with the given predicate.
 // Runtime: O(n)

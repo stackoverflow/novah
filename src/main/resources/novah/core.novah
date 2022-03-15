@@ -152,15 +152,15 @@ pub
 // *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: ~O(1)
 pub
-setAt : Int32 -> a -> List a -> List a
-setAt index x list = list#set(index#longValue(), x)
+setAt! : Int32 -> a -> List a -> List a
+setAt! index x list = list#set(index#longValue(), x)
 
 // Updates the value of this list at the specified index by applying function f to the old value.
 // *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: ~O(1)
 pub
-updateAt : Int32 -> (a -> a) -> List a -> List a
-updateAt index f list = list#set(index#longValue(), f list.[index])
+updateAt! : Int32 -> (a -> a) -> List a -> List a
+updateAt! index f list = list#set(index#longValue(), f list.[index])
 
 // Appends x to the beginning of this list.
 // Runtime: ~O(1)
@@ -190,23 +190,23 @@ removeLast list = list#removeLast()
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-aget : Int32 -> Array a -> a
-aget index arr = Core#getArray(index, arr)
+aget! : Int32 -> Array a -> a
+aget! index arr = Core#getArray(index, arr)
 
 // Sets the element of the array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-aset : Int32 -> a -> Array a -> Unit
-aset index x arr = Core#setArray(index, x, arr)
+aset! : Int32 -> a -> Array a -> Unit
+aset! index x arr = Core#setArray(index, x, arr)
 
 // Updates the element of the array at the specified index by applying this function
 // to the old value.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
-aupdate : Int32 -> (a -> a) -> Array a -> Unit
-aupdate index updateFn arr = Core#setArray(index, updateFn Core#getArray(index, arr), arr)
+aupdate! : Int32 -> (a -> a) -> Array a -> Unit
+aupdate! index updateFn arr = Core#setArray(index, updateFn Core#getArray(index, arr), arr)
 
 // Creates an array of the specified class and size.
 pub
