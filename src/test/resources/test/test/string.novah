@@ -27,8 +27,8 @@ stringTests =
     String.lines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
     String.nth 3 "exquisite" `shouldBe` Some 'u'
     String.nth 9 "exquisite" `shouldBe` None
-    String.charAt 3 "exquisite" `shouldBe` 'u'
-    String.charAt 6 "exquisite" `shouldBe` 'i'
+    String.charAt! 3 "exquisite" `shouldBe` 'u'
+    String.charAt! 6 "exquisite" `shouldBe` 'i'
     "exquisite".[3] `shouldBe` 'u'
     "exquisite".[-2] `shouldBe` 't'
     String.substring 2 5 "exquisite" `shouldBe` "qui"

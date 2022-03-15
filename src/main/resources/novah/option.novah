@@ -47,8 +47,8 @@ none? = case _ of
 // *Unsafe*: Will thrown an exception if the option is empty.
 // An alias for `unwrapOptions` and the `!!` syntactic sugar.
 pub
-unwrap : Option a -> a
-unwrap = unwrapOption
+unwrap! : Option a -> a
+unwrap! = unwrapOption
 
 // Transforms this nullable value into an option.
 // `null` is represented as `None`.
