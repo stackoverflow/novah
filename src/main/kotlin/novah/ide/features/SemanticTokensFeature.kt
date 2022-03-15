@@ -69,6 +69,7 @@ class SemanticTokensFeature(private val server: NovahServer) {
                     when (it) {
                         is TConst -> tokens += genLine(it.span!!, TYPE)
                         is TVar -> tokens += genLine(it.span!!, VAR)
+                        else -> {}
                     }
                 }
             }
@@ -100,52 +101,50 @@ class SemanticTokensFeature(private val server: NovahServer) {
             while (exp is Expr.Lambda) {
                 val name = exp.binder.name
                 val type = exp.binder.type
+                if (type?.span != null && type.span!!.startLine > prevLine) {
+                    tokens += genTypeLine(type)
+                }
                 if (!name.startsWith("var$")) {
                     parNames += name
                     tokens += genLine(exp.binder.span, PARAM)
                 } else destruct++
-                if (type?.span != null) {
-                    tokens += genTypeLine(type)
-                }
                 exp = exp.body
             }
             // create tokens for destructuring patterns params
             while (exp is Expr.Match && destruct > 0) {
                 destruct--
                 exp.cases[0].patterns[0].everywhereUnit { p ->
-                    when (p) {
-                        is Pattern.Var -> {
-                            parNames += p.v.name
-                            tokens += genLine(p.span, PARAM)
-                        }
+                    if (p is Pattern.Var) {
+                        parNames += p.v.name
+                        tokens += genLine(p.span, PARAM)
                     }
                 }
             }
             exp.everywhereUnit { e ->
-                tokens += when (e) {
+                when (e) {
                     is Expr.Var -> {
-                        if (e.name in parNames) genLine(e.span, PARAM)
-                        else if (e.isOp) genLine(e.span, OP)
-                        else listOf()
+                        if (e.name in parNames) tokens += genLine(e.span, PARAM)
+                        else if (e.isOp) tokens += genLine(e.span, OP)
                     }
                     is Expr.ImplicitVar -> {
-                        if (e.name in parNames) genLine(e.span, PARAM)
-                        else listOf()
+                        if (e.name in parNames) tokens += genLine(e.span, PARAM)
                     }
-                    is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64 -> genLine(e.span, NUM)
-                    is Expr.TypeCast -> genTypeLine(e.cast)
-                    is Expr.Ann -> genTypeLine(e.annType)
+                    is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64 -> {
+                        tokens += genLine(e.span, NUM)
+                    }
+                    is Expr.TypeCast -> tokens += genTypeLine(e.cast)
+                    is Expr.Ann -> tokens += genTypeLine(e.annType)
                     is Expr.ForeignStaticField -> {
                         tokens += genLine(e.clazz.span, CLASS)
-                        genLine(e.fieldName.span, PROPERTY)
+                        tokens += genLine(e.fieldName.span, PROPERTY)
                     }
                     is Expr.ForeignStaticMethod -> {
                         tokens += genLine(e.clazz.span, CLASS)
-                        genLine(e.methodName.span, METHOD)
+                        tokens += genLine(e.methodName.span, METHOD)
                     }
-                    is Expr.ForeignField -> genLine(e.fieldName.span, PROPERTY)
-                    is Expr.ForeignMethod -> genLine(e.methodName.span, METHOD)
-                    else -> listOf()
+                    is Expr.ForeignField -> tokens += genLine(e.fieldName.span, PROPERTY)
+                    is Expr.ForeignMethod -> tokens += genLine(e.methodName.span, METHOD)
+                    else -> {}
                 }
             }
             decl + tokens.flatten()
