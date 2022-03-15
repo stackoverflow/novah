@@ -3,6 +3,7 @@
 module novah.set
 
 foreign import java.lang.Iterable
+foreign import java.lang.RuntimeException
 foreign import java.util.concurrent.ThreadLocalRandom
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.ISet
@@ -243,6 +244,16 @@ pub
 min : {{ NumberOps a }} -> Set a -> Option a
 min {{NumberOps ops}} = reduce (\n n2 -> ops.min n n2)
 
+// Returns the smallest number in the set.
+// *Unsafe*: will throw an exception if the set is empty
+// Runtime: O(n)
+pub
+min! : {{ NumberOps a }} -> Set a -> a
+min! {{ops}} set =
+  case min {{ops}} set of
+    Some x -> x
+    None -> throw RuntimeException#new("cannot find the minimum value of an empty set")
+
 // Returns the smallest number in the set, or the default value.
 // Runtime: O(n)
 pub
@@ -279,6 +290,16 @@ minOf {{NumberOps ops}} fn set =
 pub
 max : {{ NumberOps a }} -> Set a -> Option a
 max {{NumberOps ops}} = reduce (\n n2 -> ops.max n n2)
+
+// Returns the biggest number in the set.
+// *Unsafe*: will throw an exception if the set is empty
+// Runtime: O(n)
+pub
+max! : {{ NumberOps a }} -> Set a -> a
+max! {{ops}} set =
+  case max {{ops}} set of
+    Some x -> x
+    None -> throw RuntimeException#new("cannot find the maximum value of an empty set")
 
 // Returns the biggest number in the set, or the default value.
 // Runtime: O(n)
