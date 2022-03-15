@@ -12,5 +12,5 @@ at src/test/resources/failure/variables/shadowed variables - raw imports.novah:3
   
   The inferred type was:
   
-      t2 -> Boolean -> Boolean
+      t1 -> Boolean -> Boolean
 

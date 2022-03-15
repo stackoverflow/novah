@@ -54,11 +54,6 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         val types = mutableMapOf<String, TypeDeclRef>()
         val warner = makeWarner(ast)
 
-        // add the fixpoint operator to the context for recursive functions
-        // TODO: add this to the env as primitive
-        val vvar = tc.newGenVar()
-        env.extend("\$fix", TArrow(listOf(TArrow(listOf(vvar), vvar)), vvar))
-
         val datas = ast.decls.filterIsInstance<Decl.TypeDecl>()
         datas.forEach { d ->
             val (ty, map) = getDataType(d, ast.name.value)
@@ -110,8 +105,16 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
                 val newEnv = env.fork()
                 val ty = if (decl.recursive) {
-                    newEnv.remove(name)
-                    inferRecursive(name, decl.exp, newEnv, 0)
+                    val v = if (isAnnotated) {
+                        env.lookup(name)!!
+                    } else {
+                        val v = tc.newVar(0)
+                        env.extend(name, v)
+                        v
+                    }
+                    val ty = infer(newEnv, 0, decl.exp)
+                    uni.unify(ty, v, decl.span)
+                    ty
                 } else infer(newEnv, 0, decl.exp)
 
                 if (implicitsToCheck.isNotEmpty()) instances.instanceSearch(implicitsToCheck)
@@ -180,7 +183,11 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             val tmpImplicitsToCheck = implicitsToCheck
             implicitsToCheck = mutableListOf()
             val varTy = if (exp.letDef.recursive) {
-                inferRecursive(name, exp.letDef.expr, env, level + 1)
+                val v = tc.newVar(level)
+                val newEnv = env.fork().extend(name, v)
+                val ty = infer(newEnv, level + 1, exp.letDef.expr)
+                uni.unify(ty, v, exp.letDef.binder.span)
+                ty
             } else infer(env, level + 1, exp.letDef.expr)
 
             if (exp.letDef.recursive && varTy.realType() !is TArrow) {
@@ -842,30 +849,6 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         } catch (_: Unification.UnifyException) {
             false
         }
-    }
-
-    /**
-     * Use a fixpoint operator to infer a recursive function
-     */
-    private fun inferRecursive(name: String, exp: Expr, env: Env, level: Level): Type {
-        val (newName, newExp) = funToFixpoint(name, exp)
-        val recTy = infer(env, level, newExp)
-        env.extend(newName, recTy)
-        val fix = Expr.App(Expr.Var("\$fix", exp.span), Expr.Var(newName, exp.span), exp.span)
-        val ty = infer(env, level, fix)
-        return exp.withType(ty)
-    }
-
-    /**
-     * Change this recursive expression in a way that
-     * it can be infered.
-     *
-     * Ex.: fun x = fun x
-     *      $fun fun$rec x = fun$rec x
-     */
-    private fun funToFixpoint(name: String, expr: Expr): Pair<String, Expr> {
-        val binder = "${name}\$rec"
-        return binder to Expr.Lambda(Binder(name, expr.span), expr, expr.span)
     }
 
     /**
