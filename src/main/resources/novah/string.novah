@@ -9,23 +9,23 @@ foreign import java.lang.StringBuilder
 
 // Returns true if this string is empty or only contains whitespace codepoints.
 pub
-blank? : String -> Boolean
-blank? s = s#isBlank()
+isBlank : String -> Boolean
+isBlank s = s#isBlank()
 
 // Returns true if this string is not empty or only contains whitespace codepoints.
 pub
-notBlank? : String -> Boolean
-notBlank? s = not s#isBlank()
+isNotBlank : String -> Boolean
+isNotBlank s = not s#isBlank()
 
 // Returns true if this string is empty.
 pub
-empty? : String -> Boolean
-empty? s = s#isEmpty()
+isEmpty : String -> Boolean
+isEmpty s = s#isEmpty()
 
 // Returns true if this string is not empty.
 pub
-notEmpty? : String -> Boolean
-notEmpty? s = not s#isEmpty()
+isNotEmpty : String -> Boolean
+isNotEmpty s = not s#isEmpty()
 
 // Returns the size of this string.
 pub
@@ -50,13 +50,13 @@ upperCase str = str#toUpperCase()
 
 // Returns true if this string starts with prefix.
 pub
-startsWith? : String -> String -> Boolean
-startsWith? prefix str = str#startsWith(prefix)
+startsWith : String -> String -> Boolean
+startsWith prefix str = str#startsWith(prefix)
 
 // Returns true if this string ends with suffix.
 pub
-endsWith? : String -> String -> Boolean
-endsWith? suffix str = str#endsWith(suffix)
+endsWith : String -> String -> Boolean
+endsWith suffix str = str#endsWith(suffix)
 
 // Returns a substring from the given string
 // starting at begin (inclusive) and ending in end (exclusive).
@@ -132,8 +132,8 @@ nth idx str =
 // `String.nth` should be preferred instead of this function.
 // Runtime: O(1)
 pub
-charAt! : Int32 -> String -> Char
-charAt! idx str = str#charAt(idx)
+charAt : Int32 -> String -> Char
+charAt idx str = str#charAt(idx)
 
 // Returns the index of the given sub string inside the string
 // or -1 if none found.
@@ -182,7 +182,7 @@ pub
 forEach : String -> (Char -> Unit) -> Unit
 forEach str fun =
   forEachRange (0 ... size str) \idx ->
-    fun (charAt! idx str)
+    fun (charAt idx str)
 
 // Filters chars of this string with the given predicate.
 // Runtime: O(n)
@@ -300,7 +300,7 @@ lines str =
 pub
 stripIndent : String -> String
 stripIndent str =
-  let ls = lines str |> List.filter notBlank?
+  let ls = lines str |> List.filter isNotBlank
   let indent =
     ls
       |> List.map (findIndex (\(c : Char) -> not Char#isWhitespace(c)))

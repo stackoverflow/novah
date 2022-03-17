@@ -3,21 +3,21 @@ module test.string
 import novah.test
 
 isVowel : Char -> Boolean
-isVowel c = c `in?` #{'a', 'e', 'i', 'o', 'u'}
+isVowel c = c `isIn` #{'a', 'e', 'i', 'o', 'u'}
 
 stringTests : Unit
 stringTests =
   test "String reading functions" \_ ->
-    String.blank? "  " `shouldBe` true
-    String.empty? "  " `shouldBe` false
+    String.isBlank "  " `shouldBe` true
+    String.isEmpty "  " `shouldBe` false
     String.size "abc" `shouldBe` 3
     String.lastIndex "abc" `shouldBe` 2
     String.lowerCase "Some NaMe" `shouldBe` "some name"
     String.upperCase "Some NaMe" `shouldBe` "SOME NAME"
-    String.startsWith? "some" "some body" `shouldBe` true
-    String.endsWith? "dy" "some body" `shouldBe` true
-    ("cat" `in?` "caterpillar") `shouldBe` true
-    ('z' `in?` "azure") `shouldBe` true
+    String.startsWith "some" "some body" `shouldBe` true
+    String.endsWith "dy" "some body" `shouldBe` true
+    ("cat" `isIn` "caterpillar") `shouldBe` true
+    ('z' `isIn` "azure") `shouldBe` true
     String.join " " ["the", "lazy", "fox"] `shouldBe` "the lazy fox"
     String.strip "  string    " `shouldBe` "string"
     String.stripl "  string    " `shouldBe` "string    "
@@ -27,8 +27,8 @@ stringTests =
     String.lines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
     String.nth 3 "exquisite" `shouldBe` Some 'u'
     String.nth 9 "exquisite" `shouldBe` None
-    String.charAt! 3 "exquisite" `shouldBe` 'u'
-    String.charAt! 6 "exquisite" `shouldBe` 'i'
+    String.charAt 3 "exquisite" `shouldBe` 'u'
+    String.charAt 6 "exquisite" `shouldBe` 'i'
     "exquisite".[3] `shouldBe` 'u'
     "exquisite".[-2] `shouldBe` 't'
     String.substring 2 5 "exquisite" `shouldBe` "qui"

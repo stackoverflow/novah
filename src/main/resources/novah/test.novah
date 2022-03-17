@@ -69,9 +69,9 @@ runTests suites =
   let total = atom 0
   let stats = toTypedArray Int#-class [0, 0, 0]
   let addStats v =
-    aupdate! 0 (_ + (v ! 0)) stats
-    aupdate! 1 (_ + (v ! 1)) stats
-    aupdate! 2 (_ + (v ! 2)) stats
+    aupdate 0 (_ + (v ! 0)) stats
+    aupdate 1 (_ + (v ! 1)) stats
+    aupdate 2 (_ + (v ! 2)) stats
       
   let runSuite = case _ of
     Test desc fun -> check desc fun |> addStats
@@ -86,10 +86,10 @@ runTests suites =
     swap (_ + 1) total
     runSuite suite
 
-  let failures = aget! 1 stats
-  let errors = aget! 2 stats
+  let failures = aget 1 stats
+  let errors = aget 2 stats
   println "\nSummary"
-  printfln "%s/%s tests passed" [aget! 0 stats, deref total]
+  printfln "%s/%s tests passed" [aget 0 stats, deref total]
   printfln "%d failures" [failures]
   printfln "%d errors" [errors]
 
@@ -151,7 +151,7 @@ recordShouldNotBe r1 r2 =
 pub
 shouldBeIn : {{ Contained a b }} -> a -> b -> Unit
 shouldBeIn {{_}} x box =
-  if x `in?` box then
+  if x `isIn` box then
     ()
   else throw AssertionError#new(format "%s is not inside %s" [toString x, toString box] as Object)
 
@@ -159,7 +159,7 @@ shouldBeIn {{_}} x box =
 pub
 shouldNotBeIn : {{ Contained a b }} -> a -> b -> Unit
 shouldNotBeIn {{_}} x box =
-  if x `notIn?` box then
+  if x `notIn` box then
     ()
   else throw AssertionError#new(format "%s is inside %s" [toString x, toString box] as Object)
 
@@ -168,7 +168,7 @@ pub
 shouldAllBeIn : {{ Contained a b }} -> List a -> b -> Unit
 shouldAllBeIn {{_}} list set =
   forEach list \x ->
-    if x `in?` set then
+    if x `isIn` set then
       ()
     else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
 

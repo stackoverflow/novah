@@ -87,8 +87,8 @@ remove key map = map#remove(key)
 // Returns true if this map contains the key.
 // Runtime: ~O(1)
 pub
-hasKey? : k -> Map k v -> Boolean
-hasKey? key map = map#contains(key)
+hasKey : k -> Map k v -> Boolean
+hasKey key map = map#contains(key)
 
 // Returns the result of merging the two maps.
 // Repeated keys in the second map will overwrite keys from the first.
@@ -147,8 +147,8 @@ foldl fun init map =
 // Returns true if the predicate is true for every entry in this map.
 // Runtime: O(n)
 pub
-all? : (k -> v -> Boolean) -> Map k v -> Boolean
-all? pred map = Core#mapEvery(pred, map)
+all : (k -> v -> Boolean) -> Map k v -> Boolean
+all pred map = Core#mapEvery(pred, map)
 
 pub instance
 concatMap : Concat (Map k v)

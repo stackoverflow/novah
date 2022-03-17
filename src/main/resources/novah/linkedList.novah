@@ -87,8 +87,8 @@ dropWhile pred =
 // Returns true if this linked list is empty.
 // Runtime: O(1)
 pub
-empty? : LinkedList a -> Boolean
-empty? =
+isEmpty : LinkedList a -> Boolean
+isEmpty =
   case _ of
     Nil -> true
     _ -> false
@@ -96,8 +96,8 @@ empty? =
 // Returns true if this linked list is not empty.
 // Runtime: O(1)
 pub
-notEmpty? : LinkedList a -> Boolean
-notEmpty? =
+isNotEmpty : LinkedList a -> Boolean
+isNotEmpty =
   case _ of
     Nil -> false
     _ -> true

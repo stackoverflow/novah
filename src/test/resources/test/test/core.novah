@@ -56,20 +56,20 @@ coreTests =
     rangeStart (4 .. 10) `shouldBe` 4
     rangeEnd (4 .. 10) `shouldBe` 10
     rangeEnd (4 ... 10) `shouldBe` 9
-    (567000 `in?` (1 .. 2000000000)) `shouldBe` true
-    (3 `in?` (range 1 10 2)) `shouldBe` true
-    (3 `notIn?` (range 1 10 3)) `shouldBe` true
+    (567000 `isIn` (1 .. 2000000000)) `shouldBe` true
+    (3 `isIn` (range 1 10 2)) `shouldBe` true
+    (3 `notIn` (range 1 10 3)) `shouldBe` true
     show (1 .. 10) `shouldBe` "(1 .. 10)"
     show (range 1 10 2) `shouldBe` "(IntRange 1 10 2)"
-    (5 `in?` [3, 4, 5]) `shouldBe` true
-    (1 `in?` [3, 4, 5]) `shouldBe` false
-    ('a' `in?` "mars") `shouldBe` true
-    ("ni" `notIn?` "banana") `shouldBe` true
+    (5 `isIn` [3, 4, 5]) `shouldBe` true
+    (1 `isIn` [3, 4, 5]) `shouldBe` false
+    ('a' `isIn` "mars") `shouldBe` true
+    ("ni" `notIn` "banana") `shouldBe` true
 
   test "Core list functions" \_ ->
     [1, 2].[1] `shouldBe` 2
-    setAt! 0 6 [1] `shouldBe` [6]
-    updateAt! 0 (_ + 1) [1] `shouldBe` [2]
+    setAt 0 6 [1] `shouldBe` [6]
+    updateAt 0 (_ + 1) [1] `shouldBe` [2]
     addFirst 6 [1] `shouldBe` [6, 1]
     addLast 6 [1] `shouldBe` [1, 6]
     removeFirst [1, 2] `shouldBe` [2]
@@ -77,10 +77,10 @@ coreTests =
 
   test "Core array functions" \_ ->
     let arr = intArray [1, 2, 3]
-    aget! 1 arr `shouldBe` 2
-    aset! 1 6 arr
+    aget 1 arr `shouldBe` 2
+    aset 1 6 arr
     arr `shouldBe` intArray [1, 6, 3]
-    aupdate! 1 (_ + 10) arr
+    aupdate 1 (_ + 10) arr
     arr `shouldBe` intArray [1, 16, 3]
 
   test "Core concat class" \_ ->

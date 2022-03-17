@@ -44,13 +44,13 @@ complete fut value = fut#complete(value)
 
 // Returns true if this future is completed in any form.
 pub
-done? : CompletableFuture a -> Boolean
-done? fut = fut#isDone()
+isDone : CompletableFuture a -> Boolean
+isDone fut = fut#isDone()
 
 // Returns true if this future is cancelled.
 pub
-cancelled? : CompletableFuture a -> Boolean
-cancelled? fut = fut#isCancelled()
+isCancelled : CompletableFuture a -> Boolean
+isCancelled fut = fut#isCancelled()
 
 // Creates a future that will run this function asynchronously.
 pub
