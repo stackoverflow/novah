@@ -109,6 +109,15 @@ pub
 values : Map k v -> List v
 values map = List#from(map#values())
 
+// Returns a list of all keys and values in this map
+pub
+entries : Map k v -> List (Tuple k v)
+entries map =
+  List.withLinear [] \ents ->
+    forEach map \k v ->
+      addLast (k ; v) ents
+      ()
+
 // Executes the function for every key/value pair in this map
 // Runtime: O(n)
 pub
@@ -149,6 +158,17 @@ foldl fun init map =
 pub
 all : (k -> v -> Boolean) -> Map k v -> Boolean
 all pred map = Core#mapEvery(pred, map)
+
+// Returns true if the predicate is true for any entry in this map.
+// Runtime: O(n)
+pub
+any : (k -> v -> Boolean) -> Map k v -> Boolean
+any pred map =
+  let run = case _ of
+    [] -> false
+    [(k ; v) :: xs] -> pred k v || run xs
+
+  run (entries map)
 
 pub instance
 concatMap : Concat (Map k v)

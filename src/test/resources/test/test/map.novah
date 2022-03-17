@@ -14,6 +14,7 @@ mapTests =
     Map.hasKey "c" map `shouldBe` true
     Map.keys map `shouldBe` #{"a", "b", "c"}
     Map.values map `shouldAllBeIn` #{1, 2, 3}
+    Map.entries map `shouldBe` ["b" ; 2, "c" ; 3, "a" ; 1]
     Map.size map `shouldBe` 3L
     (map ++ Map.new ["d" ; 4, "e" ; 5]) `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; 4, "e" ; 5]
 
@@ -30,6 +31,8 @@ mapTests =
     Map.mapValues (\_ v -> v + 1) map `shouldBe` Map.new ["a" ; 2, "b" ; 3, "c" ; 4]
     Map.filter (\_ v -> Math.isOdd v) map `shouldBe` Map.new ["a" ; 1, "c" ; 3]
     Map.all (\_ v -> Math.isOdd v) map `shouldBe` false
+    Map.any (\_ v -> Math.isOdd v) map `shouldBe` true
+    Map.any (\k _ -> k == "t") map `shouldBe` false
     (Map.toList map |> Set.fromList) `shouldBe` #{"a" ; 1, "b" ; 2, "c" ; 3}
     let folder acc (k : Int) v =
       if Math.isEven k then
