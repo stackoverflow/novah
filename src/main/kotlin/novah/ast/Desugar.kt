@@ -653,6 +653,11 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     nestLambdaPatterns(pats.drop(1), exp, locals, tvars),
                     Span.new(pat.span, exp.span)
                 )
+                is SPattern.Wildcard -> Expr.Lambda(
+                    Binder("_", pat.span, false),
+                    nestLambdaPatterns(pats.drop(1), exp, locals, tvars),
+                    Span.new(pat.span, exp.span)
+                )
                 is SPattern.ImplicitPattern -> {
                     if (pat.pat is SPattern.Var) {
                         Expr.Lambda(

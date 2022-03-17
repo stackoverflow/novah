@@ -856,7 +856,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
      * and throw an error if that's the case.
      */
     private fun checkShadow(env: Env, name: String, span: Span) {
-        if (env.lookup(name) != null) inferError(E.shadowedVariable(name), span)
+        if (name != "_" && env.lookup(name) != null) inferError(E.shadowedVariable(name), span)
     }
 
     /**
