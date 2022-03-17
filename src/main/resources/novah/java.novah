@@ -2,6 +2,7 @@
 module novah.java
 
 foreign import java.lang.AssertionError
+foreign import java.lang.Error
 foreign import java.lang.Class
 foreign import java.lang.Runnable
 foreign import java.lang.System
@@ -53,7 +54,13 @@ assert : Boolean -> String -> Unit
 assert cond msg =
   if cond then
     ()
-  else throw AssertionError#new(format "Assert failed: %s" [msg] as Object)
+  else
+    throw AssertionError#new(format "Assert failed: %s" [msg] as Object)
+
+// Throws an error with the given message that should not be caught
+pub
+error : String -> a
+error msg = throw Error#new(msg)
 
 // Executes the function for each value in this iterator.
 // Runtime: O(n)
