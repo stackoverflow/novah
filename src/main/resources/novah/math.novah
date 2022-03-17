@@ -30,13 +30,13 @@ abs {{NumberOps ops}} x = ops.abs x
 
 // Returns true if this number is odd.
 pub
-odd? : {{ NumberOps a }} -> a -> Boolean
-odd? {{NumberOps r}} x = not (r.even x)
+isOdd : {{ NumberOps a }} -> a -> Boolean
+isOdd {{NumberOps r}} x = not (r.even x)
 
 // Returns true if this number is even.
 pub
-even? : {{ NumberOps a }} -> a -> Boolean
-even? {{NumberOps r}} x = r.even x
+isEven : {{ NumberOps a }} -> a -> Boolean
+isEven {{NumberOps r}} x = r.even x
 
 // Returns n clamped between min and max.
 pub

@@ -4,7 +4,6 @@
 module novah.list
 
 foreign import java.lang.Class
-foreign import java.lang.RuntimeException
 foreign import java.util.Arrays
 foreign import java.util.Collections
 foreign import java.util.Comparator
@@ -118,14 +117,14 @@ last list =
 // Returns true if this list is empty.
 // Runtime: O(1)
 pub
-empty? : List a -> Boolean
-empty? list = list#size() == 0L
+isEmpty : List a -> Boolean
+isEmpty list = list#size() == 0L
 
 // Returns true if this list is not empty.
 // Runtime: O(1)
 pub
-notEmpty? : List a -> Boolean
-notEmpty? list = list#size() != 0L
+isNotEmpty : List a -> Boolean
+isNotEmpty list = list#size() != 0L
 
 // Returns a random element of this list if the list is not empty.
 // Runtime: O(1)
@@ -340,7 +339,7 @@ takeWhile : (a -> Boolean) -> List a -> List a
 takeWhile pred list =
   let v = list#linear()
   let res = []#linear()
-  while notEmpty? v && pred v.[0] do
+  while isNotEmpty v && pred v.[0] do
     addLast v.[0] res
     removeFirst v
   res#forked()
@@ -351,7 +350,7 @@ pub
 dropWhile : (a -> Boolean) -> List a -> List a
 dropWhile pred list =
   let v = list#linear()
-  while notEmpty? v && pred v.[0] do
+  while isNotEmpty v && pred v.[0] do
     removeFirst v
   v#forked()
 
@@ -409,8 +408,8 @@ reverse list =
 // Returns true if the predicate is true for all elements in this list.
 // Runtime: O(n)
 pub
-all? : (a -> Boolean) -> List a -> Boolean
-all? pred list =
+all : (a -> Boolean) -> List a -> Boolean
+all pred list =
   let t = list#size()
   let go i =
     if i >= t then true
@@ -422,8 +421,8 @@ all? pred list =
 // Returns true if the predicate is true for any element in this list.
 // Runtime: O(n)
 pub
-any? : (a -> Boolean) -> List a -> Boolean
-any? pred list =
+any : (a -> Boolean) -> List a -> Boolean
+any pred list =
   let t = list#size()
   let go i =
     if i >= t then false
@@ -448,15 +447,6 @@ pub
 min : {{ NumberOps a }} -> List a -> Option a
 min {{NumberOps ops}} =
   reduce (\n n2 -> ops.min n n2)
-
-// Returns the smallest number in the list.
-// *Unsafe*: will throw an exception if the list is empty
-// Runtime: O(n)
-pub
-min! : {{ NumberOps a }} -> List a -> a
-min! {{NumberOps ops}} = case _ of
-  [] -> throw RuntimeException#new("cannot find the minimum value of an empty list")
-  [x :: xs] -> foldl (\n n2 -> ops.min n n2) x xs
 
 // Returns the smallest number in the list, or the default value.
 // Runtime: O(n)
@@ -492,15 +482,6 @@ minOf {{NumberOps ops}} fn =
 pub
 max : {{ NumberOps a }} -> List a -> Option a
 max {{NumberOps ops}} = reduce (\n n2 -> ops.max n n2)
-
-// Returns the biggest number in the list.
-// *Unsafe*: will throw an exception if the list is empty
-// Runtime: O(n)
-pub
-max! : {{ NumberOps a }} -> List a -> a
-max! {{NumberOps ops}} = case _ of
-  [] -> throw RuntimeException#new("cannot find the maximum value of an empty list")
-  [x :: xs] -> foldl (\n n2 -> ops.max n n2) x xs
 
 // Returns the biggest number in the list, or the default value.
 // Runtime: O(n)
@@ -706,7 +687,7 @@ pub
 partitionAllStep : Int32 -> Int32 -> List a -> List (List a)
 partitionAllStep n step list =
   let go listt acc =
-    if empty? listt then
+    if isEmpty listt then
       acc
     else
       let prefix = take n listt

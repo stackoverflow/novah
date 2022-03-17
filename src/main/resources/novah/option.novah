@@ -31,15 +31,15 @@ maybe def f = case _ of
 
 // Returns true if this option contains a value.
 pub
-some? : Option a -> Boolean
-some? = case _ of
+isSome : Option a -> Boolean
+isSome = case _ of
   Some _ -> true
   None -> false
 
 // Returns true if this option *doesn't* contain a value.
 pub
-none? : Option a -> Boolean
-none? = case _ of
+isNone : Option a -> Boolean
+isNone = case _ of
   Some _ -> false
   None -> true
 
@@ -47,8 +47,8 @@ none? = case _ of
 // *Unsafe*: Will thrown an exception if the option is empty.
 // An alias for `unwrapOptions` and the `!!` syntactic sugar.
 pub
-unwrap! : Option a -> a
-unwrap! = unwrapOption
+unwrap : Option a -> a
+unwrap = unwrapOption
 
 // Transforms this nullable value into an option.
 // `null` is represented as `None`.

@@ -16,10 +16,10 @@ setTests =
     let set = #{1, 2, 3, 4}
     Set.nth 2 set `shouldBe` Some 3
     set.[2] `shouldBe` 3
-    Set.empty? set `shouldBe` false
-    Set.notEmpty? set `shouldBe` true
-    (4 `in?` set) `shouldBe` true
-    Set.containsAll? [4, 1, 2, 3] set `shouldBe` true
+    Set.isEmpty set `shouldBe` false
+    Set.isNotEmpty set `shouldBe` true
+    (4 `isIn` set) `shouldBe` true
+    Set.containsAll [4, 1, 2, 3] set `shouldBe` true
     Set.size set `shouldBe` 4
     (set ++ #{5, 6}) `shouldBe` #{1, 2, 3, 4, 5, 6}
     Set.intersection set #{0, 2, 7, 4} `shouldBe` #{2, 4}
@@ -35,27 +35,25 @@ setTests =
   test "Set traversing functions" \_ ->
     let set = #{1, 2, 3}
     Set.map (_ + 1) set `shouldBe` #{2, 3, 4}
-    Set.filter Math.odd? set `shouldBe` #{1, 3}
-    Set.find Math.odd? set `shouldBe` Some 1
+    Set.filter Math.isOdd set `shouldBe` #{1, 3}
+    Set.find Math.isOdd set `shouldBe` Some 1
     Set.foldl (-) 0 set `shouldBe` -6
     Set.reduce (+) set `shouldBe` Some 6
     Set.flatten #{#{1, 2}, #{3, 4}, #{5, 6}} `shouldBe` #{1, 2, 3, 4, 5, 6}
     Set.flatMap (\x -> #{x, x * 10}) set `shouldBe` #{1, 10, 2, 20, 3, 30}
-    Set.all? (_ < 10) set `shouldBe` true
-    Set.all? (_ < 3) set `shouldBe` false
-    Set.any? (_ < 3) set `shouldBe` true
-    Set.any? (_ < 0) set `shouldBe` false
-    Set.groupBy Math.even? #{1, 2, 3, 4, 5} `shouldBe` Map.new [true ; #{2, 4}, false ; #{1, 3, 5}]
-    Set.count Math.even? #{1, 2, 3, 4, 5, 6} `shouldBe` 3
+    Set.all (_ < 10) set `shouldBe` true
+    Set.all (_ < 3) set `shouldBe` false
+    Set.any (_ < 3) set `shouldBe` true
+    Set.any (_ < 0) set `shouldBe` false
+    Set.groupBy Math.isEven #{1, 2, 3, 4, 5} `shouldBe` Map.new [true ; #{2, 4}, false ; #{1, 3, 5}]
+    Set.count Math.isEven #{1, 2, 3, 4, 5, 6} `shouldBe` 3
     Set.min #{6, 2, 5, 9, 0, 4} `shouldBe` Some 0
-    Set.min! #{6, 2, 5, 9, 0, 4} `shouldBe` 0
     Set.min (#{} : Set Int32) `shouldBe` None
     Set.minOr 10 #{6, 2, 5, 9, 0, 4} `shouldBe` 0
     Set.minOr 10 #{} `shouldBe` 10
     Set.minBy List.size #{[1, 2, 3], [5], [6, 7]} `shouldBe` Some [5]
     Set.minOf List.size #{[1, 2, 3], [5], [6, 7]} `shouldBe` Some 1
     Set.max #{6, 2, 5, 9, 0, 4} `shouldBe` Some 9
-    Set.max! #{6, 2, 5, 9, 0, 4} `shouldBe` 9
     Set.maxOr 10 #{6, 2, 5, 9, 0, 4} `shouldBe` 9
     Set.maxOr 10 #{} `shouldBe` 10
     Set.maxBy List.size #{[1, 2, 3], [5], [6, 7]} `shouldBe` Some [1, 2, 3]

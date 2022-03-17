@@ -34,18 +34,18 @@ hashCode x = (x as Object)#hashCode()
 // Returns true if x is equals y using
 // the native Java `equals` method of x.
 pub
-equals? : a -> a -> Boolean
-equals? x y = (x as Object)#equals(y as Object)
+equals : a -> a -> Boolean
+equals x y = (x as Object)#equals(y as Object)
 
 // Returns true if the given object is an instance of the class.
 pub
-instance? : a -> Class b -> Boolean
-instance? o clazz = clazz#isInstance(o as Object)
+isInstance : a -> Class b -> Boolean
+isInstance o clazz = clazz#isInstance(o as Object)
 
 // Returns true if clazz1 is a superclass or superinterface of class2.
 pub
-assignableFrom? : Class a -> Class b -> Boolean
-assignableFrom? clazz1 clazz2 = clazz1#isAssignableFrom(clazz2 as Class Object)
+assignableFrom : Class a -> Class b -> Boolean
+assignableFrom clazz1 clazz2 = clazz1#isAssignableFrom(clazz2 as Class Object)
 
 // Throws an assertion error if the condition is false.
 pub

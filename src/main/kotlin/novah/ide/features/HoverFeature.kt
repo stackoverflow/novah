@@ -305,7 +305,7 @@ class HoverFeature(private val server: NovahServer) {
                                 ctx = MethodCtx(e.method!!)
                         }
                         is Expr.RecordSelect -> {
-                            if (e.label.span.matches(line, col))
+                            if (e.label.span.matches(line, col) && e.type != null)
                                 ctx = LocalRefCtx(e.label.value, e.type!!)
                         }
                     }

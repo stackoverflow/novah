@@ -3,7 +3,6 @@
 module novah.set
 
 foreign import java.lang.Iterable
-foreign import java.lang.RuntimeException
 foreign import java.util.concurrent.ThreadLocalRandom
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.ISet
@@ -49,14 +48,14 @@ size set =
 // Returns true if this set is empty.
 // Runtime: O(1)
 pub
-empty? : Set a -> Boolean
-empty? set = set#size() == 0L
+isEmpty : Set a -> Boolean
+isEmpty set = set#size() == 0L
 
 // Returns true if this set is not empty.
 // Runtime: O(1)
 pub
-notEmpty? : Set a -> Boolean
-notEmpty? set = set#size() != 0L
+isNotEmpty : Set a -> Boolean
+isNotEmpty set = set#size() != 0L
 
 // Returns some value at index for this set if it exists or none.
 // Runtime: ~O(1)
@@ -73,7 +72,7 @@ nth index set =
 pub
 randNth : Set a -> Option a
 randNth set =
-  if empty? set then None
+  if isEmpty set then None
   else
     let i = ThreadLocalRandom#current()#nextInt(size set)
     Some set#nth(i#longValue())
@@ -176,7 +175,7 @@ foldl f init set = Core#foldSet(f, init, set)
 pub
 reduce : (a -> a -> a) -> Set a -> Option a
 reduce f set =
-  if empty? set then None
+  if isEmpty set then None
   else
     let first = set#nth(0L)
     let rest = remove first set
@@ -187,7 +186,7 @@ reduce f set =
 pub
 flatten : Set (Set a) -> Set a
 flatten sets =
-  if empty? sets
+  if isEmpty sets
     then #{}
     else
       let first = sets#nth(0L)
@@ -204,8 +203,8 @@ flatMap f set = flatten (map f set)
 // Returns true if the predicate is true for all elements in this set.
 // Runtime: O(n)
 pub
-all? : (a -> Boolean) -> Set a -> Boolean
-all? pred set =
+all : (a -> Boolean) -> Set a -> Boolean
+all pred set =
   let t = set#size()
   let go i =
     if i >= t then true
@@ -217,8 +216,8 @@ all? pred set =
 // Returns true if the predicate is true for any element in this set.
 // Runtime: O(n)
 pub
-any? : (a -> Boolean) -> Set a -> Boolean
-any? pred set =
+any : (a -> Boolean) -> Set a -> Boolean
+any pred set =
   let t = set#size()
   let go i =
     if i >= t then false
@@ -244,16 +243,6 @@ pub
 min : {{ NumberOps a }} -> Set a -> Option a
 min {{NumberOps ops}} = reduce (\n n2 -> ops.min n n2)
 
-// Returns the smallest number in the set.
-// *Unsafe*: will throw an exception if the set is empty
-// Runtime: O(n)
-pub
-min! : {{ NumberOps a }} -> Set a -> a
-min! {{ops}} set =
-  case min {{ops}} set of
-    Some x -> x
-    None -> throw RuntimeException#new("cannot find the minimum value of an empty set")
-
 // Returns the smallest number in the set, or the default value.
 // Runtime: O(n)
 pub
@@ -275,7 +264,7 @@ minBy {{_}} fn =
 pub
 minOf : {{ NumberOps b }} -> (a -> b) -> Set a -> Option b
 minOf {{NumberOps ops}} fn set =
-  if empty? set then
+  if isEmpty set then
     None
   else
     let first = set#nth(0L)
@@ -290,16 +279,6 @@ minOf {{NumberOps ops}} fn set =
 pub
 max : {{ NumberOps a }} -> Set a -> Option a
 max {{NumberOps ops}} = reduce (\n n2 -> ops.max n n2)
-
-// Returns the biggest number in the set.
-// *Unsafe*: will throw an exception if the set is empty
-// Runtime: O(n)
-pub
-max! : {{ NumberOps a }} -> Set a -> a
-max! {{ops}} set =
-  case max {{ops}} set of
-    Some x -> x
-    None -> throw RuntimeException#new("cannot find the maximum value of an empty set")
 
 // Returns the biggest number in the set, or the default value.
 // Runtime: O(n)
@@ -322,7 +301,7 @@ maxBy {{_}} fn =
 pub
 maxOf : {{ NumberOps b }} -> (a -> b) -> Set a -> Option b
 maxOf {{NumberOps ops}} fn set =
-  if empty? set then
+  if isEmpty set then
     None
   else
     let first = set#nth(0L)
@@ -365,8 +344,8 @@ productOf {{Mult m}} fn =
 // Returns true if every element in the list is contained in the set.
 // Runtime: O(n)
 pub
-containsAll? : List a -> Set a -> Boolean
-containsAll? list set = List.all? set#contains(_) list
+containsAll : List a -> Set a -> Boolean
+containsAll list set = List.all set#contains(_) list
 
 // Groups the elements of the set according
 // to the the function.
