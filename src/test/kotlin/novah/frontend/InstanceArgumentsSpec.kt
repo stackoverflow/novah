@@ -118,8 +118,8 @@ class InstanceArgumentsSpec : StringSpec({
         val code = """
             inside : Set Int -> Boolean
             inside box =
-              let isIn {{_}} x = x `in?` box
-              isIn 3
+              let ins {{_}} x = x `isIn` box
+              ins 3
         """.module()
 
         TestUtil.compileCode(code)

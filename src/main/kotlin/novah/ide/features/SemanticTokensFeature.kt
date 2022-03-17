@@ -144,6 +144,12 @@ class SemanticTokensFeature(private val server: NovahServer) {
                     }
                     is Expr.ForeignField -> tokens += genLine(e.fieldName.span, PROPERTY)
                     is Expr.ForeignMethod -> tokens += genLine(e.methodName.span, METHOD)
+                    is Expr.Lambda -> {
+                        val ty = e.binder.type
+                        if (ty?.span != null) {
+                            tokens += genTypeLine(ty)
+                        }
+                    }
                     else -> {}
                 }
             }
