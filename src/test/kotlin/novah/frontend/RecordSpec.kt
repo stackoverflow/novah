@@ -138,6 +138,8 @@ class RecordSpec : StringSpec({
             
             update2 r code = { .address.country.number = code + 10 | r }
             
+            update3 name age = { .name = name, .age = age | rec }
+            
             x = update rec "Mr. Snuffles"
             y = update2 nested 25
         """.module()
@@ -146,6 +148,7 @@ class RecordSpec : StringSpec({
         ds["update"]?.type?.simpleName() shouldBe "{ name : t2 | t1 } -> t2 -> { name : t2 | t1 }"
         ds["update2"]?.type?.simpleName() shouldBe
                 "{ address : { country : { number : Int32 | t3 } | t2 } | t1 } -> Int32 -> { address : { country : { number : Int32 | t3 } | t2 } | t1 }"
+        ds["update3"]?.type?.simpleName() shouldBe "String -> Int32 -> { name : String, age : Int32 }"
     }
 
     "record update" {
@@ -158,6 +161,8 @@ class RecordSpec : StringSpec({
             
             update2 r = { .address.country.number -> _ + 10 | r }
             
+            update3 namer plus = { .name -> namer, .age -> _ + plus | rec }
+            
             x = update rec String.upperCase
             y = update2 nested
         """.module()
@@ -166,6 +171,7 @@ class RecordSpec : StringSpec({
         ds["update"]?.type?.simpleName() shouldBe "{ name : t2 | t1 } -> (t2 -> t2) -> { name : t2 | t1 }"
         ds["update2"]?.type?.simpleName() shouldBe
                 "{ address : { country : { number : Int32 | t3 } | t2 } | t1 } -> { address : { country : { number : Int32 | t3 } | t2 } | t1 }"
+        ds["update3"]?.type?.simpleName() shouldBe "(String -> String) -> Int32 -> { name : String, age : Int32 }"
     }
 
     "record merge" {

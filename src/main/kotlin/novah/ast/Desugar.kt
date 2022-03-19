@@ -318,19 +318,23 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         }
         is SExpr.RecordUpdate -> {
             val lvars = mutableListOf<Binder>()
-            val lvalue = if (value is SExpr.Underscore) {
-                val v = newVar()
-                lvars += Binder(v, span)
-                Expr.Var(v, span)
-            } else value.desugar(locals, tvars)
 
-            val lexpr = if (exp is SExpr.Underscore) {
+            var lexpr = if (exp is SExpr.Underscore) {
                 val v = newVar()
                 lvars += Binder(v, span)
                 Expr.Var(v, span)
             } else exp.desugar(locals, tvars)
 
-            nestLambdas(lvars, nestRecordUpdates(lexpr, labels, lvalue, isSet, span))
+            updates.reversed().forEach { up ->
+                val lvalue = if (up.value is SExpr.Underscore) {
+                    val v = newVar()
+                    lvars += Binder(v, span)
+                    Expr.Var(v, span)
+                } else up.value.desugar(locals, tvars)
+                lexpr = nestRecordUpdates(lexpr, up.labels, lvalue, up.isSet, span)
+            }
+
+            nestLambdas(lvars, lexpr)
         }
         is SExpr.RecordMerge -> {
             val lvars = mutableListOf<Binder>()
@@ -734,7 +738,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             Expr.RecordUpdate(
                 exp,
                 labels[0],
-                nestRecordUpdates(select, labels.drop(1), value, isSet, span),
+                nestRecordUpdates(select, tail, value, isSet, span),
                 shouldSet,
                 span
             )
