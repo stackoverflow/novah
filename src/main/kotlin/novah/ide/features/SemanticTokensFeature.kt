@@ -52,10 +52,13 @@ class SemanticTokensFeature(private val server: NovahServer) {
         var prevChar = 0
 
         fun genLine(span: Span, type: Int, modifiers: Int = 0): List<Int> {
+            if (span.isEmpty()) return emptyList()
             val startLine = span.startLine - 1
             val startChar = span.startColumn - 1
             val deltaLine = startLine - prevLine
             val deltaChar = if (startLine == prevLine) startChar - prevChar else startChar
+
+            if (deltaLine < 0 || deltaChar < 0) return emptyList()
             val res = listOf(deltaLine, deltaChar, span.length(), type, modifiers)
             prevLine = startLine
             prevChar = startChar
@@ -114,9 +117,16 @@ class SemanticTokensFeature(private val server: NovahServer) {
             while (exp is Expr.Match && destruct > 0) {
                 destruct--
                 exp.cases[0].patterns[0].everywhereUnit { p ->
-                    if (p is Pattern.Var) {
-                        parNames += p.v.name
-                        tokens += genLine(p.span, PARAM)
+                    when (p) {
+                        is Pattern.Var -> {
+                            parNames += p.v.name
+                            tokens += genLine(p.span, PARAM)
+                        }
+                        is Pattern.Named -> {
+                            parNames += p.name.value
+                            tokens += genLine(p.name.span, PARAM)
+                        }
+                        else -> {}
                     }
                 }
             }

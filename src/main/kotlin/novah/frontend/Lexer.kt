@@ -126,6 +126,8 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
      */
     fun adjacent(other: Span) = endLine + 1 == other.startLine
 
+    fun isEmpty() = this == emptySpan
+
     companion object {
         private val emptySpan = Span(-1, -1, -1, -1)
         fun empty() = emptySpan

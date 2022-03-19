@@ -525,8 +525,8 @@ fun Pattern.everywhereUnit(f: (Pattern) -> Unit) {
                 if (p.tail != null) go(p.tail)
             }
             is Pattern.Named -> {
-                f(p)
                 go(p.pat)
+                f(p)
             }
             is Pattern.Record -> {
                 f(p)
