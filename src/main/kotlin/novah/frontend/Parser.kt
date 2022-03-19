@@ -1077,8 +1077,7 @@ class Parser(
                 val end = iter.next()
                 Expr.RecordEmpty().withSpan(begin.span, end.span).withComment(begin.comment)
             } else if (nex is Dot) {
-                iter.next()
-                parseRecordSetOrUpdate(begin)
+                parseRecordSetOrUpdateList(begin)
             } else if (nex is Op && nex.op == "-") {
                 iter.next()
                 parseRecordRestriction(begin)
@@ -1109,7 +1108,18 @@ class Parser(
         return label to exp
     }
 
-    private fun parseRecordSetOrUpdate(begin: Spanned<Token>): Expr {
+    private fun parseRecordSetOrUpdateList(begin: Spanned<Token>): Expr {
+        val vals = between<Comma, RecUpdate>(::parseRecordSetOrUpdate)
+        expect<Pipe>(withError(E.pipeExpected("record set/update")))
+        val record = parseExpression()
+        expect<RBracket>(withError(E.rbracketExpected("record set/update")))
+
+        return Expr.RecordUpdate(exp = record, updates = vals)
+            .withSpan(begin.span, iter.current().span).withComment(begin.comment)
+    }
+
+    private fun parseRecordSetOrUpdate(): RecUpdate {
+        expect<Dot>(withError(E.RECORD_DOT))
         val labels = between<Dot, Pair<String, Spanned<Token>>>(::parseLabel)
         var isSet = true
         if (iter.peek().value is Equals) expect<Equals>(withError(E.RECORD_EQUALS))
@@ -1117,14 +1127,9 @@ class Parser(
             isSet = false
             expect<Arrow>(withError(E.RECORD_EQUALS))
         }
-        val ctx = if (isSet) "record set" else "record update"
 
         val value = parseExpression()
-        expect<Pipe>(withError(E.pipeExpected(ctx)))
-        val record = parseExpression()
-        val end = expect<RBracket>(withError(E.rbracketExpected(ctx)))
-        return Expr.RecordUpdate(record, labels.map { Spanned(it.second.span, it.first) }, value, isSet)
-            .withSpan(begin.span, end.span).withComment(begin.comment)
+        return RecUpdate(labels.map { Spanned(it.second.span, it.first) }, value, isSet)
     }
 
     private fun parseRecordRestriction(begin: Spanned<Token>): Expr {

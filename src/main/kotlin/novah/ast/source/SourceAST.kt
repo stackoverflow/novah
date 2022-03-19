@@ -191,9 +191,7 @@ sealed class Expr {
     data class RecordSelect(val exp: Expr, val labels: List<Spanned<String>>) : Expr()
     data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()
     data class RecordRestrict(val exp: Expr, val labels: List<String>) : Expr()
-    data class RecordUpdate(val exp: Expr, val labels: List<Spanned<String>>, val value: Expr, val isSet: Boolean) :
-        Expr()
-
+    data class RecordUpdate(val exp: Expr, val updates: List<RecUpdate>) : Expr()
     data class RecordMerge(val exp1: Expr, val exp2: Expr) : Expr()
     data class ListLiteral(val exps: List<Expr>) : Expr()
     data class SetLiteral(val exps: List<Expr>) : Expr()
@@ -242,6 +240,8 @@ fun Expr.Operator.fullname(): String = if (alias != null) "$alias.$name" else na
 data class Binder(val name: String, val span: Span, val isImplicit: Boolean = false) {
     override fun toString(): String = name
 }
+
+data class RecUpdate(val labels: List<Spanned<String>>, val value: Expr, val isSet : Boolean)
 
 sealed class LetDef(open val expr: Expr) {
     data class DefBind(

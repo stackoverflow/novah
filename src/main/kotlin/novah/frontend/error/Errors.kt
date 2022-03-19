@@ -56,6 +56,8 @@ object Errors {
 
     const val RECORD_MERGE = "Cannot merge records with unknown labels."
 
+    const val RECORD_DOT = "Expected `.` for record set/update."
+
     const val TYPE_VAR = "Expected type variable (lower case identifier)."
 
     const val TYPE_DEF = "Expected a type definition."
