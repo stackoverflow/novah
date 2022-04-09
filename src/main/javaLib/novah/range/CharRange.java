@@ -58,7 +58,7 @@ public class CharRange implements Range<Character> {
     }
 
     /**
-     * Creates a iterator that will go through all numbers in this range
+     * Creates an iterator that will go through all numbers in this range
      */
     @Override
     public Iterator<Character> iterator() {
@@ -67,7 +67,7 @@ public class CharRange implements Range<Character> {
 
             @Override
             public boolean hasNext() {
-                return step > 0 ? current < end : current > end;
+                return step > 0 ? current <= end : current >= end;
             }
 
             @Override
