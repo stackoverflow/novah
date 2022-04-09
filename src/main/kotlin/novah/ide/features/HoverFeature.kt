@@ -266,6 +266,7 @@ class HoverFeature(private val server: NovahServer) {
                                                     is Pattern.Named -> {
                                                         if (p.type != null) ctx = LocalRefCtx(p.name.value, p.type!!)
                                                     }
+                                                    else -> {}
                                                 }
                                             }
                                         }
@@ -290,11 +291,14 @@ class HoverFeature(private val server: NovahServer) {
                                 ctx = FieldCtx(e.field!!)
                         }
                         is Expr.ForeignStaticMethod -> {
-                            if (e.methodName.span.matches(line, col) && e.method != null) {
-                                ctx = if (e.method != null) MethodCtx(e.method!!)
-                                else CtorCtx(e.ctor!!)
+                            if (e.methodName.span.matches(line, col)) {
+                                if (e.method != null) {
+                                    ctx = MethodCtx(e.method!!)
+                                } else if (e.ctor != null) {
+                                    ctx = CtorCtx(e.ctor!!)
+                                }
                             }
-                            if (e.clazz.span.matches(line, col) && e.method != null) {
+                            if (e.clazz.span.matches(line, col)) {
                                 val name = if (e.method != null) e.method!!.declaringClass
                                 else e.ctor!!.declaringClass
                                 ctx = ClassCtx(name)
@@ -308,6 +312,7 @@ class HoverFeature(private val server: NovahServer) {
                             if (e.label.span.matches(line, col) && e.type != null)
                                 ctx = LocalRefCtx(e.label.value, e.type!!)
                         }
+                        else -> {}
                     }
                 }
             }
@@ -318,8 +323,8 @@ class HoverFeature(private val server: NovahServer) {
             var ctx: HoverCtx? = null
             ty.everywhereUnit { t ->
                 if (ctx == null && t.span?.matches(line, col) == true) {
-                    when (t) {
-                        is TConst -> ctx = TypeCtx(t.name)
+                    if (t is TConst) {
+                        ctx = TypeCtx(t.name)
                     }
                 }
             }
