@@ -38,6 +38,18 @@ pub
 size : Map k v -> Int64
 size m = m#size()
 
+// Return true if the map is empty
+// Runtime: O(1)
+pub
+isEmpty : Map k v -> Boolean
+isEmpty m = m#size() == 0L
+
+// Return true if the map is not empty
+// Runtime: O(1)
+pub
+isNotEmpty : Map k v -> Boolean
+isNotEmpty m = m#size() != 0L
+
 // Inserts or replaces a new key/value pair in the map.
 // Runtime: ~O(1)
 pub

@@ -10,6 +10,7 @@ foreign import java.util.Comparator
 foreign import java.util.concurrent.ThreadLocalRandom
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.IList
+foreign import io.lacuna.bifurcan.LinearList
 foreign import novah.Core
 foreign import novah.Ref
 
@@ -824,6 +825,11 @@ removeNones list =
         ()
       None -> ()
   lin#forked()
+
+// Returns a linear (mutable) list out of this list
+pub
+toLinear : List a -> LinearList a
+toLinear list = LinearList#from(list as IList a)
 
 // Creates a linear (mutable) version of the given list and applies the function to it.
 // Returns a forked (persistent) version of the returned linear list.
