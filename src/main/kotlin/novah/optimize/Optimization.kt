@@ -278,10 +278,12 @@ object Optimization {
                 Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }
             6 -> {
-                Expr.NativeCtor(newFloatRange, listOf(arg1, arg2), e.type, e.span)
+                val ctor = if (open) newFloatOpenRange else newFloatRange
+                Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }
             8 -> {
-                Expr.NativeCtor(newDoubleRange, listOf(arg1, arg2), e.type, e.span)
+                val ctor = if (open) newDoubleOpenRange else newDoubleRange
+                Expr.NativeCtor(ctor, listOf(arg1, arg2), e.type, e.span)
             }
             2 -> {
                 val ctor = if (open) newCharOpenRange else newCharRange
@@ -348,7 +350,9 @@ object Optimization {
     private val newLongRange = LongRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newLongOpenRange = LongOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newFloatRange = FloatRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newFloatOpenRange = FloatOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newDoubleRange = DoubleRange::class.java.constructors.find { it.parameterCount == 2 }!!
+    private val newDoubleOpenRange = DoubleOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newCharRange = CharRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newCharOpenRange = CharOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val forEachRange = Range::class.java.methods.find { it.name == "foreach" }!!
