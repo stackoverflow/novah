@@ -52,7 +52,7 @@ public class DoubleRange implements Range<Double> {
     }
 
     /**
-     * Creates a iterator that will go through all numbers in this range
+     * Creates an iterator that will go through all numbers in this range
      */
     @Override
     public Iterator<Double> iterator() {

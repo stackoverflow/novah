@@ -60,7 +60,7 @@ public class IntOpenRange implements Range<Integer> {
     }
 
     /**
-     * Creates a iterator that will go through all numbers in this range
+     * Creates an iterator that will go through all numbers in this range
      */
     @Override
     public Iterator<Integer> iterator() {
@@ -75,7 +75,7 @@ public class IntOpenRange implements Range<Integer> {
             @Override
             public Integer next() {
                 int tmp = current;
-                current = current + step;
+                current += step;
                 return tmp;
             }
         };

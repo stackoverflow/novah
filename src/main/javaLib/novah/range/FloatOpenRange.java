@@ -52,7 +52,7 @@ public class FloatOpenRange implements Range<Float> {
     }
 
     /**
-     * Creates a iterator that will go through all numbers in this range
+     * Creates an iterator that will go through all numbers in this range
      */
     @Override
     public Iterator<Float> iterator() {
