@@ -170,7 +170,7 @@ class HoverFeature(private val server: NovahServer) {
             if (imp.span().matches(line, col)) {
                 // context is import
                 val modName = imp.module.value
-                val fmv = mods[modName]!!
+                val fmv = mods[modName] ?: break
                 if (imp.module.span.matches(line, col)) return ModuleCtx(modName, imp.alias(), fmv.ast)
                 if (imp is Import.Exposing) {
                     for (d in imp.defs) {
@@ -287,7 +287,7 @@ class HoverFeature(private val server: NovahServer) {
                                 ctx = ClassCtx(e.field!!.declaringClass)
                         }
                         is Expr.ForeignField -> {
-                            if (e.fieldName.span.matches(line, col))
+                            if (e.field != null && e.fieldName.span.matches(line, col))
                                 ctx = FieldCtx(e.field!!)
                         }
                         is Expr.ForeignStaticMethod -> {
@@ -300,8 +300,10 @@ class HoverFeature(private val server: NovahServer) {
                             }
                             if (e.clazz.span.matches(line, col)) {
                                 val name = if (e.method != null) e.method!!.declaringClass
-                                else e.ctor!!.declaringClass
-                                ctx = ClassCtx(name)
+                                else if (e.ctor != null) e.ctor!!.declaringClass
+                                else null
+                                if (name != null)
+                                    ctx = ClassCtx(name)
                             }
                         }
                         is Expr.ForeignMethod -> {
