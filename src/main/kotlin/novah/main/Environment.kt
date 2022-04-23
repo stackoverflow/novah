@@ -20,6 +20,7 @@ import novah.Util
 import novah.Util.internalError
 import novah.ast.Desugar
 import novah.ast.source.Decl
+import novah.ast.source.FullVisibility
 import novah.ast.source.Module
 import novah.ast.source.Visibility
 import novah.backend.Codegen
@@ -299,7 +300,7 @@ data class DeclRef(val type: Type, val visibility: Visibility, val isInstance: B
 
 data class TypeDeclRef(
     val type: Type,
-    val visibility: Visibility,
+    val visibility: FullVisibility,
     val ctors: List<String>,
     val comment: Comment?
 )

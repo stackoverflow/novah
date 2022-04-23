@@ -25,6 +25,7 @@ dependencies {
     implementation "org.reflections:reflections:0.9.12"
     implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.12.0"
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.13.+"
+    implementation 'org.commonmark:commonmark:0.18.2'
     
     // maven
     implementation "org.apache.maven.resolver:maven-resolver-api:$mavenResolverVersion"

@@ -256,7 +256,7 @@ class ADTGen(
                 lam.visitMethodInsn(INVOKESPECIAL, className, INIT, ctorDesc, false)
             } else {
                 var index = 0
-                (appliedTypes + nextArg).forEachIndexed { i, clazz ->
+                (appliedTypes + nextArg).forEach { clazz ->
                     lam.visitVarInsn(clazz.type.getOpcode(ILOAD), index)
                     if (clazz.type.isDouble() || clazz.type.isLong()) index += 2 else index++
                 }

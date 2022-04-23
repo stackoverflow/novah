@@ -122,7 +122,7 @@ class BuildCommand : CliktCommand(name = "build", help = "compile the project de
             return exit == 0
         }
 
-        private fun getClasspath(alias: String, type: String, echo: (String, Boolean) -> Unit): String? {
+        fun getClasspath(alias: String, type: String, echo: (String, Boolean) -> Unit): String? {
             val cp = File(".cpcache/$alias.$type")
             if (!cp.exists()) {
                 if (alias == DepsProcessor.defaultAlias) {
