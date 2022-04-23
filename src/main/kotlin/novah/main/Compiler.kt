@@ -34,6 +34,13 @@ class Compiler(private val sources: Sequence<Source>, classpath: String?, source
         return env.errors()
     }
 
+    fun genApidocs(output: File) {
+        val sources = env.parseSources(sources)
+        val apidoc = Apidoc(sources)
+
+        apidoc.generate(output)
+    }
+
     fun errors() = env.errors()
 
     fun getModules() = env.modules()

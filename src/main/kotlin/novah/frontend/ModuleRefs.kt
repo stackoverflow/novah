@@ -33,7 +33,7 @@ typealias ModuleName = String
 
 fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>, env: Env): List<CompilerProblem> {
     val visible = { (_, tvis): Map.Entry<String, DeclRef> -> tvis.visibility == Visibility.PUBLIC }
-    val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility == Visibility.PUBLIC }
+    val visibleType = { (_, tvis): Map.Entry<String, TypeDeclRef> -> tvis.visibility.isPublic() }
 
     fun makeError(span: Span): (String) -> CompilerProblem = { msg ->
         CompilerProblem(msg, span, mod.sourceName, mod.name.value)
@@ -123,7 +123,7 @@ fun resolveImports(mod: Module, modules: Map<String, FullModuleEnv>, env: Env): 
                                 errors += mkError(Errors.cannotFindInModule("type ${ref.name}", mname))
                                 continue
                             }
-                            if (declRef.visibility == Visibility.PRIVATE) {
+                            if (declRef.visibility == FullVisibility.PRIVATE) {
                                 errors += mkError(Errors.cannotImportInModule("type ${ref.name}", mname))
                                 continue
                             }

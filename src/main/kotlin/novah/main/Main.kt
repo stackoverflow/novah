@@ -34,6 +34,7 @@ object Main {
             NewCommand(),
             RunCommand(),
             ClearCommand(),
+            ApidocCommand(),
             IdeCommand()
         )
         MainCommand().subcommands(*comms).main(args)

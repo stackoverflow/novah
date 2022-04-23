@@ -2,8 +2,8 @@
 
 - [ ] Rewrite the compiler in novah itself (?)
 - [ ] REPL
-- [ ] Website
-- [ ] Add javadoc like capabilities to comments (using markdown probably)
+- [X] Website (https://novahlang.github.io/)
+- [X] Add javadoc like capabilities to comments (using markdown probably)
 - [X] Primitive types support
 - [X] IDE support (WIP)
 - [X] LSP implemented in the compiler (WIP)

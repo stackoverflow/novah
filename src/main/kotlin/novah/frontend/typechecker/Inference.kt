@@ -20,6 +20,7 @@ import novah.Util.internalError
 import novah.Util.validByte
 import novah.Util.validShort
 import novah.ast.canonical.*
+import novah.ast.source.FullVisibility
 import novah.ast.source.Visibility
 import novah.data.*
 import novah.frontend.Span
@@ -62,15 +63,18 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             if (d.visibility == Visibility.PRIVATE)
                 pvtTypes += "${ast.name.value}.${d.name.value}"
 
+            var publicCtor = false
             d.dataCtors.forEach { dc ->
                 val dcname = dc.name.value
                 val dcty = getCtorType(dc, ty, map)
                 checkShadow(env, dcname, dc.span)
                 env.extend(dcname, dcty)
                 Environment.cacheConstructorType("${ast.name.value}.$dcname", dcty)
+                if (dc.visibility == Visibility.PUBLIC) publicCtor = true
                 decls[dcname] = DeclRef(dcty, dc.visibility, false, null)
             }
-            types[d.name.value] = TypeDeclRef(ty, d.visibility, d.dataCtors.map { it.name.value }, d.comment)
+            val vis = if (publicCtor) FullVisibility.PUBLIC_PLUS else FullVisibility.fromVisibility(d.visibility)
+            types[d.name.value] = TypeDeclRef(ty, vis, d.dataCtors.map { it.name.value }, d.comment)
         }
         datas.forEach { d ->
             d.dataCtors.forEach { dc ->

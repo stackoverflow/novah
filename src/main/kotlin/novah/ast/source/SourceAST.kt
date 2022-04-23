@@ -47,6 +47,17 @@ enum class Visibility {
     fun isPublic() = this == PUBLIC
 }
 
+enum class FullVisibility {
+    PUBLIC, PUBLIC_PLUS, PRIVATE;
+
+    fun isPublic() = this == PUBLIC || this == PUBLIC_PLUS
+
+    companion object {
+        fun fromVisibility(vis: Visibility): FullVisibility =
+            if (vis == Visibility.PUBLIC) PUBLIC else PRIVATE
+    }
+}
+
 /**
  * A reference that can be imported
  */

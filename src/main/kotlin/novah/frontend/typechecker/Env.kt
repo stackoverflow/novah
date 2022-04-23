@@ -18,6 +18,7 @@ package novah.frontend.typechecker
 import io.lacuna.bifurcan.Map
 import novah.ast.canonical.Decl
 import novah.ast.canonical.Module
+import novah.ast.source.FullVisibility
 import novah.ast.source.Import
 import novah.ast.source.Visibility
 import novah.frontend.Comment
@@ -280,7 +281,7 @@ fun findJavaType(novahType: String) = when (novahType) {
     else -> novahType
 }
 
-private fun tdecl(type: Type) = TypeDeclRef(type, Visibility.PUBLIC, emptyList(), null)
+private fun tdecl(type: Type) = TypeDeclRef(type, FullVisibility.PUBLIC, emptyList(), null)
 private fun decl(type: Type) = DeclRef(type, Visibility.PUBLIC, false, null)
 private fun tbound(x: Id) = TVar(TypeVar.Generic(x))
 private fun tapp(name: String, vararg ids: Id): TApp {
