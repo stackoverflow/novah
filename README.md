@@ -2,6 +2,8 @@
 
 The compiler for novah: a statically typed, immutable, functional programming language for the JVM.
 
+See [the Novah website](https://novahlang.github.io/) for more information.
+
 ## Roadmap
 
 See [Roadmap](https://github.com/stackoverflow/novah/blob/master/ROADMAP.md).
