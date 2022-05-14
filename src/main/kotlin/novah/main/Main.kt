@@ -17,10 +17,26 @@ package novah.main
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
 import novah.cli.command.*
+import kotlin.system.exitProcess
 
-class MainCommand : CliktCommand(name = "novah") {
+class MainCommand : CliktCommand(name = "novah", printHelpOnEmptyArgs = true, invokeWithoutSubcommand = true) {
+
+    private val version by option("-v", "--version",
+        help = "show the current version and exit"
+    ).flag()
+
     override fun run() {
+        if (version) {
+            echo("Novah compiler $VERSION")
+            exitProcess(0)
+        }
+    }
+
+    companion object {
+        private const val VERSION = "0.1.1"
     }
 }
 
