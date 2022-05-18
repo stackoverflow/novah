@@ -31,6 +31,9 @@ class RecordSpec : StringSpec({
             
             minus = { - a | rec }
             
+            rem : { bar : Int32 | r } -> { | r }
+            rem = { - bar | _ }
+            
             plus = { d: (5 : Byte) | rec }
         """.module()
 
@@ -39,6 +42,7 @@ class RecordSpec : StringSpec({
         ds["rec"]?.type?.simpleName() shouldBe "{ a : Int32, b : Boolean, c : Int64 }"
         ds["a"]?.type?.simpleName() shouldBe "Int32"
         ds["minus"]?.type?.simpleName() shouldBe "{ b : Boolean, c : Int64 }"
+        ds["rem"]?.type?.simpleName() shouldBe "{ bar : Int32 | t1 } -> { | t1 }"
         ds["plus"]?.type?.simpleName() shouldBe "{ d : Byte, a : Int32, b : Boolean, c : Int64 }"
     }
 
