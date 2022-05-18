@@ -195,6 +195,9 @@ class RecordSpec : StringSpec({
               let r1 = { a: 1, a: 4.0, b: 1 }
               let r2 = { a: 'a', a: false, c: true }
               { + r1, r2 }
+            
+            build : { price : Int } -> { taxes: String } -> { price : Int, taxes : String }
+            build li vats = { + li, vats }
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls
@@ -202,6 +205,8 @@ class RecordSpec : StringSpec({
         ds["merged2"]?.type?.simpleName() shouldBe "{ age : Int32, name : String, weight : Int32 }"
         ds["merge3"]?.type?.simpleName() shouldBe
                 "{ a : Boolean, a : Char, a : Float64, a : Int32, b : Int32, c : Boolean }"
+        ds["build"]?.type?.simpleName() shouldBe
+                "{ price : Int32 } -> { taxes : String } -> { price : Int32, taxes : String }"
     }
 
     "1st class modules" {
