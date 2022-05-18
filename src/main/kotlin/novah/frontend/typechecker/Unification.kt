@@ -78,7 +78,11 @@ class Unification(private val typeChecker: Typechecker) {
             }
             t1 is TRowEmpty && t2 is TRowEmpty -> {
             }
-            t1 is TRecord && t2 is TRecord -> innerUnify(t1.row, t2.row, span)
+            t1 is TRecord && t2 is TRecord -> {
+                val t1row = if (t1.row is TRowExtend && t1.row.labels.isEmpty()) t1.row.row else t1.row
+                val t2row = if (t2.row is TRowExtend && t2.row.labels.isEmpty()) t2.row.row else t2.row
+                innerUnify(t1row, t2row, span)
+            }
             t1 is TRowExtend && t2 is TRowExtend -> unifyRows(t1, t2, span)
             t1 is TRowEmpty && t2 is TRowExtend -> {
                 val (labels, _) = matchRowType(t2)
@@ -148,7 +152,8 @@ class Unification(private val typeChecker: Typechecker) {
             empty1 && empty2 -> innerUnify(restTy1, restTy2, span)
             empty1 && !empty2 -> innerUnify(restTy2, TRowExtend(missing2, restTy1), span)
             !empty1 && empty2 -> innerUnify(restTy1, TRowExtend(missing1, restTy2), span)
-            !empty1 && !empty2 -> {
+            // both not empty
+            else -> {
                 when {
                     restTy1 is TRowEmpty -> innerUnify(restTy1, TRowExtend(missing1, typeChecker.newVar(0)), span)
                     restTy1 is TVar && restTy1.tvar is TypeVar.Unbound -> {
