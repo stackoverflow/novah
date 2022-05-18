@@ -315,6 +315,9 @@ sealed class Type(open val span: Span) {
         is TConst -> name[0].isUpperCase()
         is TParens -> type.isConcrete()
         is TApp -> type.isConcrete()
+        is TRecord -> row.isConcrete()
+        is TRowEmpty -> true
+        is TRowExtend -> row.isConcrete() && labels.all { it.second.isConcrete() }
         else -> false
     }
 
