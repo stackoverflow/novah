@@ -145,6 +145,11 @@ class ParserSpec : StringSpec({
         val code = """
             module indentationTest
             
+            import novah.computation
+            
+            (**) : a -> a
+            (**) x = x
+            
             rec = { fun: \x -> x, notfun: 0 }
             
             foo =

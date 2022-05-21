@@ -204,24 +204,30 @@ class Parser(
         val impTk = expect<ImportT>(noErr())
         val mod = parseModuleName()
 
-        val import = when (iter.peek().value) {
-            is LParen -> {
-                val imp = parseDeclarationRefs()
-                if (iter.peek().value is As) {
-                    iter.next()
-                    val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
-                    Import.Exposing(mod, imp, span(impTk.span, alias.span), alias.value.v)
-                } else Import.Exposing(mod, imp, span(impTk.span, iter.current().span))
-            }
-            is As -> {
-                iter.next()
-                val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
-                Import.Raw(mod, span(impTk.span, alias.span), alias.value.v)
-            }
-            else -> Import.Raw(mod, span(impTk.span, iter.current().span))
-        }
+        return withOffside {
+            if (iter.peekIsOffside()) {
+                Import.Raw(mod, span(impTk.span, iter.current().span))
+            } else {
+                val import = when (iter.peek().value) {
+                    is LParen -> {
+                        val imp = parseDeclarationRefs()
+                        if (iter.peek().value is As) {
+                            iter.next()
+                            val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
+                            Import.Exposing(mod, imp, span(impTk.span, alias.span), alias.value.v)
+                        } else Import.Exposing(mod, imp, span(impTk.span, iter.current().span))
+                    }
+                    is As -> {
+                        iter.next()
+                        val alias = expect<UpperIdent>(withError(E.IMPORT_ALIAS))
+                        Import.Raw(mod, span(impTk.span, alias.span), alias.value.v)
+                    }
+                    else -> Import.Raw(mod, span(impTk.span, iter.current().span))
+                }
 
-        return import.withComment(impTk.comment)
+                import.withComment(impTk.comment)
+            }
+        }
     }
 
     private fun parseForeignImport(): ForeignImport {
