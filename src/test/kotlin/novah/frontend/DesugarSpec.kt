@@ -184,4 +184,19 @@ class DesugarSpec : StringSpec({
 
         TestUtil.compileCode(code)
     }
+
+    "auto derive for equals" {
+        val code = """
+            #[derive: {equalsPoint: "Equals"}]
+            type Point = Point Int Int
+            
+            #[derive: {equalsEnum: "Equals"}]
+            type Enum = A | B | C
+            
+            #[derive: {equalsComplex: "Equals"}]
+            type Complex a = Ctor1 Int a | Ctor2 String | Ctor3
+        """.module()
+
+        TestUtil.compileCode(code)
+    }
 })
