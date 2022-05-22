@@ -102,7 +102,10 @@ object AutoDerive {
                 Pattern.Var(Expr.Var("\$y$i"))
             }, span)
             Case(listOf(pat1, pat2), makeComparison(ctor, varMap, span))
-        } + Case(listOf(Pattern.Wildcard(span), Pattern.Wildcard(span)), Expr.Bool(false))
+        }.toMutableList()
+        if (decl.dataCtors.size > 1) {
+            cases += Case(listOf(Pattern.Wildcard(span), Pattern.Wildcard(span)), Expr.Bool(false))
+        }
 
         val match = Expr.Match(listOf(Expr.Var("\$x"), Expr.Var("\$y")), cases)
         val lambda = Expr.Lambda(listOf(varPattern("\$x"), varPattern("\$y")), match)
