@@ -36,7 +36,7 @@ class MainCommand : CliktCommand(name = "novah", printHelpOnEmptyArgs = true, in
     }
 
     companion object {
-        private const val VERSION = "0.1.1"
+        private const val VERSION = "0.1.2"
     }
 }
 
