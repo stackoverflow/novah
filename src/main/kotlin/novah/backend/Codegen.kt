@@ -59,6 +59,15 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
     private val className = "${ast.name}/\$Module"
 
     fun run() {
+        try {
+            innerRun()
+        } catch (e: Exception) {
+            System.err.println("Error generating code for module ${ast.name} (${ast.sourceName}).")
+            throw e
+        }
+    }
+
+    private fun innerRun() {
         val cw = NovahClassWriter(COMPUTE_FRAMES)
         cw.visit(NOVAH_GENCLASS_VERSION, ACC_PUBLIC + ACC_FINAL, className, null, OBJECT_CLASS, arrayOf<String>())
         cw.visitSource(ast.sourceName, null)
@@ -284,7 +293,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val lastIndex = e.exps.size - 1
                 e.exps.forEachIndexed { index, expr ->
                     genExpr(expr, mv, ctx)
-                    if (index != lastIndex) mv.visitInsn(POP)
+                    if (index != lastIndex) popStack(mv, expr.type.type)
                 }
             }
             is Expr.Lambda -> {
@@ -584,7 +593,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
                 e.exps.forEach { expr ->
                     genExpr(expr, mv, ctx)
-                    mv.visitInsn(POP)
+                    popStack(mv, expr.type.type)
                 }
                 mv.visitJumpInsn(GOTO, whileLb)
                 mv.visitLabel(endLb)
@@ -620,7 +629,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLabel(endTry)
                 if (finallyLb != null) {
                     genExpr(e.finallyExp!!, mv, ctx)
-                    mv.visitInsn(POP)
+                    popStack(mv, e.finallyExp.type.type)
                 }
                 mv.visitJumpInsn(GOTO, end)
 
@@ -634,7 +643,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitLabel(elabel)
                     if (finallyLb != null) {
                         genExpr(e.finallyExp!!, mv, ctx)
-                        mv.visitInsn(POP)
+                        popStack(mv, e.finallyExp.type.type)
                     }
                     if (i != e.catches.lastIndex || finallyLb != null)
                         mv.visitJumpInsn(GOTO, end)
@@ -643,7 +652,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitLabel(finallyLb)
                     mv.visitVarInsn(ASTORE, excVar)
                     genExpr(e.finallyExp!!, mv, ctx)
-                    mv.visitInsn(POP)
+                    popStack(mv, e.finallyExp.type.type)
                     mv.visitVarInsn(ALOAD, excVar)
                     mv.visitInsn(ATHROW)
                 }
@@ -993,11 +1002,19 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             "-" -> ISUB
             "*" -> IMUL
             "/" -> IDIV
-            else -> internalError("unkonwn numeric operation $op")
+            else -> internalError("unknown numeric operation $op")
         }
         genExpr(op1, mv, ctx)
         genExpr(op2, mv, ctx)
         mv.visitInsn(t1.getOpcode(operation))
+    }
+
+    private fun popStack(mv: MethodVisitor, ty: Type) {
+        if (ty.sort == 7 || ty.sort == 8) {
+            mv.visitInsn(POP2)
+        } else {
+            mv.visitInsn(POP)
+        }
     }
 
     class LambdaContext(val lambda: Expr.Lambda, var ignores: List<String>, var locals: List<Expr.LocalVar>)

@@ -65,7 +65,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
         Expr(type, span)
 
     data class LocalVar(val name: String, override val type: Clazz, override val span: Span) : Expr(type, span)
-    data class SetLocalVar(val name: String, val exp: Expr) : Expr(exp.type, exp.span)
+    data class SetLocalVar(val name: String, val exp: Expr, override val type: Clazz) : Expr(type, exp.span)
     data class Lambda(
         val binder: String,
         val body: Expr,
