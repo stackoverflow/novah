@@ -311,12 +311,26 @@ reset x (Atom a) =
   a#set(x)
   x
 
+// Resets the value of this Atom to x, discarding the old value.
+pub
+(:=) : Atom a -> a -> Unit
+(:=) (Atom a) x = a#set(x)
+
 // Swaps the value of this atom by applying a function to the old value.
 // The function *should be free of side effects* as it may be executed
 // multiple times.
 pub
 swap : (a -> a) -> Atom a -> a
 swap f (Atom a) = Core#swapAtom(a, f)
+
+// Swaps the value of this atom by applying a function to the old value.
+// The function *should be free of side effects* as it may be executed
+// multiple times.
+pub
+(@=) : Atom a -> (a -> a) -> Unit
+(@=) (Atom a) f =
+  Core#swapAtom(a, f)
+  ()
 
 // Low-level function that receives the old value, the new value and attempts
 // to set the atom to new if old matches.
