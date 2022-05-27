@@ -50,7 +50,8 @@ object Names {
         '^' to "\$hat",
         '.' to "\$dot",
         '?' to "\$question",
-        '!' to "\$bang"
+        '!' to "\$bang",
+        '@' to "\$at"
     )
 
     private val identRegex = Regex("[a-z]\\w*")
