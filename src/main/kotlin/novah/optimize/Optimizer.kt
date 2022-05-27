@@ -398,7 +398,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                 }
                 val newBinds = args.mapIndexed { i, arg -> "tmp$$i" to arg }
                 val body = pars.zip(newBinds).map { (par, v) ->
-                    Expr.SetLocalVar(par, Expr.LocalVar(v.first, v.second.type, v.second.span))
+                    Expr.SetLocalVar(par, Expr.LocalVar(v.first, v.second.type, v.second.span), Clazz(UNIT_TYPE))
                 }
                 nestLets(newBinds, Expr.Do(body, body.last().type, span), type)
             } else Expr.Return(this)
