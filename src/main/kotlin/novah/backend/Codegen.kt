@@ -199,7 +199,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     ctx[e.name] ?: internalError("unmapped local variable (${e.name}) in code generation <${ast.name}>")
                 genExpr(e.exp, mv, ctx)
                 mv.visitVarInsn(e.exp.type.type.getOpcode(ISTORE), local)
-                genUnit(mv)
+                // The stack will be empty here, so no pop needed.
+                // This works because the Do case takes care of generating a default value
             }
             is Expr.Var -> {
                 mv.visitFieldInsn(GETSTATIC, e.className, e.name, e.type.type.descriptor)
@@ -290,10 +291,16 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 ctx.setEndLabel(e.binder, varEndLabel)
             }
             is Expr.Do -> {
-                val lastIndex = e.exps.size - 1
+                val lastIndex = e.exps.lastIndex
+                val last = e.exps.last()
                 e.exps.forEachIndexed { index, expr ->
                     genExpr(expr, mv, ctx)
-                    if (index != lastIndex) popStack(mv, expr.type.type)
+                    if (index != lastIndex && expr !is Expr.SetLocalVar)
+                        popStack(mv, expr.type.type)
+                }
+                // If the last expression is a set local var the stack will be empty
+                if (last is Expr.SetLocalVar) {
+                    genZeroValue(mv, e.type.type)
                 }
             }
             is Expr.Lambda -> {
