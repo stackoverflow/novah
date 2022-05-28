@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.21'
     id 'application'
     id 'com.github.johnrengelman.shadow' version '6.1.0'
     //id 'com.github.hierynomus.license' version '0.15.0'
@@ -12,15 +12,15 @@ repositories {
     mavenCentral()
 }
 
-def kotestVersion = '5.1.0'
-def mavenResolverVersion = '1.7.3'
+def kotestVersion = '5.3.0'
+def mavenResolverVersion = '1.8.0'
 
 sourceSets.main.java.srcDirs = ['src/main/java', 'src/main/javaLib']
 
 dependencies {
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.10'
-    implementation "org.ow2.asm:asm:9.2"
-    implementation 'com.github.ajalt.clikt:clikt:3.4.0'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.21'
+    implementation "org.ow2.asm:asm:9.3"
+    implementation 'com.github.ajalt.clikt:clikt:3.4.2'
     implementation "io.lacuna:bifurcan:0.2.0-alpha6"
     implementation "org.reflections:reflections:0.9.12"
     implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.12.0"
@@ -34,8 +34,8 @@ dependencies {
     implementation "org.apache.maven.resolver:maven-resolver-connector-basic:$mavenResolverVersion"
     implementation "org.apache.maven.resolver:maven-resolver-transport-file:$mavenResolverVersion"
     implementation "org.apache.maven.resolver:maven-resolver-transport-http:$mavenResolverVersion"
-    implementation "org.apache.maven:maven-core:3.8.4"
-    implementation "org.apache.maven:maven-resolver-provider:3.8.4"
+    implementation 'org.apache.maven:maven-core:3.8.5'
+    implementation 'org.apache.maven:maven-resolver-provider:3.8.5'
     implementation "org.slf4j:slf4j-nop:1.7.36"
 
 
