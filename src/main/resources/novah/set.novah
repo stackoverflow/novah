@@ -2,7 +2,6 @@
 // Literal sets can be created using `#{}`.
 module novah.set
 
-foreign import java.lang.Iterable
 foreign import java.util.concurrent.ThreadLocalRandom
 foreign import java.util.stream.Stream
 foreign import io.lacuna.bifurcan.ISet
@@ -12,19 +11,17 @@ foreign import novah.Ref
 
 import novah.stream as S
 import novah.java as J
-import novah.option as Option
 import novah.list as List
 
-// Creates a new set which uses the element equality function and the provided hash function, or the default object hash function.
-// This function should always be used to create new sets for types that have equality implementations that differ from its own
-// `equals` function.
-// Note that Novah creates default, sensible `equals` and `hashCode` implementations for every type, so this function is only needed
-// for types where the `equals` function and the `Equals` type class implementation diverge.
+// Creates a new set with all the elements of the list.
 pub
-new : {{ Equals a }} -> Option (a -> Int64) -> Set a
-new {{Equals eq}} hashFn =
-  let hash = Option.map J.toLongFunction hashFn ?: Maps#-`DEFAULT_HASH_CODE`
-  Set#new(hash, J.bipredicate eq)
+new : {{ Equals a }} -> List a -> Set a
+new {{Equals eq}} list =
+  let set = Set#new(Maps#-`DEFAULT_HASH_CODE`, J.bipredicate eq)#linear()
+  List.forEach list \x ->
+    set#add(x)
+    ()
+  set#linear()
 
 // Inserts this element in the set.
 // Runtime: ~O(1)
@@ -101,9 +98,9 @@ stream set = set#stream()
 // Collects this stream into a set.
 // Runtime: O(n)
 pub
-fromStream : Stream a -> Set a
-fromStream st =
-  let lset = #{}#linear()
+fromStream : {{ Equals a }} -> Stream a -> Set a
+fromStream {{eq}} st =
+  let lset = (new {{eq}} [])#linear()
   S.forEach st \x -> add x lset
   lset#forked()
 
@@ -225,7 +222,6 @@ any pred set =
       let e = set#nth(i)
       if pred e then true else go (i + 1L)
   go 0L
-
 
 // Returns the number of elements matching the given predicate.
 // Runtime: O(n)
@@ -371,9 +367,8 @@ groupBy f set =
 // with duplicates removed.
 // Runtime: O(n)
 pub
-fromList : List a -> Set a
-fromList list =
-  Set#from(list as Iterable a)
+fromList : {{ Equals a }} -> List a -> Set a
+fromList {{eq}} list = new {{eq}} list
 
 // Returns a list of all elements in this set.
 // Runtime: O(n)
