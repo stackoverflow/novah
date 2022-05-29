@@ -1,0 +1,140 @@
+// Functions for creating and manipulating BigDecimals
+module novah.bigdecimal
+
+foreign import java.lang.ArithmeticException
+foreign import java.math.BigInteger
+foreign import java.math.BigDecimal
+
+// Returns a new BigDecimal represented by this int64
+pub
+fromInt64 : Int64 -> BigDecimal
+fromInt64 n = BigDecimal#new(n)
+
+// Returns a new BigDecimal represented by this int
+pub
+fromInt : Int -> BigDecimal
+fromInt n = BigDecimal#new(n)
+
+// Returns a new BigDecimal represented by this string
+pub
+fromString : String -> BigDecimal
+fromString str = BigDecimal#new(str)
+
+// Returns a new BigDecimal represented by this float64
+pub
+fromFloat64 : Float64 -> BigDecimal
+fromFloat64 n = BigDecimal#new(n)
+
+// Returns a new BigDecimal represented by this BigInteger
+pub
+fromBigInt : BigInteger -> BigDecimal
+fromBigInt n = BigDecimal#new(n)
+
+// Returns a new BigDecimal whose value is -this
+pub
+negate : BigDecimal -> BigDecimal
+negate i = i#negate()
+
+// Returns a BigDecimal whose value is this ^ exponent
+pub
+pow : Int32 -> BigDecimal -> BigDecimal
+pow exp i = i#pow(exp)
+
+// Returns a byte representing this BigDecimal if it fits
+pub
+toByte : BigDecimal -> Option Byte
+toByte i =
+  try
+    Some i#byteValueExact()
+  catch
+    :? ArithmeticException -> None
+
+// Returns an int16 representing this BigDecimal if it fits
+pub
+toInt16 : BigDecimal -> Option Int16
+toInt16 i =
+  try
+    Some i#shortValueExact()
+  catch
+    :? ArithmeticException -> None
+
+// Returns an int representing this BigDecimal if it fits
+pub
+toInt : BigDecimal -> Option Int32
+toInt i =
+  try
+    Some i#intValueExact()
+  catch
+    :? ArithmeticException -> None
+
+// Returns an int64 representing this BigDecimal if it fits
+pub
+toInt64 : BigDecimal -> Option Int64
+toInt64 i =
+  try
+    Some i#longValueExact()
+  catch
+    :? ArithmeticException -> None
+
+pub instance
+plusBigDec : Plus BigDecimal
+plusBigDec =
+  Plus
+    { plus: \(x : BigDecimal) y -> x#add(y)
+    , identity: BigDecimal#-`ZERO`
+    }
+
+pub instance
+minusBigDec : Minus BigDecimal
+minusBigDec = Minus \(x : BigDecimal) y -> x#subtract(y)
+
+pub instance
+multBigDec : Mult BigDecimal
+multBigDec =
+  Mult
+    { mult: \(x : BigDecimal) y -> x#multiply(y)
+    , identity: BigDecimal#-`ONE`
+    }
+
+pub instance
+divideBigDec : Divide BigDecimal
+divideBigDec = Divide \(x : BigDecimal) y -> x#divide(y)
+
+pub instance
+showBigDec : Show BigDecimal
+showBigDec = Show toString
+
+pub instance
+eqBigDec : Equals BigDecimal
+eqBigDec = Equals \(x : BigDecimal) y -> x#equals(y as Object)
+
+compareBigDec : BigDecimal -> BigDecimal -> Ordering
+compareBigDec x y = case x#compareTo(y) of
+  0 -> EQ
+  1 -> GT
+  _ -> LT
+
+pub instance
+ordBigDec : Ord BigDecimal
+ordBigDec = Ord eqBigDec { compare: compareBigDec }
+
+pub instance
+numberOpsBigDec : NumberOps BigDecimal
+numberOpsBigDec =
+  NumberOps
+    { remainder: \(x : BigDecimal) y -> x#remainder(y)
+    , even: \(x: BigDecimal) -> x#remainder(fromInt 2)#equals(BigDecimal#-`ZERO` as Object)
+    , min: \(x : BigDecimal) y -> x#min(y)
+    , max: \(x : BigDecimal) y -> x#max(y)
+    , abs: \(x : BigDecimal) -> x#abs()
+    }
+
+pub instance
+toNumberBigDec : ToNumber BigDecimal
+toNumberBigDec =
+  ToNumber
+    { int: \(n : BigDecimal) -> n#intValue()
+    , int64: \(n : BigDecimal) -> n#longValue()
+    , float32: \(n : BigDecimal) -> n#floatValue()
+    , float64: \(n : BigDecimal) -> n#doubleValue()
+    }

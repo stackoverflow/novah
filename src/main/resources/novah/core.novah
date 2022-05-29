@@ -219,7 +219,7 @@ pub
 format : String -> List a -> String
 format str list = String#format(str, list#toArray())
 
-// Prints the formated string to stdout.
+// Prints the formatted string to stdout.
 pub
 printfln : String -> List a -> Unit
 printfln form args = println (format form args)
@@ -1087,7 +1087,7 @@ pub instance
 ordOption : {{ Ord a }} -> Ord (Option a)
 ordOption {{(Ord eq _) as ord}} = Ord (eqOption {{eq}}) { compare: compareOption ord }
 
-// A type for some miscelaneous number operations.
+// A type for some miscellaneous number operations.
 pub+
 type NumberOps a =
   NumberOps
@@ -1260,22 +1260,26 @@ type BitOperator a =
     , not : a -> a
     , shiftLeft : a -> a -> a
     , shiftRight : a -> a -> a
-    , unsignedShiftRight: a -> a -> a
     }
 
-// Returns the biwise and between x and y.
+// Represents a type of a fixed size that supports bitwise operations.
+pub+
+type FixedSizeBitOperator a =
+  FixedSizeBitOperator { unsignedShiftRight: a -> a -> a }
+
+// Returns the bitwise and between x and y.
 // Equivalent to Java's `&`.
 pub
 bitAnd : {{ BitOperator a }} -> a -> a -> a
 bitAnd {{BitOperator b}} x y = b.and x y
 
-// Returns the biwise or between x and y.
+// Returns the bitwise or between x and y.
 // Equivalent to Java's `|`.
 pub
 bitOr : {{ BitOperator a }} -> a -> a -> a
 bitOr {{BitOperator b}} x y = b.or x y
 
-// Returns the biwise xor between x and y.
+// Returns the bitwise xor between x and y.
 // Equivalent to Java's `^`.
 pub
 bitXor : {{ BitOperator a }} -> a -> a -> a
@@ -1302,8 +1306,8 @@ bitShiftRight {{BitOperator b}} x amount = b.shiftRight x amount
 // Shifts `x` bitwise to the right by `amount` (unsigned).
 // Equivalent to Java's `>>>`.
 pub
-bitUnsignedShiftRight : {{ BitOperator a }} -> a -> a -> a
-bitUnsignedShiftRight {{BitOperator b}} x amount = b.unsignedShiftRight x amount
+bitUnsignedShiftRight : {{ FixedSizeBitOperator a }} -> a -> a -> a
+bitUnsignedShiftRight {{FixedSizeBitOperator b}} x amount = b.unsignedShiftRight x amount
 
 pub instance
 bitOperatorByte : BitOperator Byte
@@ -1314,9 +1318,14 @@ bitOperatorByte =
     , xor: \(x : Byte) (y : Byte) -> Core#bitXorInt(x#intValue(), y#intValue())#byteValue()
     , shiftLeft: \(x : Byte) (y : Byte) -> Core#bitShiftLeftInt(x#intValue(), y#intValue())#byteValue()
     , shiftRight: \(x : Byte) (y : Byte) -> Core#bitShiftRightInt(x#intValue(), y#intValue())#byteValue()
-    , unsignedShiftRight: \(x : Byte) (y : Byte) -> Core#unsignedBitShiftRightInt(x#intValue(), y#intValue())#byteValue()
     , not: \(x : Byte) -> Core#bitNotInt(x#intValue())#byteValue()
     }
+
+pub instance
+fixedSizeBitOperatorByte : FixedSizeBitOperator Byte
+fixedSizeBitOperatorByte =
+  FixedSizeBitOperator
+    { unsignedShiftRight: \(x : Byte) (y : Byte) -> Core#unsignedBitShiftRightInt(x#intValue(), y#intValue())#byteValue() }
 
 pub instance
 bitOperatorInt16 : BitOperator Int16
@@ -1327,9 +1336,14 @@ bitOperatorInt16 =
     , xor: \(x : Int16) (y : Int16) -> Core#bitXorInt(x#intValue(), y#intValue())#shortValue()
     , shiftLeft: \(x : Int16) (y : Int16) -> Core#bitShiftLeftInt(x#intValue(), y#intValue())#shortValue()
     , shiftRight: \(x : Int16) (y : Int16) -> Core#bitShiftRightInt(x#intValue(), y#intValue())#shortValue()
-    , unsignedShiftRight: \(x : Int16) (y : Int16) -> Core#unsignedBitShiftRightInt(x#intValue(), y#intValue())#shortValue()
     , not: \(x : Int16) -> Core#bitNotInt(x#intValue())#shortValue()
     }
+
+pub instance
+fixedSizeBitOperatorInt16 : FixedSizeBitOperator Int16
+fixedSizeBitOperatorInt16 =
+  FixedSizeBitOperator
+    { unsignedShiftRight: \(x : Int16) (y : Int16) -> Core#unsignedBitShiftRightInt(x#intValue(), y#intValue())#shortValue() }
 
 pub instance
 bitOperatorInt32 : BitOperator Int32
@@ -1340,9 +1354,14 @@ bitOperatorInt32 =
     , xor: \x y -> Core#bitXorInt(x, y)
     , shiftLeft: \x y -> Core#bitShiftLeftInt(x, y)
     , shiftRight: \x y -> Core#bitShiftRightInt(x, y)
-    , unsignedShiftRight: \x y -> Core#unsignedBitShiftRightInt(x, y)
     , not: \x -> Core#bitNotInt(x)
     }
+
+pub instance
+fixedSizeBitOperatorInt32 : FixedSizeBitOperator Int32
+fixedSizeBitOperatorInt32 =
+  FixedSizeBitOperator
+    { unsignedShiftRight: \x y -> Core#unsignedBitShiftRightInt(x, y) }
 
 pub instance
 bitOperatorInt64 : BitOperator Int64
@@ -1353,9 +1372,14 @@ bitOperatorInt64 =
     , xor: \x y -> Core#bitXorLong(x, y)
     , shiftLeft: \x y -> Core#bitShiftLeftLong(x, y)
     , shiftRight: \x y -> Core#bitShiftRightLong(x, y)
-    , unsignedShiftRight: \x y -> Core#unsignedBitShiftRightLong(x, y)
     , not: \x -> Core#bitNotLong(x)
     }
+
+pub instance
+fixedSizeBitOperatorInt64 : FixedSizeBitOperator Int64
+fixedSizeBitOperatorInt64 =
+  FixedSizeBitOperator
+    { unsignedShiftRight: \x y -> Core#unsignedBitShiftRightLong(x, y) }
 
 // Types that can range over some values.
 pub+
