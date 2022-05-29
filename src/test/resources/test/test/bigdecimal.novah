@@ -1,0 +1,58 @@
+module test.bigdecimal
+
+
+import novah.bigdecimal as B
+import novah.bigint as BigInt
+import novah.test
+
+foreign import java.math.BigDecimal
+
+bd : Int -> BigDecimal
+bd = B.fromInt
+
+bigDecTests : Unit
+bigDecTests =
+  let x = bd 100
+  let y = bd 2
+  let big = B.fromString "100000000000000000000000000000000000000000000000001"
+  test "BigDecimal creation functions" \_ ->
+    B.fromInt64 100L `shouldBe` x
+    B.fromString "100" `shouldBe` x
+    B.fromFloat64 100.0 `shouldBe` x
+    B.fromBigInt (BigInt.fromInt 100) `shouldBe` x
+
+  test "BigDecimal conversion functions" \_ ->
+    int x `shouldBe` 100
+    int64 x `shouldBe` 100L
+    float32 x `shouldBe` 100F
+    float64 x `shouldBe` 100.0
+    B.toByte x `shouldBe` Some (100 : Byte)
+    B.toByte big `shouldBe` None
+    B.toInt16 x `shouldBe` Some (100 : Int16)
+    B.toInt16 big `shouldBe` None
+    B.toInt x `shouldBe` Some 100
+    B.toInt big `shouldBe` None
+    B.toInt64 x `shouldBe` Some 100L
+    B.toInt64 big `shouldBe` None
+    show big `shouldBe` "100000000000000000000000000000000000000000000000001"
+
+  test "BigDecimal math functions" \_ ->
+    B.negate x `shouldBe` bd -100
+    B.pow 2 x `shouldBe` bd 10000
+    (x + y) `shouldBe` bd 102
+    (x - y) `shouldBe` bd 98
+    (x * y) `shouldBe` bd 200
+    (x / y) `shouldBe` bd 50
+    (y / x) `shouldBe` B.fromString "0.02"
+    (x == y) `shouldBe` false
+    let otherX = bd 100
+    (x == otherX) `shouldBe` true
+    (x > y) `shouldBe` true
+    (big <= y) `shouldBe` false
+    Math.isEven x `shouldBe` true
+    Math.isEven big `shouldBe` false
+    Math.min x y `shouldBe` y
+    Math.max x big `shouldBe` big
+    Math.abs (bd -100) `shouldBe` x
+    (x % y) `shouldBe` bd 0
+    (big % y) `shouldBe` bd 1
