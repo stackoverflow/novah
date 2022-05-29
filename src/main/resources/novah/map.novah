@@ -14,22 +14,19 @@ import novah.list as List
 
 // Creates a new map with the supplied entries.
 pub
-new : List (Tuple k v) -> Map k v
-new list =
-  let lmap = Map#empty()#linear()
+new : {{ Equals k }} -> List (Tuple k v) -> Map k v
+new {{Equals eq}} list =
+  let lmap = Map#new(Maps#-`DEFAULT_HASH_CODE`, Java.bipredicate eq)#linear()
   List.forEach list \(Tuple key val) ->
     put key val lmap
     ()
   lmap#forked()
 
-// Creates a new map which uses the key equality function and the provided hash function, or the default object hash function.
-// This function should always be used to create new maps for types that have equality implementations that differ from its own
-// `equals` function.
-// Note that Novah creates default, sensible `equals` and `hashCode` implementations for every type.
+// Creates a new map which uses the provided hash function, or the default object hash function.
 pub
-newEq : {{ Equals k }} -> Option (k -> Int64) -> Map k v
+newEq : {{ Equals k }} -> (k -> Int64) -> Map k v
 newEq {{Equals eq}} hashFn =
-  let hash = Option.map Java.toLongFunction hashFn ?: Maps#-`DEFAULT_HASH_CODE`
+  let hash = Java.toLongFunction hashFn
   Map#new(hash, Java.bipredicate eq)
 
 // Returns the size of the map.
@@ -223,8 +220,8 @@ withLinear map f =
 // Creates a map out of a list based on the given function.
 // Runtime: O(n)
 pub
-associate : (a -> Tuple k v) -> List a -> Map k v
-associate fun = List.map fun >> new
+associate : {{ Equals k }} -> (a -> Tuple k v) -> List a -> Map k v
+associate {{eq}} fun = List.map fun >> new {{eq}}
 
 showMapp : Show k -> Show v -> Map k v -> String
 showMapp (Show shk) (Show shv) m =
