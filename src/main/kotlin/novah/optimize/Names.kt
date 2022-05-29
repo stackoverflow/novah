@@ -20,7 +20,7 @@ import java.lang.StringBuilder
 object Names {
 
     /**
-     * Converts a novah name to Java.
+     * Converts a novah name to a valid Java identifier.
      */
     fun convert(name: String): String {
         val b = StringBuilder()
@@ -29,7 +29,8 @@ object Names {
             if (str != null) b.append(str)
             else b.append(c)
         }
-        return b.toString()
+        val newName = b.toString()
+        return if (newName in reserved) "\$$newName" else newName
     }
 
     fun isValidNovahIdent(ident: String) = ident.matches(identRegex)
@@ -52,6 +53,51 @@ object Names {
         '?' to "\$question",
         '!' to "\$bang",
         '@' to "\$at"
+    )
+
+    // java reserved words
+    private val reserved = setOf(
+        "abstract",
+        "assert",
+        "boolean",
+        "break",
+        "byte",
+        "char",
+        "class",
+        "const",
+        "continue",
+        "default",
+        "double",
+        "enum",
+        "exports",
+        "extends",
+        "final",
+        "float",
+        "goto",
+        "implements",
+        "instanceof",
+        "int",
+        "interface",
+        "long",
+        "native",
+        "new",
+        "package",
+        "private",
+        "protected",
+        "public",
+        "requires",
+        "short",
+        "static",
+        "strictfp",
+        "super",
+        "switch",
+        "synchronized",
+        "this",
+        "throws",
+        "transient",
+        "var",
+        "void",
+        "volatile"
     )
 
     private val identRegex = Regex("[a-z]\\w*")

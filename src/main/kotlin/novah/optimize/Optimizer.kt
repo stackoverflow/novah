@@ -131,7 +131,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is CExpr.Bool -> Expr.Bool(v, typ, span)
             is CExpr.Var -> {
                 val conName = Names.convert(name)
-                val vvar = if (moduleName == null && name in locals) {
+                val vvar = if (moduleName == null && conName in locals) {
                     Expr.LocalVar(conName, typ, span)
                 } else {
                     val cname = internalize(moduleName ?: ast.name.value) + "/\$Module"
@@ -154,7 +154,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             }
             is CExpr.ImplicitVar -> {
                 val conName = Names.convert(name)
-                if (name in locals) Expr.LocalVar(conName, typ, span)
+                if (conName in locals) Expr.LocalVar(conName, typ, span)
                 else {
                     val cname = internalize(moduleName ?: ast.name.value) + "/\$Module"
                     Expr.Var(conName, cname, typ, span)
@@ -227,8 +227,9 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is CExpr.TryCatch -> {
                 val catches = cases.map {
                     val pat = it.patterns[0] as Pattern.TypeTest
-                    val loc = if (pat.alias != null) locals + pat.alias else locals
-                    Catch(pat.test.convert(), pat.alias, it.exp.convert(loc), pat.span)
+                    val alias = if (pat.alias != null) Names.convert(pat.alias) else null
+                    val loc = if (alias != null) locals + alias else locals
+                    Catch(pat.test.convert(), alias, it.exp.convert(loc), pat.span)
                 }
                 Expr.TryCatch(tryExp.convert(locals), catches, finallyExp?.convert(locals), typ, span)
             }
