@@ -5,8 +5,8 @@ import novah.linkedList (::, LinkedList(..))
 import novah.linkedList as LinkedList
 import novah.test
 
-listTests : Unit
-listTests =
+computationTests : Unit
+computationTests =
   test "List computations" \_ ->
     let l = do.list
       for x in [1 .. 4] do
