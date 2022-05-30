@@ -454,13 +454,21 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             }
             is Expr.Cast -> {
                 val ty = e.type.type
+                val exprTy = e.expr.type.type
                 genExpr(e.expr, mv, ctx)
-                if (ty.isPrimitive()) {
-                    if (!e.expr.type.type.isPrimitive()) {
+                when {
+                    ty.isPrimitive() && !exprTy.isPrimitive() -> {
                         mv.visitTypeInsn(CHECKCAST, ty.wrapper().internalName)
                         unbox(ty, mv)
                     }
-                } else mv.visitTypeInsn(CHECKCAST, ty.internalName)
+                    exprTy.isPrimitive() && !ty.isPrimitive() -> {
+                        box(exprTy, mv)
+                        mv.visitTypeInsn(CHECKCAST, ty.internalName)
+                    }
+                    else -> {
+                        mv.visitTypeInsn(CHECKCAST, ty.internalName)
+                    }
+                }
             }
             is Expr.RecordEmpty -> {
                 mv.visitTypeInsn(NEW, RECORD_CLASS)
