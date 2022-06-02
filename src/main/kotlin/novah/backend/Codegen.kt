@@ -169,7 +169,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         mv.visitFieldInsn(PUTSTATIC, className, decl.name, decl.exp.type.type.descriptor)
     }
 
-    private fun genExpr(e: Expr, mv: MethodVisitor, ctx: GenContext) {
+    private fun genExpr(e: Expr, mv: MethodVisitor, ctx: GenContext, unused: Boolean = false) {
         val startLine = e.span.startLine
         if (startLine != lineNumber && startLine != -1) {
             lineNumber = startLine
@@ -269,11 +269,11 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     genExpr(cond, mv, ctx)
                     elseLabel = Label()
                     mv.visitJumpInsn(IFEQ, elseLabel)
-                    genExpr(then, mv, ctx)
+                    genExpr(then, mv, ctx, unused)
                     mv.visitJumpInsn(GOTO, endLabel)
                 }
                 mv.visitLabel(elseLabel)
-                genExpr(e.elseCase, mv, ctx)
+                genExpr(e.elseCase, mv, ctx, unused)
                 mv.visitLabel(endLabel)
             }
             is Expr.Let -> {
@@ -286,7 +286,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitLabel(varStartLabel)
                 ctx.put(e.binder, num, varStartLabel)
 
-                genExpr(e.body, mv, ctx)
+                genExpr(e.body, mv, ctx, unused)
                 mv.visitLabel(varEndLabel)
                 ctx.setEndLabel(e.binder, varEndLabel)
             }
@@ -294,8 +294,9 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val lastIndex = e.exps.lastIndex
                 val last = e.exps.last()
                 e.exps.forEachIndexed { index, expr ->
-                    genExpr(expr, mv, ctx)
-                    if (index != lastIndex && expr !is Expr.SetLocalVar)
+                    val isUnused = index != lastIndex && expr !is Expr.SetLocalVar
+                    genExpr(expr, mv, ctx, isUnused)
+                    if (isUnused)
                         popStack(mv, expr.type.type)
                 }
                 // If the last expression is a set local var the stack will be empty
@@ -351,7 +352,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val ftype = getType(f.type)
                 if (type.isPrimitive() && !ftype.isPrimitive()) {
                     if (!ftype.isWrapper()) mv.visitTypeInsn(CHECKCAST, type.wrapper().internalName)
-                    unbox(type, mv)
+                    // don't unbox unused values
+                    if (!unused) unbox(type, mv)
+                    else {
+                        mv.visitInsn(POP)
+                        genZeroValue(mv, type)
+                    }
                 }
                 if (!type.isPrimitive() && type != ftype)
                     mv.visitTypeInsn(CHECKCAST, type.internalName)
@@ -364,7 +370,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val ftype = getType(f.type)
                 if (type.isPrimitive() && !ftype.isPrimitive()) {
                     if (!ftype.isWrapper()) mv.visitTypeInsn(CHECKCAST, type.wrapper().internalName)
-                    unbox(type, mv)
+                    // don't unbox unused values
+                    if (!unused) unbox(type, mv)
+                    else {
+                        mv.visitInsn(POP)
+                        genZeroValue(mv, type)
+                    }
                 }
                 if (!type.isPrimitive() && type != ftype)
                     mv.visitTypeInsn(CHECKCAST, type.internalName)
@@ -403,7 +414,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     val rtype = getType(m.returnType)
                     if (type.isPrimitive() && !m.returnType.isPrimitive) {
                         if (!rtype.isWrapper()) mv.visitTypeInsn(CHECKCAST, type.wrapper().internalName)
-                        unbox(type, mv)
+                        // don't unbox unused values
+                        if (!unused) unbox(type, mv)
+                        else {
+                            mv.visitInsn(POP)
+                            genZeroValue(mv, type)
+                        }
                     }
                     if (!type.isPrimitive() && type != rtype)
                         mv.visitTypeInsn(CHECKCAST, type.internalName)
@@ -429,7 +445,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     val mtype = getType(m.returnType)
                     if (type.isPrimitive() && !m.returnType.isPrimitive) {
                         if (!mtype.isWrapper()) mv.visitTypeInsn(CHECKCAST, type.wrapper().internalName)
-                        unbox(type, mv)
+                        // don't unbox unused values
+                        if (!unused) unbox(type, mv)
+                        else {
+                            mv.visitInsn(POP)
+                            genZeroValue(mv, type)
+                        }
                     }
                     if (!type.isPrimitive() && type != mtype)
                         mv.visitTypeInsn(CHECKCAST, type.internalName)
@@ -607,7 +628,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitJumpInsn(IFEQ, endLb)
 
                 e.exps.forEach { expr ->
-                    genExpr(expr, mv, ctx)
+                    genExpr(expr, mv, ctx, unused = true)
                     popStack(mv, expr.type.type)
                 }
                 mv.visitJumpInsn(GOTO, whileLb)
@@ -643,7 +664,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 mv.visitVarInsn(expTy.getOpcode(ISTORE), retVar)
                 mv.visitLabel(endTry)
                 if (finallyLb != null) {
-                    genExpr(e.finallyExp!!, mv, ctx)
+                    genExpr(e.finallyExp!!, mv, ctx, unused = true)
                     popStack(mv, e.finallyExp.type.type)
                 }
                 mv.visitJumpInsn(GOTO, end)
@@ -657,7 +678,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                     mv.visitVarInsn(expTy.getOpcode(ISTORE), retVar)
                     mv.visitLabel(elabel)
                     if (finallyLb != null) {
-                        genExpr(e.finallyExp!!, mv, ctx)
+                        genExpr(e.finallyExp!!, mv, ctx, unused = true)
                         popStack(mv, e.finallyExp.type.type)
                     }
                     if (i != e.catches.lastIndex || finallyLb != null)
@@ -666,7 +687,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 if (finallyLb != null) {
                     mv.visitLabel(finallyLb)
                     mv.visitVarInsn(ASTORE, excVar)
-                    genExpr(e.finallyExp!!, mv, ctx)
+                    genExpr(e.finallyExp!!, mv, ctx, unused = true)
                     popStack(mv, e.finallyExp.type.type)
                     mv.visitVarInsn(ALOAD, excVar)
                     mv.visitInsn(ATHROW)
