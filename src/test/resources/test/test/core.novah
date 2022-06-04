@@ -2,6 +2,8 @@ module test.core
 
 import novah.test
 
+foreign import novah.Ref
+
 intArray : List Int -> Array Int
 intArray l = List.toTypedArray Int32#-class l
 
@@ -105,3 +107,11 @@ coreTests =
     ((6 ; 6.9) - (2 ; 2.5)) `shouldBe` (4 ; 4.4)
     ((3 ; 3.2) * (5 ; 4.8)) `shouldBe` (15 ; 15.36)
     ((16 ; 6.2) / (2 ; 2.0)) `shouldBe` (8 ; 3.1)
+
+  test "Core java interop" \_ ->
+    let ref = Ref#new(3)
+    ref#-val <- Some 10
+    ref#-val `shouldBe` 10
+    ref#-?val `shouldBe` Some 10
+    ref#-val <- None
+    ref#-?val `shouldBe` None

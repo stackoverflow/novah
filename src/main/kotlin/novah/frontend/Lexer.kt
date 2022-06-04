@@ -32,6 +32,8 @@ sealed class Token {
     object MetaBracket : Token()
     object Hash : Token()
     object HashDash : Token()
+    object HashQuestion : Token()
+    object HashDashQuestion : Token()
     object Dot : Token()
     object DotBracket : Token()
     object Comma : Token()
@@ -259,11 +261,18 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     }
                     '-' -> {
                         iter.next()
-                        HashDash
+                        if (iter.peek() == '?') {
+                            iter.next()
+                            HashDashQuestion
+                        } else HashDash
                     }
                     '"' -> {
                         iter.next()
                         patternString()
+                    }
+                    '?' -> {
+                        iter.next()
+                        HashQuestion
                     }
                     else -> Hash
                 }

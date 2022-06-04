@@ -216,11 +216,17 @@ sealed class Expr {
     data class Yield(val exp: Expr) : Expr()
     data class DoBang(val exp: Expr) : Expr()
     data class TypeCast(val exp: Expr, val cast: Type) : Expr()
-    data class ForeignStaticField(val clazz: Spanned<String>, val field: Spanned<String>) : Expr()
-    data class ForeignField(val exp: Expr, val field: Spanned<String>) : Expr()
-    data class ForeignMethod(val exp: Expr, val method: Spanned<String>, val args: List<Expr>) : Expr()
-    data class ForeignStaticMethod(val clazz: Spanned<String>, val method: Spanned<String>, val args: List<Expr>) :
+    data class ForeignStaticField(val clazz: Spanned<String>, val field: Spanned<String>, val option: Boolean) : Expr()
+    data class ForeignField(val exp: Expr, val field: Spanned<String>, val option: Boolean) : Expr()
+    data class ForeignMethod(val exp: Expr, val method: Spanned<String>, val args: List<Expr>, val option: Boolean) :
         Expr()
+
+    data class ForeignStaticMethod(
+        val clazz: Spanned<String>,
+        val method: Spanned<String>,
+        val args: List<Expr>,
+        val option: Boolean
+    ) : Expr()
 
     var span = Span.empty()
     var comment: Comment? = null
@@ -251,7 +257,7 @@ data class Binder(val name: String, val span: Span, val isImplicit: Boolean = fa
     override fun toString(): String = name
 }
 
-data class RecUpdate(val labels: List<Spanned<String>>, val value: Expr, val isSet : Boolean)
+data class RecUpdate(val labels: List<Spanned<String>>, val value: Expr, val isSet: Boolean)
 
 sealed class LetDef(open val expr: Expr) {
     data class DefBind(

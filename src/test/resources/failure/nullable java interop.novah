@@ -1,0 +1,6 @@
+module test
+
+foreign import novah.Ref
+
+x : Option String
+x = "abc"#?indexOf("c")
