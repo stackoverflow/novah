@@ -260,6 +260,8 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 "<" -> genOperatorSmaller(e, mv, ctx)
                 "<=" -> genOperatorSmallerOrEquals(e, mv, ctx)
                 "+", "-", "*", "/" -> genNumericOperator(e.name, e, mv, ctx)
+                "=null" -> genOperatorNull(e, mv, ctx, isEquals = true)
+                "!=null" -> genOperatorNull(e, mv, ctx, isEquals = false)
             }
             is Expr.If -> {
                 val endLabel = Label()
@@ -619,6 +621,12 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.Return -> {
                 genExpr(e.exp, mv, ctx)
                 mv.visitInsn(e.exp.type.type.getOpcode(IRETURN))
+            }
+            is Expr.Unbox -> {
+                genExpr(e.exp, mv, ctx)
+                if (e.type.type.isPrimitive()) {
+                    unbox(e.type.type, mv)
+                }
             }
             is Expr.While -> {
                 val whileLb = Label()
@@ -1028,6 +1036,20 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
         mv.visitLabel(end)
     }
 
+    private fun genOperatorNull(e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext, isEquals: Boolean) {
+        val op = if (isEquals) IFNONNULL else IFNULL
+        genExpr(e.operands[0], mv, ctx)
+
+        val success = Label()
+        val end = Label()
+        mv.visitJumpInsn(op, success)
+        mv.visitInsn(ICONST_1)
+        mv.visitJumpInsn(GOTO, end)
+        mv.visitLabel(success)
+        mv.visitInsn(ICONST_0)
+        mv.visitLabel(end)
+    }
+
     private fun genNumericOperator(op: String, e: Expr.OperatorApp, mv: MethodVisitor, ctx: GenContext) {
         if (e.operands.size != 2) internalError("got wrong number of operators for operator $op")
         val op1 = e.operands[0]
@@ -1159,6 +1181,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
             is Expr.ConstructorAccess -> go(exp.ctor)
             is Expr.ArrayLength -> go(exp.expr)
             is Expr.Return -> go(exp.exp)
+            is Expr.Unbox -> go(exp.exp)
             is Expr.SetLocalVar -> go(exp.exp)
             is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
             is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Constructor, is Expr.Null, is Expr.Var,

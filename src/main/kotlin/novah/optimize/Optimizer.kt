@@ -150,7 +150,11 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                 val ctorName = fullname(moduleName ?: ast.name.value)
                 val arity = ctorCache[ctorName]?.arity
                     ?: internalError("Could not find constructor $name")
-                Expr.Constructor(internalize(ctorName), arity, typ, span)
+                when (ctorName) {
+                    "prim.None" -> Expr.Null(typ, span)
+                    "prim.Some" -> Expr.NativeStaticFieldGet(some, typ, span)
+                    else -> Expr.Constructor(internalize(ctorName), arity, typ, span)
+                }
             }
             is CExpr.ImplicitVar -> {
                 val conName = Names.convert(name)
@@ -276,6 +280,9 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             if (type is TConst && type.name == primArray) {
                 val of = types[0].convert()
                 Clazz(getPrimitiveArrayTypeName(of.type))
+            } else if (type is TConst && type.name == primOption) {
+                val of = types[0].convert()
+                Clazz(getPrimitiveOptionType(of.type))
             } else {
                 val conv = type.convert()
                 if (conv.type.className == primNullable) {
@@ -530,21 +537,32 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                 val conds = mutableListOf<Expr>()
                 val vars = mutableListOf<VarDef>()
 
-                val ctor = p.ctor.convert(locals) as Expr.Constructor
-                val name = p.ctor.fullname(p.ctor.moduleName ?: ast.name.value)
-                val ctorType = Clazz(Type.getObjectType(internalize(name)), pars = ctor.type.pars.dropLast(1))
-                conds += Expr.InstanceOf(exp, ctorType, p.span)
+                when (val name = p.ctor.fullname(p.ctor.moduleName ?: ast.name.value)) {
+                    "prim.Some" -> {
+                        conds += Expr.OperatorApp("!=null", listOf(exp), boolType, exp.span)
+                        val (cond, vs) = desugarPattern(p.fields[0], Expr.Unbox(exp, toPrimitive(exp.type)))
+                        conds += cond
+                        vars += vs
+                    }
+                    "prim.None" -> {
+                        conds += Expr.OperatorApp("=null", listOf(exp), boolType, exp.span)
+                    }
+                    else -> {
+                        val ctor = p.ctor.convert(locals) as Expr.Constructor
+                        val ctorType = Clazz(Type.getObjectType(internalize(name)), pars = ctor.type.pars.dropLast(1))
+                        conds += Expr.InstanceOf(exp, ctorType, p.span)
+                        val (fieldTypes, _) = peelArgs(Environment.findConstructor(name)!!)
+                        val expectedFieldTypes = p.fields.map { it.type!!.convert() }
 
-                val (fieldTypes, _) = peelArgs(Environment.findConstructor(name)!!)
-                val expectedFieldTypes = p.fields.map { it.type!!.convert() }
-
-                p.fields.forEachIndexed { i, pat ->
-                    val idx = i + 1
-                    val field =
-                        mkCtorField(ctor.fullName, idx, exp, ctorType, fieldTypes[i], expectedFieldTypes.getOrNull(i))
-                    val (cond, vs) = desugarPattern(pat, field)
-                    conds += cond
-                    vars += vs
+                        p.fields.forEachIndexed { i, pat ->
+                            val idx = i + 1
+                            val field =
+                                mkCtorField(ctor.fullName, idx, exp, ctorType, fieldTypes[i], expectedFieldTypes.getOrNull(i))
+                            val (cond, vs) = desugarPattern(pat, field)
+                            conds += cond
+                            vars += vs
+                        }
+                    }
                 }
 
                 PatternResult(simplifyConds(conds), vars)
@@ -749,6 +767,30 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             else -> Type.getObjectType(internalize(tvar.name))
         }
 
+        private fun getPrimitiveOptionType(of: Type): Type = when (of.sort) {
+            1 -> Type.getType(Boolean::class.javaObjectType)
+            2 -> Type.getType(Char::class.javaObjectType)
+            3 -> Type.getType(Byte::class.javaObjectType)
+            4 -> Type.getType(Short::class.javaObjectType)
+            5 -> Type.getType(Int::class.javaObjectType)
+            6 -> Type.getType(Float::class.javaObjectType)
+            7 -> Type.getType(Long::class.javaObjectType)
+            8 -> Type.getType(Double::class.javaObjectType)
+            else -> of
+        }
+
+        private fun toPrimitive(ty: Clazz): Clazz = when (ty.type.className) {
+            "java.lang.Byte" -> Clazz(Type.getType(Byte::class.java))
+            "java.lang.Short" -> Clazz(Type.getType(Short::class.java))
+            "java.lang.Integer" -> Clazz(Type.getType(Int::class.java))
+            "java.lang.Long" -> Clazz(Type.getType(Long::class.java))
+            "java.lang.Float" -> Clazz(Type.getType(Float::class.java))
+            "java.lang.Double" -> Clazz(Type.getType(Double::class.java))
+            "java.lang.Character" -> Clazz(Type.getType(Char::class.java))
+            "java.lang.Boolean" -> Clazz(Type.getType(Boolean::class.java))
+            else -> ty
+        }
+
         private fun getPrimitiveArrayTypeName(of: Type): Type {
             return Type.getType("[${of.wrapper().descriptor}")
         }
@@ -770,6 +812,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         private val listAccess = PList::class.java.methods.find { it.name == "nth" }!!
         private val listDrop = Core::class.java.methods.find { it.name == "listDrop" }!!
         private val listMinSize = Core::class.java.methods.find { it.name == "listMinSize" }!!
+        private val some = Core::class.java.fields.find { it.name == "some" }!!
         private val eqString = String::class.java.methods.find { it.name == "equals" }!!
         val newRecFun: Constructor<*> = RecFunction::class.java.constructors.first()
         val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!

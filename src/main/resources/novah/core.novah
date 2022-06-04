@@ -233,10 +233,6 @@ pub
 nullable : a -> Nullable a
 nullable x = unsafeCast x
 
-// Represents the possibility of a missing value.
-pub+
-type Option a = Some a | None
-
 // Returns the value contained in this option
 // or the default value.
 pub

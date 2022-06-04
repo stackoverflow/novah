@@ -641,7 +641,10 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             val cache = mappings?.zip(objTy.parameters())?.toMap() ?: emptyMap()
             val tys = exp.args.map { infer(env, level, it) }
             val found = unifyMethods(methods, tys, level, exp.span, cache)
-                ?: inferError(E.methodDidNotUnify(exp.methodName.value, clazz, tys.map(Type::show)), exp.methodName.span)
+                ?: inferError(
+                    E.methodDidNotUnify(exp.methodName.value, clazz, tys.map(Type::show)),
+                    exp.methodName.span
+                )
             if (!Reflection.isPublic(found)) {
                 inferError(E.nonPublicMethod(exp.methodName.value, clazz), exp.methodName.span)
             }
@@ -886,10 +889,12 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
     private fun checkEscapePvtType(ty: Type, span: Span) {
         var found = ""
         var tySpan: Span? = null
-        ty.everywhereUnit { if (it is TConst && it.name in pvtTypes) {
-            found = it.name
-            tySpan = it.span
-        } }
+        ty.everywhereUnit {
+            if (it is TConst && it.name in pvtTypes) {
+                found = it.name
+                tySpan = it.span
+            }
+        }
         if (found.isNotBlank())
             inferError(E.escapeType(found), tySpan ?: span)
     }
