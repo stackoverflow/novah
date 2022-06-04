@@ -201,6 +201,7 @@ sealed class Expr(open val type: Clazz, open val span: Span) {
     data class ArrayLength(val expr: Expr, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class ClassConstant(val clazz: String, override val type: Clazz, override val span: Span) : Expr(type, span)
     data class Return(val exp: Expr) : Expr(exp.type, exp.span)
+    data class Unbox(val exp: Expr, override val type: Clazz) : Expr(type, exp.span)
 
     fun isPrimitive(): Boolean =
         this is Int32 || this is Bool || this is CharE || this is Int64 || this is Float64
@@ -248,6 +249,7 @@ fun Expr.everywhere(f: (Expr) -> Expr): Expr {
         is Expr.While -> f(e.copy(cond = go(e.cond), exps = e.exps.map(::go)))
         is Expr.ArrayLength -> f(e.copy(expr = go(e.expr)))
         is Expr.Return -> f(e.copy(exp = go(e.exp)))
+        is Expr.Unbox -> f(e.copy(exp = go(e.exp)))
         is Expr.SetLocalVar -> f(e.copy(exp = go(e.exp)))
         is Expr.ConstructorAccess -> f(e.copy(ctor = go(e.ctor)))
         is Expr.ByteE, is Expr.Int16, is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64, is Expr.LocalVar,
@@ -384,6 +386,10 @@ fun Expr.everywherUnit(f: (Expr) -> Unit) {
                 go(e.expr)
             }
             is Expr.Return -> {
+                f(e)
+                go(e.exp)
+            }
+            is Expr.Unbox -> {
                 f(e)
                 go(e.exp)
             }

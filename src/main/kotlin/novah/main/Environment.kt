@@ -57,7 +57,10 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
 
     private val errors = mutableSetOf<CompilerProblem>()
 
-    private val ctorCache = mutableMapOf<String, Ctor>()
+    private val ctorCache = mutableMapOf(
+        "prim.Some" to Ctor("Some", 1, 2),
+        "prim.None" to Ctor("None", 0, 2)
+    )
 
     private val classLoader: NovahClassLoader
     private val sourceLoader: SourceCodeLoader

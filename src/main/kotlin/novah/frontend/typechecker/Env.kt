@@ -132,6 +132,7 @@ const val primFloat32Array = "$PRIM.Float32Array"
 const val primFloat64Array = "$PRIM.Float64Array"
 const val primBooleanArray = "$PRIM.BooleanArray"
 const val primCharArray = "$PRIM.CharArray"
+const val primOption = "$PRIM.Option"
 const val primNullable = "$PRIM.Nullable"
 const val primRange = "$PRIM.Range"
 
@@ -158,8 +159,9 @@ val tFloat32Array = TConst(primFloat32Array)
 val tFloat64Array = TConst(primFloat64Array)
 val tBooleanArray = TConst(primBooleanArray)
 val tCharArray = TConst(primCharArray)
-val tNullable = tapp(primNullable, -6)
-val tRange = tapp(primRange, -7)
+val tOption = tapp(primOption, -7)
+val tNullable = tapp(primNullable, -8)
+val tRange = tapp(primRange, -9)
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -186,6 +188,7 @@ val primTypes = mapOf(
     primBooleanArray to tBooleanArray,
     primCharArray to tCharArray,
     primNullable to tNullable,
+    primOption to tOption,
     primRange to tRange
 )
 
@@ -290,7 +293,11 @@ private fun tapp(name: String, vararg ids: Id): TApp {
 }
 
 val primModuleEnv = ModuleEnv(
-    mapOf("<-" to decl(TArrow(listOf(tbound(-10)), TArrow(listOf(tbound(-10)), tUnit)))),
+    mapOf(
+        "<-" to decl(TArrow(listOf(tbound(-10)), TArrow(listOf(tbound(-10)), tUnit))),
+        "None" to decl(tapp(primOption, -11)),
+        "Some" to decl(TArrow(listOf(tbound(-12)), tapp(primOption, -12)))
+    ),
     mapOf(
         "Byte" to tdecl(tByte),
         "Int16" to tdecl(tInt16),
@@ -315,6 +322,7 @@ val primModuleEnv = ModuleEnv(
         "Float64Array" to tdecl(tFloat64Array),
         "BooleanArray" to tdecl(tBooleanArray),
         "CharArray" to tdecl(tCharArray),
+        "Option" to tdecl(tOption),
         "Nullable" to tdecl(tNullable),
         "Range" to tdecl(tRange)
     )
@@ -338,6 +346,7 @@ val primModule = Module(
             |Normally used to represent a function that takes no parameters or returns nothing""".trimMargin()
         ),
         primType("Object", "A platform reference value.\nEquivalent to `java.lang.Object`."),
+        primType("Option", "Represents a value that can be empty."),
         primType("Nullable", "Represents a foreign value that can be `null`.\nUsed for Java interop."),
         primType("Array", "A platform array.\nEquivalent to a Java array."),
         primType("ByteArray", "An array of primitive bytes.\nEquivalent to a Java byte array."),

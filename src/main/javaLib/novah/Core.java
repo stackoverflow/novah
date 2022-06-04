@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Islon Scherer
+ * Copyright 2022 Islon Scherer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -143,7 +143,7 @@ public class Core {
         return o1 == o2;
     }
 
-    public static novah.function.Function<Integer, novah.function.Function<Integer, Object>> compareInt(Object lt, Object eq, Object gt) {
+    public static Function<Integer, Function<Integer, Object>> compareInt(Object lt, Object eq, Object gt) {
         return xx -> yy -> {
             int x = xx;
             int y = yy;
@@ -151,7 +151,7 @@ public class Core {
         };
     }
 
-    public static novah.function.Function<Long, novah.function.Function<Long, Object>> compareLong(Object lt, Object eq, Object gt) {
+    public static Function<Long, Function<Long, Object>> compareLong(Object lt, Object eq, Object gt) {
         return xx -> yy -> {
             long x = xx;
             long y = yy;
@@ -159,7 +159,7 @@ public class Core {
         };
     }
 
-    public static novah.function.Function<Double, novah.function.Function<Double, Object>> compareDouble(Object lt, Object eq, Object gt) {
+    public static Function<Double, Function<Double, Object>> compareDouble(Object lt, Object eq, Object gt) {
         return xx -> yy -> {
             double x = xx;
             double y = yy;
@@ -167,19 +167,21 @@ public class Core {
         };
     }
 
-    public static novah.function.Function<Character, novah.function.Function<Character, Object>> compareChar(Object lt, Object eq, Object gt) {
+    public static Function<Character, Function<Character, Object>> compareChar(Object lt, Object eq, Object gt) {
         return x -> y -> {
             int comp = x.compareTo(y);
             return comp == 0 ? eq : (comp < 0 ? lt : gt);
         };
     }
 
-    public static novah.function.Function<String, novah.function.Function<String, Object>> compareString(Object lt, Object eq, Object gt) {
+    public static Function<String, Function<String, Object>> compareString(Object lt, Object eq, Object gt) {
         return x -> y -> {
             int comp = x.compareTo(y);
             return comp == 0 ? eq : (comp < 0 ? lt : gt);
         };
     }
+
+    public static Function<Object, Object> some = (v) -> v;
 
     public static byte[] mkByteArray(int size) {
         return new byte[size];
@@ -519,7 +521,7 @@ public class Core {
         return (int) map.size();
     }
 
-    public static <T> boolean equalsList(List<T> v1, List<T> v2, novah.function.Function<T, novah.function.Function<T, Boolean>> comp) {
+    public static <T> boolean equalsList(List<T> v1, List<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
         if (v1.hashCode() == v2.hashCode()) return true;
 
@@ -529,7 +531,7 @@ public class Core {
         return true;
     }
 
-    public static <T> boolean equalsSet(Set<T> v1, Set<T> v2, novah.function.Function<T, novah.function.Function<T, Boolean>> comp) {
+    public static <T> boolean equalsSet(Set<T> v1, Set<T> v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.size() != v2.size()) return false;
         if (v1.hashCode() == v2.hashCode()) return true;
 
@@ -539,7 +541,7 @@ public class Core {
         return true;
     }
 
-    public static <T> boolean equalsArray(T[] v1, T[] v2, novah.function.Function<T, novah.function.Function<T, Boolean>> comp) {
+    public static <T> boolean equalsArray(T[] v1, T[] v2, Function<T, Function<T, Boolean>> comp) {
         if (v1.length != v2.length) return false;
 
         for (int i = 0; i < v1.length; i++) {
@@ -548,8 +550,8 @@ public class Core {
         return true;
     }
 
-    public static <K, V> boolean equalsMap(Map<K, V> m1, Map<K, V> m2, novah.function.Function<K, novah.function.Function<K, Boolean>> keyComp
-            , novah.function.Function<V, novah.function.Function<V, Boolean>> valComp) {
+    public static <K, V> boolean equalsMap(Map<K, V> m1, Map<K, V> m2, Function<K, Function<K, Boolean>> keyComp
+            , Function<V, Function<V, Boolean>> valComp) {
         if (m1.size() != m2.size()) return false;
         if (m1.hashCode() == m2.hashCode()) return true;
 
@@ -562,7 +564,7 @@ public class Core {
         return true;
     }
 
-    public static <T> String toStringList(List<T> list, novah.function.Function<T, String> show) {
+    public static <T> String toStringList(List<T> list, Function<T, String> show) {
         long size = list.size();
         if (size == 0) return "[]";
         StringBuilder builder = new StringBuilder("[");
@@ -576,7 +578,7 @@ public class Core {
         return builder.toString();
     }
 
-    public static <T> String toStringSet(Set<T> set, novah.function.Function<T, String> show) {
+    public static <T> String toStringSet(Set<T> set, Function<T, String> show) {
         long size = set.size();
         if (size == 0) return "#{}";
         StringBuilder builder = new StringBuilder("#{");
@@ -590,7 +592,7 @@ public class Core {
         return builder.toString();
     }
 
-    public static <T> String toStringArray(T[] array, novah.function.Function<T, String> show) {
+    public static <T> String toStringArray(T[] array, Function<T, String> show) {
         int size = array.length;
         if (size == 0) return "[]";
         StringBuilder builder = new StringBuilder("[");
@@ -604,7 +606,7 @@ public class Core {
         return builder.toString();
     }
 
-    public static <T> T swapAtom(AtomicReference<T> atom, novah.function.Function<T, T> f) {
+    public static <T> T swapAtom(AtomicReference<T> atom, Function<T, T> f) {
         for (; ; ) {
             T v = atom.get();
             T newv = f.apply(v);
@@ -706,55 +708,55 @@ public class Core {
         return i % i2;
     }
 
-    public static <T> Comparator<T> makeComparator(novah.function.Function<T, novah.function.Function<T, Integer>> compare) {
+    public static <T> Comparator<T> makeComparator(Function<T, Function<T, Integer>> compare) {
         return (o1, o2) -> compare.apply(o1).apply(o2);
     }
 
-    public static <T, R> Consumer<T> makeConsumer(novah.function.Function<T, R> f) {
+    public static <T, R> Consumer<T> makeConsumer(Function<T, R> f) {
         return f::apply;
     }
 
-    public static <T, R> Runnable makeRunnable(novah.function.Function<T, R> f) {
+    public static <T, R> Runnable makeRunnable(Function<T, R> f) {
         return () -> f.apply(null);
     }
 
-    public static <T, R> Callable<R> makeCallable(novah.function.Function<T, R> f) {
+    public static <T, R> Callable<R> makeCallable(Function<T, R> f) {
         return () -> f.apply(null);
     }
 
-    public static <T, R> Supplier<R> makeSupplier(novah.function.Function<T, R> f) {
+    public static <T, R> Supplier<R> makeSupplier(Function<T, R> f) {
         return () -> f.apply(null);
     }
 
-    public static <T> Predicate<T> makePredicate(novah.function.Function<T, Boolean> f) {
+    public static <T> Predicate<T> makePredicate(Function<T, Boolean> f) {
         return f::apply;
     }
 
-    public static <T, R> BiPredicate<T, R> makeBiPredicate(novah.function.Function<T, novah.function.Function<R, Boolean>> f) {
+    public static <T, R> BiPredicate<T, R> makeBiPredicate(Function<T, Function<R, Boolean>> f) {
         return (x, y) -> f.apply(x).apply(y);
     }
 
-    public static <T> ToLongFunction<T> makeToLongFunction(novah.function.Function<T, Long> f) {
+    public static <T> ToLongFunction<T> makeToLongFunction(Function<T, Long> f) {
         return f::apply;
     }
 
-    public static <T> ToIntFunction<T> makeToIntFunction(novah.function.Function<T, Integer> f) {
+    public static <T> ToIntFunction<T> makeToIntFunction(Function<T, Integer> f) {
         return f::apply;
     }
 
-    public static <R> IntFunction<R> makeIntFunction(novah.function.Function<Integer, R> f) {
+    public static <R> IntFunction<R> makeIntFunction(Function<Integer, R> f) {
         return f::apply;
     }
 
-    public static <T> BinaryOperator<T> makeBinaryOperator(novah.function.Function<T, novah.function.Function<T, T>> f) {
+    public static <T> BinaryOperator<T> makeBinaryOperator(Function<T, Function<T, T>> f) {
         return (x, y) -> f.apply(x).apply(y);
     }
 
-    public static <T> UnaryOperator<T> makeUnaryOperator(novah.function.Function<T, T> f) {
+    public static <T> UnaryOperator<T> makeUnaryOperator(Function<T, T> f) {
         return f::apply;
     }
 
-    public static <T, U, R> BiFunction<T, U, R> makeBiFunction(novah.function.Function<T, novah.function.Function<U, R>> fun) {
+    public static <T, U, R> BiFunction<T, U, R> makeBiFunction(Function<T, Function<U, R>> fun) {
         return (x, y) -> fun.apply(x).apply(y);
     }
 
@@ -769,7 +771,7 @@ public class Core {
         return Optional.ofNullable(found);
     }
 
-    public static <T, R> R foldList(novah.function.Function<R, novah.function.Function<T, R>> f, R init, List<T> list) {
+    public static <T, R> R foldList(Function<R, Function<T, R>> f, R init, List<T> list) {
         R acc = init;
         for (long i = 0; i < list.size(); i++) {
             acc = f.apply(acc).apply(list.nth(i));
@@ -777,7 +779,7 @@ public class Core {
         return acc;
     }
 
-    public static <T, R> R foldSet(novah.function.Function<R, novah.function.Function<T, R>> f, R init, Set<T> set) {
+    public static <T, R> R foldSet(Function<R, Function<T, R>> f, R init, Set<T> set) {
         R acc = init;
         for (long i = 0; i < set.size(); i++) {
             acc = f.apply(acc).apply(set.nth(i));
@@ -785,7 +787,7 @@ public class Core {
         return acc;
     }
 
-    public static <K, V> boolean mapEvery(novah.function.Function<K, novah.function.Function<V, Boolean>> pred, Map<K, V> map) {
+    public static <K, V> boolean mapEvery(Function<K, Function<V, Boolean>> pred, Map<K, V> map) {
         for (IEntry<K, V> kv : map) {
             if (!pred.apply(kv.key()).apply(kv.value())) return false;
         }
