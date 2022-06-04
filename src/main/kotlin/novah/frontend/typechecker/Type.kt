@@ -176,6 +176,9 @@ sealed class Type {
         is TImplicit -> copy(type.substConst(map))
     }
 
+    fun isOption(): Boolean =
+        this is TApp && type is TConst && type.name == primOption
+
     /**
      * Collects all the rows from this type.
      * Does nothing if called on a non-row type.

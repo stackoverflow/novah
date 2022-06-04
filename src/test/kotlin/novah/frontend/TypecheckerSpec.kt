@@ -266,4 +266,19 @@ class TypecheckerSpec : StringSpec({
         val res = TestUtil.compileCode(code).env.decls
         res["x"]?.type?.simpleName() shouldBe "LinkedList Int32"
     }
+
+    "Java interop accepts Option values as nullable" {
+        val code = """
+            foreign import novah.Ref
+            
+            x =
+              let s = String#new(None)
+              let opt = Some "abc"
+              let ref = Ref#new("abc")
+              ref#-val <- None
+              println s#concat(opt)
+        """.module()
+
+        TestUtil.compileCode(code).env.decls
+    }
 })
