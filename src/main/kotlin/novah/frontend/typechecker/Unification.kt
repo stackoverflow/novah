@@ -22,9 +22,9 @@ import novah.frontend.error.Errors
 
 class Unification(private val typeChecker: Typechecker) {
 
-    fun unify(t1: Type, t2: Type, span: Span) {
+    fun unify(t1: Type, t2: Type, span: Span, strict: Boolean = true) {
         try {
-            innerUnify(t1, t2, span)
+            innerUnify(t1, t2, span, strict)
         } catch (ie: UnifyException) {
             val reason = when (val err = ie.err) {
                 is UnifyError.NoMatch -> {
@@ -38,21 +38,19 @@ class Unification(private val typeChecker: Typechecker) {
         }
     }
 
-    fun unifySimple(t1: Type, t2: Type, span: Span) {
-        innerUnify(t1, t2, span)
+    /**
+     * When strict = false an `Option a` will unify with `a`.
+     * This is only used for java interop.
+     */
+    fun unifySimple(t1: Type, t2: Type, span: Span, strict: Boolean = true) {
+        innerUnify(t1, t2, span, strict)
     }
 
-    private fun innerUnify(t1: Type, t2: Type, span: Span) {
+    private fun innerUnify(t1: Type, t2: Type, span: Span, strict: Boolean = true) {
         when {
             t1 == t2 -> {
             }
             t1 is TConst && t2 is TConst && t1.name == t2.name -> {
-            }
-            t1 is TApp && t2 is TApp -> {
-                innerUnify(t1.type, t2.type, span)
-                if (t1.types.size != t2.types.size)
-                    innerError(UnifyError.NoMatch(t1, t2))
-                t1.types.zip(t2.types).forEach { (tt1, tt2) -> innerUnify(tt1, tt2, span) }
             }
             t1 is TArrow && t2 is TArrow -> {
                 if (t1.args.size != t2.args.size)
@@ -60,8 +58,8 @@ class Unification(private val typeChecker: Typechecker) {
                 t1.args.zip(t2.args).forEach { (t1arg, t2arg) -> innerUnify(t1arg, t2arg, span) }
                 innerUnify(t1.ret, t2.ret, span)
             }
-            t1 is TVar && t1.tvar is TypeVar.Link -> innerUnify((t1.tvar as TypeVar.Link).type, t2, span)
-            t2 is TVar && t2.tvar is TypeVar.Link -> innerUnify(t1, (t2.tvar as TypeVar.Link).type, span)
+            t1 is TVar && t1.tvar is TypeVar.Link -> innerUnify((t1.tvar as TypeVar.Link).type, t2, span, strict)
+            t2 is TVar && t2.tvar is TypeVar.Link -> innerUnify(t1, (t2.tvar as TypeVar.Link).type, span, strict)
             t1 is TVar && t2 is TVar && t1.tvar is TypeVar.Unbound && t2.tvar is TypeVar.Unbound
                     && (t1.tvar as TypeVar.Unbound).id == (t2.tvar as TypeVar.Unbound).id -> {
                 internalError("Error in unification: ${t1.show()} with ${t2.show()}")
@@ -75,6 +73,18 @@ class Unification(private val typeChecker: Typechecker) {
                 val tvar = t2.tvar as TypeVar.Unbound
                 occursCheckAndAdjustLevels(tvar.id, tvar.level, t1)
                 t2.tvar = TypeVar.Link(t1)
+            }
+            t1 is TApp && t2 is TApp -> {
+                if (!strict && t1.isOption() && !t2.isOption()) {
+                    innerUnify(t1.types[0], t2, span)
+                } else if (!strict && t2.isOption() && !t1.isOption()) {
+                    innerUnify(t1, t2.types[0], span)
+                } else {
+                    innerUnify(t1.type, t2.type, span)
+                    if (t1.types.size != t2.types.size)
+                        innerError(UnifyError.NoMatch(t1, t2))
+                    t1.types.zip(t2.types).forEach { (tt1, tt2) -> innerUnify(tt1, tt2, span) }
+                }
             }
             t1 is TRowEmpty && t2 is TRowEmpty -> {
             }
@@ -97,6 +107,8 @@ class Unification(private val typeChecker: Typechecker) {
             t1 is TImplicit && t2 is TImplicit -> innerUnify(t1.type, t2.type, span)
             t1 is TImplicit -> innerUnify(t1.type, t2, span)
             t2 is TImplicit -> innerUnify(t1, t2.type, span)
+            !strict && t1.isOption() -> innerUnify((t1 as TApp).types[0], t2, span)
+            !strict && t2.isOption() -> innerUnify(t1, (t2 as TApp).types[0], span)
             else -> innerError(UnifyError.NoMatch(t1, t2))
         }
     }

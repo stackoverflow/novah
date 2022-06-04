@@ -564,7 +564,8 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             if (Reflection.isImutable(exp.field.field!!))
                 inferError(E.immutableField(exp.field.fieldName.value, exp.field.clazz.value), exp.field.span)
             val argTy = infer(env, level, exp.value)
-            uni.unify(fieldTy, argTy, exp.span)
+            val strict = Reflection.isPrimitive(exp.field.field!!.genericType)
+            uni.unify(fieldTy, argTy, exp.span, strict)
             exp.withType(fieldTy)
             tUnit
         }
@@ -575,7 +576,8 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                 inferError(E.immutableField(exp.field.fieldName.value, clazz), exp.field.span)
             }
             val argTy = infer(env, level, exp.value)
-            uni.unify(fieldTy, argTy, exp.span)
+            val strict = Reflection.isPrimitive(exp.field.field!!.genericType)
+            uni.unify(fieldTy, argTy, exp.span, strict)
             exp.withType(fieldTy)
             tUnit
         }
@@ -808,20 +810,10 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         cache: Cache? = null
     ): Method? {
         if (methods.size == 1) {
-            val mtys = methods[0].genericParameterTypes.map { Reflection.collectType(tc, it, level, cache) }
-            return if (unifyForeignPars(mtys, tys, span)) methods[0] else null
+            return if (unifyForeignPars(methods[0].genericParameterTypes, tys, level, span, cache)) methods[0] else null
         }
         return methods.find { method ->
-            val mtys = method.genericParameterTypes.map { Reflection.collectType(tc, it, level, cache) }
-            try {
-                // we can't commit to the unification because this method has many overloads,
-                // so we clone the types until we find a match and reunify the matching types
-                mtys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty.clone(), ty.clone(), span) }
-                mtys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty, ty, span) }
-                true
-            } catch (_: Unification.UnifyException) {
-                false
-            }
+            unifyMultiForeignPars(method.genericParameterTypes, tys, level, span, cache)
         }
     }
 
@@ -832,25 +824,50 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         span: Span
     ): Constructor<*>? {
         if (ctors.size == 1) {
-            val mtys = ctors[0].genericParameterTypes.map { Reflection.collectType(tc, it, level) }
-            return if (unifyForeignPars(mtys, tys, span)) ctors[0] else null
+            return if (unifyForeignPars(ctors[0].genericParameterTypes, tys, level, span, null)) ctors[0] else null
         }
         return ctors.find { ctor ->
-            val mtys = ctor.genericParameterTypes.map { Reflection.collectType(tc, it, level) }
-            try {
-                // see `unifyMethods` for an explanation
-                mtys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty.clone(), ty.clone(), span) }
-                mtys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty, ty, span) }
-                true
-            } catch (_: Unification.UnifyException) {
-                false
-            }
+            unifyMultiForeignPars(ctor.genericParameterTypes, tys, level, span, cache = null)
         }
     }
 
-    private fun unifyForeignPars(ftys: List<Type>, tys: List<Type>, span: Span): Boolean {
+    private fun unifyForeignPars(
+        mtys: Array<java.lang.reflect.Type>,
+        tys: List<Type>,
+        level: Int,
+        span: Span,
+        cache: Cache?
+    ): Boolean {
+        val mtysIsStrict = mtys.map { Reflection.collectType(tc, it, level, cache) to Reflection.isPrimitive(it) }
         return try {
-            ftys.zip(tys).forEach { (mty, ty) -> uni.unifySimple(mty, ty, span) }
+            mtysIsStrict.zip(tys).forEach { (mtyIsStrict, ty) ->
+                val (mty, strict) = mtyIsStrict
+                uni.unifySimple(mty, ty, span, strict)
+            }
+            true
+        } catch (_: Unification.UnifyException) {
+            false
+        }
+    }
+
+    private fun unifyMultiForeignPars(
+        mtys: Array<java.lang.reflect.Type>,
+        tys: List<Type>,
+        level: Int,
+        span: Span,
+        cache: Cache?
+    ): Boolean {
+        val mtysIsStrict = mtys.map { Reflection.collectType(tc, it, level, cache) to Reflection.isPrimitive(it) }
+        return try {
+            // see `unifyMethods` for an explanation
+            mtysIsStrict.zip(tys).forEach { (mtyIsStrict, ty) ->
+                val (mty, strict) = mtyIsStrict
+                uni.unifySimple(mty.clone(), ty.clone(), span, strict)
+            }
+            mtysIsStrict.zip(tys).forEach { (mtyIsStrict, ty) ->
+                val (mty, strict) = mtyIsStrict
+                uni.unifySimple(mty, ty, span, strict)
+            }
             true
         } catch (_: Unification.UnifyException) {
             false

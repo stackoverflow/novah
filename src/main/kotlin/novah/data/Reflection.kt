@@ -155,5 +155,14 @@ object Reflection {
         return nty
     }
 
+    fun isPrimitive(ty: java.lang.reflect.Type): Boolean = when (ty) {
+        is GenericArrayType -> false
+        is TypeVariable<*> -> false
+        is WildcardType -> false
+        is ParameterizedType -> false
+        is Class<*> -> ty.isPrimitive
+        else -> Util.internalError("Got unknown subtype from Type: ${ty.javaClass}")
+    }
+
     private fun unbounded(ty: TypeVariable<*>): Boolean = ty.bounds.all { it.typeName == "java.lang.Object" }
 }
