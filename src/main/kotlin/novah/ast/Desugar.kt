@@ -189,7 +189,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.PatternLiteral -> {
             val clazz = Spanned(span, "java.util.regex.Pattern")
             val method = Spanned(span, "compile")
-            Expr.ForeignStaticMethod(clazz, method, listOf(Expr.StringE(regex, span)), span)
+            Expr.ForeignStaticMethod(clazz, method, listOf(Expr.StringE(regex, span)), option = false, span)
         }
         is SExpr.Var -> {
             declVars += fullname()
@@ -421,7 +421,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                     (imp ?: moduleName) + ".$fqclass"
                 } else fqclass
                 Expr.ClassConstant(Spanned(clazz.span, className), span)
-            } else Expr.ForeignStaticField(Spanned(clazz.span, fqclass), field, span)
+            } else Expr.ForeignStaticField(Spanned(clazz.span, fqclass), field, option, span)
         }
         is SExpr.ForeignField -> {
             val xp = if (exp is SExpr.Parens) exp.exp else exp
@@ -436,7 +436,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 Expr.Ann(Expr.Var(v, span), xp.type.desugar(), span)
             } else xp.desugar(locals, tvars)
 
-            nestLambdas(lvars, Expr.ForeignField(lexpr, field, span))
+            nestLambdas(lvars, Expr.ForeignField(lexpr, field, option, span))
         }
         is SExpr.ForeignStaticMethod -> {
             usedTypes += clazz.value
@@ -451,7 +451,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 } else it.desugar(locals, tvars)
             }
 
-            nestLambdas(lvars, Expr.ForeignStaticMethod(Spanned(clazz.span, fqclass), method, pars, span))
+            nestLambdas(lvars, Expr.ForeignStaticMethod(Spanned(clazz.span, fqclass), method, pars, option, span))
         }
         is SExpr.ForeignMethod -> {
             val xp = if (exp is SExpr.Parens) exp.exp else exp
@@ -474,7 +474,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 } else it.desugar(locals, tvars)
             }
 
-            nestLambdas(lvars, Expr.ForeignMethod(lexpr, method, pars, span))
+            nestLambdas(lvars, Expr.ForeignMethod(lexpr, method, pars, option, span))
         }
         is SExpr.Return -> parserError(E.RETURN_EXPR, span)
         is SExpr.Yield -> parserError(E.YIELD_EXPR, span)

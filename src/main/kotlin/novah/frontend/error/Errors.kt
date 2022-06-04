@@ -271,7 +271,7 @@ object Errors {
         Make sure the parameters match or cast them to a suitable type.
     """.trimIndent()
 
-    fun staticMethod(name: String, type: String) = "Method $name of class $type is static."
+    fun primitiveForeignType(ty: String) = "Foreign Java type $ty is primitive and cannot be cast to Option"
 
     fun nonPublicMethod(name: String, type: String) = "Method $name of class $type is not public."
 

@@ -471,7 +471,17 @@ class Parser(
                         val (args, end) = parseArglist("foreign static method")
                         val method = Spanned(tk.span, methodName)
                         val clazz = Spanned(uident.span, uident.value.v)
-                        Expr.ForeignStaticMethod(clazz, method, args)
+                        Expr.ForeignStaticMethod(clazz, method, args, option = false)
+                            .withSpan(uident.span, end)
+                            .withComment(uident.comment)
+                    }
+                    peek is HashQuestion -> {
+                        iter.next()
+                        val (methodName, tk) = parseJavaName()
+                        val (args, end) = parseArglist("foreign static method")
+                        val method = Spanned(tk.span, methodName)
+                        val clazz = Spanned(uident.span, uident.value.v)
+                        Expr.ForeignStaticMethod(clazz, method, args, option = true)
                             .withSpan(uident.span, end)
                             .withComment(uident.comment)
                     }
@@ -480,7 +490,16 @@ class Parser(
                         val (fieldName, tk) = parseJavaName()
                         val field = Spanned(tk.span, fieldName)
                         val clazz = Spanned(uident.span, uident.value.v)
-                        Expr.ForeignStaticField(clazz, field)
+                        Expr.ForeignStaticField(clazz, field, option = false)
+                            .withSpan(uident.span, tk.span)
+                            .withComment(uident.comment)
+                    }
+                    peek is HashDashQuestion -> {
+                        iter.next()
+                        val (fieldName, tk) = parseJavaName()
+                        val field = Spanned(tk.span, fieldName)
+                        val clazz = Spanned(uident.span, uident.value.v)
+                        Expr.ForeignStaticField(clazz, field, option = true)
                             .withSpan(uident.span, tk.span)
                             .withComment(uident.comment)
                     }
@@ -568,14 +587,31 @@ class Parser(
             val (methodName, tk) = parseJavaName()
             val (args, end) = parseArglist("foreign method")
             val method = Spanned(tk.span, methodName)
-            val res = Expr.ForeignMethod(exp, method, args).withSpan(exp.span, end).withComment(exp.comment)
+            val res = Expr.ForeignMethod(exp, method, args, option = false)
+                .withSpan(exp.span, end).withComment(exp.comment)
+            parseSelection(res)
+        }
+        is HashQuestion -> {
+            iter.next()
+            val (methodName, tk) = parseJavaName()
+            val (args, end) = parseArglist("foreign method")
+            val method = Spanned(tk.span, methodName)
+            val res = Expr.ForeignMethod(exp, method, args, option = true)
+                .withSpan(exp.span, end).withComment(exp.comment)
             parseSelection(res)
         }
         is HashDash -> {
             iter.next()
             val (fieldName, tk) = parseJavaName()
             val field = Spanned(tk.span, fieldName)
-            val res = Expr.ForeignField(exp, field).withSpan(exp.span, tk.span).withComment(exp.comment)
+            val res = Expr.ForeignField(exp, field, option = false).withSpan(exp.span, tk.span).withComment(exp.comment)
+            parseSelection(res)
+        }
+        is HashDashQuestion -> {
+            iter.next()
+            val (fieldName, tk) = parseJavaName()
+            val field = Spanned(tk.span, fieldName)
+            val res = Expr.ForeignField(exp, field, option = true).withSpan(exp.span, tk.span).withComment(exp.comment)
             parseSelection(res)
         }
         is BangBang -> {

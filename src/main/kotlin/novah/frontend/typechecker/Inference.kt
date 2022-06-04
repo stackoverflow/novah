@@ -538,7 +538,11 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
             val ty = Reflection.collectType(tc, field.genericType, level)
             exp.field = field
-            exp.withType(ty)
+            if (exp.option) {
+                if (Reflection.isPrimitive(field.genericType))
+                    inferError(E.primitiveForeignType(ty.show()), exp.fieldName.span)
+                exp.withType(TApp(TConst(primOption), listOf(ty)))
+            } else exp.withType(ty)
         }
         is Expr.ForeignField -> {
             Reflection.typeCache.clear()
@@ -557,7 +561,11 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             val cache = mappings?.zip(objTy.parameters())?.toMap() ?: emptyMap()
             val ty = Reflection.collectType(tc, field.genericType, level, cache)
             exp.field = field
-            exp.withType(ty)
+            if (exp.option) {
+                if (Reflection.isPrimitive(field.genericType))
+                    inferError(E.primitiveForeignType(ty.show()), exp.fieldName.span)
+                exp.withType(TApp(TConst(primOption), listOf(ty)))
+            } else exp.withType(ty)
         }
         is Expr.ForeignStaticFieldSetter -> {
             val fieldTy = infer(env, level, exp.field)
@@ -610,7 +618,9 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
                     Reflection.typeMappings[clazz] = mappings
                 }
                 exp.ctor = found
-                exp.withType(ty)
+                if (exp.option) {
+                    exp.withType(TApp(TConst(primOption), listOf(ty)))
+                } else exp.withType(ty)
             } else { // it's a method
                 val methods = Reflection.findStaticMethods(jclass, method.value, argCount)
                 if (methods.isEmpty()) inferError(E.staticMethodNotFound(method.value, clazz, argCount), method.span)
@@ -624,7 +634,11 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
                 val ty = Reflection.collectType(tc, found.genericReturnType, level)
                 exp.method = found
-                exp.withType(ty)
+                if (exp.option) {
+                    if (Reflection.isPrimitive(found.genericReturnType))
+                        inferError(E.primitiveForeignType(ty.show()), method.span)
+                    exp.withType(TApp(TConst(primOption), listOf(ty)))
+                } else exp.withType(ty)
             }
         }
         is Expr.ForeignMethod -> {
@@ -652,7 +666,11 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
 
             val ty = Reflection.collectType(tc, found.genericReturnType, level, cache)
             exp.method = found
-            exp.withType(ty)
+            if (exp.option) {
+                if (Reflection.isPrimitive(found.genericReturnType))
+                    inferError(E.primitiveForeignType(ty.show()), exp.methodName.span)
+                exp.withType(TApp(TConst(primOption), listOf(ty)))
+            } else exp.withType(ty)
         }
     }
 

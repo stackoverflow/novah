@@ -240,7 +240,7 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         shouldThrow<CompilationError> {
-            TestUtil.compileCode(code).env.decls["fun"]
+            TestUtil.compileCode(code)
         }
     }
 
@@ -280,5 +280,21 @@ class TypecheckerSpec : StringSpec({
         """.module()
 
         TestUtil.compileCode(code).env.decls
+    }
+
+    "Java interop returns Option for #? and #-?" {
+        val code = """
+            foreign import novah.Ref
+            
+            x = "abc"#?concat("def")
+            
+            y =
+              let ref = Ref#new(3)
+              ref#-?val
+        """.module()
+
+        val res = TestUtil.compileCode(code).env.decls
+        res["x"]?.type?.simpleName() shouldBe "Option String"
+        res["y"]?.type?.simpleName() shouldBe "Option Int32"
     }
 })
