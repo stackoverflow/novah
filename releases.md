@@ -1,3 +1,33 @@
+# 0.1.3
+
+## Features
+
+- Added new syntax for foreign methods and fields: obj#?method(...) and obj#-?field
+  which will return Option types instead of raw types
+
+## Optimizations
+
+- The Option type is now native and compiles to plain (nullable) java objects, and boxed types in case of primitives
+
+## Changes
+
+- Foreign functions and fields accept Option values now if they are not primitives
+- Added @ to list of allowed operators
+- Added := and @= to reset and swap atoms
+- Map keys now require an Equals instance
+- Added `novah.bigint` and `novah.bigdecimal` modules to stdlib
+- Converted reserved Java names before code generation
+- Properly box primitives before casting to non-primitive types
+- Removed null from the language (use Option type)
+- Added `printlnErr` and `printErr` to the core library
+- Tests from `novah.test` will properly report which test failed before printing the error
+- Bumped kotlin to 1.6.21
+- Bumped some library versions
+
+## Bug fixes
+
+- Fixed bug in code generation in return of longs and doubles
+
 # 0.1.2
 
 - Fixed unification of records with empty labels
