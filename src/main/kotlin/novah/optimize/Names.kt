@@ -81,6 +81,7 @@ object Names {
         "long",
         "native",
         "new",
+        "null",
         "package",
         "private",
         "protected",

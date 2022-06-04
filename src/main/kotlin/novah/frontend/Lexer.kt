@@ -68,7 +68,6 @@ sealed class Token {
     object CatchT : Token()
     object FinallyT : Token()
     object WhileT : Token()
-    object Null : Token()
     object Return : Token()
     object Yield : Token()
     object For : Token()
@@ -344,7 +343,6 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             "catch" -> CatchT
             "finally" -> FinallyT
             "while" -> WhileT
-            "null" -> Null
             "return" -> Return
             "yield" -> Yield
             "for" -> For

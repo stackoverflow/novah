@@ -150,7 +150,6 @@ sealed class Expr(open val span: Span) {
         Expr(span)
 
     data class While(val cond: Expr, val exps: List<Expr>, override val span: Span) : Expr(span)
-    class Null(span: Span) : Expr(span)
     data class TypeCast(val exp: Expr, val cast: Type, override val span: Span) : Expr(span)
     data class ClassConstant(val clazz: Spanned<String>, override val span: Span) : Expr(span)
     data class ForeignField(val exp: Expr, val fieldName: Spanned<String>, override val span: Span) : Expr(span) {
@@ -504,7 +503,6 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
             is Expr.Constructor -> f(e)
             is Expr.ImplicitVar -> f(e)
             is Expr.RecordEmpty -> f(e)
-            is Expr.Null -> f(e)
             is Expr.Unit -> f(e)
             is Expr.ClassConstant -> f(e)
         }

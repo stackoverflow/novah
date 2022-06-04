@@ -13,6 +13,3 @@ optionTests =
     (None ?: 0) `shouldBe` 0
     Option.unwrap (Some "abc") `shouldBe` "abc"
     Option.map (_ ++ "def") (Some "abc") `shouldBe` Some "abcdef"
-    Option.toOption null `shouldBe` (None : Option Int)
-    Option.toNullable None `shouldBe` (null : Nullable Int)
-    (Option.toNullable (Some 3) |> unsafeCast) `shouldBe` 3

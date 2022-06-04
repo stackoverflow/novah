@@ -154,7 +154,6 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         is Expr.Bool -> exp.withType(tBoolean)
         is Expr.StringE -> exp.withType(tString)
         is Expr.Unit -> exp.withType(tUnit)
-        is Expr.Null -> exp.withType(tc.instantiate(level, tNullable))
         is Expr.Var -> {
             val ty = env.lookup(exp.fullname()) ?: inferError(E.undefinedVar(exp.name), exp.span)
             exp.withType(tc.instantiate(level, ty))

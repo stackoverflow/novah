@@ -4,7 +4,6 @@ module novah.async
 
 import novah.java as Java
 import novah.list as List
-import novah.option as Option
 
 foreign import java.lang.Throwable
 foreign import java.util.function.Function
@@ -112,7 +111,7 @@ pub
 handle : (Result a Throwable -> b) -> CompletableFuture a -> CompletableFuture b
 handle fun fut =
   let handler res ex =
-    case Option.toOption res of
+    case (res as Option a) of
       Some x -> Ok x |> fun
       None -> Err ex |> fun
   fut#handle(Java.biFunction handler as BiFunction Object Throwable b)
