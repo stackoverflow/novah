@@ -133,7 +133,6 @@ const val primFloat64Array = "$PRIM.Float64Array"
 const val primBooleanArray = "$PRIM.BooleanArray"
 const val primCharArray = "$PRIM.CharArray"
 const val primOption = "$PRIM.Option"
-const val primNullable = "$PRIM.Nullable"
 const val primRange = "$PRIM.Range"
 
 val tByte = TConst(primByte)
@@ -160,8 +159,7 @@ val tFloat64Array = TConst(primFloat64Array)
 val tBooleanArray = TConst(primBooleanArray)
 val tCharArray = TConst(primCharArray)
 val tOption = tapp(primOption, -7)
-val tNullable = tapp(primNullable, -8)
-val tRange = tapp(primRange, -9)
+val tRange = tapp(primRange, -8)
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -187,7 +185,6 @@ val primTypes = mapOf(
     primFloat64Array to tFloat64Array,
     primBooleanArray to tBooleanArray,
     primCharArray to tCharArray,
-    primNullable to tNullable,
     primOption to tOption,
     primRange to tRange
 )
@@ -323,7 +320,6 @@ val primModuleEnv = ModuleEnv(
         "BooleanArray" to tdecl(tBooleanArray),
         "CharArray" to tdecl(tCharArray),
         "Option" to tdecl(tOption),
-        "Nullable" to tdecl(tNullable),
         "Range" to tdecl(tRange)
     )
 )

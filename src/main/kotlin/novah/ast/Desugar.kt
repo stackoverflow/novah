@@ -411,7 +411,6 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.Computation -> {
             desugarComputation(exps, builder).desugar(locals, tvars)
         }
-        is SExpr.Null -> Expr.Null(span)
         is SExpr.TypeCast -> Expr.TypeCast(exp.desugar(locals, tvars), cast.desugar(vars = tvars.toMutableMap()), span)
         is SExpr.ForeignStaticField -> {
             usedTypes += clazz.value

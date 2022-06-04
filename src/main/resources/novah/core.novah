@@ -224,15 +224,6 @@ pub
 printfln : String -> List a -> Unit
 printfln form args = println (format form args)
 
-// Coerces a value to a nullable.
-// Should only be used for Java interoperability
-// when a foreign imported value can be null
-// or a method can return null.
-// `let possibleNullResult = obj#foreignFunction(x, y, z) |> nullable`
-pub
-nullable : a -> Nullable a
-nullable x = unsafeCast x
-
 // Returns the value contained in this option
 // or the default value.
 pub
@@ -729,16 +720,6 @@ pub instance
 showArray : {{ Show a }} -> Show (Array a)
 showArray {{Show sh}} = Show Core#toStringArray(_, sh)
 
-showNull : Show a -> Nullable a -> String
-showNull (Show sh) x =
-  if x === null
-    then "null"
-    else sh (x as a)
-
-pub instance
-showNullable : {{ Show a }} -> Show (Nullable a)
-showNullable {{s}} = Show (showNull s)
-
 pub instance
 showOrdering : Show Ordering
 showOrdering = Show toString
@@ -847,19 +828,6 @@ equalsOption (Equals eq) =
 pub instance
 eqOption : {{ Equals a }} -> Equals (Option a)
 eqOption {{eq}} = Equals (equalsOption eq)
-
-equalsNullable : Equals a -> Nullable a -> Nullable a -> Boolean
-equalsNullable (Equals eq) x y =
-  if x === null && y === null
-    then true
-    else
-      if x === null || y === null
-        then false
-        else eq (x as a) (y as a)
-
-pub instance
-eqNullable : {{ Equals a }} -> Equals (Nullable a)
-eqNullable {{eq}} = Equals (equalsNullable eq)
 
 pub instance
 eqObject : Equals Object

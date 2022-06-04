@@ -238,7 +238,6 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                 Expr.TryCatch(tryExp.convert(locals), catches, finallyExp?.convert(locals), typ, span)
             }
             is CExpr.While -> Expr.While(cond.convert(locals), exps.map { it.convert(locals) }, typ, span)
-            is CExpr.Null -> Expr.Null(typ, span)
             is CExpr.TypeCast -> Expr.Cast(exp.convert(locals), cast.convert(), span)
             is CExpr.ClassConstant -> Expr.ClassConstant(internalize(clazz.value), typ, span)
             is CExpr.ForeignStaticField -> {
@@ -281,14 +280,9 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                 val of = types[0].convert()
                 Clazz(getPrimitiveArrayTypeName(of.type))
             } else if (type is TConst && type.name == primOption) {
-                val of = types[0].convert()
-                Clazz(getPrimitiveOptionType(of.type))
+                Clazz(types[0].convert().type.wrapper())
             } else {
-                val conv = type.convert()
-                if (conv.type.className == primNullable) {
-                    val ty = types[0].convert()
-                    ty.copy(type = ty.type.wrapper())
-                } else Clazz(conv.type, types.map { it.convert() })
+                Clazz(type.convert().type, types.map { it.convert() })
             }
         }
         // the only functions that can have more than 1 argument are native ones
@@ -765,18 +759,6 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             primRange -> Type.getType(Range::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
-        }
-
-        private fun getPrimitiveOptionType(of: Type): Type = when (of.sort) {
-            1 -> Type.getType(Boolean::class.javaObjectType)
-            2 -> Type.getType(Char::class.javaObjectType)
-            3 -> Type.getType(Byte::class.javaObjectType)
-            4 -> Type.getType(Short::class.javaObjectType)
-            5 -> Type.getType(Int::class.javaObjectType)
-            6 -> Type.getType(Float::class.javaObjectType)
-            7 -> Type.getType(Long::class.javaObjectType)
-            8 -> Type.getType(Double::class.javaObjectType)
-            else -> of
         }
 
         private fun toPrimitive(ty: Clazz): Clazz = when (ty.type.className) {

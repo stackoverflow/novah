@@ -50,34 +50,6 @@ pub
 unwrap : Option a -> a
 unwrap = unwrapOption
 
-// Transforms this nullable value into an option.
-// `null` is represented as `None`.
-pub
-toOption : Nullable a -> Option a
-toOption x =
-  if x === null then
-    None
-  else Some (x as a)
-
-// Transforms this option into an nullable value.
-// This function should only be used to interact with Java methods.
-pub
-toNullable : Option a -> Nullable a
-toNullable = case _ of
-  Some x -> (x as Nullable a)
-  None -> null
-
-// Receives a default value, a function `f` and a possible null value.
-// If the value is null returns the default value, otherwise returns
-// f applied to the value.
-pub
-caseNull : b -> (a -> b) -> Nullable a -> b
-caseNull def f nul =
-  if nul === null then
-    def
-  else
-    f (nul as a)
-
 // Transforms a `java.util.Optional` into an option.
 pub
 fromOptional : Optional a -> Option a

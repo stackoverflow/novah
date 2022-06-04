@@ -251,7 +251,6 @@ class Formatter {
             is Expr.Computation -> {
                 "do." + e.builder.name + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
-            is Expr.Null -> "null"
             is Expr.TypeCast -> show(e.exp) + " as " + show(e.cast)
             is Expr.ForeignStaticField -> "${e.clazz.value}#-${e.field.value}"
             is Expr.ForeignField -> "${show(e.exp)}#-${e.field.value}"
