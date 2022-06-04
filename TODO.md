@@ -15,8 +15,6 @@
 - [ ] Pattern matched lambda parameters with same name as the variable don't compile: `foo = [[]] |> List.map (\[foo] -> 4)`
 - [ ] Add `raw` attribute to canonical expressions and patterns where needed for showing
 - [ ] Recursive type aliases don't proper report errors: `typealias Wrong a = Option (Wrong a)`
-- [ ] Remove the `compare*` functions from novah.Core and implement them in Novah.
-- [ ] Tell which test fails in the `novah.test` when a test fails
 
 ## LSP / IDE
 

@@ -128,6 +128,16 @@ pub
 print : a -> Unit
 print x = System#-out#print(x as Object)
 
+// Prints x to stderr and appends a new line.
+pub
+printlnErr : a -> Unit
+printlnErr x = System#-err#println(x as Object)
+
+// Prints x to the stderr.
+pub
+printErr : a -> Unit
+printErr x = System#-err#print(x as Object)
+
 // Converts a value to String using the
 // native Java toString method.
 pub

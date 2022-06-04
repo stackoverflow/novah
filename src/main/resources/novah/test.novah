@@ -213,8 +213,10 @@ check desc fun =
     [1, 0, 0]
   catch
     :? AssertionError as err ->
+      printlnErr (format "Error in test: %s" [desc])
       (err as Throwable)#printStackTrace()
       [0, 1, 0]
     :? Exception as err ->
+      printlnErr (format "Error in test: %s" [desc])
       (err as Throwable)#printStackTrace()
       [0, 0, 1]
