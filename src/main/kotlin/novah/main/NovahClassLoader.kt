@@ -15,9 +15,12 @@
  */
 package novah.main
 
-import com.github.ajalt.clikt.output.TermUi
 import novah.Metadata
 import novah.Core
+import novah.Float32Ref
+import novah.Float64Ref
+import novah.Int64Ref
+import novah.IntRef
 import novah.function.Function
 import novah.Ref
 import novah.collections.ListValue
@@ -45,6 +48,10 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
         if (name == "novah.Core") return Core::class.java
         if (name == "novah.function.Function") return Function::class.java
         if (name == "novah.Ref") return Ref::class.java
+        if (name == "novah.IntRef") return IntRef::class.java
+        if (name == "novah.Int64Ref") return Int64Ref::class.java
+        if (name == "novah.Float32Ref") return Float32Ref::class.java
+        if (name == "novah.Float64Ref") return Float64Ref::class.java
         if (name == "novah.collections.Record") return Record::class.java
         if (name == "novah.collections.ListValue") return ListValue::class.java
         if (name == "novah.Metadata") return Metadata::class.java
@@ -101,7 +108,7 @@ class NovahClassLoader(classpath: String?) : ClassLoader() {
                     URL("file:$apath")
                 }
             } catch (m: MalformedURLException) {
-                TermUi.echo("Error while parsing classpath item `$path`", err = true)
+                System.err.println("Error while parsing classpath item `$path`")
                 throw m
             }
         }
