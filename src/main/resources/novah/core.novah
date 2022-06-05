@@ -21,6 +21,9 @@ foreign import java.lang.AssertionError
 foreign import java.lang.Class
 foreign import java.lang.Math
 foreign import java.lang.System
+foreign import java.time.Duration
+foreign import java.time.Instant
+foreign import java.time.temporal.Temporal
 
 // A 32-bits Integer
 pub
@@ -342,6 +345,15 @@ compareAndSet old new (Atom atm) = atm#compareAndSet(old, new)
 pub
 (^) : Float64 -> Float64 -> Float64
 (^) x y = Math#pow(x, y)
+
+// Runs the function and returns the result and the time it took.
+pub
+withTime : (Unit -> a) -> Tuple a Duration
+withTime f =
+  let start = Instant#now()
+  let res = f ()
+  let end = Instant#now()
+  res ; Duration#between(start as Temporal, end as Temporal)
 
 // The ordering type represents the outcome
 // of comparing 2 values:
