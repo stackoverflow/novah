@@ -285,6 +285,11 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         }
         is SExpr.DoLet -> parserError(E.LET_IN, span)
         is SExpr.Unit -> Expr.Unit(span)
+        is SExpr.Deref -> {
+            val sp = span.copy(endLine = span.startLine, endColumn = span.startColumn + 1)
+            val deref = Expr.Var("deref", sp, "novah.core")
+            Expr.App(deref, exp.desugar(locals, tvars), span)
+        }
         is SExpr.RecordEmpty -> Expr.RecordEmpty(span)
         is SExpr.RecordSelect -> {
             if (exp is SExpr.Underscore) {
