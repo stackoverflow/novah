@@ -115,3 +115,11 @@ coreTests =
     ref#-?val `shouldBe` Some 10
     ref#-val <- None
     ref#-?val `shouldBe` None
+
+  test "Core atoms" \_ ->
+    let x = atom 4
+    @x `shouldBe` 4
+    x := 50
+    @x `shouldBe` 50
+    x ::= (_ * 10)
+    @x `shouldBe` 500

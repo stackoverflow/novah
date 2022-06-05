@@ -51,8 +51,7 @@ object Names {
         '^' to "\$hat",
         '.' to "\$dot",
         '?' to "\$question",
-        '!' to "\$bang",
-        '@' to "\$at"
+        '!' to "\$bang"
     )
 
     // java reserved words

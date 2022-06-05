@@ -4,6 +4,7 @@
 
 - Added new syntax for foreign methods and fields: obj#?method(...) and obj#-?field
   which will return Option types instead of raw types
+- Added @ syntax to deref atoms
 
 ## Optimizations
 
@@ -12,8 +13,7 @@
 ## Changes
 
 - Foreign functions and fields accept Option values now if they are not primitives
-- Added @ to list of allowed operators
-- Added := and @= to reset and swap atoms
+- Added := and ::= to reset and swap atoms
 - Map keys now require an Equals instance
 - Added `novah.bigint` and `novah.bigdecimal` modules to stdlib
 - Converted reserved Java names before code generation
@@ -21,6 +21,7 @@
 - Removed null from the language (use Option type)
 - Added `printlnErr` and `printErr` to the core library
 - Tests from `novah.test` will properly report which test failed before printing the error
+- Added `withTime` function to core library
 - Bumped kotlin to 1.6.21
 - Bumped some library versions
 

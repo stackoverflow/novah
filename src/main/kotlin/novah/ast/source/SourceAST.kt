@@ -198,6 +198,7 @@ sealed class Expr {
     data class For(val letDef: LetDef, val body: Expr) : Expr()
     data class Parens(val exp: Expr) : Expr()
     class Unit : Expr()
+    data class Deref(val exp: Expr) : Expr()
     class RecordEmpty : Expr()
     data class RecordSelect(val exp: Expr, val labels: List<Spanned<String>>) : Expr()
     data class RecordExtend(val labels: Labels<Expr>, val exp: Expr) : Expr()

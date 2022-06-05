@@ -214,6 +214,7 @@ class Formatter {
             is Expr.Bool -> "${e.v}"
             is Expr.Parens -> "(${show(e.exp)})"
             is Expr.Unit -> "()"
+            is Expr.Deref -> "@" + show(e.exp)
             is Expr.RecordEmpty -> "{}"
             is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".") { it.value }}"
             is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"

@@ -327,8 +327,8 @@ swap f (Atom a) = Core#swapAtom(a, f)
 // The function *should be free of side effects* as it may be executed
 // multiple times.
 pub
-(@=) : Atom a -> (a -> a) -> Unit
-(@=) (Atom a) f =
+(::=) : Atom a -> (a -> a) -> Unit
+(::=) (Atom a) f =
   Core#swapAtom(a, f)
   ()
 

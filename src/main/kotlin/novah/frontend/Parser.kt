@@ -438,6 +438,11 @@ class Parser(
                     Expr.Lambda(listOf(Pattern.Var(v)), body).withSpan(tk.span, bb.span).withComment(tk.comment)
                 } else under
             }
+            is At -> {
+                val tk = iter.next()
+                val exp = if (iter.peek().value is Ident) parseVar() else parseExpression()
+                Expr.Deref(exp).withSpan(tk.span, exp.span).withComment(tk.comment)
+            }
             is LParen -> {
                 withIgnoreOffside {
                     val tk = iter.next()

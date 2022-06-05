@@ -43,6 +43,7 @@ sealed class Token {
     object Backslash : Token()
     object Arrow : Token()
     object Underline : Token()
+    object At : Token()
     object Pipe : Token()
     object ModuleT : Token()
     object ImportT : Token()
@@ -280,6 +281,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             ',' -> Comma
             ';' -> Semicolon
             '\\' -> Backslash
+            '@' -> At
             '\'' -> char()
             '"' -> string()
             '-' -> {
@@ -694,7 +696,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
     companion object {
 
-        private const val operators = "$=<>|&+-:*/%^.?!@"
+        private const val operators = "$=<>|&+-:*/%^.?!"
         private val operatorSet = operators.toSet()
 
         fun isOperator(str: String) = str.toCharArray().all { it in operatorSet }
