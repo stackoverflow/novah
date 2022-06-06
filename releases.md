@@ -5,6 +5,7 @@
 - Added new syntax for foreign methods and fields: obj#?method(...) and obj#-?field
   which will return Option types instead of raw types
 - Added @ syntax to deref atoms
+- Underscores can be used in numbers now and will be ignored: 1_000_000
 
 ## Optimizations
 
