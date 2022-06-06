@@ -21,6 +21,8 @@ import novah.data.show
 import novah.frontend.Comment
 import novah.frontend.Span
 import novah.frontend.Spanned
+import java.math.BigDecimal
+import java.math.BigInteger
 
 data class Module(
     val name: Spanned<String>,
@@ -177,6 +179,8 @@ sealed class Expr {
     data class Int64(val v: Long, val text: String) : Expr()
     data class Float32(val v: Float, val text: String) : Expr()
     data class Float64(val v: Double, val text: String) : Expr()
+    data class Bigint(val v: BigInteger, val text: String) : Expr()
+    data class Bigdec(val v: BigDecimal, val text: String) : Expr()
     data class StringE(val v: String, val raw: String, val multi: Boolean = false) : Expr()
     data class CharE(val v: Char, val raw: String) : Expr()
     data class Bool(val v: Boolean) : Expr()

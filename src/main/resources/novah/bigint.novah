@@ -2,7 +2,6 @@
 module novah.bigint
 
 foreign import java.lang.ArithmeticException
-foreign import java.math.BigInteger
 
 // Returns a new BigInteger represented by this int64
 pub
@@ -75,78 +74,3 @@ toInt64 i =
     Some i#longValueExact()
   catch
     :? ArithmeticException -> None
-
-pub instance
-plusBigInt : Plus BigInteger
-plusBigInt =
-  Plus
-    { plus: \(x : BigInteger) y -> x#add(y)
-    , identity: BigInteger#-`ZERO`
-    }
-
-pub instance
-minusBigInt : Minus BigInteger
-minusBigInt = Minus \(x : BigInteger) y -> x#subtract(y)
-
-pub instance
-multBigInt : Mult BigInteger
-multBigInt =
-  Mult
-    { mult: \(x : BigInteger) y -> x#multiply(y)
-    , identity: BigInteger#-`ONE`
-    }
-
-pub instance
-divideBigInt : Divide BigInteger
-divideBigInt = Divide \(x : BigInteger) y -> x#divide(y)
-
-pub instance
-showBigInt : Show BigInteger
-showBigInt = Show toString
-
-pub instance
-eqBigInt : Equals BigInteger
-eqBigInt = Equals \(x : BigInteger) y -> x#equals(y as Object)
-
-compareBigInt : BigInteger -> BigInteger -> Ordering
-compareBigInt x y = case x#compareTo(y) of
-  0 -> EQ
-  1 -> GT
-  _ -> LT
-
-pub instance
-ordBigInt : Ord BigInteger
-ordBigInt = Ord eqBigInt { compare: compareBigInt }
-
-pub instance
-numberOpsBigInt : NumberOps BigInteger
-numberOpsBigInt =
-  NumberOps
-    { remainder: \(x : BigInteger) y -> x#remainder(y)
-    , even: \(x: BigInteger) -> x#mod(BigInteger#-`TWO`)#equals(BigInteger#-`ZERO` as Object)
-    , min: \(x : BigInteger) y -> x#min(y)
-    , max: \(x : BigInteger) y -> x#max(y)
-    , abs: \(x : BigInteger) -> x#abs()
-    }
-
-pub instance
-bitOperatorBigInt : BitOperator BigInteger
-bitOperatorBigInt =
-  BitOperator
-    { and: \(x : BigInteger) y -> x#and(y)
-    , or: \(x : BigInteger) y -> x#or(y)
-    , xor: \(x : BigInteger) y -> x#xor(y)
-    , shiftLeft: \(x : BigInteger) (y : BigInteger) -> x#shiftLeft(y#intValue())
-    , shiftRight: \(x : BigInteger) (y : BigInteger) -> x#shiftRight(y#intValue())
-    , not: \(x : BigInteger) -> x#not()
-    }
-
-pub instance
-toNumberBigInt : ToNumber BigInteger
-toNumberBigInt =
-  ToNumber
-    { int: \(n : BigInteger) -> n#intValue()
-    , int64: \(n : BigInteger) -> n#longValue()
-    , float32: \(n : BigInteger) -> n#floatValue()
-    , float64: \(n : BigInteger) -> n#doubleValue()
-    }

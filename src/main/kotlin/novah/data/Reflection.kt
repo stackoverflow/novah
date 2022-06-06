@@ -39,6 +39,8 @@ object Reflection {
         "Float32" -> "java.lang.Float"
         "Float64" -> "java.lang.Double"
         "Char" -> "java.lang.Character"
+        "BigInteger" -> "java.math.BigInteger"
+        "BigDecimal" -> "java.math.BigDecimal"
         "Array" -> "java.lang.Object[]"
         "ByteArray" -> "byte[]"
         "Int16Array" -> "short[]"

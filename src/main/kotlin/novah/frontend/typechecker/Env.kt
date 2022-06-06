@@ -118,6 +118,8 @@ const val primFloat64 = "$PRIM.Float64"
 const val primBoolean = "$PRIM.Boolean"
 const val primChar = "$PRIM.Char"
 const val primString = "$PRIM.String"
+const val primBigint = "$PRIM.BigInteger"
+const val primBigdec = "$PRIM.BigDecimal"
 const val primUnit = "$PRIM.Unit"
 const val primObject = "$PRIM.Object"
 const val primList = "$PRIM.List"
@@ -144,6 +146,8 @@ val tFloat64 = TConst(primFloat64)
 val tBoolean = TConst(primBoolean)
 val tChar = TConst(primChar)
 val tString = TConst(primString)
+val tBigint = TConst(primBigint)
+val tBigdec = TConst(primBigdec)
 val tObject = TConst(primObject)
 val tUnit = TConst(primUnit)
 val tList = tapp(primList, -1)
@@ -171,6 +175,8 @@ val primTypes = mapOf(
     primBoolean to tBoolean,
     primChar to tChar,
     primString to tString,
+    primBigint to tBigint,
+    primBigdec to tBigdec,
     primObject to tObject,
     primUnit to tUnit,
     primList to tList,
@@ -232,6 +238,8 @@ fun javaToNovah(jname: String): String = when (jname) {
     "java.lang.Character" -> primChar
     "java.lang.Boolean" -> primBoolean
     "java.lang.Object" -> primObject
+    "java.math.BigInteger" -> primBigint
+    "java.math.BigDecimal" -> primBigdec
     "io.lacuna.bifurcan.List" -> primList
     "io.lacuna.bifurcan.Set" -> primSet
     "io.lacuna.bifurcan.Map" -> primMap
@@ -264,6 +272,8 @@ fun findJavaType(novahType: String) = when (novahType) {
     primChar -> "java.lang.Character"
     primString -> "java.lang.String"
     primBoolean -> "java.lang.Boolean"
+    primBigint -> "java.math.BigInteger"
+    primBigdec -> "java.math.BigDecimal"
     primObject -> "java.lang.Object"
     primList -> "io.lacuna.bifurcan.List"
     primSet -> "io.lacuna.bifurcan.Set"
@@ -305,6 +315,8 @@ val primModuleEnv = ModuleEnv(
         "String" to tdecl(tString),
         "Char" to tdecl(tChar),
         "Boolean" to tdecl(tBoolean),
+        "BigInteger" to tdecl(tBigint),
+        "BigDecimal" to tdecl(tBigdec),
         "Unit" to tdecl(tUnit),
         "Object" to tdecl(tObject),
         "List" to tdecl(tList),
@@ -337,6 +349,8 @@ val primModule = Module(
         primType("Char", "A UTF-16 character.\nEquivalent to `java.lang.Character`."),
         primType("Boolean", "A value that can be either true or false.\nEquivalent to `java.lang.Boolean`."),
         primType("String", "A String of characters.\nEquivalent to `java.lang.String`."),
+        primType("BigInteger", "An arbitrary precision integer.\nEquivalent to `java.math.BigInteger`."),
+        primType("BigDecimal", "An arbitrary precision decimal.\nEquivalent to `java.math.BigDecimal`."),
         primType(
             "Unit", """Represents the absence of a value.
             |Normally used to represent a function that takes no parameters or returns nothing""".trimMargin()

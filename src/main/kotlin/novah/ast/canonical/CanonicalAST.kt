@@ -26,6 +26,8 @@ import novah.frontend.typechecker.Env
 import novah.frontend.typechecker.Type
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.math.BigDecimal
+import java.math.BigInteger
 import java.lang.reflect.Constructor as JConstructor
 
 /**
@@ -106,6 +108,8 @@ sealed class Expr(open val span: Span) {
     data class Int64(val v: Long, override val span: Span) : Expr(span)
     data class Float32(val v: Float, override val span: Span) : Expr(span)
     data class Float64(val v: Double, override val span: Span) : Expr(span)
+    data class Bigint(val v: BigInteger, override val span: Span) : Expr(span)
+    data class Bigdec(val v: BigDecimal, override val span: Span) : Expr(span)
     data class StringE(val v: String, override val span: Span) : Expr(span)
     data class CharE(val v: Char, override val span: Span) : Expr(span)
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
@@ -509,6 +513,8 @@ fun Expr.everywhereUnit(f: (Expr) -> Unit) {
             is Expr.Int64 -> f(e)
             is Expr.Float32 -> f(e)
             is Expr.Float64 -> f(e)
+            is Expr.Bigint -> f(e)
+            is Expr.Bigdec -> f(e)
             is Expr.CharE -> f(e)
             is Expr.StringE -> f(e)
             is Expr.Var -> f(e)

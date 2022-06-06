@@ -525,6 +525,22 @@ plusFloat64 =
     , identity: 0.0
     }
 
+pub instance
+plusBigInt : Plus BigInteger
+plusBigInt =
+  Plus
+    { plus: \(x : BigInteger) y -> x#add(y)
+    , identity: 0N
+    }
+
+pub instance
+plusBigDec : Plus BigDecimal
+plusBigDec =
+  Plus
+    { plus: \(x : BigDecimal) y -> x#add(y)
+    , identity: 0M
+    }
+
 plusTup : Plus a -> Plus b -> Tuple a b -> Tuple a b -> Tuple a b
 plusTup (Plus p1) (Plus p2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (p1.plus x1 x2) (p2.plus y1 y2)
 
@@ -561,6 +577,14 @@ minusFloat32 = Minus \(x : Float32) y -> Core#sub(x, y)
 pub instance
 minusFloat64 : Minus Float64
 minusFloat64 = Minus \(x : Float64) y -> Core#sub(x, y)
+
+pub instance
+minusBigInt : Minus BigInteger
+minusBigInt = Minus \(x : BigInteger) y -> x#subtract(y)
+
+pub instance
+minusBigDec : Minus BigDecimal
+minusBigDec = Minus \(x : BigDecimal) y -> x#subtract(y)
 
 minusTup : Minus a -> Minus b -> Tuple a b -> Tuple a b -> Tuple a b
 minusTup (Minus m1) (Minus m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2) (m2 y1 y2)
@@ -615,6 +639,22 @@ multFloat64 =
     , identity: 1.0
     }
 
+pub instance
+multBigInt : Mult BigInteger
+multBigInt =
+  Mult
+    { mult: \(x : BigInteger) y -> x#multiply(y)
+    , identity: 1N
+    }
+
+pub instance
+multBigDec : Mult BigDecimal
+multBigDec =
+  Mult
+    { mult: \(x : BigDecimal) y -> x#multiply(y)
+    , identity: 1M
+    }
+
 multTup : Mult a -> Mult b -> Tuple a b -> Tuple a b -> Tuple a b
 multTup (Mult p1) (Mult p2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (p1.mult x1 x2) (p2.mult y1 y2)
 
@@ -651,6 +691,14 @@ divideFloat32 = Divide \(x : Float32) y -> Core#div(x, y)
 pub instance
 divideFloat64 : Divide Float64
 divideFloat64 = Divide \(x : Float64) y -> Core#div(x, y)
+
+pub instance
+divideBigInt : Divide BigInteger
+divideBigInt = Divide \(x : BigInteger) y -> x#divide(y)
+
+pub instance
+divideBigDec : Divide BigDecimal
+divideBigDec = Divide \(x : BigDecimal) y -> x#divide(y)
 
 divideTup : Divide a -> Divide b -> Tuple a b -> Tuple a b -> Tuple a b
 divideTup (Divide m1) (Divide m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2) (m2 y1 y2)
@@ -715,6 +763,14 @@ showChar = Show toString
 pub instance
 showBoolean : Show Boolean
 showBoolean = Show toString
+
+pub instance
+showBigInt : Show BigInteger
+showBigInt = Show toString
+
+pub instance
+showBigDec : Show BigDecimal
+showBigDec = Show toString
 
 pub instance
 showObject : Show Object
@@ -827,6 +883,14 @@ eqBoolean = Equals equalsBoolean
 pub instance
 eqString : Equals String
 eqString = Equals \(x : String) y -> x#equals((y : String) as Object)
+
+pub instance
+eqBigInt : Equals BigInteger
+eqBigInt = Equals \(x : BigInteger) y -> x#equals(y as Object)
+
+pub instance
+eqBigDec : Equals BigDecimal
+eqBigDec = Equals \(x : BigDecimal) y -> x#equals(y as Object)
 
 pub instance
 eqList : {{ Equals a }} -> Equals (List a)
@@ -1067,6 +1131,26 @@ compareOption (Ord _ o) =
     None, Some _ -> LT
     None, None -> EQ
 
+compareBigInt : BigInteger -> BigInteger -> Ordering
+compareBigInt x y = case x#compareTo(y) of
+  0 -> EQ
+  1 -> GT
+  _ -> LT
+
+pub instance
+ordBigInt : Ord BigInteger
+ordBigInt = Ord eqBigInt { compare: compareBigInt }
+
+compareBigDec : BigDecimal -> BigDecimal -> Ordering
+compareBigDec x y = case x#compareTo(y) of
+  0 -> EQ
+  1 -> GT
+  _ -> LT
+
+pub instance
+ordBigDec : Ord BigDecimal
+ordBigDec = Ord eqBigDec { compare: compareBigDec }
+
 // Compares two options if their values are comparable.
 // None values are always smaller then Some.
 pub instance
@@ -1131,6 +1215,28 @@ numberOpsFloat64 =
     , min: \(x : Float64) y -> Math#min(x, y)
     , max: \(x : Float64) y -> Math#max(x, y)
     , abs: \(x : Float64) -> Math#abs(x)
+    }
+
+pub instance
+numberOpsBigInt : NumberOps BigInteger
+numberOpsBigInt =
+  NumberOps
+    { remainder: \(x : BigInteger) y -> x#remainder(y)
+    , even: \(x: BigInteger) -> x#mod(2N)#equals(0N as Object)
+    , min: \(x : BigInteger) y -> x#min(y)
+    , max: \(x : BigInteger) y -> x#max(y)
+    , abs: \(x : BigInteger) -> x#abs()
+    }
+
+pub instance
+numberOpsBigDec : NumberOps BigDecimal
+numberOpsBigDec =
+  NumberOps
+    { remainder: \(x : BigDecimal) y -> x#remainder(y)
+    , even: \(x: BigDecimal) -> x#remainder(2M)#equals(0M as Object)
+    , min: \(x : BigDecimal) y -> x#min(y)
+    , max: \(x : BigDecimal) y -> x#max(y)
+    , abs: \(x : BigDecimal) -> x#abs()
     }
 
 // Types that can be converted to numbers.
@@ -1234,6 +1340,26 @@ toNumberBoolean =
     , int64: if _ then 1L else 0L
     , float32: if _ then 1.0F else 0.0F
     , float64: if _ then 1.0 else 0.0
+    }
+
+pub instance
+toNumberBigInt : ToNumber BigInteger
+toNumberBigInt =
+  ToNumber
+    { int: \(n : BigInteger) -> n#intValue()
+    , int64: \(n : BigInteger) -> n#longValue()
+    , float32: \(n : BigInteger) -> n#floatValue()
+    , float64: \(n : BigInteger) -> n#doubleValue()
+    }
+
+pub instance
+toNumberBigDec : ToNumber BigDecimal
+toNumberBigDec =
+  ToNumber
+    { int: \(n : BigDecimal) -> n#intValue()
+    , int64: \(n : BigDecimal) -> n#longValue()
+    , float32: \(n : BigDecimal) -> n#floatValue()
+    , float64: \(n : BigDecimal) -> n#doubleValue()
     }
 
 // Represents a type that supports bitwise operations.
@@ -1366,6 +1492,18 @@ fixedSizeBitOperatorInt64 : FixedSizeBitOperator Int64
 fixedSizeBitOperatorInt64 =
   FixedSizeBitOperator
     { unsignedShiftRight: \x y -> Core#unsignedBitShiftRightLong(x, y) }
+
+pub instance
+bitOperatorBigInt : BitOperator BigInteger
+bitOperatorBigInt =
+  BitOperator
+    { and: \(x : BigInteger) y -> x#and(y)
+    , or: \(x : BigInteger) y -> x#or(y)
+    , xor: \(x : BigInteger) y -> x#xor(y)
+    , shiftLeft: \(x : BigInteger) (y : BigInteger) -> x#shiftLeft(y#intValue())
+    , shiftRight: \(x : BigInteger) (y : BigInteger) -> x#shiftRight(y#intValue())
+    , not: \(x : BigInteger) -> x#not()
+    }
 
 // Types that can range over some values.
 pub+
