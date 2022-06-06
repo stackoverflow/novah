@@ -41,6 +41,8 @@ class TypecheckerSpec : StringSpec({
         val tlong = inferX("34L")
         val tfloat = inferX("34.0F")
         val tdouble = inferX("34.0")
+        val tbigint = inferX("34N")
+        val tbigdec = inferX("34.45e12M")
         val tstring = inferX("\"asd\"")
         val tchar = inferX("'A'")
         val tboolean = inferX("false")
@@ -49,6 +51,8 @@ class TypecheckerSpec : StringSpec({
         tlong shouldBe tInt64
         tfloat shouldBe tFloat32
         tdouble shouldBe tFloat64
+        tbigint shouldBe tBigint
+        tbigdec shouldBe tBigdec
         tstring shouldBe tString
         tchar shouldBe tChar
         tboolean shouldBe tBoolean

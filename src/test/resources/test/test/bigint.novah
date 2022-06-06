@@ -3,63 +3,57 @@ module test.bigint
 import novah.bigint as B
 import novah.test
 
-foreign import java.math.BigInteger
-
-bi : Int -> BigInteger
-bi = B.fromInt
-
 bigIntTests : Unit
 bigIntTests =
-  let x = bi 100
-  let y = bi 2
-  let big = B.fromString "100000000000000000000000000000000000000000000000001"
+  let big = 100000000000000000000000000000000000000000000000001N
   test "BigInteger creation functions" \_ ->
-    B.fromInt64 100L `shouldBe` x
-    B.fromString "100" `shouldBe` x
-    B.fromStringRadix "100" 10 `shouldBe` x
-    B.fromStringRadix "1100100" 2 `shouldBe` x
+    B.fromInt64 100L `shouldBe` 100N
+    B.fromString "100" `shouldBe` 100N
+    B.fromStringRadix "100" 10 `shouldBe` 100N
+    B.fromStringRadix "1100100" 2 `shouldBe` 100N
 
   test "BigInteger conversion functions" \_ ->
-    int x `shouldBe` 100
-    int64 x `shouldBe` 100L
-    float32 x `shouldBe` 100F
-    float64 x `shouldBe` 100.0
-    B.toByte x `shouldBe` Some (100 : Byte)
+    int 100N `shouldBe` 100
+    int64 100N `shouldBe` 100L
+    float32 100N `shouldBe` 100F
+    float64 100N `shouldBe` 100.0
+    B.toByte 100N `shouldBe` Some (100 : Byte)
     B.toByte big `shouldBe` None
-    B.toInt16 x `shouldBe` Some (100 : Int16)
+    B.toInt16 100N `shouldBe` Some (100 : Int16)
     B.toInt16 big `shouldBe` None
-    B.toInt x `shouldBe` Some 100
+    B.toInt 100N `shouldBe` Some 100
     B.toInt big `shouldBe` None
-    B.toInt64 x `shouldBe` Some 100L
+    B.toInt64 100N `shouldBe` Some 100L
     B.toInt64 big `shouldBe` None
     show big `shouldBe` "100000000000000000000000000000000000000000000000001"
 
   test "BigInteger math functions" \_ ->
-    B.negate x `shouldBe` bi -100
-    B.pow 2 x `shouldBe` bi 10000
-    B.sqrt x `shouldBe` bi 10
-    (x + y) `shouldBe` bi 102
-    (x - y) `shouldBe` bi 98
-    (x * y) `shouldBe` bi 200
-    (x / y) `shouldBe` bi 50
-    (y / x) `shouldBe` bi 0
+    let x = 100N
+    let y = 2N
+    B.negate x `shouldBe` -100N
+    B.pow 2 x `shouldBe` 10000N
+    B.sqrt x `shouldBe` 10N
+    (x + y) `shouldBe` 102N
+    (x - y) `shouldBe` 98N
+    (x * y) `shouldBe` 200N
+    (x / y) `shouldBe` 50N
+    (y / x) `shouldBe` 0N
     (x == y) `shouldBe` false
-    let otherX = bi 100
-    (x == otherX) `shouldBe` true
+    (x == 100N) `shouldBe` true
     (x > y) `shouldBe` true
     (big <= y) `shouldBe` false
     Math.isEven x `shouldBe` true
     Math.isEven big `shouldBe` false
     Math.min x y `shouldBe` y
     Math.max x big `shouldBe` big
-    Math.abs (bi -100) `shouldBe` x
-    (x % y) `shouldBe` bi 0
-    (big % y) `shouldBe` bi 1
+    Math.abs -100N `shouldBe` x
+    (x % y) `shouldBe` 0N
+    (big % y) `shouldBe` 1N
 
   test "BigInteger bit functions" \_ ->
-    bitAnd x y `shouldBe` bi 0
-    bitOr x y `shouldBe` bi 102
-    bitShiftLeft x y `shouldBe` bi 400
-    bitShiftRight x y `shouldBe` bi 25
-    bitNot x `shouldBe` bi -101
-    bitNot y `shouldBe` bi -3
+    bitAnd 100N 2N `shouldBe` 0N
+    bitOr 100N 2N `shouldBe` 102N
+    bitShiftLeft 100N 2N `shouldBe` 400N
+    bitShiftRight 100N 2N `shouldBe` 25N
+    bitNot 100N `shouldBe` -101N
+    bitNot 2N `shouldBe` -3N

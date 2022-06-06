@@ -150,6 +150,8 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
         is Expr.Int64 -> exp.withType(tInt64)
         is Expr.Float32 -> exp.withType(tFloat32)
         is Expr.Float64 -> exp.withType(tFloat64)
+        is Expr.Bigint -> exp.withType(tBigint)
+        is Expr.Bigdec -> exp.withType(tBigdec)
         is Expr.CharE -> exp.withType(tChar)
         is Expr.Bool -> exp.withType(tBoolean)
         is Expr.StringE -> exp.withType(tString)

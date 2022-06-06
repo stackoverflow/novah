@@ -415,6 +415,8 @@ class Parser(
             is LongT -> parseInt64()
             is FloatT -> parseFloat32()
             is DoubleT -> parseFloat64()
+            is BigintT -> parseBigint()
+            is BigdecT -> parseBigdec()
             is StringT -> parseString()
             is MultilineStringT -> parseMultilineString()
             is PatternStringT -> parsePatternString()
@@ -646,6 +648,16 @@ class Parser(
     private fun parseFloat64(): Expr {
         val num = expect<DoubleT>(withError(E.literalExpected("double")))
         return Expr.Float64(num.value.v, num.value.text).withSpanAndComment(num)
+    }
+
+    private fun parseBigint(): Expr {
+        val num = expect<BigintT>(withError(E.literalExpected("big integer")))
+        return Expr.Bigint(num.value.v, num.value.text).withSpanAndComment(num)
+    }
+
+    private fun parseBigdec(): Expr {
+        val num = expect<BigdecT>(withError(E.literalExpected("big decimal")))
+        return Expr.Bigdec(num.value.v, num.value.text).withSpanAndComment(num)
     }
 
     private fun parseString(): Expr {

@@ -16,6 +16,8 @@
 package novah.frontend
 
 import novah.frontend.Token.*
+import java.math.BigDecimal
+import java.math.BigInteger
 
 data class Comment(val comment: String, val span: Span, val isMulti: Boolean = false)
 
@@ -84,6 +86,8 @@ sealed class Token {
     data class LongT(val v: Long, val text: String) : Token()
     data class FloatT(val v: Float, val text: String) : Token()
     data class DoubleT(val v: Double, val text: String) : Token()
+    data class BigintT(val v: BigInteger, val text: String) : Token()
+    data class BigdecT(val v: BigDecimal, val text: String) : Token()
     data class Ident(val v: String) : Token()
     data class UpperIdent(val v: String) : Token()
     data class Op(val op: String, val isPrefix: Boolean = false) : Token()
@@ -483,27 +487,31 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     iter.next()
                     val bin = acceptMany("01_").replace("_", "")
                     if (bin.isEmpty()) lexError("Binary number cannot be empty")
-                    val l = accept("L")
-                    if (l != null) LongT(bin.toSafeLong(2) * n, "${pref}0$c$bin")
-                    else genNumIntToken(bin.toSafeLong(2) * n, "${pref}0$c$bin")
+                    when (val l = accept("LN")) {
+                        null -> genNumIntToken(bin.toSafeLong(2) * n, "${pref}0$c$bin")
+                        'L' -> LongT(bin.toSafeLong(2) * n, "${pref}0$c$bin$l")
+                        else -> BigintT("$pref$bin".toSafeBigint(2), "${pref}0$c$bin$l")
+                    }
                 }
                 // hex numbers
                 'x', 'X' -> {
                     iter.next()
                     val hex = acceptMany("0123456789abcdefABCDEF_").replace("_", "")
                     if (hex.isEmpty()) lexError("Hexadecimal number cannot be empty")
-                    val l = accept("L")
-                    if (l != null) LongT(hex.toSafeLong(16) * n, "${pref}0$c$hex")
-                    else genNumIntToken(hex.toSafeLong(16) * n, "${pref}0$c$hex")
+                    when (val l = accept("LN")) {
+                        null -> genNumIntToken(hex.toSafeLong(16) * n, "${pref}0$c$hex")
+                        'L' -> LongT(hex.toSafeLong(16) * n, "${pref}0$c$hex")
+                        else -> BigintT("$pref$hex".toSafeBigint(2), "${pref}0$c$hex$l")
+                    }
                 }
                 else -> {
                     if (c.isDigit()) lexError("Number 0 can only be followed by b|B or x|X: `$c`")
-                    val l = accept("L")
-                    if (l != null) LongT(0, "0L")
-                    else {
-                        val f = accept("F")
-                        if (f != null) FloatT(0F, "0F")
-                        else IntT(0, "0")
+                    when (accept("LFNM")) {
+                        null -> IntT(0, "0")
+                        'L' -> LongT(0, "0L")
+                        'F' -> FloatT(0F, "0F")
+                        'N' -> BigintT(BigInteger.ZERO, "0N")
+                        else -> BigdecT(BigDecimal.ZERO, "0M")
                     }
                 }
             }
@@ -518,33 +526,35 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val end = acceptMany("0123456789_").replace("_", "")
                     if (end.isEmpty()) lexError("Invalid number format: number cannot end in `.`")
                     val number = if (iter.hasNext() && iter.peek().lowercaseChar() == 'e') {
-                        "$num.$end${readE()}"
-                    } else "$num.$end"
+                        "$pref$num.$end${readE()}"
+                    } else "$pref$num.$end"
 
-                    val f = accept("F")
-
-                    if (f != null) FloatT(number.toSafeFloat() * n, pref + number + f)
-                    else DoubleT(number.toSafeDouble() * n, pref + number)
+                    when (val f = accept("FM")) {
+                        null -> DoubleT(number.toSafeDouble(), number)
+                        'F' -> FloatT(number.toSafeFloat(), number + f)
+                        else -> BigdecT(number.toSafeBigdec(), number + f)
+                    }
                 }
                 next.lowercaseChar() == 'e' -> {
                     // Double
-                    val number = "$num${readE()}"
+                    val number = "$pref$num${readE()}"
 
-                    val f = accept("F")
-
-                    if (f != null) FloatT(number.toSafeFloat() * n, pref + number + f)
-                    else DoubleT(number.toSafeDouble() * n, pref + number)
+                    when (val f = accept("FM")) {
+                        null -> DoubleT(number.toSafeDouble(), number)
+                        'F' -> FloatT(number.toSafeFloat(), number + f)
+                        else -> BigdecT(number.toSafeBigdec(), number + f)
+                    }
                 }
                 else -> {
                     // Int or Double
-                    if (iter.hasNext()) {
-                        val l = accept("L")
-                        if (l == null) {
-                            val f = accept("F")
-                            if (f != null) FloatT(num.toSafeFloat() * n, pref + num + f)
-                            else genNumIntToken(num.toSafeLong(10) * n, pref + num)
-                        } else LongT(num.toSafeLong(10) * n, pref + num + l)
-                    } else genNumIntToken(num.toSafeLong(10) * n, pref + num)
+                    val number = "$pref$num"
+                    when (val l = accept("LFNM")) {
+                        null -> genNumIntToken(number.toSafeLong(10), number)
+                        'L' -> LongT(number.toSafeLong(10), number + l)
+                        'F' -> FloatT(number.toSafeFloat(), number + l)
+                        'N' -> BigintT(number.toSafeBigint(10), number + l)
+                        else -> BigdecT(number.toSafeBigdec(), number + l)
+                    }
                 }
             }
         }
@@ -691,6 +701,22 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
             return this.toDouble()
         } catch (e: NumberFormatException) {
             lexError("Invalid number format for double: `$this`")
+        }
+    }
+
+    private fun String.toSafeBigint(radix: Int): BigInteger {
+        try {
+            return this.toBigInteger(radix)
+        } catch (e: NumberFormatException) {
+            lexError("Invalid number format for bigint: `$this`")
+        }
+    }
+
+    private fun String.toSafeBigdec(): BigDecimal {
+        try {
+            return BigDecimal(this)
+        } catch (e: NumberFormatException) {
+            lexError("Invalid number format for bigint: `$this`")
         }
     }
 

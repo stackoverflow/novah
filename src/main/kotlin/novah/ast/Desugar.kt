@@ -183,6 +183,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.Int64 -> Expr.Int64(v, span)
         is SExpr.Float32 -> Expr.Float32(v, span)
         is SExpr.Float64 -> Expr.Float64(v, span)
+        is SExpr.Bigint -> Expr.Bigint(v, span)
+        is SExpr.Bigdec -> Expr.Bigdec(v, span)
         is SExpr.StringE -> Expr.StringE(v, span)
         is SExpr.CharE -> Expr.CharE(v, span)
         is SExpr.Bool -> Expr.Bool(v, span)

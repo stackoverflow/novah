@@ -43,6 +43,8 @@ import novah.main.Environment
 import novah.range.Range
 import org.objectweb.asm.Type
 import java.lang.reflect.Constructor
+import java.math.BigDecimal
+import java.math.BigInteger
 import kotlin.collections.List
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -127,6 +129,12 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is CExpr.Int64 -> Expr.Int64(v, typ, span)
             is CExpr.Float32 -> Expr.Float32(v, typ, span)
             is CExpr.Float64 -> Expr.Float64(v, typ, span)
+            is CExpr.Bigint -> {
+                Expr.NativeCtor(bigIntCtor, listOf(Expr.StringE(v.toString(), stringType, span)), typ, span)
+            }
+            is CExpr.Bigdec -> {
+                Expr.NativeCtor(bigDecCtor, listOf(Expr.StringE(v.toString(), stringType, span)), typ, span)
+            }
             is CExpr.StringE -> Expr.StringE(v, typ, span)
             is CExpr.CharE -> Expr.CharE(v, typ, span)
             is CExpr.Bool -> Expr.Bool(v, typ, span)
@@ -750,6 +758,8 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             primBoolean -> Type.getType(Boolean::class.java)
             primChar -> Type.getType(Char::class.java)
             primString -> Type.getType(String::class.java)
+            primBigint -> Type.getType(BigInteger::class.java)
+            primBigdec -> Type.getType(BigDecimal::class.java)
             primUnit -> UNIT_TYPE
             primObject -> OBJECT_TYPE
             primArray -> ARRAY_TYPE
@@ -807,5 +817,11 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
         val patternMatches = java.util.regex.Pattern::class.java.methods.find { it.name == "matches" }!!
         val registerMetas = novah.Metadata::class.java.methods.find { it.name == "registerMetas" }!!
+        val bigIntCtor = BigInteger::class.java.constructors.find {
+            it.parameterCount == 1 && it.parameters[0].type.simpleName == "String"
+        }!!
+        val bigDecCtor = BigDecimal::class.java.constructors.find {
+            it.parameterCount == 1 && it.parameters[0].type.simpleName == "String"
+        }!!
     }
 }

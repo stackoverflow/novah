@@ -208,6 +208,8 @@ class Formatter {
             is Expr.Int64 -> e.text
             is Expr.Float32 -> e.text
             is Expr.Float64 -> e.text
+            is Expr.Bigint -> e.text
+            is Expr.Bigdec -> e.text
             is Expr.StringE -> if (e.multi) "\"\"\"${e.v}\"\"\"" else "\"${e.raw}\""
             is Expr.PatternLiteral -> "#\"${e.raw}\""
             is Expr.CharE -> "'${e.raw}'"
