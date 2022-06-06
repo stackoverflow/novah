@@ -198,6 +198,10 @@ pub instance
 eqMap : {{ Equals k }} -> {{ Equals v }} -> Equals (Map k v)
 eqMap {{Equals eqk}} {{Equals eqv}} = Equals \x y -> Core#equalsMap(x, y, eqk, eqv)
 
+pub instance
+containedMap : {{ Equals k }} -> Contained k (Map k v)
+containedMap {{eq}} = Contained eq \key (map : Map k v) -> map#contains(key)
+
 // Creates a linear (mutable) version of the given map and applies the function to it.
 // Returns a forked (persistent) version of the returned linear map.
 // This function should be used when lots of expensive mutating operations have to be run on a map
