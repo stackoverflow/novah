@@ -259,6 +259,8 @@ sealed class LiteralPattern(open val e: Expr) {
     data class Int64Literal(override val e: Expr.Int64) : LiteralPattern(e)
     data class Float32Literal(override val e: Expr.Float32) : LiteralPattern(e)
     data class Float64Literal(override val e: Expr.Float64) : LiteralPattern(e)
+    data class BigintLiteral(override val e: Expr.Bigint) : LiteralPattern(e)
+    data class BigdecLiteral(override val e: Expr.Bigdec) : LiteralPattern(e)
 }
 
 fun Pattern.show(): String = when (this) {
@@ -285,6 +287,8 @@ fun LiteralPattern.show(): String = when (this) {
     is LiteralPattern.Int64Literal -> e.v.toString()
     is LiteralPattern.Float32Literal -> e.v.toString()
     is LiteralPattern.Float64Literal -> e.v.toString()
+    is LiteralPattern.BigintLiteral -> e.v.toString()
+    is LiteralPattern.BigdecLiteral -> e.v.toString()
 }
 
 data class Metadata(val data: Expr.RecordExtend) {

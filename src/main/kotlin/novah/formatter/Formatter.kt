@@ -303,6 +303,8 @@ class Formatter {
         is LiteralPattern.Int64Literal -> show(p.e)
         is LiteralPattern.Float32Literal -> show(p.e)
         is LiteralPattern.Float64Literal -> show(p.e)
+        is LiteralPattern.BigintLiteral -> show(p.e)
+        is LiteralPattern.BigdecPattern -> show(p.e)
     }
 
     private fun show(l: LetDef, isFor: Boolean = false): String {

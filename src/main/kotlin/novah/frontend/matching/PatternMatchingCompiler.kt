@@ -231,6 +231,8 @@ class PatternMatchingCompiler<R>(private val ctorCache: MutableMap<String, Ctor>
                 is LiteralPattern.Int64Literal -> mkPrimCtor(l.e.v.toString())
                 is LiteralPattern.Float32Literal -> mkPrimCtor(l.e.v.toString())
                 is LiteralPattern.Float64Literal -> mkPrimCtor(l.e.v.toString())
+                is LiteralPattern.BigintLiteral -> mkPrimCtor(l.e.v.toString())
+                is LiteralPattern.BigdecLiteral -> mkPrimCtor(l.e.v.toString())
             }
             Pat.PCon(con)
         }

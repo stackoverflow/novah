@@ -307,6 +307,8 @@ sealed class LiteralPattern {
     data class Int64Literal(val e: Expr.Int64) : LiteralPattern()
     data class Float32Literal(val e: Expr.Float32) : LiteralPattern()
     data class Float64Literal(val e: Expr.Float64) : LiteralPattern()
+    data class BigintLiteral(val e: Expr.Bigint) : LiteralPattern()
+    data class BigdecPattern(val e: Expr.Bigdec) : LiteralPattern()
 }
 
 typealias Row = Type
