@@ -5,6 +5,10 @@
 - Added new syntax for literal big ints and big decimals: `100000N`, `100000.30M`
 - Added support for big ints and big decimals in pattern matching
 
+## Changes
+
+- Added factorial function to Math module
+
 # 0.2.0
 
 ## Features
