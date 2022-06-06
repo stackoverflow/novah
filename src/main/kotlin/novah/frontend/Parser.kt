@@ -965,6 +965,14 @@ class Parser(
                 iter.next()
                 Pattern.LiteralP(LiteralPattern.Float64Literal(Expr.Float64(tk.value.v, tk.value.text)), tk.span)
             }
+            is BigintT -> {
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.BigintLiteral(Expr.Bigint(tk.value.v, tk.value.text)), tk.span)
+            }
+            is BigdecT -> {
+                iter.next()
+                Pattern.LiteralP(LiteralPattern.BigdecPattern(Expr.Bigdec(tk.value.v, tk.value.text)), tk.span)
+            }
             is CharT -> {
                 iter.next()
                 Pattern.LiteralP(LiteralPattern.CharLiteral(Expr.CharE(tk.value.c, tk.value.raw)), tk.span)

@@ -531,10 +531,19 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             is Pattern.Unit -> PatternResult(tru)
             is Pattern.LiteralP -> {
                 val lit = p.lit.e.convert(locals)
-                if (p.lit is LiteralPattern.StringLiteral) {
-                    PatternResult(Expr.NativeMethod(eqString, lit, listOf(exp), boolType, exp.span))
-                } else {
-                    PatternResult(Expr.OperatorApp("==", listOf(lit, exp), boolType, exp.span))
+                when (p.lit) {
+                    is LiteralPattern.StringLiteral -> {
+                        PatternResult(Expr.NativeMethod(eqString, lit, listOf(exp), boolType, exp.span))
+                    }
+                    is LiteralPattern.BigintLiteral -> {
+                        PatternResult(Expr.NativeMethod(bigIntEquals, lit, listOf(exp), boolType, exp.span))
+                    }
+                    is LiteralPattern.BigdecLiteral -> {
+                        PatternResult(Expr.NativeMethod(bigDecEquals, lit, listOf(exp), boolType, exp.span))
+                    }
+                    else -> {
+                        PatternResult(Expr.OperatorApp("==", listOf(lit, exp), boolType, exp.span))
+                    }
                 }
             }
             is Pattern.Regex -> {
@@ -817,6 +826,8 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
         val recFunField = RecFunction::class.java.fields.find { it.name == "fun" }!!
         val patternMatches = java.util.regex.Pattern::class.java.methods.find { it.name == "matches" }!!
         val registerMetas = novah.Metadata::class.java.methods.find { it.name == "registerMetas" }!!
+        val bigIntEquals = BigInteger::class.java.methods.find { it.name == "equals" }!!
+        val bigDecEquals = BigDecimal::class.java.methods.find { it.name == "equals" }!!
         val bigIntCtor = BigInteger::class.java.constructors.find {
             it.parameterCount == 1 && it.parameters[0].type.simpleName == "String"
         }!!

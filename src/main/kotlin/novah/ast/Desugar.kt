@@ -535,6 +535,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SLiteralPattern.Int64Literal -> LiteralPattern.Int64Literal(e.desugar(locals) as Expr.Int64)
         is SLiteralPattern.Float32Literal -> LiteralPattern.Float32Literal(e.desugar(locals) as Expr.Float32)
         is SLiteralPattern.Float64Literal -> LiteralPattern.Float64Literal(e.desugar(locals) as Expr.Float64)
+        is SLiteralPattern.BigintLiteral -> LiteralPattern.BigintLiteral(e.desugar(locals) as Expr.Bigint)
+        is SLiteralPattern.BigdecPattern -> LiteralPattern.BigdecLiteral(e.desugar(locals) as Expr.Bigdec)
     }
 
     private fun SLetDef.DefBind.desugar(locals: List<String>, tvars: Map<String, Type>): LetDef {
