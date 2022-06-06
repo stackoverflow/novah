@@ -8,6 +8,7 @@
 ## Changes
 
 - Added factorial function to Math module
+- Added toStringList function to String module
 
 # 0.2.0
 

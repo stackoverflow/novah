@@ -149,6 +149,13 @@ toList : String -> List Char
 toList str =
   str#toCharArray() |> List.fromCharArray
 
+// Returns a list of all chars in this string as strings.
+// Runtime: O(n)
+pub
+toStringList : String -> List String
+toStringList str =
+  str#toCharArray() |> List.fromCharArray |> List.map toString
+
 // Returns a set of all the characters in this string.
 // Runtime: O(n)
 pub
