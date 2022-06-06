@@ -14,3 +14,5 @@ mathTests =
     Math.sqrt 9.0 `shouldBe` 3.0
     Math.cbrt 27.0 `shouldBe` 3.0
     (3.0 ^ 3.0) `shouldBe` 27.0
+    Math.factorial 5N `shouldBe` 120N
+    Math.factorial 20N `shouldBe` 2432902008176640000N

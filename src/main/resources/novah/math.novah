@@ -1,6 +1,7 @@
 // Common mathematical functions and constants.
 module novah.math
 
+foreign import java.lang.ArithmeticException
 foreign import java.lang.Math
 
 // The base of natural logarithms.
@@ -127,3 +128,15 @@ round x = Math#round(x)
 pub
 round64 : Float64 -> Int64
 round64 x = Math#round(x)
+
+// Returns the factorial of the number.
+// **Unsafe:** will throw `java.lang.ArithmeticException` if given a negative number.
+pub
+factorial : BigInteger -> BigInteger
+factorial i =
+  let fact val acc = case val of
+    x if x < 0N -> throw ArithmeticException#new("Factorial is not defined for negative numbers")
+    0N -> acc
+    1N -> acc
+    x -> fact (x - 1N) (x * acc)
+  fact i 1N
