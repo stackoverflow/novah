@@ -9,6 +9,7 @@
 
 - Added factorial function to Math module
 - Added toStringList function to String module
+- Added Contained instance to Map
 
 # 0.2.0
 

@@ -12,6 +12,7 @@ mapTests =
     Map.getOr "d" 0 map `shouldBe` 0
     map.["b"] `shouldBe` 2
     Map.hasKey "c" map `shouldBe` true
+    ("c" `isIn` map) `shouldBe` true
     Map.keys map `shouldBe` #{"a", "b", "c"}
     Map.values map `shouldAllBeIn` #{1, 2, 3}
     Map.entries map `shouldBe` ["b" ; 2, "c" ; 3, "a" ; 1]
