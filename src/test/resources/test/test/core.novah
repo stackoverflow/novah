@@ -33,10 +33,10 @@ coreTests =
     (true && true) `shouldBe` true
     (true || false) `shouldBe` true
     (false || false) `shouldBe` false
-    int 125L `shouldBe` 125
+    int 125_400L `shouldBe` 125_400
     int "999" `shouldBe` 999
     int false `shouldBe` 0
-    int64 125 `shouldBe` 125L
+    int64 1_000_000 `shouldBe` 1000000L
     float32 true `shouldBe` 1F
     float64 "1.78" `shouldBe` 1.78
     (Some 3)!! `shouldBe` 3

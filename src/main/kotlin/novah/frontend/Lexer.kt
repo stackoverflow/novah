@@ -458,7 +458,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         fun readE(): String {
             val e = iter.next().toString()
             val sign = accept("+-")?.toString() ?: ""
-            val exp = acceptMany("0123456789")
+            val exp = acceptMany("0123456789_").replace("_", "")
             if (exp.isEmpty()) {
                 val span = Span.new(startPos, iter.position())
                 lexError("Invalid number format: expected number after `e`.", span)
@@ -481,7 +481,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 // binary numbers
                 'b', 'B' -> {
                     iter.next()
-                    val bin = acceptMany("01")
+                    val bin = acceptMany("01_").replace("_", "")
                     if (bin.isEmpty()) lexError("Binary number cannot be empty")
                     val l = accept("L")
                     if (l != null) LongT(bin.toSafeLong(2) * n, "${pref}0$c$bin")
@@ -490,7 +490,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 // hex numbers
                 'x', 'X' -> {
                     iter.next()
-                    val hex = acceptMany("0123456789abcdefABCDEF")
+                    val hex = acceptMany("0123456789abcdefABCDEF_").replace("_", "")
                     if (hex.isEmpty()) lexError("Hexadecimal number cannot be empty")
                     val l = accept("L")
                     if (l != null) LongT(hex.toSafeLong(16) * n, "${pref}0$c$hex")
@@ -508,14 +508,14 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                 }
             }
         } else {
-            val num = init + acceptMany("0123456789")
+            val num = init + acceptMany("0123456789_").replace("_", "")
 
             val next = if (iter.hasNext()) iter.peek() else ' '
             when {
                 next == '.' -> {
                     // Double
                     iter.next()
-                    val end = acceptMany("0123456789")
+                    val end = acceptMany("0123456789_").replace("_", "")
                     if (end.isEmpty()) lexError("Invalid number format: number cannot end in `.`")
                     val number = if (iter.hasNext() && iter.peek().lowercaseChar() == 'e') {
                         "$num.$end${readE()}"
