@@ -24,6 +24,7 @@ import novah.ast.canonical.*
 import novah.ast.optimized.*
 import novah.ast.optimized.Decl
 import novah.ast.source.Visibility
+import novah.backend.TypeUtil.isPrimitive
 import novah.backend.TypeUtil.wrapper
 import novah.collections.Record
 import novah.data.allList
@@ -176,7 +177,13 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
                         Expr.App(acc, instance.convert(locals), getReturnType(acc.type), span)
                     }
                     Expr.App(app, arg.convert(locals), typ, span)
-                } else Expr.App(fn.convert(locals), arg.convert(locals), typ, span)
+                } else {
+                    val carg = arg.convert(locals)
+                    if (fn is CExpr.Constructor && fn.fullname() == "prim.Some" && !carg.type.type.isPrimitive()) {
+                        // optimize `Some x` if x is not primitive
+                        carg
+                    } else Expr.App(fn.convert(locals), carg, typ, span)
+                }
             }
             is CExpr.If -> Expr.If(
                 listOf(cond.convert(locals) to thenCase.convert(locals)),
