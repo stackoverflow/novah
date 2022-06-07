@@ -10,6 +10,8 @@
 - Added factorial function to Math module
 - Added toStringList function to String module
 - Added Contained instance to Map
+- Added Show instance to primitive arrays
+- Added <primitiveArray>FromList functions to Array module
 
 # 0.2.0
 

@@ -10,6 +10,7 @@ foreign import novah.Core
 import novah.java (toComparator)
 import novah.option as Option
 import novah.stream as Stream
+import novah.list as List
 
 // Returns the size of this array.
 // Runtime: O(1)
@@ -252,6 +253,126 @@ booleanaset index x arr = Core#booleanArraySet(index, x, arr)
 pub
 charaset : Int32 -> Char -> CharArray -> Unit
 charaset index x arr = Core#charArraySet(index, x, arr)
+
+// Creates a byte array from the list.
+// Runtime: O(n).
+pub
+byteArrayFromList : List Byte -> ByteArray
+byteArrayFromList list =
+  let arr = Core#mkByteArray(len list)
+  List.forEachIndexed list \i x ->
+    byteaset i x arr
+  arr
+
+// Creates an int16 array from the list.
+// Runtime: O(n).
+pub
+int16ArrayFromList : List Int16 -> Int16Array
+int16ArrayFromList list =
+  let arr = Core#mkInt16Array(len list)
+  List.forEachIndexed list \i x ->
+    int16aset i x arr
+  arr
+
+// Creates an int32 array from the list.
+// Runtime: O(n).
+pub
+int32ArrayFromList : List Int32 -> Int32Array
+int32ArrayFromList list =
+  let arr = Core#mkInt32Array(len list)
+  List.forEachIndexed list \i x ->
+    int32aset i x arr
+  arr
+
+// Creates an int64 array from the list.
+// Runtime: O(n).
+pub
+int64ArrayFromList : List Int64 -> Int64Array
+int64ArrayFromList list =
+  let arr = Core#mkInt64Array(len list)
+  List.forEachIndexed list \i x ->
+    int64aset i x arr
+  arr
+
+// Creates a float32 array from the list.
+// Runtime: O(n).
+pub
+float32ArrayFromList : List Float32 -> Float32Array
+float32ArrayFromList list =
+  let arr = Core#mkFloat32Array(len list)
+  List.forEachIndexed list \i x ->
+    float32aset i x arr
+  arr
+
+// Creates a float64 array from the list.
+// Runtime: O(n).
+pub
+float64ArrayFromList : List Float64 -> Float64Array
+float64ArrayFromList list =
+  let arr = Core#mkFloat64Array(len list)
+  List.forEachIndexed list \i x ->
+    float64aset i x arr
+  arr
+
+// Creates a boolean array from the list.
+// Runtime: O(n).
+pub
+booleanArrayFromList : List Boolean -> BooleanArray
+booleanArrayFromList list =
+  let arr = Core#mkBooleanArray(len list)
+  List.forEachIndexed list \i x ->
+    booleanaset i x arr
+  arr
+
+// Creates a char array from the list.
+// Runtime: O(n).
+pub
+charArrayFromList : List Char -> CharArray
+charArrayFromList list =
+  let arr = Core#mkCharArray(len list)
+  List.forEachIndexed list \i x ->
+    charaset i x arr
+  arr
+
+pub instance
+showByteArray : Show ByteArray
+showByteArray =
+  Show \arr -> Arrays#toString(arr : ByteArray)
+
+pub instance
+showInt16Array : Show Int16Array
+showInt16Array =
+  Show \arr -> Arrays#toString(arr : Int16Array)
+
+pub instance
+showInt32Array : Show Int32Array
+showInt32Array =
+  Show \arr -> Arrays#toString(arr : Int32Array)
+
+pub instance
+showInt64Array : Show Int64Array
+showInt64Array =
+  Show \arr -> Arrays#toString(arr : Int64Array)
+
+pub instance
+showFloat32Array : Show Float32Array
+showFloat32Array =
+  Show \arr -> Arrays#toString(arr : Float32Array)
+
+pub instance
+showFloat64Array : Show Float64Array
+showFloat64Array =
+  Show \arr -> Arrays#toString(arr : Float64Array)
+
+pub instance
+showBooleanArray : Show BooleanArray
+showBooleanArray =
+  Show \arr -> Arrays#toString(arr : BooleanArray)
+
+pub instance
+showCharArray : Show CharArray
+showCharArray =
+  Show \arr -> Arrays#toString(arr : CharArray)
 
 pub instance
 containedByteArray : Contained Byte ByteArray
