@@ -13,6 +13,8 @@ mathTests =
     Math.sin 1.5707963267949 `shouldBe` 1.0
     Math.sqrt 9.0 `shouldBe` 3.0
     Math.cbrt 27.0 `shouldBe` 3.0
-    (3.0 ^ 3.0) `shouldBe` 27.0
+    (3.0 ^ 3) `shouldBe` 27.0
+    (3N ^ 3) `shouldBe` 27N
+    (3M ^ 3) `shouldBe` 27M
     Math.factorial 5N `shouldBe` 120N
     Math.factorial 20N `shouldBe` 2432902008176640000N

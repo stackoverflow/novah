@@ -2,7 +2,7 @@
 
 ## Features
 
-- Added new syntax for literal big ints and big decimals: `100000N`, `100000.30M`
+- Added new syntax for literal `BigInteger`s and `BigDecimal`s: `100000N`, `100000.30M`
 - Added support for `BigInteger`s and `BigDecimal`s in pattern matching
 
 ## Changes
@@ -13,6 +13,7 @@
 - Added Show instance to primitive arrays
 - Added <primitiveArray>FromList functions to Array module
 - Added range support for `BigInteger` and `BigDecimal`
+- Made `^` operator generic and added implementation for `Float64`, `BigInteger` and `BigDecimal`
 
 # 0.2.0
 

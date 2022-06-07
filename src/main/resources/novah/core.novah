@@ -344,12 +344,6 @@ pub
 compareAndSet : a -> a -> Atom a -> Boolean
 compareAndSet old new (Atom atm) = atm#compareAndSet(old, new)
 
-// Returns x raised to the power of y.
-// Follows the same special cases as `java.lang.Math.pow`.
-pub
-(^) : Float64 -> Float64 -> Float64
-(^) x y = Math#pow(x, y)
-
 // Runs the function and returns the result and the time it took.
 pub
 withTime : (Unit -> a) -> Tuple a Duration
@@ -710,6 +704,28 @@ divideTup (Divide m1) (Divide m2) (Tuple x1 y1) (Tuple x2 y2) = Tuple (m1 x1 x2)
 pub instance
 divideTuple : {{ Divide a }} -> {{ Divide b }} -> Divide (Tuple a b)
 divideTuple {{m1}} {{m2}} = Divide (divideTup m1 m2)
+
+// The type of things that supports exponentiation
+// using the ^ operator
+pub+
+type Exponential a = Exponential (a -> Int32 -> a)
+
+// Returns x raised to the power of y.
+pub
+(^) : {{ Exponential a }} -> a -> Int32 -> a
+(^) {{Exponential exp}} x y = exp x y
+
+pub instance
+expFloat64 : Exponential Float64
+expFloat64 = Exponential \x (y : Int32) -> Math#pow(x, y#doubleValue())
+
+pub instance
+expBigInteger : Exponential BigInteger
+expBigInteger = Exponential \(x : BigInteger) y -> x#pow(y)
+
+pub instance
+expBigDecimal : Exponential BigDecimal
+expBigDecimal = Exponential \(x : BigDecimal) y -> x#pow(y)
 
 // The type of things that have a String representation.
 pub+
