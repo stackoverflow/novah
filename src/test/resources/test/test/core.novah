@@ -60,6 +60,10 @@ coreTests =
     [1.0 ... 5.0] `shouldBe` [1.0, 2.0, 3.0, 4.0]
     ['a' .. 'd'] `shouldBe` ['a', 'b', 'c', 'd']
     ['a' ... 'd'] `shouldBe` ['a', 'b', 'c']
+    [1N .. 5N] `shouldBe` [1N, 2N, 3N, 4N, 5N]
+    [1N ... 5N] `shouldBe` [1N, 2N, 3N, 4N]
+    [1M .. 5M] `shouldBe` [1M, 2M, 3M, 4M, 5M]
+    [1M ... 5M] `shouldBe` [1M, 2M, 3M, 4M]
     #{1 .. 5} `shouldBe` #{1, 2, 3, 4, 5}
     rangeStart (4 .. 10) `shouldBe` 4
     rangeEnd (4 .. 10) `shouldBe` 10

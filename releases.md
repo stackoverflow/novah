@@ -3,7 +3,7 @@
 ## Features
 
 - Added new syntax for literal big ints and big decimals: `100000N`, `100000.30M`
-- Added support for big ints and big decimals in pattern matching
+- Added support for `BigInteger`s and `BigDecimal`s in pattern matching
 
 ## Changes
 
@@ -12,6 +12,7 @@
 - Added Contained instance to Map
 - Added Show instance to primitive arrays
 - Added <primitiveArray>FromList functions to Array module
+- Added range support for `BigInteger` and `BigDecimal`
 
 # 0.2.0
 

@@ -6,6 +6,10 @@ foreign import io.lacuna.bifurcan.IList
 foreign import io.lacuna.bifurcan.ISet
 foreign import novah.Core
 foreign import novah.collections.Record
+foreign import novah.range.BigDecimalRange
+foreign import novah.range.BigDecimalOpenRange
+foreign import novah.range.BigIntRange
+foreign import novah.range.BigIntOpenRange
 foreign import novah.range.CharRange
 foreign import novah.range.CharOpenRange
 foreign import novah.range.DoubleRange
@@ -1613,6 +1617,22 @@ rangedChar =
     }
 
 pub instance
+rangedBigInt : Ranged BigInteger
+rangedBigInt =
+  Ranged
+    { range: \start end -> BigIntRange#new(start, end) as Range BigInteger
+    , rangeOpen: \start end -> BigIntOpenRange#new(start, end) as Range BigInteger
+    }
+
+pub instance
+rangedBigDecimal : Ranged BigDecimal
+rangedBigDecimal =
+  Ranged
+    { range: \start end -> BigDecimalRange#new(start, end) as Range BigDecimal
+    , rangeOpen: \start end -> BigDecimalOpenRange#new(start, end) as Range BigDecimal
+    }
+
+pub instance
 rangedStepInt32 : RangedStep Int32
 rangedStepInt32 =
   RangedStep
@@ -1634,4 +1654,12 @@ rangedStepChar =
   RangedStep
     { range: \start end step -> CharRange#new(start, end, Core#charToInt(step)) as Range Char
     , rangeOpen: \start end step -> CharOpenRange#new(start, end, Core#charToInt(step)) as Range Char
+    }
+
+pub instance
+rangedStepBigInt : RangedStep BigInteger
+rangedStepBigInt =
+  RangedStep
+    { range: \start end step -> BigIntRange#new(start, end, step) as Range BigInteger
+    , rangeOpen: \start end step -> BigIntOpenRange#new(start, end, step) as Range BigInteger
     }
