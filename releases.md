@@ -15,6 +15,10 @@
 - Added range support for `BigInteger` and `BigDecimal`
 - Made `^` operator generic and added implementation for `Float64`, `BigInteger` and `BigDecimal`
 
+## Bug Fixes
+
+- Fixed bug in `novah run` command where the standard input was not being redirected
+
 # 0.2.0
 
 ## Features
