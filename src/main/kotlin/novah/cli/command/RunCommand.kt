@@ -99,6 +99,7 @@ class RunCommand : CliktCommand(name = "run", help = "run the main module if one
                 .directory(null)
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                 .redirectError(ProcessBuilder.Redirect.INHERIT)
+                .redirectInput(ProcessBuilder.Redirect.INHERIT)
                 .start()
 
             process.waitFor()
