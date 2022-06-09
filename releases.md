@@ -7,11 +7,12 @@
 
 ## Changes
 
-- Added factorial function to Math module
-- Added toStringList function to String module
-- Added Contained instance to Map
-- Added Show instance to primitive arrays
-- Added <primitiveArray>FromList functions to Array module
+- Added `factorial` function to `Math` module
+- Added `toStringList` function to `String` module
+- Added `Contained` instance to `Map`
+- Added `Show` instance to primitive arrays
+- Added `<primitiveArray>FromList` functions to `Array` module
+- Added `readLine` function to the `IO` module
 - Added range support for `BigInteger` and `BigDecimal`
 - Made `^` operator generic and added implementation for `Float64`, `BigInteger` and `BigDecimal`
 

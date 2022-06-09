@@ -5,6 +5,7 @@ import novah.list as List
 
 foreign import java.io.File
 foreign import java.lang.CharSequence
+foreign import java.lang.System
 foreign import java.nio.charset.Charset
 foreign import java.nio.charset.StandardCharsets
 foreign import java.nio.file.Files
@@ -105,3 +106,8 @@ pub
 appendText : File -> String -> Path
 appendText file text =
   writeTextToPath file#toPath() text utf8 [Append, Create]
+
+// Reads a line from standard input.
+pub
+readLine : Unit -> String
+readLine _ = System#console()#readLine()
