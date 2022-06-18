@@ -716,7 +716,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         try {
             return BigDecimal(this)
         } catch (e: NumberFormatException) {
-            lexError("Invalid number format for bigint: `$this`")
+            lexError("Invalid number format for big decimal: `$this`")
         }
     }
 
