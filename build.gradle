@@ -1,12 +1,12 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.6.21'
+    id 'org.jetbrains.kotlin.jvm' version '1.7.10'
     id 'application'
     id 'com.github.johnrengelman.shadow' version '6.1.0'
     //id 'com.github.hierynomus.license' version '0.15.0'
 }
 
 group 'org.novah'
-version '0.3.0'
+version '0.3.1'
 
 repositories {
     mavenCentral()
@@ -18,11 +18,11 @@ def mavenResolverVersion = '1.8.0'
 sourceSets.main.java.srcDirs = ['src/main/java', 'src/main/javaLib']
 
 dependencies {
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.21'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.7.10'
     implementation "org.ow2.asm:asm:9.3"
     implementation 'com.github.ajalt.clikt:clikt:3.4.2'
     implementation "io.lacuna:bifurcan:0.2.0-alpha6"
-    implementation "org.reflections:reflections:0.9.12"
+    implementation "org.reflections:reflections:0.10.2"
     implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.12.0"
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.13.+"
     implementation 'org.commonmark:commonmark:0.18.2'

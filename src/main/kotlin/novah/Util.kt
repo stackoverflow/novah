@@ -18,8 +18,12 @@ package novah
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.*
 import java.util.zip.ZipInputStream
+import kotlin.io.path.exists
 
 private class InternalError(msg: String) : RuntimeException(msg)
 
@@ -121,5 +125,21 @@ object Util {
                 zis.closeEntry()
             }
         }
+    }
+
+    /**
+     * Recursively copy all files in src to dest if they don't yet exist.
+     */
+    fun copyFolder(src: Path, dest: Path) {
+        Files.walk(src).use { stream ->
+            stream.forEach { source ->
+                val out = dest.resolve(src.relativize(source))
+                if (!out.exists()) copy(source, out)
+            }
+        }
+    }
+
+    private fun copy(src: Path, dest: Path) {
+        Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING)
     }
 }

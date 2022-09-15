@@ -38,7 +38,7 @@ import novah.frontend.typechecker.Typechecker
 import novah.optimize.Optimization
 import novah.optimize.Optimizer
 import org.reflections.Reflections
-import org.reflections.scanners.ResourcesScanner
+import org.reflections.scanners.Scanners
 import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 import java.io.File
@@ -214,11 +214,18 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
 
     /**
      * Copy all the java classes necessary for novah to run
-     * from the resources folder to the output.
+     * from the resources' folder to the output.
+     * Cache it in ~/.novah/nativelib/<version>/
      */
     private fun copyNativeLibs(output: File) {
-        val input = javaClass.classLoader.getResourceAsStream("nativeLibs.zip")
-        Util.unzip(input!!, output)
+        val path = File("${System.getProperty("user.home")}/.novah/nativelib/${Main.VERSION}/")
+
+        if (!path.exists()) {
+            path.mkdirs()
+            val input = javaClass.classLoader.getResourceAsStream("nativeLibs.zip")
+            Util.unzip(input!!, path)
+        }
+        Util.copyFolder(path.toPath(), output.toPath())
     }
 
     private fun reportCycle(nodes: Set<DagNode<String, Module>>) {
@@ -265,7 +272,7 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
         fun stdlibStream(): List<Pair<String, InputStream>> {
             val ref = Reflections(
                 ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("novah"))
-                    .setScanners(ResourcesScanner())
+                    .setScanners(Scanners.Resources)
             )
             val res = ref.getResources(Pattern.compile(".*\\.novah"))
             return res.map { path ->
@@ -274,17 +281,6 @@ class Environment(classpath: String?, sourcepath: String?, private val opts: Opt
             }
         }
     }
-}
-
-/**
- * The standard library.
- * Read from the jar itself.
- */
-private val stdlib by lazy {
-    Environment.stdlibStream().map { (path, stream) ->
-        val contents = stream.bufferedReader().use { it.readText() }
-        Source.SString(Path.of(path), contents)
-    }.asSequence()
 }
 
 class CompilationError(val problems: Set<CompilerProblem>) :
@@ -312,3 +308,14 @@ data class ModuleEnv(
     val decls: Map<String, DeclRef>,
     val types: Map<String, TypeDeclRef>
 )
+
+/**
+ * The standard library.
+ * Read from the jar itself.
+ */
+private val stdlib by lazy {
+    Environment.stdlibStream().map { (path, stream) ->
+        val contents = stream.bufferedReader().use { it.readText() }
+        Source.SString(Path.of(path), contents)
+    }.asSequence()
+}
