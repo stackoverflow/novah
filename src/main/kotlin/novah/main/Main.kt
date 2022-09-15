@@ -30,17 +30,15 @@ class MainCommand : CliktCommand(name = "novah", printHelpOnEmptyArgs = true, in
 
     override fun run() {
         if (version) {
-            echo("Novah compiler $VERSION")
+            echo("Novah compiler ${Main.VERSION}")
             exitProcess(0)
         }
-    }
-
-    companion object {
-        private const val VERSION = "0.3.0"
     }
 }
 
 object Main {
+    const val VERSION = "0.3.1"
+
     @JvmStatic
     fun main(args: Array<String>) {
         val comms = arrayOf(

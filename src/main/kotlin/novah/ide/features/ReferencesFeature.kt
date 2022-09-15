@@ -195,6 +195,7 @@ class ReferencesFeature(private val server: NovahServer) {
                                         }
                                     }
                                 }
+                                else -> {}
                             }
                         }
                     }
@@ -292,6 +293,7 @@ class ReferencesFeature(private val server: NovahServer) {
                                 ctx = LambdaCtx(e)
                             }
                         }
+                        else -> {}
                     }
                 }
             }
@@ -330,6 +332,7 @@ class ReferencesFeature(private val server: NovahServer) {
                     when (it) {
                         is Pattern.Var -> if (it.v.name == name) found = true
                         is Pattern.Named -> if (it.name.value == name) found = true
+                        else -> {}
                     }
                 }
                 found

@@ -1,3 +1,9 @@
+# 0.3.1
+
+## Changes
+
+- Native part of stdlib is cached locally for faster copying.
+
 # 0.3.0
 
 ## Features
