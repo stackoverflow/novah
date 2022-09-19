@@ -37,7 +37,7 @@ class MainCommand : CliktCommand(name = "novah", printHelpOnEmptyArgs = true, in
 }
 
 object Main {
-    const val VERSION = "0.3.1"
+    const val VERSION = "0.4.0"
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -49,6 +49,7 @@ object Main {
             RunCommand(),
             ClearCommand(),
             ApidocCommand(),
+            ReplCommand(),
             IdeCommand()
         )
         MainCommand().subcommands(*comms).main(args)

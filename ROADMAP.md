@@ -1,7 +1,7 @@
 # Roadmap
 
 - [ ] Rewrite the compiler in novah itself (?)
-- [ ] REPL
+- [X] REPL
 - [X] Website (https://novahlang.github.io/)
 - [X] Add javadoc like capabilities to comments (using markdown probably)
 - [X] Primitive types support
