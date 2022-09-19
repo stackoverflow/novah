@@ -189,7 +189,7 @@ class NovahServer(private val verbose: Boolean) : LanguageServer, LanguageClient
         val options = Options(verbose = false, devMode = true)
         val theEnv = Environment(paths["classpath"], paths["sourcepath"], options)
         try {
-            theEnv.parseSources(sources.asSequence())
+            theEnv.parseSources(sources)
             theEnv.generateCode(File("."), dryRun = true)
             diags.clear()
             saveDiagnostics(theEnv.errors())

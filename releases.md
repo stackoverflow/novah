@@ -1,3 +1,9 @@
+# 0.4.0
+
+## Features
+
+- Added a basic repl to the language (`novah repl`).
+
 # 0.3.1
 
 ## Changes

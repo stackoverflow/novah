@@ -52,7 +52,7 @@ class BuildCommand : CliktCommand(name = "build", help = "compile the project de
     override fun run() {
         val depsRes = DepsProcessor.readNovahFile()
         if (depsRes is Err) {
-            echo(depsRes.err, false)
+            echo(depsRes.err, err = true)
             return
         }
         val deps = depsRes.unwrap()
