@@ -42,7 +42,7 @@ class ReplCommand : CliktCommand(name = "repl", help = "start a repl for the cur
                 input = input.drop(2).trimStart()
                 def = true
                 while (true) {
-                    val more = prompt("", promptSuffix = "", default = "")
+                    val more = prompt(">>", promptSuffix = " ", default = "")
                     if (more == null || more == "") break
                     input += "\n$more"
                 }

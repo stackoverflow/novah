@@ -80,13 +80,13 @@ object TestUtil {
         return Compiler(sources, null, null, Options(verbose, devMode))
     }
 
-    fun compileCode(code: String, verbose: Boolean = false): FullModuleEnv {
+    fun compileCode(code: String, verbose: Boolean = false, moduleName: String = "test"): FullModuleEnv {
         val compiler = compilerForCode(code, verbose)
         compiler.run(File("."), dryRun = true)
         if (compiler.errors().isNotEmpty()) {
             compiler.errors().forEach { println(it.formatToConsole()) }
         }
-        return compiler.getModules()["test"]!!
+        return compiler.getModules()[moduleName]!!
     }
 
     fun compileAndOptimizeCode(code: String, verbose: Boolean = false): OModule {

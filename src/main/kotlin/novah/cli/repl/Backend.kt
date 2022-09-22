@@ -3,6 +3,7 @@ package novah.cli.repl
 import novah.data.Err
 import novah.data.Ok
 import novah.data.Result
+import novah.frontend.error.CompilerProblem
 import novah.main.*
 import java.io.File
 import java.io.IOException
@@ -12,14 +13,15 @@ import kotlin.io.path.Path
 
 class Backend(
     private val echo: (String) -> Unit,
-    private val classpath: String,
-    private val sourcepath: String,
+    private val classpath: String?,
+    private val sourcepath: String?,
     output: String
 ) {
 
     private var imports = LinkedList<String>()
     private var code = LinkedList<String>()
     private var eval = "()"
+    private var replType: String? = ""
 
     private val folder = File(output)
     private val options = Options(verbose = false, devMode = true)
@@ -37,16 +39,18 @@ class Backend(
     private fun clear() {
         imports.clear()
         code.clear()
+        eval = "()"
     }
 
     fun help() = """
-        :help  -> shows this help
-        :clear -> resets the repl
-        :q     -> quits the repl
-        :>     -> starts a definition (value or function). Won't stop until an empty new line is reached
-        :test <suite> -> runs the specified test suite using novah.test.runTests
+        :help           -> shows this help
+        :clear          -> resets the repl
+        :q, ctrl+c      -> quits the repl
+        :>              -> starts a definition. Won't stop until an empty new line is reached
+        :test <suite>   -> runs the specified test suite using novah.test.runTests
+        :t, :type <exp> -> shows the type of the given expression 
         import <module> -> adds an import to the repl
-        <expression> -> evaluates the expression
+        <expression>    -> evaluates the expression
     """.trimIndent()
 
     fun execute(input: String, def: Boolean = false) {
@@ -67,11 +71,18 @@ class Backend(
                             echo(res.err)
                         }
                     }
-                } else if (input.startsWith(":test")) {
+                } else if (input.startsWith(":test ")) {
                     val suite = input.replace(Regex("^:test\\s+"), "")
                     eval = "runTests [$suite]"
                     when (val res = build()) {
                         is Ok -> run()
+                        is Err -> echo(res.err)
+                    }
+                } else if (input.startsWith(":type ") || input.startsWith(":t ")) {
+                    val exp = input.replace(Regex("^:t\\w*\\s+"), "")
+                    eval = exp
+                    when (val res = build()) {
+                        is Ok -> echo("$exp : $replType")
                         is Err -> echo(res.err)
                     }
                 } else if (input.startsWith(":")) {
@@ -99,37 +110,39 @@ class Backend(
     }
 
     private fun build(): Result<FullModuleEnv, String> {
-        val scode = """module repl1
+        val scode = """module _repl1
             |
             |${imports.joinToString("\n\n")}
             |
             |${code.joinToString("\n\n")}
             |
+            |_repl_res = $eval
+            |
             |pub
             |main : Array String -> Unit
-            |main _ =
-            |  let _res = $eval
-            |  println _res
+            |main _ = println _repl_res
         """.trimMargin()
 
-        val sources = sequenceOf(Source.SString(Path("repl1"), scode))
+        val sources = sequenceOf(Source.SString(Path("_repl1"), scode))
         val env = Environment(classpath, sourcepath, options)
         return try {
             env.parseSources(sources)
             env.generateCode(folder)
 
-            val errs = env.errors().filter { it.isErrorOrFatal() }
+            val errs = env.errors().filter(::errFilter)
             if (errs.isNotEmpty()) {
                 Err(errs.joinToString("\n\n") { it.msg })
             } else {
-                Ok(env.modules()["repl1"]!!)
+                val environment = env.modules()["_repl1"]!!
+                replType = environment.env.decls["_repl_res"]?.type?.show(typeVarsMap = environment.typeVarsMap)
+                Ok(environment)
             }
         } catch (_: CompilationError) {
-            env.errors().filter { it.isErrorOrFatal() }.joinToString("\n\n") { it.msg }.let { Err(it) }
+            env.errors().filter(::errFilter).joinToString("\n\n") { it.msg }.let { Err(it) }
         }
     }
 
-    val pbuilder = ProcessBuilder("java", "-cp", ".", "repl1.\$Module")
+    private val pbuilder = ProcessBuilder("java", "-cp", ".", "_repl1.\$Module")
         .directory(folder)
         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
         .redirectError(ProcessBuilder.Redirect.INHERIT)
@@ -143,5 +156,10 @@ class Backend(
             e.printStackTrace()
             1
         }
+    }
+
+    companion object {
+        private fun errFilter(err: CompilerProblem): Boolean =
+            err.isErrorOrFatal() && err.msg != "Undefined variable _repl_res."
     }
 }
