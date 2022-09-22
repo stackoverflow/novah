@@ -24,7 +24,7 @@ import java.nio.file.Path
 
 class Compiler(private val sources: Sequence<Source>, classpath: String?, sourcepath: String?, opts: Options) {
 
-    private val env = Environment(classpath, sourcepath, opts)
+    val env = Environment(classpath, sourcepath, opts)
 
     fun compile(): Map<String, FullModuleEnv> = env.parseSources(sources)
 
