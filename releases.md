@@ -1,3 +1,15 @@
+# 0.4.1
+
+## Features
+
+- ability to add foreign imports to the repl
+
+## Changes
+
+- repl properly prints functions and the types of expressions
+- repl doesn't differentiate between expressions and definitions anymore
+- repl accepts redefinitions of previously defined variables
+
 # 0.4.0
 
 ## Features

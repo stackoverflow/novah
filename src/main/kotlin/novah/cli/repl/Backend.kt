@@ -1,8 +1,12 @@
 package novah.cli.repl
 
+import novah.ast.source.Decl
 import novah.data.Err
 import novah.data.Ok
 import novah.data.Result
+import novah.frontend.Lexer
+import novah.frontend.Parser
+import novah.frontend.ParserError
 import novah.frontend.error.CompilerProblem
 import novah.main.*
 import java.io.File
@@ -19,7 +23,8 @@ class Backend(
 ) {
 
     private var imports = LinkedList<String>()
-    private var code = LinkedList<String>()
+    private var foreignImports = LinkedList<String>()
+    private var code = LinkedList<Code>()
     private var eval = "()"
     private var replType: String? = ""
 
@@ -43,17 +48,17 @@ class Backend(
     }
 
     fun help() = """
-        :help           -> shows this help
-        :clear          -> resets the repl
-        :q, ctrl+c      -> quits the repl
-        :>              -> starts a definition. Won't stop until an empty new line is reached
-        :test <suite>   -> runs the specified test suite using novah.test.runTests
-        :t, :type <exp> -> shows the type of the given expression 
-        import <module> -> adds an import to the repl
-        <expression>    -> evaluates the expression
+        :help                -> shows this help
+        :clear               -> resets the repl
+        :q, ctrl+c           -> quits the repl
+        :>                   -> starts a multi-line expression or definition
+        :test <suite>        -> runs the specified test suite using novah.test.runTests
+        :t, :type <exp>      -> shows the type of the given expression 
+        import <mod>         -> adds an import to the repl
+        foreign import <mod> -> adds a foreign import to the repl
     """.trimIndent()
 
-    fun execute(input: String, def: Boolean = false) {
+    fun execute(input: String) {
         when (input) {
             ":help" -> echo(help())
             ":clear" -> {
@@ -68,6 +73,16 @@ class Backend(
                         is Ok -> echo(input)
                         is Err -> {
                             imports.removeLast()
+                            echo(res.err)
+                        }
+                    }
+                } else if (input.startsWith("foreign import")) {
+                    eval = "()"
+                    foreignImports.addLast(input)
+                    when (val res = build()) {
+                        is Ok -> echo(input)
+                        is Err -> {
+                            foreignImports.removeLast()
                             echo(res.err)
                         }
                     }
@@ -87,21 +102,31 @@ class Backend(
                     }
                 } else if (input.startsWith(":")) {
                     echo("error: invalid command `$input`")
-                } else if (def) {
-                    eval = "()"
-                    code.addLast(input)
-                    when (val res = build()) {
-                        is Ok -> echo("")
-                        is Err -> {
-                            code.removeLast()
-                            echo(res.err)
-                        }
-                    }
                 } else {
-                    eval = input
-                    when (val res = build()) {
-                        is Ok -> run()
-                        is Err -> echo(res.err)
+                    val decl = getDecl(input)
+                    if (decl != null) {
+                        // allow reassignment of declaration
+                        code.removeIf { it.decl.name == decl.name  }
+                        eval = "()"
+                        code.addLast(Code(input, decl))
+                        when (val res = build()) {
+                            is Ok -> echo("")
+                            is Err -> {
+                                code.removeLast()
+                                echo(res.err)
+                            }
+                        }
+                    } else {
+                        eval = input
+                        when (val res = build()) {
+                            is Ok -> {
+                                run()
+                                if (replType != null) {
+                                    echo(" : $replType")
+                                }
+                            }
+                            is Err -> echo(res.err)
+                        }
                     }
                 }
             }
@@ -114,13 +139,20 @@ class Backend(
             |
             |${imports.joinToString("\n\n")}
             |
-            |${code.joinToString("\n\n")}
+            |foreign import novah.function.Function
+            |${foreignImports.joinToString("\n\n")}
+            |
+            |${code.joinToString("\n\n") { it.code }}
+            |
+            |_println_repl x = case x of
+            |  :? Function -> println "<function>"
+            |  _ -> println x
             |
             |_repl_res = $eval
             |
             |pub
             |main : Array String -> Unit
-            |main _ = println _repl_res
+            |main _ = _println_repl _repl_res
         """.trimMargin()
 
         val sources = sequenceOf(Source.SString(Path("_repl1"), scode))
@@ -158,8 +190,20 @@ class Backend(
         }
     }
 
+    private fun getDecl(code: String): Decl? {
+        val lexer = Lexer(code.iterator())
+        val parser = Parser(lexer, isStdlib = false)
+        return try {
+            parser.parseDecl()
+        } catch (_: ParserError) {
+            null
+        }
+    }
+
     companion object {
         private fun errFilter(err: CompilerProblem): Boolean =
             err.isErrorOrFatal() && err.msg != "Undefined variable _repl_res."
     }
+
+    private data class Code(val code: String, val decl: Decl)
 }
