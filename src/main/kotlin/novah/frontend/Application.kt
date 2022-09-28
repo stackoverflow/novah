@@ -55,18 +55,19 @@ object Application {
      * Get the precedence of some operator
      * which depends on the first symbol.
      */
-    private fun getPrecedence(op: Expr.Operator): Int = when (op.name[0]) {
-        ';' -> 0
-        '$' -> 1
-        '|' -> 2
-        '&' -> 3
-        '=', '!' -> 4
-        '<', '>' -> 5
-        '+', '-', ':', '?' -> 6
-        '*', '/', '%' -> 7
-        '^', '.' -> 8
-        else -> 9 // backtick operator: `fun`
-    }
+    private fun getPrecedence(op: Expr.Operator): Int = if (op.name == "<-") -1 else
+        when (op.name[0]) {
+            ';' -> 0
+            '$' -> 1
+            '|' -> 2
+            '&' -> 3
+            '=', '!' -> 4
+            '<', '>' -> 5
+            '+', '-', ':', '?' -> 6
+            '*', '/', '%' -> 7
+            '^', '.' -> 8
+            else -> 9 // backtick operator: `fun`
+        }
 
     /**
      * Returns the fixity (left/right) of an operator.

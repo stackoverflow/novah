@@ -383,89 +383,14 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             exp.withType(res)
         }
         is Expr.Index -> {
-
             val indexType = infer(env, level, exp.index)
             val type = infer(env, level, exp.exp)
-            val rtype = type.realType()
+
+            uni.unify(indexType, tInt32, exp.index.span)
             val ty = tc.newVar(level)
-            when {
-                rtype.isMap() || (!indexType.isUnbound() && indexType.typeNameOrEmpty() != primInt32) -> {
-                    val keyTy = tc.newVar(level)
-                    uni.unify(indexType, keyTy, exp.index.span)
-                    uni.unify(type, TApp(TConst(primMap), listOf(keyTy, ty)), exp.exp.span)
-                    exp.method = mapGet
-                }
-                rtype.isUnbound() -> inferError(E.UNKNOW_TYPE_FOR_INDEX, exp.span)
-                rtype.isList() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, TApp(TConst(primList), listOf(ty)), exp.exp.span)
-                    exp.method = listGet
-                }
-                rtype.isSet() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, TApp(TConst(primSet), listOf(ty)), exp.exp.span)
-                    exp.method = setGet
-                }
-                rtype.isArray() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, TApp(TConst(primArray), listOf(ty)), exp.exp.span)
-                    exp.method = arrayGet
-                }
-                rtype is TConst && rtype.name == primString -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(ty, tChar, exp.exp.span)
-                    exp.method = stringGet
-                }
-                rtype.isByteArray() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, tByteArray, exp.exp.span)
-                    uni.unify(ty, tByte, exp.exp.span)
-                    exp.method = byteArrayGet
-                }
-                rtype.isInt16Array() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, tInt16Array, exp.exp.span)
-                    uni.unify(ty, tInt16, exp.exp.span)
-                    exp.method = shortArrayGet
-                }
-                rtype.isInt32Array() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, tInt32Array, exp.exp.span)
-                    uni.unify(ty, tInt32, exp.exp.span)
-                    exp.method = intArrayGet
-                }
-                rtype.isInt64Array() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, tInt64Array, exp.exp.span)
-                    uni.unify(ty, tInt64, exp.exp.span)
-                    exp.method = longArrayGet
-                }
-                rtype.isFloat32Array() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, tFloat32Array, exp.exp.span)
-                    uni.unify(ty, tFloat32, exp.exp.span)
-                    exp.method = floatArrayGet
-                }
-                rtype.isFloat64Array() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, tFloat64Array, exp.exp.span)
-                    uni.unify(ty, tFloat64, exp.exp.span)
-                    exp.method = doubleArrayGet
-                }
-                rtype.isBooleanArray() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, tBooleanArray, exp.exp.span)
-                    uni.unify(ty, tBoolean, exp.exp.span)
-                    exp.method = booleanArrayGet
-                }
-                rtype.isCharArray() -> {
-                    uni.unify(indexType, tInt32, exp.index.span)
-                    uni.unify(type, tCharArray, exp.exp.span)
-                    uni.unify(ty, tChar, exp.exp.span)
-                    exp.method = charArrayGet
-                }
-                else -> inferError(E.UNKNOW_TYPE_FOR_INDEX, exp.span)
-            }
+            val res = TApp(TConst(primList), listOf(ty))
+            uni.unify(type, res, exp.exp.span)
+            exp.method = listGet
             exp.withType(ty)
         }
         is Expr.Throw -> {
@@ -809,7 +734,7 @@ class Inference(private val tc: Typechecker, private val classLoader: NovahClass
             t.tvar = TypeVar.Link(TArrow(params, retur).span(t.span))
             params to retur
         }
-        else -> inferError(E.NOT_A_FUNCTION, span)
+        else -> inferError(E.notAFunction(t.show()), span)
     }
 
     private fun peelImplicits(ty: Type): Pair<Type, List<Type>> {

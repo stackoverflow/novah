@@ -130,13 +130,6 @@ object Errors {
 
     const val PUB_PLUS = "Visibility of value or typealias declaration can only be public (pub) not pub+."
 
-    val NOT_A_FUNCTION = """
-        Expected expression to be a function.
-        If you are trying to pass an instance argument to a function explicitily
-        make sure to use the {{}} syntax.
-        Ex.: myFunction {{parameter}}
-    """.trimIndent()
-
     const val TYPEALIAS_NAME = "Expected name for typealias."
 
     const val TYPEALIAS_EQUALS = "Expected `=` after typealias declaration."
@@ -190,9 +183,6 @@ object Errors {
     const val FOR_EXPR = "for expression can only be used inside a computation expression."
 
     const val RECURSIVE_LET = "Let variables cannot be recursive."
-
-    const val UNKNOW_TYPE_FOR_INDEX =
-        "The type of operator 'expr.[index]' is unknown at this point. Consider adding further type information."
 
     const val DERIVE_REC =
         "Wrong value for derive metadata. Should be a record of strings: #[derive: {showMyType: \"Show\"}]"
@@ -495,6 +485,16 @@ object Errors {
             run (x ; y) list = case list of
               [] -> (x ; y)
               [_ :: ls] -> run (x ; y) ls
+    """.trimIndent()
+
+    fun notAFunction(type: String) = """
+        Expected expression to be a function but it was:
+        
+            $type
+        
+        If you are trying to pass an instance argument to a function explicitly
+        make sure to use the {{}} syntax.
+        Ex.: myFunction {{parameter}}
     """.trimIndent()
 
     fun noAliasFound(alias: String) = "Could not find import alias $alias."

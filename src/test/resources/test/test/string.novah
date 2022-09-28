@@ -29,8 +29,8 @@ stringTests =
     String.nth 9 "exquisite" `shouldBe` None
     String.charAt 3 "exquisite" `shouldBe` 'u'
     String.charAt 6 "exquisite" `shouldBe` 'i'
-    "exquisite".[3] `shouldBe` 'u'
-    "exquisite".[-2] `shouldBe` 't'
+    ("exquisite" ! 3) `shouldBe` 'u'
+    ("exquisite" ! -2) `shouldBe` 't'
     String.substring 2 5 "exquisite" `shouldBe` "qui"
     String.startFrom 3 "exquisite" `shouldBe` "uisite"
     String.split "\\d" "sum2plus2equals6" `shouldBe` ["sum", "plus", "equals"]

@@ -16,4 +16,4 @@ letrec x =
 pub
 main : Array String -> Unit
 main args =
-  println (letrec (int args.[0]))
+  println (letrec (aget 0 args |> int))

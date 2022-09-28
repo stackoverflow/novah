@@ -9,6 +9,10 @@
 - repl properly prints functions and the types of expressions
 - repl doesn't differentiate between expressions and definitions anymore
 - repl accepts redefinitions of previously defined variables
+- index operator now only works for lists
+- ! operator now works for strings instead of lists
+- added `<primitiveArray>aget` functions
+- changed `<-` operator to have the lowest precedence
 
 # 0.4.0
 
