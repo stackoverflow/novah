@@ -15,7 +15,6 @@
  */
 package novah.optimize
 
-import io.lacuna.bifurcan.List
 import novah.Core
 import novah.ast.optimized.*
 import novah.backend.TypeUtil.isPrimitive
@@ -25,7 +24,6 @@ import novah.range.*
 import novah.range.CharRange
 import novah.range.IntRange
 import novah.range.LongRange
-import org.objectweb.asm.Type
 import java.lang.reflect.Method
 
 object Optimization {
@@ -91,8 +89,6 @@ object Optimization {
 
     private val numericClasses = 3..8
 
-    private val longClass = Clazz(Type.LONG_TYPE)
-
     private const val coreMod = "novah/core/\$Module"
 
     /**
@@ -143,10 +139,9 @@ object Optimization {
                             && fn.fn.fn.name in binOps.keys && arg.type.type.sort in numericClasses -> {
                         Expr.OperatorApp(binOps[fn.fn.fn.name]!!, listOf(fn.arg, arg), e.type, e.span)
                     }
-                    // optimize list access
+                    // optimize string access
                     fn is App && fn.fn is Var && fn.fn.fullname() == "$coreMod.\$bang" -> {
-                        val toLongFn = Expr.NativeMethod(toLong, arg, listOf(), longClass, arg.span)
-                        Expr.NativeMethod(vecNth, fn.arg, listOf(toLongFn), e.type, e.span)
+                        Expr.NativeStaticMethod(stringGet, listOf(arg, fn.arg), e.type, e.span)
                     }
                     // optimize == for primitives types
                     fn is App && fn.fn is App && fn.fn.fn is Var && fn.fn.fn.fullname() == "$coreMod.$eq"
@@ -299,7 +294,6 @@ object Optimization {
     private val stringFormat = String::class.java.methods.find {
         it.name == "format" && it.parameterTypes[0] == String::class.java
     }!!
-    private val vecNth = List::class.java.methods.find { it.name == "nth" }!!
     private lateinit var bitAndInt: Method
     private lateinit var bitOrInt: Method
     private lateinit var bitXorInt: Method
@@ -318,6 +312,7 @@ object Optimization {
     private lateinit var listSize: Method
     private lateinit var setSize: Method
     private lateinit var mapSize: Method
+    private lateinit var stringGet: Method
 
     init {
         Core::class.java.methods.forEach {
@@ -340,11 +335,11 @@ object Optimization {
                 "listSize" -> listSize = it
                 "setSize" -> setSize = it
                 "mapSize" -> mapSize = it
+                "stringGet" -> stringGet = it
             }
         }
     }
 
-    private val toLong = java.lang.Integer::class.java.methods.find { it.name == "longValue" }!!
     private val newIntRange = IntRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newIntOpenRange = IntOpenRange::class.java.constructors.find { it.parameterCount == 2 }!!
     private val newLongRange = LongRange::class.java.constructors.find { it.parameterCount == 2 }!!

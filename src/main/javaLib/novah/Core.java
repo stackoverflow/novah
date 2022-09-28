@@ -356,10 +356,6 @@ public class Core {
         return arr;
     }
 
-    public static <T> T getArray(int index, T[] arr) {
-        return arr[index];
-    }
-
     public static <T> void setArray(int index, T val, T[] arr) {
         arr[index] = val;
     }

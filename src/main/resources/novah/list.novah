@@ -789,7 +789,7 @@ zipAll list =
   let length = (map size list |> min) ?: 0
   let res = []#linear()
   forEachRange (0 ... length) \i ->
-    addLast (map (_ ! i) list) res
+    addLast (map _.[i] list) res
     ()
   res#forked()
 

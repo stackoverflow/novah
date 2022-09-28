@@ -121,7 +121,7 @@ class DesugarSpec : StringSpec({
             
             f16 = List.map Math#exp(_) [3.0, 5.0, 9.0]
             
-            f17 = _.["a"]
+            f17 = _.[0]
         """.module()
         
         val ds = TestUtil.compileCode(code).env.decls
@@ -141,7 +141,7 @@ class DesugarSpec : StringSpec({
         ds["f14"]?.type?.simpleName() shouldBe "List Int32"
         ds["f15"]?.type?.simpleName() shouldBe "List Char"
         ds["f16"]?.type?.simpleName() shouldBe "List Float64"
-        ds["f17"]?.type?.simpleName() shouldBe "Map String t1 -> t1"
+        ds["f17"]?.type?.simpleName() shouldBe "List t1 -> t1"
     }
 
     "statements can have multiple expressions" {

@@ -60,7 +60,7 @@ find pred arr =
   let go i =
     if i >= t then None
     else
-      let e = arr.[i]
+      let e = aget i arr
       if pred e then Some e else go (i + 1)
 
   go 0
@@ -197,6 +197,70 @@ emptyCopy arr =
   else
     let elem = aget 0 arr as Object
     arrayOf elem#getClass() (size arr) as Array a
+
+// Gets the element of the byte array at the specified index.
+// Negative indexes will start from the end of the array.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
+pub
+byteaget : Int32 -> ByteArray -> Byte
+byteaget i arr = Core#byteArrayGet(i, arr)
+
+// Gets the element of the int16 array at the specified index.
+// Negative indexes will start from the end of the array.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
+pub
+int16aget : Int32 -> Int16Array -> Int16
+int16aget i arr = Core#shortArrayGet(i, arr)
+
+// Gets the element of the int array at the specified index.
+// Negative indexes will start from the end of the array.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
+pub
+int32aget : Int32 -> Int32Array -> Int32
+int32aget i arr = Core#intArrayGet(i, arr)
+
+// Gets the element of the int64 array at the specified index.
+// Negative indexes will start from the end of the array.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
+pub
+int64aget : Int32 -> Int64Array -> Int64
+int64aget i arr = Core#longArrayGet(i, arr)
+
+// Gets the element of the float32 array at the specified index.
+// Negative indexes will start from the end of the array.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
+pub
+float32aget : Int32 -> Float32Array -> Float32
+float32aget i arr = Core#floatArrayGet(i, arr)
+
+// Gets the element of the float64 array at the specified index.
+// Negative indexes will start from the end of the array.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
+pub
+float64aget : Int32 -> Float64Array -> Float64
+float64aget i arr = Core#doubleArrayGet(i, arr)
+
+// Gets the element of the boolean array at the specified index.
+// Negative indexes will start from the end of the array.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
+pub
+booleanaget : Int32 -> BooleanArray -> Boolean
+booleanaget i arr = Core#booleanArrayGet(i, arr)
+
+// Gets the element of the char array at the specified index.
+// Negative indexes will start from the end of the array.
+// *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
+// Runtime: O(1)
+pub
+charaget : Int32 -> CharArray -> Char
+charaget i arr = Core#charArrayGet(i, arr)
 
 // Sets the element of this byte array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
@@ -382,7 +446,7 @@ containedByteArray =
     let go i =
       if i >= t then false
       else
-        let e = arr.[i]
+        let e = byteaget i arr
         if e == x then true else go (i + 1)
     go 0
 
@@ -394,7 +458,7 @@ containedInt16Array =
     let go i =
       if i >= t then false
       else
-        let e = arr.[i]
+        let e = int16aget i arr
         if e == x then true else go (i + 1)
     go 0
 
@@ -406,7 +470,7 @@ containedInt32Array =
     let go i =
       if i >= t then false
       else
-        let e = arr.[i]
+        let e = int32aget i arr
         if e == x then true else go (i + 1)
     go 0
 
@@ -418,7 +482,7 @@ containedInt64Array =
     let go i =
       if i >= t then false
       else
-        let e = arr.[i]
+        let e = int64aget i arr
         if e == x then true else go (i + 1)
     go 0
 
@@ -430,7 +494,7 @@ containedFloat32Array =
     let go i =
       if i >= t then false
       else
-        let e = arr.[i]
+        let e = float32aget i arr
         if e == x then true else go (i + 1)
     go 0
 
@@ -442,7 +506,7 @@ containedFloat64Array =
     let go i =
       if i >= t then false
       else
-        let e = arr.[i]
+        let e = float64aget i arr
         if e == x then true else go (i + 1)
     go 0
 
@@ -454,7 +518,7 @@ containedBoolean =
     let go i =
       if i >= t then false
       else
-        let e = arr.[i]
+        let e = booleanaget i arr
         if e == x then true else go (i + 1)
     go 0
 
@@ -466,6 +530,6 @@ containedChar =
     let go i =
       if i >= t then false
       else
-        let e = arr.[i]
+        let e = charaget i arr
         if e == x then true else go (i + 1)
     go 0

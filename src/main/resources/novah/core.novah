@@ -157,13 +157,12 @@ pub
 todo : String -> a
 todo msg = throw AssertionError#new(format "Not implemented: %s" [msg] as Object)
 
-// Returns some value at index for this list if it exists.
+// Returns the char at index for this string if it exists.
+// Negative indexes will start from the end of the string.
 // *Unsafe*: Will throw an exception if the index is out of bounds.
-// This function is similar to the index operator `list.[i]` but
-// it does not work on negative indexes.
 pub
-(!) : List a -> Int32 -> a
-(!) list idx = list#nth(idx#longValue())
+(!) : String -> Int32 -> Char
+(!) str idx = Core#stringGet(idx, str)
 
 // Sets the value of this list at the specified index to x.
 // *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
@@ -204,11 +203,12 @@ removeLast : List a -> List a
 removeLast list = list#removeLast()
 
 // Gets the element of the array at the specified index.
+// Negative indexes will start from the end of the array.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
 aget : Int32 -> Array a -> a
-aget index arr = Core#getArray(index, arr)
+aget index arr = Core#arrayGet(index, arr)
 
 // Sets the element of the array at the specified index.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
@@ -219,11 +219,12 @@ aset index x arr = Core#setArray(index, x, arr)
 
 // Updates the element of the array at the specified index by applying this function
 // to the old value.
+// Negative indexes will start from the end of the array.
 // *Unsafe*: Will thrown a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.
 // Runtime: O(1)
 pub
 aupdate : Int32 -> (a -> a) -> Array a -> Unit
-aupdate index updateFn arr = Core#setArray(index, updateFn Core#getArray(index, arr), arr)
+aupdate index updateFn arr = Core#setArray(index, updateFn Core#arrayGet(index, arr), arr)
 
 // Creates an array of the specified class and size.
 pub
