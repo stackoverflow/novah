@@ -33,21 +33,19 @@ class ReplCommand : CliktCommand(name = "repl", help = "start a repl for the cur
 
         echo(repl.greet())
         while (true) {
-            var def = false
             var input = prompt(">", promptSuffix = " ", default = "")
             if (input == null || input == ":q") break
             input = input.trimStart()
             if (input == "") continue
             if (input.startsWith(":>")) {
                 input = input.drop(2).trimStart()
-                def = true
                 while (true) {
                     val more = prompt(">>", promptSuffix = " ", default = "")
                     if (more == null || more == "") break
                     input += "\n$more"
                 }
             }
-            repl.execute(input, def)
+            repl.execute(input)
         }
     }
 }

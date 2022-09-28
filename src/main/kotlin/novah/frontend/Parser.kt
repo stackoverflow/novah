@@ -247,7 +247,7 @@ class Parser(
         return ForeignImport(fullName, parseAlias(), span(tkSpan, iter.current().span))
     }
 
-    private fun parseDecl(): Decl {
+    fun parseDecl(): Decl {
         val meta = parseMetadata()
         var tk = iter.peek()
         val comment = tk.comment
