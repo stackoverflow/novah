@@ -13,6 +13,7 @@
 - ! operator now works for strings instead of lists
 - added `<primitiveArray>aget` functions
 - changed `<-` operator to have the lowest precedence
+- added `AutoCloseable` type class and `withOpen` function
 
 # 0.4.0
 

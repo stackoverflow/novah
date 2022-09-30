@@ -1680,3 +1680,18 @@ rangedStepBigInt =
     { range: \start end step -> BigIntRange#new(start, end, step) as Range BigInteger
     , rangeOpen: \start end step -> BigIntOpenRange#new(start, end, step) as Range BigInteger
     }
+
+// The type of things that can be closed.
+// Similar to `java.lang.AutoCloseable`.
+pub+
+type AutoCloseable a = AutoCloseable { close : a -> Unit }
+
+// Runs the function and closes the resource afterwards.
+// Similar to Java's try-with-resource.
+pub
+withOpen : {{ AutoCloseable a }} -> a -> (a -> b) -> b
+withOpen {{AutoCloseable {close}}} res f =
+  try
+    f res
+  finally
+    close res
