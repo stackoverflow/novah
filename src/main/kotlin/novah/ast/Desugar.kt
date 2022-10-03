@@ -419,6 +419,16 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             desugarComputation(exps, builder).desugar(locals, tvars)
         }
         is SExpr.TypeCast -> Expr.TypeCast(exp.desugar(locals, tvars), cast.desugar(vars = tvars.toMutableMap()), span)
+        is SExpr.BangBang -> {
+            val unw = Expr.Var("unwrapOption", span, "novah.core")
+            Expr.App(unw, exp.desugar(locals, tvars), span)
+        }
+        is SExpr.UnderscoreBangBang -> {
+            val unwrap = Expr.Var("unwrapOption", span, "novah.core")
+            val v = Expr.Var("\$unw", span)
+            val body = Expr.App(unwrap, v, span)
+            Expr.Lambda(Binder("\$unw", span), body, span)
+        }
         is SExpr.ForeignStaticField -> {
             usedTypes += clazz.value
             val fqclass = smod.foreignTypes[clazz.value] ?: Reflection.novahToJava(clazz.value)

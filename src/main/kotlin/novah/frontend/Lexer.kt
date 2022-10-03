@@ -127,11 +127,6 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
     fun after(line: Int, col: Int) =
         line > endLine || (line == endLine && col > endColumn)
 
-    /**
-     * Returns true if there's no lines between these spans
-     */
-    fun adjacent(other: Span) = endLine + 1 == other.startLine
-
     fun isEmpty() = this == emptySpan
 
     companion object {
@@ -224,13 +219,12 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     consumeAllWhitespace()
                     val next = next()
                     val nextComm = next.comment
-                    // concat // comments
-                    if (nextComm != null && !nextComm.isMulti && endSpan.adjacent(nextComm.span)) {
-                        val newComm = Comment("$comm\n${nextComm.comment}", Span.new(endSpan, nextComm.span))
+                    // concat comments
+                    if (nextComm != null) {
+                        val newlines = getNewLines(endSpan.endLine, nextComm.span.startLine)
+                        val newComm = Comment("$comm$newlines${nextComm.comment}", Span.new(endSpan, nextComm.span))
                         return next.copy(comment = newComm)
                     }
-                    // if there's a blank line between the comment the definition don't add
-                    if (next.comment != null || !endSpan.adjacent(next.span)) return next
                     comment = Comment(comm, endSpan)
                     return next.copy(comment = comment)
                 }
@@ -239,8 +233,14 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     val endSpan = Span(startLine, startColumn, iter.line, iter.column)
                     consumeAllWhitespace()
                     val next = next()
-                    // if there's a blank line between the comment the definition don't add
-                    if (next.comment != null || !endSpan.adjacent(next.span)) return next
+                    // concat comments
+                    val nextComm = next.comment
+                    if (nextComm != null) {
+                        val newlines = getNewLines(endSpan.endLine, nextComm.span.startLine)
+                        val newComm = Comment("$comm$newlines${nextComm.comment}",
+                            Span.new(endSpan, nextComm.span), isMulti = nextComm.isMulti)
+                        return next.copy(comment = newComm)
+                    }
                     comment = Comment(comm, endSpan, isMulti = true)
                     return next.copy(comment = comment)
                 }
@@ -733,6 +733,13 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
         private fun readUTF16BMP(b1: Char, b2: Char, b3: Char, b4: Char): Pair<Char, String> {
             val str = "$b1$b2$b3$b4"
             return Integer.parseInt(str, 16).toChar() to "\\u$str"
+        }
+
+        private fun getNewLines(line: Int, line2: Int): String {
+            val builder = StringBuilder()
+            val times = line2 - line
+            for (x in 1..times) builder.append('\n')
+            return builder.toString()
         }
     }
 }

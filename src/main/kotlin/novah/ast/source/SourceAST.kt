@@ -221,6 +221,8 @@ sealed class Expr {
     data class Yield(val exp: Expr) : Expr()
     data class DoBang(val exp: Expr) : Expr()
     data class TypeCast(val exp: Expr, val cast: Type) : Expr()
+    data class BangBang(val exp: Expr) : Expr()
+    class UnderscoreBangBang : Expr()
     data class ForeignStaticField(val clazz: Spanned<String>, val field: Spanned<String>, val option: Boolean) : Expr()
     data class ForeignField(val exp: Expr, val field: Spanned<String>, val option: Boolean) : Expr()
     data class ForeignMethod(val exp: Expr, val method: Spanned<String>, val args: List<Expr>, val option: Boolean) :
