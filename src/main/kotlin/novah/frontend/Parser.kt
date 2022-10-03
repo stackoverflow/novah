@@ -434,10 +434,7 @@ class Parser(
                 // a _!! unwrap anonymous function
                 if (iter.peek().value is BangBang) {
                     val bb = iter.next()
-                    val unwrap = Expr.Var("unwrapOption").withSpan(bb.span)
-                    val v = Expr.Var("\$unw").withSpan(tk.span) as Expr.Var
-                    val body = Expr.App(unwrap, v).withSpan(tk.span, bb.span)
-                    Expr.Lambda(listOf(Pattern.Var(v)), body).withSpan(tk.span, bb.span).withComment(tk.comment)
+                    Expr.UnderscoreBangBang().withSpan(tk.span, bb.span).withComment(tk.comment)
                 } else under
             }
             is At -> {
@@ -623,8 +620,7 @@ class Parser(
         }
         is BangBang -> {
             val span = iter.next().span
-            val unwrap = Expr.Var("unwrapOption").withSpan(span)
-            val res = Expr.App(unwrap, exp).withSpan(exp.span, span).withComment(exp.comment)
+            val res = Expr.BangBang(exp).withSpan(exp.span, span).withComment(exp.comment)
             parseSelection(res)
         }
         else -> exp

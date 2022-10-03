@@ -166,11 +166,14 @@ class Formatter {
                 if (e.elseCase != null) {
                     val simple = e.thenCase.isSimpleExpr() && e.elseCase.isSimpleExpr()
                     if (simple) "if ${show(e.cond)} then ${show(e.thenCase)} else ${show(e.elseCase)}"
-                    else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}\n${tab}else ${show(e.elseCase)}"
+                    else {
+                        val prefix = withIndent(false) { "if ${show(e.cond)} then\n${tab}${show(e.thenCase)}\n" }
+                        val els = "${tab}else\n"
+                        withIndent(false) { "$prefix$els$tab${show(e.elseCase)}" }
+                    }
                 } else {
-                    val simple = e.thenCase.isSimpleExpr()
-                    if (simple) "if ${show(e.cond)} then ${show(e.thenCase)}"
-                    else "if ${show(e.cond)}\n${tab}then ${show(e.thenCase)}"
+                    if (e.thenCase.isSimpleExpr()) "if ${show(e.cond)} then ${show(e.thenCase)}"
+                    else withIndent { "if ${show(e.cond)} then\n${tab}${show(e.thenCase)}" }
                 }
             }
             is Expr.Return -> {
@@ -186,7 +189,8 @@ class Formatter {
                 "${show(e.exp)} : ${show(e.type)}"
             }
             is Expr.Lambda -> {
-                val shown = if (e.body.isSimpleExpr()) " -> " + show(e.body)
+                val simple = " -> ${show(e.body)}"
+                val shown = if (!simple.contains('\n') && simple.length + tab.length < maxColumns) simple
                 else " ->" + withIndent { tab + show(e.body) }
 
                 "\\" + e.patterns.joinToString(" ") { show(it) } + shown
@@ -255,6 +259,8 @@ class Formatter {
                 "do." + e.builder.name + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
             is Expr.TypeCast -> show(e.exp) + " as " + show(e.cast)
+            is Expr.BangBang -> "${show(e.exp)}!!"
+            is Expr.UnderscoreBangBang -> "_!!"
             is Expr.ForeignStaticField -> "${e.clazz.value}#-${e.field.value}"
             is Expr.ForeignField -> "${show(e.exp)}#-${e.field.value}"
             is Expr.ForeignStaticMethod -> {
@@ -316,8 +322,9 @@ class Formatter {
             }
             is LetDef.DefPattern -> "${show(l.pat)} $sep"
         }
-        return if (l.expr.isSimpleExpr()) "$prefix ${show(l.expr)}"
-        else prefix + withIndent { tab + show(l.expr) }
+        val simple = "$prefix ${show(l.expr)}"
+        return if (!simple.contains('\n') && simple.length + tab.length < maxColumns) simple
+        else prefix + withIndent { tab + show(l.expr) } + "\n"
     }
 
     fun show(t: Type): String = when (t) {
@@ -368,12 +375,17 @@ class Formatter {
     fun show(c: Comment, newline: Boolean = false): String = if (c.isMulti) {
         val end = if (newline) "\n" else ""
         "$tab/*\n$tab * " + c.comment.split("\n").joinToString("\n$tab *") + "\n$tab */$end"
-    } else "// ${c.comment}\n"
+    } else {
+        val comment = c.comment.replace("\n", "\n//").replace("\n//\n", "\n\n")
+        "//$comment\n"
+    }
 
     private fun Expr.isSimpleExpr(): Boolean = when (this) {
         is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
         is Expr.StringE, is Expr.CharE, is Expr.Bool,
         is Expr.Var, is Expr.Operator -> true
+        is Expr.ListLiteral -> exps.all { it.isSimpleExpr() }
+        is Expr.SetLiteral -> exps.all { it.isSimpleExpr() }
         else -> false
     }
 
@@ -394,7 +406,7 @@ class Formatter {
     }
 
     companion object {
-        const val maxColumns = 80
+        const val maxColumns = 120
         const val tabSize = "  " // 2 spaces
     }
 }
