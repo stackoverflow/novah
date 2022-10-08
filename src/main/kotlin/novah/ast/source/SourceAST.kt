@@ -15,7 +15,6 @@
  */
 package novah.ast.source
 
-import novah.data.LabelMap
 import novah.data.Labels
 import novah.data.show
 import novah.frontend.Comment
@@ -287,7 +286,7 @@ sealed class Pattern(open val span: Span) {
     data class LiteralP(val lit: LiteralPattern, override val span: Span) : Pattern(span)
     data class Var(val v: Expr.Var) : Pattern(v.span)
     data class Ctor(val ctor: Expr.Constructor, val fields: List<Pattern>, override val span: Span) : Pattern(span)
-    data class Record(val labels: LabelMap<Pattern>, override val span: Span) : Pattern(span)
+    data class Record(val labels: Labels<Pattern>, override val span: Span) : Pattern(span)
     data class ListP(val elems: List<Pattern>, val tail: Pattern?, override val span: Span) : Pattern(span)
     data class Named(val pat: Pattern, val name: Spanned<String>, override val span: Span) : Pattern(span)
     data class Unit(override val span: Span) : Pattern(span)

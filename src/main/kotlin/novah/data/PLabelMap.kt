@@ -34,8 +34,8 @@ fun isValidLabel(ident: String): Boolean = ident.matches(labelRegex)
 fun showLabel(label: String): String =
     if (isValidLabel(label)) label else "\"$label\""
 
-fun <V> Labels<V>.show(fn: (String, V) -> String): String =
-    joinToStr { (k, v) -> fn(showLabel(k), v)}
+fun <V> Labels<V>.show(sep: String = ", ", fn: (String, V) -> String): String =
+    joinToStr(sep) { (k, v) -> fn(showLabel(k), v)}
 
 fun <V> LabelMap<V>.show(fn: (String, V) -> String): String {
     val builder = StringBuilder()

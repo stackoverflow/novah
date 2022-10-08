@@ -17,3 +17,5 @@ other = "hello"
 // comments with a empty line are not added
 
 foo = 2
+
+bar = 5

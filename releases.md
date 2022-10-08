@@ -14,6 +14,11 @@
 - added `<primitiveArray>aget` functions
 - changed `<-` operator to have the lowest precedence
 - added `AutoCloseable` type class and `withOpen` function
+- improvements to language formatter
+
+## Bug Fixes
+
+- Fixed bug in list/set parsing where indentation was not ignored
 
 # 0.4.0
 

@@ -523,7 +523,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             span
         )
         is SPattern.Parens -> pattern.desugar(locals, tvars)
-        is SPattern.Record -> Pattern.Record(labels.mapList { it.desugar(locals, tvars) }, span)
+        is SPattern.Record -> Pattern.Record(labelMapWith(labels.map { (l, p) -> l to p.desugar(locals, tvars) }), span)
         is SPattern.ListP -> Pattern.ListP(elems.map { it.desugar(locals, tvars) }, tail?.desugar(locals, tvars), span)
         is SPattern.Named -> Pattern.Named(pat.desugar(locals, tvars), name, span)
         is SPattern.Unit -> Pattern.Unit(span)
@@ -638,7 +638,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SPattern.Var -> listOf(CollectedVar(pat.v.name, pat.span, implicit = implicit))
         is SPattern.Parens -> collectVars(pat.pattern, implicit)
         is SPattern.Ctor -> pat.fields.flatMap { collectVars(it, implicit) }
-        is SPattern.Record -> pat.labels.flatMapList { collectVars(it, implicit) }.toList()
+        is SPattern.Record -> pat.labels.flatMap { (_, p) -> collectVars(p, implicit) }.toList()
         is SPattern.ListP -> {
             val tail = if (pat.tail != null) collectVars(pat.tail, implicit) else emptyList()
             pat.elems.flatMap { collectVars(it, implicit) } + tail

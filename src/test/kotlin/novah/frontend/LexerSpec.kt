@@ -52,6 +52,9 @@ class LexerSpec : StringSpec({
         val other = tokens.find {
             it.value is Token.Ident && (it.value as Token.Ident).v == "other"
         }!!
+        val bar = tokens.find {
+            it.value is Token.Ident && (it.value as Token.Ident).v == "bar"
+        }!!
 
         typ.span shouldBe span(4 to 1, 4 to 5)
         typ.comment shouldBe Comment(" comments on type definitions work", Span(3, 1, 3, 37))
@@ -61,7 +64,9 @@ class LexerSpec : StringSpec({
 
         other.comment shouldBe Comment(" comments on var declaration work\n and are concatenated", Span(13, 1, 14, 24))
 
-        foo.comment shouldBe null
+        foo.comment shouldBe Comment(" comments with a empty line are not added", Span(17, 1, 17, 44))
+
+        bar.comment shouldBe null
     }
 
     "Lex UTF escapes correctly" {
