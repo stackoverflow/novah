@@ -530,9 +530,11 @@ class Parser(
                     val end = iter.next()
                     Expr.ListLiteral(emptyList()).withSpan(tk.span, end.span).withComment(tk.comment)
                 } else {
-                    val exps = between<Comma, Expr>(::parseExpression)
-                    val end = expect<RSBracket>(withError(E.rsbracketExpected("list literal")))
-                    Expr.ListLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
+                    withIgnoreOffside {
+                        val exps = between<Comma, Expr>(::parseExpression)
+                        val end = expect<RSBracket>(withError(E.rsbracketExpected("list literal")))
+                        Expr.ListLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
+                    }
                 }
             }
             is SetBracket -> {
@@ -541,9 +543,11 @@ class Parser(
                     val end = iter.next()
                     Expr.SetLiteral(emptyList()).withSpan(tk.span, end.span).withComment(tk.comment)
                 } else {
-                    val exps = between<Comma, Expr>(::parseExpression)
-                    val end = expect<RBracket>(withError(E.rsbracketExpected("set literal")))
-                    Expr.SetLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
+                     withIgnoreOffside {
+                        val exps = between<Comma, Expr>(::parseExpression)
+                        val end = expect<RBracket>(withError(E.rsbracketExpected("set literal")))
+                        Expr.SetLiteral(exps).withSpan(tk.span, end.span).withComment(tk.comment)
+                     }
                 }
             }
             is ThrowT -> {
@@ -1007,7 +1011,7 @@ class Parser(
                 } else {
                     val rows = between<Comma, Pair<String, Pattern>>(::parsePatternRow)
                     val end = expect<RBracket>(withError(E.rbracketExpected("record pattern"))).span
-                    Pattern.Record(labelMapWith(rows), span(tk.span, end))
+                    Pattern.Record(rows, span(tk.span, end))
                 }
             }
             is LSBracket -> {
@@ -1267,7 +1271,7 @@ class Parser(
 
                 if (exps.size == 1) exps[0]
                 else {
-                    Expr.Do(exps).withSpan(spanned.span, iter.current().span).withComment(spanned.comment)
+                    Expr.Do(exps).withSpan(spanned.span, iter.current().span)
                 }
             }
         }
