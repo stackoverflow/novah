@@ -14,7 +14,22 @@
 - added `<primitiveArray>aget` functions
 - changed `<-` operator to have the lowest precedence
 - added `AutoCloseable` type class and `withOpen` function
-- improvements to language formatter
+- language formatter is usable now
+- better indentation rules for binary operators, now they don't need indentation
+
+    ```
+    // before
+    fun x =
+      value
+        |> function1
+        |> function2
+    
+    // before
+    fun x =
+      value
+      |> function1
+      |> function2
+    ```
 
 ## Bug Fixes
 
