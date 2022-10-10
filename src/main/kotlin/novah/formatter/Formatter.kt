@@ -293,12 +293,10 @@ class Formatter {
                 if (op == null || op.op != opstr) {
                     val simple = "${show(e.left)} $opstr ${show(e.right)}"
                     if (simple.length > maxColumns) {
-                        show(e.left, op = Left(opstr)) + withIndent {
-                            "$tab$opstr ${show(e.right, op = Right(opstr))}"
-                        }
+                        show(e.left, op = Left(opstr)) + "\n$tab$opstr ${show(e.right, op = Right(opstr))}"
                     } else simple
                 } else if (op is Left) {
-                    show(e.left, op) + withIndent { "$tab${show(e.op)} ${show(e.right, op = Right(op.op))}" }
+                    show(e.left, op) + "\n$tab${show(e.op)} ${show(e.right, op = Right(op.op))}"
                 } else "${show(e.left, op)}\n$tab${show(e.op)} ${show(e.right, op)}"
             }
             is Expr.Throw -> "throw ${show(e.exp)}"

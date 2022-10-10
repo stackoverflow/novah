@@ -379,34 +379,54 @@ class Parser(
         val tk = iter.peek()
         val exps = mutableListOf<Expr>()
         exps += tryParseAtom() ?: throwError(E.MALFORMED_EXPR to tk.span)
-        val offside = if (inDo) iter.offside() + 1 else iter.offside()
-        return withOffside(offside) {
-            exps += tryParseListOf { tryParseAtom() }
-            // sanity check
-            if (exps.size > 1) {
-                val doLets = exps.filterIsInstance<Expr.DoLet>()
-                if (doLets.isNotEmpty()) throwError(E.APPLIED_DO_LET to doLets[0].span)
+        val offside = iter.offside()
+        if (inDo) {
+            var last: Expr? = null
+            while (true) {
+                if (last != null && last is Expr.Operator) {
+                    withOffside(offside) {
+                        if (iter.peekIsOffside()) throwError(E.EXPECTED_OPERAND to iter.peek().span)
+                        last = tryParseAtom()
+                        if (last == null) throwError(E.EXPECTED_OPERAND to iter.peek().span)
+                    }
+                } else {
+                    // operators follow different indentation rules
+                    val nextOp = iter.peek().value is Op
+                    val off = if (nextOp) offside else offside + 1
+                    withOffside(off) {
+                        last = if (iter.peekIsOffside()) null else tryParseAtom()
+                    }
+                }
+                if (last == null) break
+                else exps += last!!
             }
-
-            val unrolled = Application.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
-
-            // type signatures and casts have the lowest precedence
-            val typedExpr = if (iter.peek().value is Colon) {
-                iter.next()
-                val pt = parseType()
-                Expr.Ann(unrolled, pt)
-                    .withSpan(unrolled.span, iter.current().span)
-                    .withComment(unrolled.comment)
-            } else unrolled
-
-            if (iter.peek().value is As) {
-                iter.next()
-                val ty = parseType()
-                Expr.TypeCast(unrolled, ty)
-                    .withSpan(typedExpr.span, iter.current().span)
-                    .withComment(typedExpr.comment)
-            } else typedExpr
+        } else {
+            withOffside(offside) { exps += tryParseListOf { tryParseAtom() } }
         }
+        // sanity check
+        if (exps.size > 1) {
+            val doLets = exps.filterIsInstance<Expr.DoLet>()
+            if (doLets.isNotEmpty()) throwError(E.APPLIED_DO_LET to doLets[0].span)
+        }
+
+        val unrolled = Application.parseApplication(exps) ?: throwError(withError(E.MALFORMED_EXPR)(tk))
+
+        // type signatures and casts have the lowest precedence
+        val typedExpr = if (iter.peek().value is Colon) {
+            iter.next()
+            val pt = parseType()
+            Expr.Ann(unrolled, pt)
+                .withSpan(unrolled.span, iter.current().span)
+                .withComment(unrolled.comment)
+        } else unrolled
+
+        return if (iter.peek().value is As) {
+            iter.next()
+            val ty = parseType()
+            Expr.TypeCast(unrolled, ty)
+                .withSpan(typedExpr.span, iter.current().span)
+                .withComment(typedExpr.comment)
+        } else typedExpr
     }
 
     private fun tryParseAtom(): Expr? {

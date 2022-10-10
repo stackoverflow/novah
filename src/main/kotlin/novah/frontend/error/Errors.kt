@@ -209,6 +209,8 @@ object Errors {
         Attributes can only contain lists, records and primitive types (numbers, booleans, chars and strings)
     """.trimIndent()
 
+    const val EXPECTED_OPERAND = "Expected another operand after binary operator"
+
     fun opToolong(op: String) =
         "Operator $op is too long. Operators cannot contain more than 3 characters."
 

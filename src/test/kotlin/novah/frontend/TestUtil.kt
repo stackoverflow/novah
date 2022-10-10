@@ -16,8 +16,10 @@
 package novah.frontend
 
 import novah.ast.source.*
+import novah.data.Result
 import novah.data.mapList
 import novah.data.unwrapOrElse
+import novah.frontend.error.CompilerProblem
 import novah.frontend.typechecker.*
 import novah.frontend.typechecker.Type
 import novah.main.*
@@ -54,12 +56,16 @@ object TestUtil {
     }
 
     fun parseString(code: String): Module {
-        val lexer = Lexer(code.iterator())
-        val parser = Parser(lexer, false)
-        return parser.parseFullModule().unwrapOrElse {
+        return parseStringFull(code).unwrapOrElse {
             println(it.formatToConsole())
             throw CompilationError(setOf(it))
         }
+    }
+
+    fun parseStringFull(code: String): Result<Module, CompilerProblem> {
+        val lexer = Lexer(code.iterator())
+        val parser = Parser(lexer, false)
+        return parser.parseFullModule()
     }
 
     fun cleanAndGetOutDir(output: String = "output"): File {

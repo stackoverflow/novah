@@ -26,6 +26,7 @@ import novah.ast.source.Decl
 import novah.ast.source.Expr
 import novah.ast.source.Module
 import novah.ast.source.Pattern
+import novah.data.Ok
 import novah.formatter.Formatter
 import novah.frontend.TestUtil._i
 import novah.frontend.TestUtil._v
@@ -171,12 +172,27 @@ class ParserSpec : StringSpec({
               case x of
                 Some _ -> 1
                 None -> 0
+            
+            parseLine : String -> Coords
+            parseLine line =
+              Re.find #"(\d+),(\d+) -> (\d+),(\d+)" line
+              |> removeFirst
+              |> List.map int
+              |> \[x1, y1, x2, y2] -> { x1, x2, y1, y2 }
         """.trimIndent()
 
-        val ast = parseString(code)
+        val lexer = Lexer(code.iterator())
+        val parser = Parser(lexer, false)
+        val parseRes = parser.parseFullModule()
+        parseRes.shouldBeInstanceOf<Ok<*>>()
+
+        val errors = parser.errors()
+        errors.forEach { println(it.formatToConsole()) }
+        errors.size shouldBe 0
+
+        val ast = parseRes.unwrap()
         val des = Desugar(ast, Typechecker(NovahClassLoader(null)))
-        shouldNotThrowAny {
-            des.desugar()
-        }
+        val res = des.desugar()
+        res.shouldBeInstanceOf<Ok<*>>()
     }
 })
