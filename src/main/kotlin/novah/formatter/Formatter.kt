@@ -131,7 +131,7 @@ class Formatter {
         val name = if (d.isOperator) "(${d.name})" else d.name
         prefix += name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
-        return if (d.exp.isSimpleExpr()) "$prefix ${show(d.exp)}"
+        return if (d.exp.isSimpleExpr() || d.exp is Expr.Match) "$prefix ${show(d.exp)}"
         else prefix + withIndent { tab + show(d.exp) }
     }
 
@@ -145,20 +145,15 @@ class Formatter {
             is Expr.Do -> {
                 val str = StringBuilder()
                 var last: Expr? = null
-                var lastStr = ""
                 for (exp in e.exps) {
                     if (last != null) {
                         // respect empty new lines between statements
                         val adjacent = exp.span.startLine - 1 == last.span.endLine
-                        // always add an empty line for multi line lets
-                        val multiLet = (last is Expr.Let || last is Expr.DoLet) && lastStr.contains('\n')
-                        if (multiLet || !adjacent) str.append("\n\n$tab")
-                        else str.append("\n$tab")
+                        if (adjacent) str.append("\n$tab")
+                        else str.append("\n\n$tab")
                     }
-                    val show = show(exp)
-                    str.append(show)
+                    str.append(show(exp))
                     last = exp
-                    lastStr = show
                 }
                 str.toString()
             }
@@ -238,7 +233,12 @@ class Formatter {
             is Expr.PatternLiteral -> "#\"${e.raw}\""
             is Expr.CharE -> "'${e.raw}'"
             is Expr.Bool -> "${e.v}"
-            is Expr.Parens -> "(${show(e.exp)})"
+            is Expr.Parens -> {
+                if (e.exp is Expr.BinApp)
+                    withIndent(false) { "(${show(e.exp)})" }
+                else
+                    "(${show(e.exp)})"
+            }
             is Expr.Unit -> "()"
             is Expr.Deref -> "@" + show(e.exp)
             is Expr.RecordEmpty -> "{}"
@@ -391,7 +391,9 @@ class Formatter {
             is LetDef.DefPattern -> "${show(l.pat)} $sep"
         }
         val simple = "$prefix ${show(l.expr)}"
-        return if (!simple.contains('\n') && simple.length + tab.length + 4 < maxColumns) simple
+        val isMatch = l.expr is Expr.Match && simple.endLineLength() + tab.length + 4 < maxColumns
+        val isSimple = !simple.contains('\n') && simple.length + tab.length + 4 < maxColumns
+        return if (isMatch || isSimple) simple
         else prefix + withIndent { tab + show(l.expr) }
     }
 
