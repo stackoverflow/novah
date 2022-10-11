@@ -390,8 +390,9 @@ class Parser(
                         if (last == null) throwError(E.EXPECTED_OPERAND to iter.peek().span)
                     }
                 } else {
+                    val peek = iter.peek().value
                     // operators follow different indentation rules
-                    val nextOp = iter.peek().value is Op
+                    val nextOp = peek is Op || peek is Semicolon
                     val off = if (nextOp) offside else offside + 1
                     withOffside(off) {
                         last = if (iter.peekIsOffside()) null else tryParseAtom()
