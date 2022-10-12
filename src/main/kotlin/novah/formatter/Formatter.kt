@@ -21,6 +21,7 @@ import novah.data.Labels
 import novah.data.show
 import novah.data.showLabel
 import novah.frontend.Comment
+import novah.frontend.Span
 import java.util.LinkedList
 
 /**
@@ -164,21 +165,21 @@ class Formatter {
             is Expr.Let -> {
                 val str = if (e.body.isSimpleExpr()) "in " + show(e.body)
                 else "in" + withIndent { tab + show(e.body) }
-                "let " + show(e.letDef) + "\n${tab}$str"
+                "let " + show(e.letDef, e.span) + "\n${tab}$str"
             }
-            is Expr.DoLet -> "let ${show(e.letDef)}"
+            is Expr.DoLet -> "let ${show(e.letDef, e.span)}"
             is Expr.LetBang -> {
                 if (e.body == null)
-                    "let! ${show(e.letDef)}"
+                    "let! ${show(e.letDef, e.span)}"
                 else
-                    "let! ${show(e.letDef)} in ${show(e.body)}"
+                    "let! ${show(e.letDef, e.span)} in ${show(e.body)}"
             }
-            is Expr.For -> "for ${show(e.letDef, isFor = true)} do ${show(e.body)}"
+            is Expr.For -> "for ${show(e.letDef, e.span, isFor = true)} do ${show(e.body)}"
             is Expr.DoBang -> "do! ${show(e.exp)}"
             is Expr.If -> {
                 if (e.elseCase != null) {
                     val simple = "if ${show(e.cond)} then ${show(e.thenCase)} else ${show(e.elseCase)}"
-                    if (simple.length < maxColumns && !simple.contains('\n')) simple
+                    if (!e.isMultiLine() && simple.length < maxColumns && !simple.contains('\n')) simple
                     else {
                         val prefix = withIndent(false) { "if ${show(e.cond)} then\n${tab}${show(e.thenCase)}\n" }
                         val els = "${tab}else\n"
@@ -243,7 +244,15 @@ class Formatter {
             is Expr.Deref -> "@" + show(e.exp)
             is Expr.RecordEmpty -> "{}"
             is Expr.RecordSelect -> "${show(e.exp)}.${e.labels.joinToStr(".") { it.value }}"
-            is Expr.RecordRestrict -> "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
+            is Expr.RecordRestrict -> {
+                val show = "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
+                if (show.length > maxColumns || e.isMultiLine()) {
+                    val labels = withIndent(false) {
+                        e.labels.joinToString("\n$tab, ", postfix = "\n$tab| ${show(e.exp)}") { showLabel(it) }
+                    }
+                    "{ - $labels\n$tab}"
+                } else show
+            }
             is Expr.RecordUpdate -> {
                 fun showRecUp(up: RecUpdate): String {
                     val sep = if (up.isSet) "=" else "->"
@@ -251,7 +260,7 @@ class Formatter {
                     return ".$labels $sep ${show(up.value)}"
                 }
                 val shown = "{ ${e.updates.joinToString { showRecUp(it) }} | ${show(e.exp)} }"
-                if (shown.length > maxColumns) {
+                if (shown.length > maxColumns || e.isMultiLine()) {
                     val str = e.updates.joinToString("\n$tab, ") { withIndent(false) { showRecUp(it) } }
                     "{ $str\n$tab}"
                 } else shown
@@ -259,7 +268,7 @@ class Formatter {
             is Expr.RecordExtend -> {
                 val labels = e.labels.show(", ", ::showLabelExpr)
                 val shown = if (e.exp is Expr.RecordEmpty) "{ $labels }" else "{ $labels | ${show(e.exp)} }"
-                if (shown.length > maxColumns) {
+                if (shown.length > maxColumns || e.isMultiLine()) {
                     val str = e.labels.showMulti { l, exp -> withIndent(false) { showLabelExpr(l, exp) } }
                     if (e.exp is Expr.RecordEmpty) "{ $str\n$tab}" else "{ $str\n$tab| ${show(e.exp)}\n$tab}"
                 } else shown
@@ -268,7 +277,7 @@ class Formatter {
                 var show1 = show(e.exp1)
                 var show2 = show(e.exp2)
                 val len = show1.length + show2.length + 4
-                if (show1.contains('\n') || show2.contains('\n') || len > maxColumns) {
+                if (show1.contains('\n') || show2.contains('\n') || len > maxColumns || e.isMultiLine()) {
                     show1 = withIndent(false) { tab + show(e.exp1) }
                     show2 = withIndent(false) { tab + show(e.exp2) }
                     "{ +\n$show1\n$tab  ,\n$show2\n$tab}"
@@ -276,13 +285,13 @@ class Formatter {
             }
             is Expr.ListLiteral -> {
                 val simple = e.exps.joinToString(prefix = "[", postfix = "]") { show(it) }
-                if (simple.length > maxColumns) {
+                if (simple.length > maxColumns || e.isMultiLine()) {
                     e.exps.joinToString("\n$tab, ", prefix = "[ ", postfix = "\n$tab]") { show(it) }
                 } else simple
             }
             is Expr.SetLiteral -> {
                 val simple = e.exps.joinToString(prefix = "#{", postfix = "}") { show(it) }
-                if (simple.length > maxColumns) {
+                if (simple.length > maxColumns || e.isMultiLine()) {
                     e.exps.joinToString("\n$tab, ", prefix = "#{ ", postfix = "\n$tab}") { show(it) }
                 } else simple
             }
@@ -381,7 +390,7 @@ class Formatter {
         is LiteralPattern.BigdecPattern -> show(p.e)
     }
 
-    private fun show(l: LetDef, isFor: Boolean = false): String {
+    private fun show(l: LetDef, span: Span, isFor: Boolean = false): String {
         val sep = if (isFor) "in" else "="
         val prefix = when (l) {
             is LetDef.DefBind -> {
@@ -391,9 +400,10 @@ class Formatter {
             is LetDef.DefPattern -> "${show(l.pat)} $sep"
         }
         val simple = "$prefix ${show(l.expr)}"
+        val hasLineBreak = span.startLine < l.expr.span.startLine
         val isMatch = l.expr is Expr.Match && simple.endLineLength() + tab.length + 4 < maxColumns
         val isSimple = !simple.contains('\n') && simple.length + tab.length + 4 < maxColumns
-        return if (isMatch || isSimple) simple
+        return if (!hasLineBreak && (isMatch || isSimple)) simple
         else prefix + withIndent { tab + show(l.expr) }
     }
 
@@ -454,10 +464,11 @@ class Formatter {
         is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
         is Expr.StringE, is Expr.CharE, is Expr.Bool,
         is Expr.Var, is Expr.Operator -> true
-        is Expr.ListLiteral -> exps.all { it.isSimpleExpr() }
-        is Expr.SetLiteral -> exps.all { it.isSimpleExpr() }
+        is Expr.Parens -> exp.isSimpleExpr()
         else -> false
     }
+
+    private fun Expr.isMultiLine(): Boolean = span.startLine < span.endLine
 
     private fun showList(list: List<String>, start: String = "(", end: String = ")"): String = withIndent {
         when {
