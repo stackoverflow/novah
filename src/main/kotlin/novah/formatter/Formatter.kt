@@ -107,22 +107,26 @@ class Formatter {
     }
 
     fun show(ta: Decl.TypealiasDecl): String {
-        return "typealias ${ta.name} " + ta.tyVars.joinToStr(" ", postfix = " ") + "= ${show(ta.type)}"
+        val ty = withIndentKeep { show(ta.type) }
+        return "typealias ${ta.name} " + ta.tyVars.joinToStr(" ", postfix = " ") + "= $ty"
     }
 
     fun show(d: Decl.TypeDecl): String {
         val dd = "type ${d.name}" + d.tyVars.joinToStr(" ", prefix = " ")
-        return if (d.dataCtors.size == 1) "$dd = ${show(d.dataCtors[0])}"
-        else {
+        return if (d.dataCtors.size == 1) {
+            val ctor = show(d.dataCtors[0])
+            if (ctor.contains('\n')) "$dd =" + withIndent { tab + show(d.dataCtors[0]) }
+            else ctor
+        } else {
             dd + withIndent { d.dataCtors.joinToString("\n$tab| ", prefix = "$tab= ") { show(it) } }
         }
     }
 
     fun show(name: String, type: Type, isOperator: Boolean): String {
-        val theName = if (isOperator) "($name)" else name
-        val td = "$theName : " + show(type)
-        return if (td.length > maxColumns) {
-            theName + withIndent { showIndented(type) }
+        val valName = if (isOperator) "($name)" else name
+        val td = "$valName : " + show(type)
+        return if (td.contains('\n')) {
+            valName + withIndent { "$tab: " + show(type) }
         } else td
     }
 
@@ -137,7 +141,9 @@ class Formatter {
     }
 
     fun show(d: DataConstructor): String {
-        return d.name.value + d.args.joinToStr(" ", prefix = " ") { show(it) }
+        return d.name.value + d.args.joinToStr(" ", prefix = " ") {
+            if (it is Type.TRecord) show(it) else withIndentKeep { show(it) }
+        }
     }
 
     fun show(e: Expr, op: OpExpr? = null): String {
@@ -209,7 +215,10 @@ class Formatter {
                     }
                 } else shown
             }
-            is Expr.Ann -> "${show(e.exp)} : ${show(e.type)}"
+            is Expr.Ann -> {
+                val ty = withIndentKeep { show(e.type) }
+                "${show(e.exp)} : $ty"
+            }
             is Expr.Lambda -> {
                 val simple = " -> ${show(e.body)}"
                 val shown = if (!simple.contains('\n') && simple.length + tab.length < maxColumns) simple
@@ -247,7 +256,7 @@ class Formatter {
             is Expr.RecordRestrict -> {
                 val show = "{ - ${e.labels.joinToString { showLabel(it) }} | ${show(e.exp)} }"
                 if (show.length > maxColumns || e.isMultiLine()) {
-                    val labels = withIndent(false) {
+                    val labels = withIndentKeep {
                         e.labels.joinToString("\n$tab, ", postfix = "\n$tab| ${show(e.exp)}") { showLabel(it) }
                     }
                     "{ - $labels\n$tab}"
@@ -261,7 +270,7 @@ class Formatter {
                 }
                 val shown = "{ ${e.updates.joinToString { showRecUp(it) }} | ${show(e.exp)} }"
                 if (shown.length > maxColumns || e.isMultiLine()) {
-                    val str = e.updates.joinToString("\n$tab, ") { withIndent(false) { showRecUp(it) } }
+                    val str = e.updates.joinToString("\n$tab, ") { withIndentKeep { showRecUp(it) } }
                     "{ $str\n$tab}"
                 } else shown
             }
@@ -269,7 +278,7 @@ class Formatter {
                 val labels = e.labels.show(", ", ::showLabelExpr)
                 val shown = if (e.exp is Expr.RecordEmpty) "{ $labels }" else "{ $labels | ${show(e.exp)} }"
                 if (shown.length > maxColumns || e.isMultiLine()) {
-                    val str = e.labels.showMulti { l, exp -> withIndent(false) { showLabelExpr(l, exp) } }
+                    val str = e.labels.showMulti { l, exp -> withIndentKeep { showLabelExpr(l, exp) } }
                     if (e.exp is Expr.RecordEmpty) "{ $str\n$tab}" else "{ $str\n$tab| ${show(e.exp)}\n$tab}"
                 } else shown
             }
@@ -278,8 +287,8 @@ class Formatter {
                 var show2 = show(e.exp2)
                 val len = show1.length + show2.length + 4
                 if (show1.contains('\n') || show2.contains('\n') || len > maxColumns || e.isMultiLine()) {
-                    show1 = withIndent(false) { tab + show(e.exp1) }
-                    show2 = withIndent(false) { tab + show(e.exp2) }
+                    show1 = withIndentKeep { tab + show(e.exp1) }
+                    show2 = withIndentKeep { tab + show(e.exp2) }
                     "{ +\n$show1\n$tab  ,\n$show2\n$tab}"
                 } else "{ + $show1, $show2 }"
             }
@@ -292,7 +301,7 @@ class Formatter {
             is Expr.SetLiteral -> {
                 val simple = e.exps.joinToString(prefix = "#{", postfix = "}") { show(it) }
                 if (simple.length > maxColumns || e.isMultiLine()) {
-                    e.exps.joinToString("\n$tab, ", prefix = "#{ ", postfix = "\n$tab}") { show(it) }
+                    e.exps.joinToString("\n$tab , ", prefix = "#{ ", postfix = "\n$tab }") { show(it) }
                 } else simple
             }
             is Expr.Index -> "${show(e.exp)}.[${show(e.index)}]"
@@ -324,7 +333,7 @@ class Formatter {
             is Expr.Computation -> {
                 "do." + e.builder.name + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
             }
-            is Expr.TypeCast -> show(e.exp) + " as " + show(e.cast)
+            is Expr.TypeCast -> show(e.exp) + " as " + withIndentKeep { show(e.cast) }
             is Expr.BangBang -> "${show(e.exp)}!!"
             is Expr.UnderscoreBangBang -> "_!!"
             is Expr.ForeignStaticField -> "${e.clazz.value}#-${e.field.value}"
@@ -371,7 +380,10 @@ class Formatter {
         }
         is Pattern.Named -> "${show(p.pat)} as ${p.name.value}"
         is Pattern.Unit -> "()"
-        is Pattern.TypeTest -> ":? ${show(p.type)}" + if (p.alias != null) " as ${p.alias}" else ""
+        is Pattern.TypeTest -> {
+            val ty = withIndentKeep { show(p.type) }
+            ":? $ty" + if (p.alias != null) " as ${p.alias}" else ""
+        }
         is Pattern.ImplicitPattern -> "{{${show(p.pat)}}}"
         is Pattern.TypeAnnotation -> "${show(p.pat)} : ${show(p.type)}"
         is Pattern.TuplePattern -> "${show(p.p1)} ; ${show(p.p2)}"
@@ -394,7 +406,9 @@ class Formatter {
         val sep = if (isFor) "in" else "="
         val prefix = when (l) {
             is LetDef.DefBind -> {
-                val typ = if (l.type != null) "${l.name} : ${show(l.type)}\n$tab" else ""
+                val typ = if (l.type != null) {
+                    withIndentKeep { "${l.name} : ${show(l.type)}" } + "\n$tab"
+                } else ""
                 "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " $sep"
             }
             is LetDef.DefPattern -> "${show(l.pat)} $sep"
@@ -416,7 +430,9 @@ class Formatter {
                 fn = fn.ret
             }
             tlist += show(fn)
-            tlist.joinToString(" -> ")
+            val str = tlist.joinToString(" -> ")
+            if (str.length > maxColumns) tlist.joinToString("\n$tab-> ")
+            else str
         }
         is Type.TApp -> show(t.type) + t.types.joinToStr(" ", prefix = " ") { show(it) }
         is Type.TParens -> "(${show(t.type)})"
@@ -424,8 +440,16 @@ class Formatter {
         is Type.TRecord -> show(t.row)
         is Type.TRowEmpty -> "{}"
         is Type.TRowExtend -> {
-            val labels = t.labels.show(", ", ::showLabelType)
-            if (t.row is Type.TRowEmpty) "{ $labels }" else "{ $labels | ${show(t.row)} }"
+            var labels = t.labels.show(", ", ::showLabelType)
+            val str = if (t.row is Type.TRowEmpty) "{ $labels }" else "{ $labels | ${show(t.row)} }"
+            if (str.length > maxColumns) {
+                withIndentKeep {
+                    labels = t.labels.show("\n$tab, ") { lab, ty ->
+                        withIndentKeep { showLabelType(lab, ty) }
+                    }
+                    if (t.row is Type.TRowEmpty) "{ $labels\n$tab}" else "{ $labels\n$tab| ${show(t.row)}\n$tab}"
+                }
+            } else str
         }
         is Type.TImplicit -> "{{ ${show(t.type)} }}"
     }
@@ -437,20 +461,6 @@ class Formatter {
     }
 
     private fun showLabelType(l: String, ty: Type): String = "$l : ${show(ty)}"
-
-    private fun showIndented(t: Type, prefix: String = ":"): String = when (t) {
-        is Type.TFun -> {
-            val tlist = mutableListOf<String>()
-            var fn = t
-            while (fn is Type.TFun) {
-                tlist += show(fn.arg)
-                fn = fn.ret
-            }
-            tlist += show(fn)
-            tlist.joinToString("\n$tab-> ", prefix = "$tab$prefix ")
-        }
-        else -> show(t)
-    }
 
     fun show(c: Comment, newline: Boolean = false): String = if (c.isMulti) {
         val end = if (newline) "\n" else ""
@@ -492,6 +502,8 @@ class Formatter {
         tab = oldIndent
         return if (shouldBreak) "\n$res" else res
     }
+
+    private inline fun withIndentKeep(f: () -> String): String = withIndent(shouldBreak = false, f)
 
     sealed class OpExpr(val op: String)
     class Left(op: String) : OpExpr(op)
