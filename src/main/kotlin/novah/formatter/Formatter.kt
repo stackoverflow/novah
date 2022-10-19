@@ -50,7 +50,7 @@ class Formatter {
         }
         if (m.foreigns.isNotEmpty()) {
             builder.append("\n\n")
-            builder.append(m.foreigns.joinToString("\n") { show(it) })
+            builder.append(m.foreigns.sortedBy { it.type }.joinToString("\n") { show(it) })
         }
         if (m.decls.isNotEmpty()) {
             builder.append("\n\n")
