@@ -136,8 +136,9 @@ class Formatter {
         val name = if (d.isOperator) "(${d.name})" else d.name
         prefix += name + d.patterns.joinToStr(" ", prefix = " ") { show(it) } + " ="
 
-        return if (d.exp.isSimpleExpr() || d.exp is Expr.Match) "$prefix ${show(d.exp)}"
-        else prefix + withIndent { tab + show(d.exp) }
+        return if (d.exp.isSimpleExpr() || d.exp is Expr.Match || d.exp is Expr.Computation) {
+            "$prefix ${show(d.exp)}"
+        } else prefix + withIndent { tab + show(d.exp) }
     }
 
     fun show(d: DataConstructor): String {
@@ -180,7 +181,13 @@ class Formatter {
                 else
                     "let! ${show(e.letDef, e.span)} in ${show(e.body)}"
             }
-            is Expr.For -> "for ${show(e.letDef, e.span, isFor = true)} do ${show(e.body)}"
+            is Expr.For -> {
+                val str = "for ${show(e.letDef, e.span, isFor = true)} do ${show(e.body)}"
+                // respect new lines
+                if (str.length > maxColumns || e.span.startLine < e.body.span.startLine) {
+                    "for ${show(e.letDef, e.span, isFor = true)} do" + withIndent { tab + show(e.body) }
+                } else str
+            }
             is Expr.DoBang -> "do! ${show(e.exp)}"
             is Expr.If -> {
                 if (e.elseCase != null) {
@@ -220,9 +227,14 @@ class Formatter {
                 "${show(e.exp)} : $ty"
             }
             is Expr.Lambda -> {
-                val simple = " -> ${show(e.body)}"
-                val shown = if (!simple.contains('\n') && simple.length + tab.length < maxColumns) simple
-                else " ->" + withIndent { tab + show(e.body) }
+                // respect new lines
+                val shown = if (e.span.startLine < e.body.span.startLine) {
+                    " ->" + withIndent { tab + show(e.body) }
+                } else {
+                    val simple = " -> ${show(e.body)}"
+                    if (!simple.contains('\n') && simple.length + tab.length < maxColumns) simple
+                    else " ->" + withIndent { tab + show(e.body) }
+                }
 
                 "\\" + e.patterns.joinToString(" ") { show(it) } + shown
             }
@@ -415,9 +427,10 @@ class Formatter {
         }
         val simple = "$prefix ${show(l.expr)}"
         val hasLineBreak = span.startLine < l.expr.span.startLine
-        val isMatch = l.expr is Expr.Match && simple.endLineLength() + tab.length + 4 < maxColumns
+        val isMatchComp = (l.expr is Expr.Match || l.expr is Expr.Computation)
+                && simple.endLineLength() + tab.length + 4 < maxColumns
         val isSimple = !simple.contains('\n') && simple.length + tab.length + 4 < maxColumns
-        return if (!hasLineBreak && (isMatch || isSimple)) simple
+        return if (!hasLineBreak && (isMatchComp || isSimple)) simple
         else prefix + withIndent { tab + show(l.expr) }
     }
 
