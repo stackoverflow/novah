@@ -112,13 +112,13 @@ class Formatter {
     }
 
     fun show(d: Decl.TypeDecl): String {
-        val dd = "type ${d.name}" + d.tyVars.joinToStr(" ", prefix = " ")
+        val decl = "type ${d.name}" + d.tyVars.joinToStr(" ", prefix = " ")
         return if (d.dataCtors.size == 1) {
             val ctor = show(d.dataCtors[0])
-            if (ctor.contains('\n')) "$dd =" + withIndent { tab + show(d.dataCtors[0]) }
-            else ctor
+            if (ctor.contains('\n')) "$decl =" + withIndent { tab + show(d.dataCtors[0]) }
+            else "$decl = $ctor"
         } else {
-            dd + withIndent { d.dataCtors.joinToString("\n$tab| ", prefix = "$tab= ") { show(it) } }
+            decl + withIndent { d.dataCtors.joinToString("\n$tab| ", prefix = "$tab= ") { show(it) } }
         }
     }
 

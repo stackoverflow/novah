@@ -70,6 +70,9 @@ class FormatterSpec : StringSpec({
     "types test" {
         expect(
             input = """
+                pub
+                type Pair a = Pair Int a
+                
                 type MyRec = MyRec { veryLongName : VeryLongValue VeryLong, anotherVeryLongName : Type, otherField : String }
                 
                 fun1 : SomeVery Long name -> { foooo : Typeeeeee, baaaar : Typeeeeee } -> Return Type valueeee
@@ -79,6 +82,9 @@ class FormatterSpec : StringSpec({
                 fun2 = 0
             """,
             output = """
+                pub
+                type Pair a = Pair Int a
+                
                 type MyRec =
                   MyRec { veryLongName : VeryLongValue VeryLong
                     , anotherVeryLongName : Type
