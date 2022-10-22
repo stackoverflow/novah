@@ -36,6 +36,27 @@ class FormatterSpec : StringSpec({
         )
     }
 
+    "while test" {
+        expect(
+            input = """
+                fun =
+                  while true do
+                    println 1
+                    
+                    println 2
+                    println 3
+            """,
+            output = """
+                fun =
+                  while true do
+                    println 1
+                
+                    println 2
+                    println 3
+            """
+        )
+    }
+
     "computation test" {
         expect(
             input = """

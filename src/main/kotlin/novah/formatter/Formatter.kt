@@ -150,21 +150,7 @@ class Formatter {
     fun show(e: Expr, op: OpExpr? = null): String {
         val cmt = if (e.comment != null) show(e.comment!!) + tab else ""
         return cmt + when (e) {
-            is Expr.Do -> {
-                val str = StringBuilder()
-                var last: Expr? = null
-                for (exp in e.exps) {
-                    if (last != null) {
-                        // respect empty new lines between statements
-                        val adjacent = exp.span.startLine - 1 == last.span.endLine
-                        if (adjacent) str.append("\n$tab")
-                        else str.append("\n\n$tab")
-                    }
-                    str.append(show(exp))
-                    last = exp
-                }
-                str.toString()
-            }
+            is Expr.Do -> showExprList(e.exps)
             is Expr.Match -> {
                 val expsStr = e.exps.joinToString { show(it) }
                 "case $expsStr of" + withIndent { e.cases.joinToString("\n$tab", prefix = tab) { show(it) } }
@@ -340,7 +326,7 @@ class Formatter {
             }
             is Expr.While -> {
                 val cond = show(e.cond)
-                "while $cond do" + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
+                "while $cond do" + withIndent { tab + showExprList(e.exps) }
             }
             is Expr.Computation -> {
                 "do." + e.builder.name + withIndent { e.exps.joinToString("\n$tab", prefix = tab) { show(it) } }
@@ -359,6 +345,22 @@ class Formatter {
                 prefix + e.args.joinToString(", ", prefix = "(", postfix = ")") { show(it) }
             }
         }
+    }
+
+    private fun showExprList(exps: List<Expr>): String {
+        val str = StringBuilder()
+        var last: Expr? = null
+        for (exp in exps) {
+            if (last != null) {
+                // respect empty new lines between statements
+                val adjacent = exp.span.startLine - 1 == last.span.endLine
+                if (adjacent) str.append("\n$tab")
+                else str.append("\n\n$tab")
+            }
+            str.append(show(exp))
+            last = exp
+        }
+        return str.toString()
     }
 
     private fun showLabelExpr(l: String, e: Expr): String =
