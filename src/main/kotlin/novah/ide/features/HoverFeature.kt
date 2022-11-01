@@ -148,7 +148,7 @@ class HoverFeature(private val server: NovahServer) {
                     ImportTypeDeclCtx(d.name, moduleName, ref, fmv.typeVarsMap)
                 } else null
             }
-            if (d.ctors == null || d.ctors.isEmpty()) return null
+            if (d.ctors.isNullOrEmpty()) return null
             for (ctor in d.ctors) {
                 if (ctor.span.matches(line, col)) {
                     val ref = fmv.env.decls[ctor.value]
@@ -198,6 +198,33 @@ class HoverFeature(private val server: NovahServer) {
             d.exp.everywhereUnit { e ->
                 if (ctx == null && e.span.matches(line, col)) {
                     when (e) {
+                        is Expr.Bool -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
+                        }
+                        is Expr.Int32 -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
+                        }
+                        is Expr.Int64 -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
+                        }
+                        is Expr.Float32 -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
+                        }
+                        is Expr.Float64 -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
+                        }
+                        is Expr.Bigint -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
+                        }
+                        is Expr.Bigdec -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
+                        }
+                        is Expr.StringE -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.raw, e.type!!)
+                        }
+                        is Expr.CharE -> if (e.type != null) {
+                            ctx = LocalRefCtx(e.raw, e.type!!)
+                        }
                         is Expr.Var -> {
                             val ownRef = ownMod.env.decls[e.name]
                             if (e.moduleName != null) {

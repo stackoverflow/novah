@@ -110,8 +110,8 @@ sealed class Expr(open val span: Span) {
     data class Float64(val v: Double, override val span: Span) : Expr(span)
     data class Bigint(val v: BigInteger, override val span: Span) : Expr(span)
     data class Bigdec(val v: BigDecimal, override val span: Span) : Expr(span)
-    data class StringE(val v: String, override val span: Span) : Expr(span)
-    data class CharE(val v: Char, override val span: Span) : Expr(span)
+    data class StringE(val v: String, val raw: String, override val span: Span) : Expr(span)
+    data class CharE(val v: Char, val raw: String, override val span: Span) : Expr(span)
     data class Bool(val v: Boolean, override val span: Span) : Expr(span)
     data class Var(
         val name: String,

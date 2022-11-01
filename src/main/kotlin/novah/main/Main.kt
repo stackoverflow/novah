@@ -37,7 +37,7 @@ class MainCommand : CliktCommand(name = "novah", printHelpOnEmptyArgs = true, in
 }
 
 object Main {
-    const val VERSION = "0.4.1"
+    const val VERSION = "0.4.2"
 
     @JvmStatic
     fun main(args: Array<String>) {

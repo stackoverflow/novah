@@ -185,13 +185,13 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.Float64 -> Expr.Float64(v, span)
         is SExpr.Bigint -> Expr.Bigint(v, span)
         is SExpr.Bigdec -> Expr.Bigdec(v, span)
-        is SExpr.StringE -> Expr.StringE(v, span)
-        is SExpr.CharE -> Expr.CharE(v, span)
+        is SExpr.StringE -> Expr.StringE(v, raw, span)
+        is SExpr.CharE -> Expr.CharE(v, raw, span)
         is SExpr.Bool -> Expr.Bool(v, span)
         is SExpr.PatternLiteral -> {
             val clazz = Spanned(span, "java.util.regex.Pattern")
             val method = Spanned(span, "compile")
-            Expr.ForeignStaticMethod(clazz, method, listOf(Expr.StringE(regex, span)), option = false, span)
+            Expr.ForeignStaticMethod(clazz, method, listOf(Expr.StringE(regex, raw, span)), option = false, span)
         }
         is SExpr.Var -> {
             declVars += fullname()
@@ -362,13 +362,17 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.ListLiteral -> {
             if (exps.size == 1 && isRange(exps[0])) {
                 // a list range literal
-                SExpr.App(SExpr.Var("rangeToList").withSpan(span), exps[0]).withSpan(span).desugar(locals, tvars)
+                val rtlSpan = Span(span.startLine, span.startColumn, span.startLine, span.startColumn + 1)
+                val rtl = Expr.Var("rangeToList", rtlSpan, "novah.core")
+                Expr.App(rtl, exps[0].desugar(locals, tvars), span)
             } else Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
         }
         is SExpr.SetLiteral -> {
             if (exps.size == 1 && isRange(exps[0])) {
                 // a set range literal
-                SExpr.App(SExpr.Var("rangeToSet").withSpan(span), exps[0]).withSpan(span).desugar(locals, tvars)
+                val rtsSpan = Span(span.startLine, span.startColumn, span.startLine, span.startColumn + 1)
+                val rts = Expr.Var("rangeToSet", rtsSpan, "novah.core")
+                Expr.App(rts, exps[0].desugar(locals, tvars), span)
             } else Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
         }
         is SExpr.Index -> {
