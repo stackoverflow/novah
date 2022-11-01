@@ -3,6 +3,7 @@
 ## Bug Fixes
 
 - List and set ranges now properly report spans
+- Computation expressions now properly report spans
 - LSP: hover works for primitives now
 
 # 0.4.1

@@ -362,7 +362,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.ListLiteral -> {
             if (exps.size == 1 && isRange(exps[0])) {
                 // a list range literal
-                val rtlSpan = Span(span.startLine, span.startColumn, span.startLine, span.startColumn + 1)
+                val rtlSpan = Span(span.startLine, span.startColumn, span.startLine, span.startColumn)
                 val rtl = Expr.Var("rangeToList", rtlSpan, "novah.core")
                 Expr.App(rtl, exps[0].desugar(locals, tvars), span)
             } else Expr.ListLiteral(exps.map { it.desugar(locals, tvars) }, span)
@@ -370,7 +370,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         is SExpr.SetLiteral -> {
             if (exps.size == 1 && isRange(exps[0])) {
                 // a set range literal
-                val rtsSpan = Span(span.startLine, span.startColumn, span.startLine, span.startColumn + 1)
+                val rtsSpan = Span(span.startLine, span.startColumn, span.startLine, span.startColumn)
                 val rts = Expr.Var("rangeToSet", rtsSpan, "novah.core")
                 Expr.App(rts, exps[0].desugar(locals, tvars), span)
             } else Expr.SetLiteral(exps.map { it.desugar(locals, tvars) }, span)
@@ -979,7 +979,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             is SExpr.LetBang -> {
                 if (isLast && exp.body == null) parserError(E.LET_BANG_LAST, exp.span)
                 val span = exp.span
-                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(span)
+                val bindSpan = span.copy(endLine = span.startLine, endColumn = span.startColumn + 3)
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(bindSpan)
                 if (exp.body == null) {
                     val body = desugarComputation(exprs.drop(1), builder)
 
@@ -996,7 +997,8 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             }
             is SExpr.For -> {
                 val span = exp.span
-                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "for"))).withSpan(span)
+                val forSpan = span.copy(endLine = span.startLine, endColumn = span.startColumn + 2)
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "for"))).withSpan(forSpan)
                 val body = desugarComputation(listOf(exp.body), builder)
                 val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
                 val res = SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
@@ -1014,14 +1016,16 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             }
             is SExpr.Return -> {
                 val span = exp.span
-                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "return"))).withSpan(span)
+                val retSpan = span.copy(endLine = span.startLine, endColumn = span.startColumn + 5)
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "return"))).withSpan(retSpan)
                 val ret = SExpr.App(select, exp.exp).withSpan(span)
                 if (isLast) ret
                 else combiner(span, ret)
             }
             is SExpr.Yield -> {
                 val span = exp.span
-                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "yield"))).withSpan(span)
+                val yieldSpan = span.copy(endLine = span.startLine, endColumn = span.startColumn + 4)
+                val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "yield"))).withSpan(yieldSpan)
                 val ret = SExpr.App(select, exp.exp).withSpan(span)
                 if (isLast) ret
                 else combiner(span, ret)
