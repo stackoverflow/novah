@@ -4,7 +4,7 @@
 
 - List and set ranges now properly report spans
 - Computation expressions now properly report spans
-- LSP: hover works for primitives now
+- LSP: hover works for primitives and Unit now
 - Fixed bug in spans of desugared lets
 
 # 0.4.1

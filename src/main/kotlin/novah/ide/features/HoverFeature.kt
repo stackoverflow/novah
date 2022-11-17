@@ -20,8 +20,7 @@ import novah.ast.source.DeclarationRef
 import novah.ast.source.Import
 import novah.frontend.Comment
 import novah.frontend.Lexer
-import novah.frontend.typechecker.TConst
-import novah.frontend.typechecker.Type
+import novah.frontend.typechecker.*
 import novah.ide.EnvResult
 import novah.ide.IdeUtil
 import novah.ide.NovahServer
@@ -198,33 +197,16 @@ class HoverFeature(private val server: NovahServer) {
             d.exp.everywhereUnit { e ->
                 if (ctx == null && e.span.matches(line, col)) {
                     when (e) {
-                        is Expr.Bool -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
-                        }
-                        is Expr.Int32 -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
-                        }
-                        is Expr.Int64 -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
-                        }
-                        is Expr.Float32 -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
-                        }
-                        is Expr.Float64 -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
-                        }
-                        is Expr.Bigint -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
-                        }
-                        is Expr.Bigdec -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.v.toString(), e.type!!)
-                        }
-                        is Expr.StringE -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.raw, e.type!!)
-                        }
-                        is Expr.CharE -> if (e.type != null) {
-                            ctx = LocalRefCtx(e.raw, e.type!!)
-                        }
+                        is Expr.Bool -> ctx = LocalRefCtx(e.v.toString(), tBoolean)
+                        is Expr.Int32 -> ctx = LocalRefCtx(e.v.toString(), tInt32)
+                        is Expr.Int64 -> ctx = LocalRefCtx(e.v.toString(), tInt64)
+                        is Expr.Float32 -> ctx = LocalRefCtx(e.v.toString(), tFloat32)
+                        is Expr.Float64 -> ctx = LocalRefCtx(e.v.toString(), tFloat64)
+                        is Expr.Bigint -> ctx = LocalRefCtx(e.v.toString(), tBigint)
+                        is Expr.Bigdec -> ctx = LocalRefCtx(e.v.toString(), tBigdec)
+                        is Expr.StringE -> ctx = LocalRefCtx(e.raw, tString)
+                        is Expr.CharE -> ctx = LocalRefCtx(e.raw, tChar)
+                        is Expr.Unit -> ctx = LocalRefCtx("()", tUnit)
                         is Expr.Var -> {
                             val ownRef = ownMod.env.decls[e.name]
                             if (e.moduleName != null) {
