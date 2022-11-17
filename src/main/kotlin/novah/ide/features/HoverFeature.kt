@@ -117,28 +117,28 @@ class HoverFeature(private val server: NovahServer) {
         }
     }
 
-    private sealed class HoverCtx
-    private class ModuleCtx(val name: String, val alias: String?, val mod: Module) : HoverCtx()
-    private class ImportDeclCtx(val name: String, val module: String, val ref: DeclRef, val tvars: Map<Int, String>) :
+    sealed class HoverCtx
+    class ModuleCtx(val name: String, val alias: String?, val mod: Module) : HoverCtx()
+    class ImportDeclCtx(val name: String, val module: String, val ref: DeclRef, val tvars: Map<Int, String>) :
         HoverCtx()
 
-    private class ImportTypeDeclCtx(
+    class ImportTypeDeclCtx(
         val name: String,
         val module: String,
         val ref: TypeDeclRef,
         val tvars: Map<Int, String>
     ) : HoverCtx()
 
-    private class DeclCtx(val decl: Decl.ValDecl) : HoverCtx()
-    private class LocalRefCtx(val name: String, val type: Type) : HoverCtx()
-    private class LetCtx(val let: LetDef, val type: Type) : HoverCtx()
-    private class MethodCtx(val method: Method) : HoverCtx()
-    private class CtorCtx(val ctor: Constructor<*>) : HoverCtx()
-    private class FieldCtx(val field: Field) : HoverCtx()
-    private class ClassCtx(val clazz: Class<*>) : HoverCtx()
-    private class TypeCtx(val name: String) : HoverCtx()
+    class DeclCtx(val decl: Decl.ValDecl) : HoverCtx()
+    class LocalRefCtx(val name: String, val type: Type) : HoverCtx()
+    class LetCtx(val let: LetDef, val type: Type) : HoverCtx()
+    class MethodCtx(val method: Method) : HoverCtx()
+    class CtorCtx(val ctor: Constructor<*>) : HoverCtx()
+    class FieldCtx(val field: Field) : HoverCtx()
+    class ClassCtx(val clazz: Class<*>) : HoverCtx()
+    class TypeCtx(val name: String) : HoverCtx()
 
-    private fun findContext(line: Int, col: Int, ast: Module, mods: Map<String, FullModuleEnv>): HoverCtx? {
+    fun findContext(line: Int, col: Int, ast: Module, mods: Map<String, FullModuleEnv>): HoverCtx? {
 
         fun searchTypeRefs(d: DeclarationRef.RefType, moduleName: String, fmv: FullModuleEnv): HoverCtx? {
             // TODO search aliases

@@ -429,9 +429,10 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         }
         is SExpr.UnderscoreBangBang -> {
             val unwrap = Expr.Var("unwrapOption", span, "novah.core")
-            val v = Expr.Var("\$unw", span)
+            val varSpan = Span.empty()
+            val v = Expr.Var("\$unw", varSpan)
             val body = Expr.App(unwrap, v, span)
-            Expr.Lambda(Binder("\$unw", span), body, span)
+            Expr.Lambda(Binder("\$unw", varSpan), body, span)
         }
         is SExpr.ForeignStaticField -> {
             usedTypes += clazz.value
@@ -945,7 +946,11 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             val exp = exprs[0]
             if (exp is SExpr.DoLet) {
                 val body = convertDoLets(exprs.drop(1))
-                val bodyExp = if (body.size == 1) body[0] else SExpr.Do(body).withSpan(exp.span)
+                val bodyExp = if (body.size == 1) body[0]
+                else {
+                    val span = Span.new(body[0].span, body.last().span)
+                    SExpr.Do(body).withSpan(span)
+                }
                 listOf(SExpr.Let(exp.letDef, bodyExp).withSpan(exp.span, bodyExp.span))
             } else listOf(exp) + convertDoLets(exprs.drop(1))
         }

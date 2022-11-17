@@ -1292,7 +1292,7 @@ class Parser(
 
                 if (exps.size == 1) exps[0]
                 else {
-                    Expr.Do(exps).withSpan(spanned.span, iter.current().span)
+                    Expr.Do(exps).withSpan(spanned.span, exps.last().span)
                 }
             }
         }

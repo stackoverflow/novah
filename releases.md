@@ -5,6 +5,7 @@
 - List and set ranges now properly report spans
 - Computation expressions now properly report spans
 - LSP: hover works for primitives now
+- Fixed bug in spans of desugared lets
 
 # 0.4.1
 
@@ -32,7 +33,7 @@
         |> function1
         |> function2
     
-    // before
+    // after
     fun x =
       value
       |> function1

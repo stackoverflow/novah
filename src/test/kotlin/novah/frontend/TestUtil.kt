@@ -87,12 +87,16 @@ object TestUtil {
     }
 
     fun compileCode(code: String, verbose: Boolean = false, moduleName: String = "test"): FullModuleEnv {
+        return compileCodeAllModules(code, verbose, moduleName)[moduleName]!!
+    }
+
+    fun compileCodeAllModules(code: String, verbose: Boolean = false, moduleName: String = "test"): MutableMap<String, FullModuleEnv> {
         val compiler = compilerForCode(code, verbose)
         compiler.run(File("."), dryRun = true)
         if (compiler.errors().isNotEmpty()) {
             compiler.errors().forEach { println(it.formatToConsole()) }
         }
-        return compiler.getModules()[moduleName]!!
+        return compiler.getModules()
     }
 
     fun compileAndOptimizeCode(code: String, verbose: Boolean = false): OModule {
