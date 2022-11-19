@@ -6,6 +6,8 @@
 - Computation expressions now properly report spans
 - LSP: hover works for primitives and Unit now
 - Fixed bug in spans of desugared lets
+- LSP: Fixed bug in autocompletion of Java fields and methods with an invalid Novah name
+- LSP: Fixed bug in autocompletion of static java fields/methods of primitive types
 
 # 0.4.1
 

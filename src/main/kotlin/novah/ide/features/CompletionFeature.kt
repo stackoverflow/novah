@@ -71,6 +71,7 @@ class CompletionFeature(private val server: NovahServer) {
                         name == "do" -> null
                         params.context.triggerCharacter == "#" -> {
                             val comps = findInJava(name, env, mod.ast, line)
+                            server.logger().log("providing completion: ${comps?.size}")
                             comps?.let { Either.forLeft(it) }
                         }
                         else -> {
@@ -434,7 +435,7 @@ class CompletionFeature(private val server: NovahServer) {
                 val comp = CompletionItem(it.name)
                 comp.kind = CompletionItemKind.Field
                 comp.detail = it.genericType.typeName
-                val text = if (it.name[0].isUpperCase()) "\"${it.name}\"" else it.name
+                val text = if (it.name[0].isUpperCase()) "`${it.name}`" else it.name
                 comp.insertText = "-$text"
                 comps += comp
             }
@@ -449,7 +450,7 @@ class CompletionFeature(private val server: NovahServer) {
                 comp.detail = details
                 var i = 1
                 val format = m.parameterTypes.joinToString { "\${${i++}:${it.simpleName}}" }
-                val method = if (m.name[0].isUpperCase()) "\"${m.name}\"" else m.name
+                val method = if (m.name[0].isUpperCase()) "`${m.name}`" else m.name
                 comp.insertText = "$method($format)"
                 comp.insertTextFormat = InsertTextFormat.Snippet
                 comps += comp
@@ -467,7 +468,8 @@ class CompletionFeature(private val server: NovahServer) {
         }
 
         if (name[0].isUpperCase()) { // Static method/field/constructor
-            val fqt = mod.foreigns.find { it.name() == name }?.type ?: return null
+            val fqtImp = mod.foreigns.find { it.name() == name }?.type
+            val fqt = fqtImp ?: findJavaClass(name) ?: return null
             val clazz = env.classLoader().safeFindClass(fqt) ?: return null
             val fields = clazz.fields.filter { Reflection.isPublic(it) && Reflection.isStatic(it) }
             val methods = clazz.methods.filter { Reflection.isPublic(it) && Reflection.isStatic(it) && !it.isBridge }
@@ -621,6 +623,26 @@ class CompletionFeature(private val server: NovahServer) {
     private fun getCtorDetails(dc: DataConstructor, typeName: String): String {
         return if (dc.args.isEmpty()) typeName
         else (dc.args.map { it.show(qualified = true, typeVarsMap = typeVarsMap) } + typeName).joinToString(" -> ")
+    }
+
+    private fun findJavaClass(name: String): String? = when (name) {
+        "Int", "Int32" -> "java.lang.Integer"
+        "String" -> "java.lang.String"
+        "Char" -> "java.lang.Character"
+        "Int64" -> "java.lang.Long"
+        "Byte" -> "java.lang.Byte"
+        "Int16" -> "java.lang.Short"
+        "Float32" -> "java.lang.Float"
+        "Float64" -> "java.lang.Double"
+        "Boolean" -> "java.lang.Boolean"
+        "BigInteger" -> "java.math.BigInteger"
+        "BigDecimal" -> "java.math.BigDecimal"
+        "Object" -> "java.lang.Object"
+        "List" -> "io.lacuna.bifurcan.List"
+        "Set" -> "io.lacuna.bifurcan.Set"
+        "Map" -> "io.lacuna.bifurcan.Map"
+        "Range" -> "novah.range.Range"
+        else -> null
     }
 
     sealed class Context {
