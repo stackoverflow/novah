@@ -51,9 +51,9 @@ bigIntTests =
     (big % y) `shouldBe` 1N
 
   test "BigInteger bit functions" \_ ->
-    bitAnd 100N 2N `shouldBe` 0N
-    bitOr 100N 2N `shouldBe` 102N
-    bitShiftLeft 100N 2N `shouldBe` 400N
-    bitShiftRight 100N 2N `shouldBe` 25N
+    (100N &&& 2N) `shouldBe` 0N
+    (100N ||| 2N) `shouldBe` 102N
+    (100N <<< 2N) `shouldBe` 400N
+    (100N >>> 2N) `shouldBe` 25N
     bitNot 100N `shouldBe` -101N
     bitNot 2N `shouldBe` -3N

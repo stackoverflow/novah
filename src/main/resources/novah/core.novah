@@ -1402,20 +1402,20 @@ type FixedSizeBitOperator a =
 // Returns the bitwise and between x and y.
 // Equivalent to Java's `&`.
 pub
-bitAnd : {{ BitOperator a }} -> a -> a -> a
-bitAnd {{BitOperator b}} x y = b.and x y
+(&&&) : {{ BitOperator a }} -> a -> a -> a
+(&&&) {{BitOperator b}} x y = b.and x y
 
 // Returns the bitwise or between x and y.
 // Equivalent to Java's `|`.
 pub
-bitOr : {{ BitOperator a }} -> a -> a -> a
-bitOr {{BitOperator b}} x y = b.or x y
+(|||) : {{ BitOperator a }} -> a -> a -> a
+(|||) {{BitOperator b}} x y = b.or x y
 
 // Returns the bitwise xor between x and y.
 // Equivalent to Java's `^`.
 pub
-bitXor : {{ BitOperator a }} -> a -> a -> a
-bitXor {{BitOperator b}} x y = b.xor x y
+(^^^) : {{ BitOperator a }} -> a -> a -> a
+(^^^) {{BitOperator b}} x y = b.xor x y
 
 // Returns the bit complement of x.
 // Equivalent to Java's `~`.
@@ -1426,14 +1426,14 @@ bitNot {{BitOperator b}} x = b.not x
 // Shifts `x` bitwise to the left by `amount`.
 // Equivalent to Java's `<<`.
 pub
-bitShiftLeft : {{ BitOperator a }} -> a -> a -> a
-bitShiftLeft {{BitOperator b}} x amount = b.shiftLeft x amount
+(<<<) : {{ BitOperator a }} -> a -> a -> a
+(<<<) {{BitOperator b}} x amount = b.shiftLeft x amount
 
 // Shifts `x` bitwise to the right by `amount`.
 // Equivalent to Java's `>>`.
 pub
-bitShiftRight : {{ BitOperator a }} -> a -> a -> a
-bitShiftRight {{BitOperator b}} x amount = b.shiftRight x amount
+(>>>) : {{ BitOperator a }} -> a -> a -> a
+(>>>) {{BitOperator b}} x amount = b.shiftRight x amount
 
 // Shifts `x` bitwise to the right by `amount` (unsigned).
 // Equivalent to Java's `>>>`.

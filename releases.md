@@ -1,14 +1,19 @@
 # 0.4.2
 
+## Changes
+
+- added tilde `~` to the list of allowed operators
+- changed some core function names: `bitAnd` -> `&&&`, `bitOr` -> `|||`, `bitShiftLeft` -> `<<<`, `bitShiftRight` -> `>>>`
+
 ## Bug Fixes
 
-- List and set ranges now properly report spans
-- Computation expressions now properly report spans
+- list and set ranges now properly report spans
+- computation expressions now properly report spans
 - LSP: hover works for primitives and Unit now
-- Fixed bug in spans of desugared lets
+- fixed bug in spans of desugared lets
 - LSP: Fixed bug in autocompletion of Java fields and methods with an invalid Novah name
 - LSP: Fixed bug in autocompletion of static java fields/methods of primitive types
-- Fixed bug in formatting of some number literals
+- fixed bug in formatting of some number literals
 
 # 0.4.1
 
