@@ -487,7 +487,7 @@ class Formatter {
 
     private fun Expr.isSimpleExpr(): Boolean = when (this) {
         is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
-        is Expr.StringE, is Expr.CharE, is Expr.Bool,
+        is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Bigint, is Expr.Bigdec,
         is Expr.Var, is Expr.Operator -> true
         is Expr.Parens -> exp.isSimpleExpr()
         else -> false

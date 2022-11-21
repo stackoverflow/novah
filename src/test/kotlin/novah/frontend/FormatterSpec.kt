@@ -13,6 +13,49 @@ class FormatterSpec : StringSpec({
         Formatter().format(mod) shouldBe output.module()
     }
 
+    "literals test" {
+        expect(
+            input = """
+                val = 12L
+                
+                val2 = 13F
+                
+                val3 = 18.4e10F
+                
+                val4 = 78N
+                
+                val5 = 13.7M
+                
+                val6 = 0x3AF
+                
+                val7 = 0x3AFL
+                
+                val8 = 0b011
+                
+                val9 = 0b011L
+            """,
+            output = """
+                val = 12L
+                
+                val2 = 13F
+                
+                val3 = 18.4e10F
+                
+                val4 = 78N
+                
+                val5 = 13.7M
+                
+                val6 = 0x3AF
+                
+                val7 = 0x3AFL
+                
+                val8 = 0b011
+                
+                val9 = 0b011L
+            """
+        )
+    }
+
     "imports test" {
         expect(
             input = """

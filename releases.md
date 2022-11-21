@@ -8,6 +8,7 @@
 - Fixed bug in spans of desugared lets
 - LSP: Fixed bug in autocompletion of Java fields and methods with an invalid Novah name
 - LSP: Fixed bug in autocompletion of static java fields/methods of primitive types
+- Fixed bug in formatting of some number literals
 
 # 0.4.1
 

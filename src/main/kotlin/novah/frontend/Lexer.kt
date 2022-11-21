@@ -500,7 +500,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
                     if (hex.isEmpty()) lexError("Hexadecimal number cannot be empty")
                     when (val l = accept("LN")) {
                         null -> genNumIntToken(hex.toSafeLong(16) * n, "${pref}0$c$hex")
-                        'L' -> LongT(hex.toSafeLong(16) * n, "${pref}0$c$hex")
+                        'L' -> LongT(hex.toSafeLong(16) * n, "${pref}0$c$hex$l")
                         else -> BigintT("$pref$hex".toSafeBigint(2), "${pref}0$c$hex$l")
                     }
                 }
