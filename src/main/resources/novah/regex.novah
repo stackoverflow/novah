@@ -57,7 +57,7 @@ findAll pat str =
   let mat = matcher pat str
   let seq = []#linear()
   while mat#find() do
-    addLast (groups mat) seq
+    seq#addLast(groups mat)
   seq#forked()
 
 // Returns true if there is at least one match of this pattern

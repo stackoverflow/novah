@@ -179,16 +179,18 @@ updateAt : Int32 -> (a -> a) -> List a -> List a
 updateAt index f list = list#set(index#longValue(), f list.[index])
 
 // Appends x to the beginning of this list.
+// Ex.: 1 :: 2 :: 3 :: [] == [1, 2, 3]
 // Runtime: ~O(1)
 pub
-addFirst : a -> List a -> List a
-addFirst x list = list#addFirst(x)
+(::) : a -> List a -> List a
+(::) x list = list#addFirst(x)
 
 // Appends x to the end of this list.
+// Ex.: [1] += 2 == [1, 2]
 // Runtime: ~O(1)
 pub
-addLast : a -> List a -> List a
-addLast x list = list#addLast(x)
+(+=) : List a -> a -> List a
+(+=) list x = list#addLast(x)
 
 // Removes the first element of this list.
 // Runtime: ~O(1)

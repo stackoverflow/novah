@@ -30,8 +30,22 @@ pub
 fromStream : Stream a -> List a
 fromStream st =
   let llist = []#linear()
-  S.forEach st \x -> addLast x llist
+  S.forEach st \x -> llist#addLast(x)
   llist#forked()
+
+// Appends x to the beginning of this list.
+// An alias to `::`
+// Runtime: ~O(1)
+pub
+addFirst : a -> List a -> List a
+addFirst x list = list#addFirst(x)
+
+// Appends x to the end of this list.
+// An alias to `+=`
+// Runtime: ~O(1)
+pub
+addLast : a -> List a -> List a
+addLast x list = list#addLast(x)
 
 // Runs function f for every element of this list, ignoring the result.
 // Runtime: O(n)
@@ -55,7 +69,7 @@ map : (a -> b) -> List a -> List b
 map f list =
   let llist = []#linear()
   forEachRange (0L ... list#size()) \idx ->
-    addLast (f list#nth(idx)) llist
+    llist += (f list#nth(idx))
     ()
   llist#forked()
 
@@ -68,7 +82,7 @@ mapIndexed : (Int32 -> a -> b) -> List a -> List b
 mapIndexed f list =
   let llist = []#linear()
   forEachRange (0 ... list#size()#intValue()) \idx ->
-    addLast (f idx list.[idx]) llist
+    llist#addLast(f idx list.[idx])
     ()
   llist#forked()
 
@@ -179,7 +193,7 @@ filter f list =
   forEachRange (0L ... list#size()) \idx ->
     let elem = list#nth(idx)
     if (f elem) then
-      addLast elem llist
+      llist#addLast(elem)
       ()
   llist#forked()
 
@@ -193,7 +207,7 @@ filterIndexed f list =
   forEachRange (0 ... list#size()#intValue()) \idx ->
     let elem = list.[idx]
     if (f idx elem) then
-      addLast elem llist
+      llist#addLast(elem)
       ()
   llist#forked()
 
@@ -207,7 +221,7 @@ remove f list =
   forEachRange (0L ... list#size()) \idx ->
     let elem = list#nth(idx)
     if not (f elem) then
-      addLast elem llist
+      llist#addLast(elem)
       ()
   llist#forked()
 
@@ -221,7 +235,7 @@ removeIndexed f list =
   forEachRange (0 ... list#size()#intValue()) \idx ->
     let elem = list.[idx]
     if not (f idx elem) then
-      addLast elem llist
+      llist#addLast(elem)
       ()
   llist#forked()
 
@@ -268,12 +282,12 @@ sortBy : {{ Ord b }} -> (a -> b) -> List a -> List a
 sortBy {{Ord _ ord}} fun =
   sortWith (\x y -> ord.compare (fun x) (fun y))
 
-// An alias to `addFirst`.
+// An alias to `::`.
 // Should be used when using this list as a stack.
 // Runtime: ~O(1)
 pub
 push : a -> List a -> List a
-push = addFirst
+push x list = list#addFirst(x)
 
 // An alias to `removeFirst`.
 // Should be used when using this list as a stack.
@@ -341,7 +355,7 @@ takeWhile pred list =
   let v = list#linear()
   let res = []#linear()
   while isNotEmpty v && pred v.[0] do
-    addLast v.[0] res
+    res#addLast(v.[0])
     removeFirst v
   res#forked()
 
@@ -402,7 +416,7 @@ reverse : List a -> List a
 reverse list =
   let llist = []#linear()
   forEachRange (0L ... list#size()) \i ->
-    addFirst list#nth(i) llist
+    llist#addFirst(list#nth(i))
     ()
   llist#forked()
 
@@ -653,7 +667,7 @@ groupBy f list =
   let grouper elem =
     let key = f elem
     let entry = m#get(key, [])
-    m#put(key, addLast elem entry)
+    m#put(key, entry#addLast(elem))
     ()
   
   forEach list grouper
@@ -673,7 +687,7 @@ partitionStep n step list =
       acc
     else
       let prefix = take n listt
-      go (drop step listt) (addLast prefix acc)
+      go (drop step listt) (acc += prefix)
 
   go list []
 
@@ -692,7 +706,7 @@ partitionAllStep n step list =
       acc
     else
       let prefix = take n listt
-      go (drop step listt) (addLast prefix acc)
+      go (drop step listt) (acc += prefix)
 
   go list []
 
@@ -726,7 +740,7 @@ repeat : Int32 -> a -> List a
 repeat n x =
   let lin = []#linear()
   forEachRange (0 ... n) \_ ->
-    addLast x lin
+    lin += x
     ()
   lin#forked()
 
@@ -753,7 +767,7 @@ zip l1 l2 =
   let length = if size l1 > size l2 then size l2 else size l1
   let lin = []#linear()
   forEachRange (0 ... length) \i ->
-    addLast (l1.[i] ; l2.[i]) lin
+    lin#addLast(l1.[i] ; l2.[i])
     ()
   lin#forked()
 
@@ -771,7 +785,7 @@ zipWith fun l1 l2 =
   let length = if size l1 > size l2 then size l2 else size l1
   let lin = []#linear()
   forEachRange (0 ... length) \i ->
-    addLast (fun l1.[i] l2.[i]) lin
+    lin#addLast(fun l1.[i] l2.[i])
     ()
   lin#forked()
 
@@ -789,7 +803,7 @@ zipAll list =
   let length = (map size list |> min) ?: 0
   let res = []#linear()
   forEachRange (0 ... length) \i ->
-    addLast (map _.[i] list) res
+    res#addLast(map _.[i] list)
     ()
   res#forked()
 
@@ -807,8 +821,8 @@ unzip list =
   let lin = []#linear()
   let lin2 = []#linear()
   forEach list \(Tuple x x2) ->
-    addLast x lin
-    addLast x2 lin2
+    lin += x
+    lin2 += x2
     ()
   lin#forked() ; lin2#forked()
 
@@ -821,7 +835,7 @@ removeNones list =
   forEach list \x ->
     case x of
       Some val ->
-        addLast val lin
+        lin#addLast(val)
         ()
       None -> ()
   lin#forked()
@@ -835,12 +849,12 @@ toLinear list = LinearList#from(list as IList a)
 // Returns a forked (persistent) version of the returned linear list.
 // This function should be used when lots of expensive mutating operations have to be run on a list
 // and can be seen as a builder for the resulting list.
-// All functions that alter lists like `addFirst`, `setAt`, `removeLast`, etc.
+// All functions that alter lists like `::`, `+=`, `setAt`, `removeLast`, etc.
 // will mutate a linear list.
 // Ex:
 //   withLinear [1, 2, 3] \list ->
-//     addFirst 0 list
-//     addLast 4 list
+//     0 :: list
+//     list += 4
 //
 //   -> [0, 1, 2, 3, 4]
 pub

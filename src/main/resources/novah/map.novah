@@ -124,7 +124,7 @@ entries : Map k v -> List (Tuple k v)
 entries map =
   List.withLinear [] \ents ->
     forEach map \k v ->
-      addLast (k ; v) ents
+      ents += (k ; v)
       ()
 
 // Executes the function for every key/value pair in this map
@@ -190,7 +190,7 @@ toList : Map k v -> List (Tuple k v)
 toList map =
   let lin = []#linear()
   forEach map \k v ->
-    addLast (k ; v) lin
+    lin += (k ; v)
     ()
   lin#forked()
 

@@ -37,7 +37,7 @@ allRegisteredtests = []#linear()
 pub
 test : String -> TestFun -> Unit
 test description testFun =
-  addLast (Test description testFun) allRegisteredtests
+  allRegisteredtests += (Test description testFun)
   ()
 
 // Register a test function with a before and after hook.
@@ -45,7 +45,7 @@ pub
 testWith : TestFun -> TestFun -> String -> TestFun -> Unit
 testWith before after description testFun =
   let suite = Setup { before, after, suite: Test description testFun }
-  addLast suite allRegisteredtests
+  allRegisteredtests += suite
   ()
 
 // Executes the function for every entry in the table.

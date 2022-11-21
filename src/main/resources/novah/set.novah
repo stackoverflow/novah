@@ -377,7 +377,7 @@ toList : Set a -> List a
 toList set =
   let lin = []#linear()
   forEach set \e ->
-    addLast e lin
+    lin#addLast(e)
     ()
   lin#forked()
 

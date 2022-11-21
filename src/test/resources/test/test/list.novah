@@ -40,8 +40,8 @@ listTests =
 
   test "List writing functions" \_ ->
     let list = [1, 2, 3]
-    addFirst 4 list `shouldBe` [4, 1, 2, 3]
-    addLast 4 list `shouldBe` [1, 2, 3, 4]
+    List.addFirst 4 list `shouldBe` [4, 1, 2, 3]
+    List.addLast 4 list `shouldBe` [1, 2, 3, 4]
     removeFirst list `shouldBe` [2, 3]
     removeLast list `shouldBe` [1, 2]
     setAt 1 5 list `shouldBe` [1, 5, 3]
@@ -103,7 +103,7 @@ listTests =
     let list = [1, 2, 3]
     let lin =
       List.withLinear list \l ->
-        addFirst 0 l
-        addLast 4 l
+        0 :: l
+        l += 4
         setAt 2 5 l
     lin `shouldBe` [0, 1, 5, 3, 4]

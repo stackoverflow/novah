@@ -5,6 +5,8 @@
 - added tilde `~` to the list of allowed operators
 - changed some core function names: `bitAnd` -> `&&&`, `bitOr` -> `|||`, `bitShiftLeft` -> `<<<`, `bitShiftRight` -> `>>>`
 - removed `linkedList` module from the stdlib
+- renamed `addFirst` to `::` and `addLast` to `+=` in the core module
+- added `addFirst` and `addLast` functions to the list module
 
 ## Bug Fixes
 

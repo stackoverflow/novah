@@ -82,8 +82,8 @@ coreTests =
     [1, 2].[1] `shouldBe` 2
     setAt 0 6 [1] `shouldBe` [6]
     updateAt 0 (_ + 1) [1] `shouldBe` [2]
-    addFirst 6 [1] `shouldBe` [6, 1]
-    addLast 6 [1] `shouldBe` [1, 6]
+    (6 :: [1]) `shouldBe` [6, 1]
+    ([1] += 6) `shouldBe` [1, 6]
     removeFirst [1, 2] `shouldBe` [2]
     removeLast [1, 2] `shouldBe` [1]
 
