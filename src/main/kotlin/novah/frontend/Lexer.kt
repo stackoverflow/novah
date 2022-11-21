@@ -722,7 +722,7 @@ class Lexer(input: Iterator<Char>) : Iterator<Spanned<Token>> {
 
     companion object {
 
-        private const val operators = "$=<>|&+-:*/%^.?!"
+        private const val operators = "$=<>|&+-:*/%^.?!~"
         private val operatorSet = operators.toSet()
 
         fun isOperator(str: String) = str.toCharArray().all { it in operatorSet }
