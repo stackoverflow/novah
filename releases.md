@@ -4,6 +4,7 @@
 
 - added tilde `~` to the list of allowed operators
 - changed some core function names: `bitAnd` -> `&&&`, `bitOr` -> `|||`, `bitShiftLeft` -> `<<<`, `bitShiftRight` -> `>>>`
+- removed `linkedList` module from the stdlib
 
 ## Bug Fixes
 

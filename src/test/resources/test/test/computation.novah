@@ -1,8 +1,6 @@
 module test.computation
 
 import novah.computation
-import novah.linkedList (::, LinkedList(..))
-import novah.linkedList as LinkedList
 import novah.test
 
 computationTests : Unit
@@ -27,13 +25,6 @@ computationTests =
         for y in #{2 .. 5} do
           if Math.isEven (x + y) then yield x ; y
     s `shouldBe` #{1 ; 3, 1 ; 5, 2 ; 2, 2 ; 4, 3 ; 3, 3 ; 5, 4 ; 2, 4 ; 4}
-
-  test "LinkedList computations" \_ ->
-    let l = do.linkedList
-      for x in LinkedList.rangeTo 1 5 do
-        for y in LinkedList.rangeTo 2 6 do
-          if Math.isEven (x + y) then yield x ; y
-    l `shouldBe` ((1 ; 3) :: (1 ; 5) :: (2 ; 2) :: (2 ; 4) :: (3 ; 3) :: (3 ; 5) :: (4 ; 2) :: (4 ; 4) :: Nil)
 
   test "Option computations" \_ ->
     let opt = do.option

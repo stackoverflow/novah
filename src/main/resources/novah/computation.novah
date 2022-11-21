@@ -2,8 +2,6 @@
 // for some types like List and Option.
 module novah.computation
 
-import novah.linkedList (LinkedList(..))
-import novah.linkedList as LinkedList
 import novah.option as Option
 import novah.set as Set
 import novah.list as List
@@ -38,22 +36,6 @@ set =
   , "yield": \x -> #{x}
   , combine: \(s1 : Set a) s2 -> s1 ++ s2
   , zero: #{}
-  }
-
-// The builder for linked list computation expressions.
-// Allows to use `do.linkedList` syntax for linked list comprehensions.
-pub
-linkedList :
-  { "for" : LinkedList a -> (a -> LinkedList b) -> LinkedList b
-  , "yield" : a -> LinkedList a
-  , combine : LinkedList a -> LinkedList a -> LinkedList a
-  , zero : LinkedList a
-  }
-linkedList =
-  { "for": flip LinkedList.flatMap
-  , "yield": \x -> Cons x Nil
-  , combine: \(l1 : LinkedList a) l2 -> l1 ++ l2
-  , zero: Nil
   }
 
 // The builder for optional computation expressions.

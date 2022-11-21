@@ -262,13 +262,13 @@ class TypecheckerSpec : StringSpec({
 
     "Aliased operators are correctly compiled" {
         val code = """
-            import novah.linkedList as L
+            import novah.core as Core
             
-            x = 1 L.:: L.Nil
+            x = 1 Core.+ 1
         """.module()
 
         val res = TestUtil.compileCode(code).env.decls
-        res["x"]?.type?.simpleName() shouldBe "LinkedList Int32"
+        res["x"]?.type?.simpleName() shouldBe "Int32"
     }
 
     "Java interop accepts Option values as nullable" {
