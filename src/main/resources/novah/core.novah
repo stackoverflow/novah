@@ -22,6 +22,7 @@ foreign import novah.range.LongRange
 foreign import novah.range.LongOpenRange
 foreign import java.util.concurrent.atomic.AtomicReference
 foreign import java.lang.AssertionError
+foreign import java.lang.RuntimeException
 foreign import java.lang.Class
 foreign import java.lang.Math
 foreign import java.lang.System
@@ -34,7 +35,7 @@ pub
 typealias Int = Int32
 
 // Coerce parameter x from type a to b.
-// This is extremely unsafe and should be used only
+// This is unsafe and should be used only
 // when sure both types are compatible, otherwise
 // a runtime exception will be thrown.
 pub
@@ -160,9 +161,20 @@ todo msg = throw AssertionError#new(format "Not implemented: %s" [msg] as Object
 // Returns the char at index for this string if it exists.
 // Negative indexes will start from the end of the string.
 // *Unsafe*: Will throw an exception if the index is out of bounds.
+// Runtime: O(1)
 pub
 (!) : String -> Int32 -> Char
 (!) str idx = Core#stringGet(idx, str)
+
+// Returns the value to which the given key is mapped.
+// *Unsafe*: will throw an exception if the key is not in the map
+// Runtime: ~O(1)
+pub
+(.!) : Map k v -> k -> v
+(.!) map key =
+  case map#get(key, None) of
+    Some res -> res
+    None -> throw RuntimeException#new(format "Map does not contain key %s" [key])
 
 // Sets the value of this list at the specified index to x.
 // *Unsafe*: Will throw a `java.lang.IndexOutOfBoundsException` if the index doesn't exist.

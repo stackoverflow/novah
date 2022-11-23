@@ -8,6 +8,7 @@ mapTests =
     let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
     Map.get "b" map `shouldBe` Some 2
     Map.get "d" map `shouldBe` None
+    (map .! "b") `shouldBe` 2
     Map.getOr "b" 0 map `shouldBe` 2
     Map.getOr "d" 0 map `shouldBe` 0
     Map.hasKey "c" map `shouldBe` true
