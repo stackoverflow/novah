@@ -5,7 +5,6 @@ foreign import java.lang.CharSequence
 foreign import java.util.function.Function
 foreign import java.util.regex.Matcher
 foreign import java.util.regex.MatchResult
-foreign import java.util.regex.Pattern
 
 import novah.list as List
 

@@ -1,7 +1,5 @@
 module test.regex
 
-foreign import java.util.regex.Pattern
-
 import novah.test
 
 #[noWarn]

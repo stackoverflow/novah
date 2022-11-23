@@ -136,6 +136,7 @@ const val primBooleanArray = "$PRIM.BooleanArray"
 const val primCharArray = "$PRIM.CharArray"
 const val primOption = "$PRIM.Option"
 const val primRange = "$PRIM.Range"
+const val primPattern = "$PRIM.Pattern"
 
 val tByte = TConst(primByte)
 val tInt16 = TConst(primInt16)
@@ -164,6 +165,7 @@ val tBooleanArray = TConst(primBooleanArray)
 val tCharArray = TConst(primCharArray)
 val tOption = tapp(primOption, -7)
 val tRange = tapp(primRange, -8)
+val tPattern = TConst(primPattern)
 
 val primTypes = mapOf(
     primByte to tByte,
@@ -192,7 +194,8 @@ val primTypes = mapOf(
     primBooleanArray to tBooleanArray,
     primCharArray to tCharArray,
     primOption to tOption,
-    primRange to tRange
+    primRange to tRange,
+    primPattern to tPattern
 )
 
 fun isListOf(type: Type, of: Type) =
@@ -203,19 +206,6 @@ fun isSetOf(type: Type, of: Type) =
 
 fun isArrayOf(type: Type, of: Type) =
     type is TApp && type.type is TConst && type.type.name == primArray && type.types[0] == of
-
-fun Type.isList() = this is TApp && type is TConst && type.name == primList
-fun Type.isSet() = this is TApp && type is TConst && type.name == primSet
-fun Type.isArray() = this is TApp && type is TConst && type.name == primArray
-fun Type.isMap() = this is TApp && type is TConst && type.name == primMap
-fun Type.isByteArray() = this is TConst && name == primByteArray
-fun Type.isInt16Array() = this is TConst && name == primInt16Array
-fun Type.isInt32Array() = this is TConst && name == primInt32Array
-fun Type.isInt64Array() = this is TConst && name == primInt64Array
-fun Type.isFloat32Array() = this is TConst && name == primFloat32Array
-fun Type.isFloat64Array() = this is TConst && name == primFloat64Array
-fun Type.isBooleanArray() = this is TConst && name == primBooleanArray
-fun Type.isCharArray() = this is TConst && name == primCharArray
 
 fun javaToNovah(jname: String): String = when (jname) {
     "byte" -> primByte
@@ -244,6 +234,7 @@ fun javaToNovah(jname: String): String = when (jname) {
     "io.lacuna.bifurcan.Set" -> primSet
     "io.lacuna.bifurcan.Map" -> primMap
     "novah.range.Range" -> primRange
+    "java.util.regex.Pattern" -> primPattern
     else -> {
         if (jname.endsWith("[]")) {
             when (jname.substring(0, jname.length - 2)) {
@@ -279,6 +270,7 @@ fun findJavaType(novahType: String) = when (novahType) {
     primSet -> "io.lacuna.bifurcan.Set"
     primMap -> "io.lacuna.bifurcan.Map"
     primRange -> "novah.range.Range"
+    primPattern -> "java.util.regex.Pattern"
     primArray -> "java.lang.Object[]"
     primByteArray -> "byte[]"
     primInt16Array -> "short[]"
@@ -332,7 +324,8 @@ val primModuleEnv = ModuleEnv(
         "BooleanArray" to tdecl(tBooleanArray),
         "CharArray" to tdecl(tCharArray),
         "Option" to tdecl(tOption),
-        "Range" to tdecl(tRange)
+        "Range" to tdecl(tRange),
+        "Pattern" to tdecl(tPattern)
     )
 )
 
@@ -374,7 +367,8 @@ val primModule = Module(
         ),
         primType("Set", "A persistent, immutable set of values.\nEquivalent to `io.lacuna.bifurcan.Set`."),
         primType("Map", "A persistent, immutable map of key and values.\nEquivalent to `io.lacuna.bifurcan.Map`."),
-        primType("Range", "A range of values.")
+        primType("Range", "A range of values."),
+        primType("Pattern", "A regular expression pattern.")
     ),
     emptyMap(),
     emptyList(),

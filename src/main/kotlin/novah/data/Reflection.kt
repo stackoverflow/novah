@@ -56,6 +56,7 @@ object Reflection {
         "Function" -> "novah.function.Function"
         "Unit" -> "novah.Unit"
         "Range" -> "novah.range.Range"
+        "Pattern" -> "java.util.regex.Pattern"
         else -> type
     }
 

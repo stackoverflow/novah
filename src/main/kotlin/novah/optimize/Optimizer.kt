@@ -784,6 +784,7 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             primMap -> Type.getType(Map::class.java)
             primSet -> Type.getType(io.lacuna.bifurcan.Set::class.java)
             primRange -> Type.getType(Range::class.java)
+            primPattern -> Type.getType(java.util.regex.Pattern::class.java)
             else -> Type.getObjectType(internalize(tvar.name))
         }
 
