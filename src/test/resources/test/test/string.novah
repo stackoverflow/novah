@@ -18,6 +18,10 @@ stringTests =
     String.endsWith "dy" "some body" `shouldBe` true
     ("cat" `isIn` "caterpillar") `shouldBe` true
     ('z' `isIn` "azure") `shouldBe` true
+    String.contains "ox" "fox" `shouldBe` true
+    String.contains "ox" "fax" `shouldBe` false
+    String.containsChar 'o' "fox" `shouldBe` true
+    String.containsChar 'o' "fax" `shouldBe` false
     String.join " " ["the", "lazy", "fox"] `shouldBe` "the lazy fox"
     String.strip "  string    " `shouldBe` "string"
     String.stripl "  string    " `shouldBe` "string    "

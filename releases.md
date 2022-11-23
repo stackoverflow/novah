@@ -8,6 +8,7 @@
 - renamed `addFirst` to `::` and `addLast` to `+=` in the core module
 - added `addFirst` and `addLast` functions to the list module
 - added `Pattern` class to the `prim` namespace
+- added `contains` and `containsChar` to the string module
 
 ## Bug Fixes
 

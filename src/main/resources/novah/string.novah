@@ -28,6 +28,7 @@ isNotEmpty : String -> Boolean
 isNotEmpty s = not s#isEmpty()
 
 // Returns the size of this string.
+// Runtime: O(1)
 pub
 size : String -> Int32
 size s = s#length()
@@ -57,6 +58,16 @@ startsWith prefix str = str#startsWith(prefix)
 pub
 endsWith : String -> String -> Boolean
 endsWith suffix str = str#endsWith(suffix)
+
+// Returns true if the string contains the given string
+pub
+contains : String -> String -> Boolean
+contains needle str = str#contains(needle as CharSequence)
+
+// Returns true if the string contains the given char
+pub
+containsChar : Char -> String -> Boolean
+containsChar char str = str#contains((Char#toString(char)) as CharSequence)
 
 // Returns a substring from the given string
 // starting at begin (inclusive) and ending in end (exclusive).
