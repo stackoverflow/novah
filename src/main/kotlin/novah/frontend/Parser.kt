@@ -793,31 +793,13 @@ class Parser(
             } else parseLetDefPattern()
         }
 
-        if (iter.peek().value !is In) {
-            return Expr.DoLet(def!!).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
-        }
-        withIgnoreOffside { expect<In>(withError(E.LET_IN)) }
-
-        val exp = parseExpression()
-
-        val span = span(let.span, exp.span)
-        return Expr.Let(def!!, exp).withSpan(span).withComment(let.comment)
+        return Expr.DoLet(def!!).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
     }
 
     private fun parseLetBang(): Expr {
         val let = expect<LetBang>(noErr())
-
         val def = withOffside { parseLetDefPattern() }
-
-        if (iter.peek().value !is In) {
-            return Expr.LetBang(def, null).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
-        }
-        withIgnoreOffside { expect<In>(withError(E.LET_IN)) }
-
-        val exp = parseExpression()
-
-        val span = span(let.span, exp.span)
-        return Expr.LetBang(def, exp).withSpan(span).withComment(let.comment)
+        return Expr.LetBang(def).withSpan(span(let.span, iter.current().span)).withComment(let.comment)
     }
 
     private fun parseFor(): Expr {

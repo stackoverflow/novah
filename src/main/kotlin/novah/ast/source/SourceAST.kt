@@ -197,7 +197,7 @@ sealed class Expr {
     data class Ann(val exp: Expr, val type: Type) : Expr()
     data class Do(val exps: List<Expr>) : Expr()
     data class DoLet(val letDef: LetDef) : Expr()
-    data class LetBang(val letDef: LetDef, val body: Expr?) : Expr()
+    data class LetBang(val letDef: LetDef) : Expr()
     data class For(val letDef: LetDef, val body: Expr) : Expr()
     data class Parens(val exp: Expr) : Expr()
     class Unit : Expr()

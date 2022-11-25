@@ -161,12 +161,7 @@ class Formatter {
                 "let " + show(e.letDef, e.span) + "\n${tab}$str"
             }
             is Expr.DoLet -> "let ${show(e.letDef, e.span)}"
-            is Expr.LetBang -> {
-                if (e.body == null)
-                    "let! ${show(e.letDef, e.span)}"
-                else
-                    "let! ${show(e.letDef, e.span)} in ${show(e.body)}"
-            }
+            is Expr.LetBang -> "let! ${show(e.letDef, e.span)}"
             is Expr.For -> {
                 val str = "for ${show(e.letDef, e.span, isFor = true)} do ${show(e.body)}"
                 // respect new lines

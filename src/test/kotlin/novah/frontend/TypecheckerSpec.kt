@@ -149,9 +149,10 @@ class TypecheckerSpec : StringSpec({
 
     "typecheck let" {
         val code = """
-            f () = let a = "bla"
-                   in let y = a
-                      in y
+            f () =
+              let a = "bla"
+              let y = a
+              y
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]
@@ -252,7 +253,7 @@ class TypecheckerSpec : StringSpec({
         val code = """
             fun n s =
               let rec x y = if x == 1 then y else rec 1 y
-              in rec n s
+              rec n s
         """.module()
 
         val res = TestUtil.compileCode(code).env.decls

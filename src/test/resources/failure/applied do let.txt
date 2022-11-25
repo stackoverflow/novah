@@ -1,5 +1,5 @@
 module [33mtest[0m
 at src/test/resources/failure/applied do let.novah:5:3 - 6:6
 
-  Expected `in` after let definition.
+  Let definition is not an expression.
 

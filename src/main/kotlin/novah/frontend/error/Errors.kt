@@ -97,7 +97,7 @@ object Errors {
 
     const val LET_EQUALS = "Expected `=` after let name declaration."
 
-    const val LET_IN = "Expected `in` after let definition."
+    const val LET_STATEMENT = "Let definition is not an expression."
 
     const val FOR_IN = "Expected `in` after for pattern."
 

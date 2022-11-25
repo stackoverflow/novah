@@ -1,5 +1,5 @@
 module [33mtest[0m
-at src/test/resources/failure/variables/shadowed variables - function parameter.novah:3:11 - 3:12
+at src/test/resources/failure/variables/shadowed variables - function parameter.novah:4:7 - 4:8
 
   Value x is shadowing another value with the same name.
 

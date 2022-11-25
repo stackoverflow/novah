@@ -285,7 +285,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
             if (converted.size == 1) converted[0].desugar(locals, tvars)
             else Expr.Do(converted.map { it.desugar(locals, tvars) }, span)
         }
-        is SExpr.DoLet -> parserError(E.LET_IN, span)
+        is SExpr.DoLet -> parserError(E.LET_STATEMENT, span)
         is SExpr.Unit -> Expr.Unit(span)
         is SExpr.Deref -> {
             val sp = span.copy(endLine = span.startLine, endColumn = span.startColumn + 1)
@@ -982,23 +982,14 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
                 SExpr.Let(exp.letDef, body).withSpan(exp.span, body.span)
             }
             is SExpr.LetBang -> {
-                if (isLast && exp.body == null) parserError(E.LET_BANG_LAST, exp.span)
+                if (isLast) parserError(E.LET_BANG_LAST, exp.span)
                 val span = exp.span
                 val bindSpan = span.copy(endLine = span.startLine, endColumn = span.startColumn + 3)
                 val select = SExpr.RecordSelect(builder, listOf(Spanned(span, "bind"))).withSpan(bindSpan)
-                if (exp.body == null) {
-                    val body = desugarComputation(exprs.drop(1), builder)
+                val body = desugarComputation(exprs.drop(1), builder)
 
-                    val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
-                    SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
-                } else {
-                    val body = desugarComputation(listOf(exp.body), builder)
-                    val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
-                    val res = SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
-
-                    if (isLast) res
-                    else combiner(span, res)
-                }
+                val func = SExpr.Lambda(listOf((exp.letDef as SLetDef.DefPattern).pat), body).withSpan(span)
+                SExpr.App(SExpr.App(select, exp.letDef.expr).withSpan(span), func).withSpan(span)
             }
             is SExpr.For -> {
                 val span = exp.span

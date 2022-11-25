@@ -39,7 +39,9 @@ class TypedASTSpec : StringSpec({
             
             lam = \x -> x && true
             
-            lett b = let x = true in x && b
+            lett b =
+              let x = true
+              x && b
             
             app s = println s
             

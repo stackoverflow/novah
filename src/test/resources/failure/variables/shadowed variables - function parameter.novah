@@ -1,4 +1,5 @@
 module test
 
-f x = let x = "asd"
-      in x
+f x =
+  let x = "asd"
+  x

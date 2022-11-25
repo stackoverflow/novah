@@ -85,8 +85,9 @@ class PatternMatchingSpec : StringSpec({
 
     "pattern match let lambdas - unit pattern" {
         val code = """
-            f () = let fun () = 12
-                   in fun ()
+            f () =
+              let fun () = 12
+              fun ()
         """.module()
 
         val ty = TestUtil.compileCode(code).env.decls["f"]!!.type
@@ -264,8 +265,9 @@ class PatternMatchingSpec : StringSpec({
             
             f6 = \None () [] -> 0
             
-            f7 = let f [x] {y} = Core#sum(x : Int, y)
-                 in f [1] {y: 3}
+            f7 =
+              let f [x] {y} = Core#sum(x : Int, y)
+              f [1] {y: 3}
         """.module()
 
         val ds = TestUtil.compileCode(code).env.decls

@@ -1,5 +1,5 @@
 module [33mtest[0m
 at src/test/resources/failure/bodyless let.novah:3:7 - 3:17
 
-  Expected `in` after let definition.
+  Let definition is not an expression.
 

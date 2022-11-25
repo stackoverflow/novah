@@ -104,7 +104,7 @@ class InstanceArgumentsSpec : StringSpec({
             main2 () =
               let xx : Option (Result Boolean String)
                   xx = Some (Ok true)
-              in view xx
+              view xx
             
             main3 () = L.map view [3, 4, 5]
             
