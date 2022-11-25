@@ -151,7 +151,7 @@ recordShouldNotBe r1 r2 =
 pub
 shouldBeIn : {{ Contained a b }} -> a -> b -> Unit
 shouldBeIn {{_}} x box =
-  if x `isIn` box then
+  if x in box then
     ()
   else throw AssertionError#new(format "%s is not inside %s" [toString x, toString box] as Object)
 
@@ -159,7 +159,7 @@ shouldBeIn {{_}} x box =
 pub
 shouldNotBeIn : {{ Contained a b }} -> a -> b -> Unit
 shouldNotBeIn {{_}} x box =
-  if x `notIn` box then
+  if x !in box then
     ()
   else throw AssertionError#new(format "%s is inside %s" [toString x, toString box] as Object)
 
@@ -168,7 +168,7 @@ pub
 shouldAllBeIn : {{ Contained a b }} -> List a -> b -> Unit
 shouldAllBeIn {{_}} list set =
   forEach list \x ->
-    if x `isIn` set then
+    if x in set then
       ()
     else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
 

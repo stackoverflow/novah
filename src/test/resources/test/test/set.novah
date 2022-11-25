@@ -17,7 +17,7 @@ setTests =
     Set.nth 2 set `shouldBe` Some 3
     Set.isEmpty set `shouldBe` false
     Set.isNotEmpty set `shouldBe` true
-    (4 `isIn` set) `shouldBe` true
+    (4 in set) `shouldBe` true
     Set.containsAll [4, 1, 2, 3] set `shouldBe` true
     Set.size set `shouldBe` 4
     (set ++ #{5, 6}) `shouldBe` #{1, 2, 3, 4, 5, 6}

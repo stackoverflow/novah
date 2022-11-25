@@ -1008,11 +1008,15 @@ pub+
 type Contained a fa = Contained (Equals a) (a -> fa -> Boolean)
 
 // Returns true if x is inside the container.
+// Should not be used directly but via the `in` operator:
+// `1 in [1, 2, 3]`
 pub
 isIn : {{ Contained a fa }} -> a -> fa -> Boolean
 isIn {{Contained _ con}} x container = con x container
 
 // Returns true if x is *not* inside the container.
+// Should not be used directly but via the `!in` operator:
+// `0 !in [1, 2, 3]`
 pub
 notIn : {{ Contained a fa }} -> a -> fa -> Boolean
 notIn {{Contained _ con}} x container = not (con x container)

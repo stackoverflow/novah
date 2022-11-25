@@ -222,7 +222,11 @@ class Formatter {
             is Expr.Var -> if (e.alias != null) "${e.alias}.${e.name}" else e.name
             is Expr.Operator -> {
                 val str = if (e.alias != null) "${e.alias}.${e.name}" else e.name
-                if (e.isPrefix) "`$str`" else str
+                if (e.isPrefix) {
+                    if (e.name == "isIn" && e.alias == null) "in"
+                    else if (e.name == "notIn" && e.alias == null) "!in"
+                    else "`$str`"
+                } else str
             }
             is Expr.ImplicitVar -> if (e.alias != null) "{{${e.alias}.${e.name}}" else "{{${e.name}}"
             is Expr.Constructor -> if (e.alias != null) "${e.alias}.${e.name}" else e.name

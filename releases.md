@@ -3,6 +3,8 @@
 ## Features
 
 - removed `let ... in` syntax
+- `in` can be used as an operator, and it will be desugared to `isIn`: ```1 in [1, 2, 3]```
+- `!in` can be used as an operator, and it will be desugared to `notIn`: ```0 !in [1, 2, 3]```
 
 ## Changes
 

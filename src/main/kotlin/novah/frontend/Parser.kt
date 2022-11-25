@@ -445,6 +445,10 @@ class Parser(
             is BoolT -> parseBool()
             is Ident -> parseVar()
             is Op -> parseOperator()
+            is In -> {
+                val tk = iter.next()
+                Expr.Operator("isIn", isPrefix = true).withSpan(tk.span).withComment(tk.comment)
+            }
             is Semicolon -> {
                 val tk = iter.next()
                 Expr.Operator(";", false).withSpanAndComment(tk)
@@ -713,6 +717,13 @@ class Parser(
 
     private fun parseOperator(): Expr {
         val op = expect<Op>(withError("Expected Operator."))
+        if (op.value.op == "!") {
+            val peek = iter.peek()
+            if (peek.value is In && peek.span.adjacent(op.span)) {
+                iter.next()
+                return Expr.Operator("notIn", true).withSpan(op.span, peek.span).withComment(op.comment)
+            }
+        }
         return Expr.Operator(op.value.op, op.value.isPrefix).withSpanAndComment(op)
     }
 

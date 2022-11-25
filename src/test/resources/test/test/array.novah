@@ -41,4 +41,4 @@ arrayTests =
     let rarr = a [1, 2, 3, 4]
     Array.reversed rarr
     rarr `shouldBe` a [4, 3, 2, 1]
-    (3 `isIn` ia [2, 3, 4]) `shouldBe` true
+    (3 in ia [2, 3, 4]) `shouldBe` true

@@ -129,6 +129,11 @@ data class Span(val startLine: Int, val startColumn: Int, val endLine: Int, val 
 
     fun isEmpty() = this == emptySpan
 
+    /**
+     * Returns true if this comes right after other.
+     */
+    fun adjacent(other: Span): Boolean = startLine == other.startLine && startColumn == other.startColumn + 1
+
     companion object {
         private val emptySpan = Span(-1, -1, -1, -1)
         fun empty() = emptySpan

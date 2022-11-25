@@ -219,7 +219,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
         }
         is SExpr.Operator -> {
             declVars += fullname()
-            val exp = if (name == ";") this.copy(name = "Tuple") else this
+            val exp = if (name == ";") copy(name = "Tuple") else this
             if (exp.name == "<-") parserError(E.notAField(), span)
             if (alias == null) {
                 unusedVars.remove(exp.name)

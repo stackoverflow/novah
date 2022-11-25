@@ -134,7 +134,7 @@ class SemanticTokensFeature(private val server: NovahServer) {
                 when (e) {
                     is Expr.Var -> {
                         if (e.name in parNames) tokens += genLine(e.span, PARAM)
-                        else if (e.isOp) tokens += genLine(e.span, OP)
+                        else if (e.isOp && e.name !in builtinOps) tokens += genLine(e.span, OP)
                     }
                     is Expr.ImplicitVar -> {
                         if (e.name in parNames) tokens += genLine(e.span, PARAM)
@@ -188,6 +188,8 @@ class SemanticTokensFeature(private val server: NovahServer) {
             ),
             listOf("declaration", "defaultLibrary")
         )
+
+        val builtinOps = setOf("isIn", "notIn")
 
         const val TYPE = 1
         const val FUNCTION = 5
