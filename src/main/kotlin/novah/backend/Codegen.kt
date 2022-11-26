@@ -480,6 +480,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
                 val exprTy = e.expr.type.type
                 genExpr(e.expr, mv, ctx)
                 when {
+                    ty == exprTy -> {}
                     ty.isPrimitive() && !exprTy.isPrimitive() -> {
                         mv.visitTypeInsn(CHECKCAST, ty.wrapper().internalName)
                         unbox(ty, mv)
@@ -798,6 +799,7 @@ class Codegen(private val ast: Module, private val onGenClass: (String, String, 
 
     private fun genInstanceOf(e: Expr.InstanceOf, mv: MethodVisitor, ctx: GenContext) {
         genExpr(e.exp, mv, ctx)
+        if (e.exp.isPrimitive()) box(e.exp.type.type, mv)
         mv.visitTypeInsn(INSTANCEOF, e.type.type.internalName)
     }
 

@@ -627,7 +627,8 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             }
             is Pattern.TypeTest -> {
                 val castType = p.test.convert()
-                val cond = Expr.InstanceOf(exp, castType, p.span)
+                val checkType = Clazz(castType.type.wrapper(), castType.pars, castType.labels)
+                val cond = Expr.InstanceOf(exp, checkType, p.span)
                 val vs = if (p.alias != null) listOf(VarDef(p.alias, Expr.Cast(exp, castType, p.span))) else emptyList()
                 PatternResult(cond, vs)
             }
