@@ -33,6 +33,8 @@ class FormatterSpec : StringSpec({
                 val8 = 0b011
                 
                 val9 = 0b011L
+                
+                val10 = #"[^1]\d{10}"
             """,
             output = """
                 val = 12L
@@ -52,6 +54,8 @@ class FormatterSpec : StringSpec({
                 val8 = 0b011
                 
                 val9 = 0b011L
+                
+                val10 = #"[^1]\d{10}"
             """
         )
     }
@@ -241,6 +245,10 @@ class FormatterSpec : StringSpec({
                     case _ of
                       1 -> 1
                       _ -> 0
+                  
+                  let f3 = case _ of
+                    #"[^1]\d{10}" -> 0
+                    _ -> 1
             """,
             output = """
                 fun =
@@ -252,6 +260,10 @@ class FormatterSpec : StringSpec({
                     case _ of
                       1 -> 1
                       _ -> 0
+                
+                  let f3 = case _ of
+                    #"[^1]\d{10}" -> 0
+                    _ -> 1
             """
         )
     }

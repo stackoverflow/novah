@@ -400,7 +400,7 @@ class Formatter {
         is Pattern.ImplicitPattern -> "{{${show(p.pat)}}}"
         is Pattern.TypeAnnotation -> "${show(p.pat)} : ${show(p.type)}"
         is Pattern.TuplePattern -> "${show(p.p1)} ; ${show(p.p2)}"
-        is Pattern.RegexPattern -> "#\"${show(p.regex)}\""
+        is Pattern.RegexPattern -> show(p.regex)
     }
 
     private fun show(p: LiteralPattern): String = when (p) {
@@ -487,7 +487,7 @@ class Formatter {
     private fun Expr.isSimpleExpr(): Boolean = when (this) {
         is Expr.Int32, is Expr.Int64, is Expr.Float32, is Expr.Float64,
         is Expr.StringE, is Expr.CharE, is Expr.Bool, is Expr.Bigint, is Expr.Bigdec,
-        is Expr.Var, is Expr.Operator -> true
+        is Expr.Var, is Expr.Operator, is Expr.PatternLiteral -> true
         is Expr.Parens -> exp.isSimpleExpr()
         else -> false
     }
