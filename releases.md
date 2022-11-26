@@ -27,6 +27,7 @@
 - LSP: Fixed bug in autocompletion of static java fields/methods of primitive types
 - fixed bug in formatting of some number literals
 - fixed bug in formatting of regex patterns
+- fixed bug in formatting of try/catch/finally
 - fixed bug in type test of primitives
 
 # 0.4.1

@@ -13,6 +13,27 @@ class FormatterSpec : StringSpec({
         Formatter().format(mod) shouldBe output.module()
     }
 
+    "try catch test" {
+        expect(
+            input = """
+                foo =
+                  try danger ()
+                  catch
+                    :? Exception -> ()
+                  finally println "done"
+            """,
+            output = """
+                foo =
+                  try
+                    danger ()
+                  catch
+                    :? Exception -> ()
+                  finally
+                    println "done"
+            """
+        )
+    }
+
     "literals test" {
         expect(
             input = """

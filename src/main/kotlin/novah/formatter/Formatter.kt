@@ -316,11 +316,11 @@ class Formatter {
             }
             is Expr.Throw -> "throw ${show(e.exp)}"
             is Expr.TryCatch -> {
-                val tr = "try ${show(e.tryExpr)}\n${tab}catch" + withIndent {
+                val tr = "try" + withIndent { tab + show(e.tryExpr) } + "\n${tab}catch" + withIndent {
                     e.cases.joinToString("\n$tab", prefix = tab) { show(it) }
                 }
                 if (e.finallyExp != null) {
-                    tr + "\n${tab}finally ${show(e.finallyExp)}"
+                    tr + "\n${tab}finally" + withIndent { tab + show(e.finallyExp) }
                 } else tr
             }
             is Expr.While -> {
