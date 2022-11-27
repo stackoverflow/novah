@@ -5,62 +5,62 @@ import novah.test
 isVowel : Char -> Boolean
 isVowel c = c in #{'a', 'e', 'i', 'o', 'u'}
 
-stringTests : Unit
-stringTests =
-  test "String reading functions" \_ ->
-    String.isBlank "  " `shouldBe` true
-    String.isEmpty "  " `shouldBe` false
-    String.size "abc" `shouldBe` 3
-    String.lastIndex "abc" `shouldBe` 2
-    String.lowerCase "Some NaMe" `shouldBe` "some name"
-    String.upperCase "Some NaMe" `shouldBe` "SOME NAME"
-    String.startsWith "some" "some body" `shouldBe` true
-    String.endsWith "dy" "some body" `shouldBe` true
-    ("cat" in "caterpillar") `shouldBe` true
-    ('z' in "azure") `shouldBe` true
-    String.contains "ox" "fox" `shouldBe` true
-    String.contains "ox" "fax" `shouldBe` false
-    String.containsChar 'o' "fox" `shouldBe` true
-    String.containsChar 'o' "fax" `shouldBe` false
-    String.join " " ["the", "lazy", "fox"] `shouldBe` "the lazy fox"
-    String.strip "  string    " `shouldBe` "string"
-    String.stripl "  string    " `shouldBe` "string    "
-    String.stript "  string    " `shouldBe` "  string"
-    String.repeat 3 "nein!" `shouldBe` "nein!nein!nein!"
-    String.capitalize "nAMe" `shouldBe` "Name"
-    String.lines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
-    String.nth 3 "exquisite" `shouldBe` Some 'u'
-    String.nth 9 "exquisite" `shouldBe` None
-    String.charAt 3 "exquisite" `shouldBe` 'u'
-    String.charAt 6 "exquisite" `shouldBe` 'i'
-    ("exquisite" ! 3) `shouldBe` 'u'
-    ("exquisite" ! -2) `shouldBe` 't'
-    String.substring 2 5 "exquisite" `shouldBe` "qui"
-    String.startFrom 3 "exquisite" `shouldBe` "uisite"
-    String.split "\\d" "sum2plus2equals6" `shouldBe` ["sum", "plus", "equals"]
-    String.indexOf "x" "exquisite" `shouldBe` 1
-    String.indexOf "z" "exquisite" `shouldBe` -1
-    String.toList "fox" `shouldBe` ['f', 'o', 'x']
-    String.toStringList "fox" `shouldBe` ["f", "o", "x"]
-    String.toSet "banana" `shouldBe` #{'b', 'a', 'n'}
-    String.fromList ['f', 'o', 'x'] `shouldBe` "fox"
-    String.map (\c -> if c == 'o' then 'a' else c) "fox" `shouldBe` ['f', 'a', 'x']
-    String.mapString (\c -> if c == 'o' then 'a' else c) "fox" `shouldBe` "fax"
-    String.filter isVowel "exquisite" `shouldBe` "euiie"
-    String.remove isVowel "exquisite" `shouldBe` "xqst"
-    String.find isVowel "fox" `shouldBe` Some 'o'
-    String.find (_ == 'z') "fox" `shouldBe` None
-    String.count (_ == 'a') "banana" `shouldBe` 3
-    String.replaceChar 'a' 'o' "banana" `shouldBe` "bonono"
-    String.replace "the" "some" "the bad and the ugly" `shouldBe` "some bad and some ugly"
-    String.reverse "someone" `shouldBe` "enoemos"
-    String.indices "abcd" `shouldBe` [0, 1, 2, 3]
-    let bigStr = """
-      some Indented
-      Lines
-        Here
-    """
-    let expected = """some Indented
+#[test: "String reading functions"]
+stringTests : Unit -> Unit
+stringTests () =
+  String.isBlank "  " `shouldBe` true
+  String.isEmpty "  " `shouldBe` false
+  String.size "abc" `shouldBe` 3
+  String.lastIndex "abc" `shouldBe` 2
+  String.lowerCase "Some NaMe" `shouldBe` "some name"
+  String.upperCase "Some NaMe" `shouldBe` "SOME NAME"
+  String.startsWith "some" "some body" `shouldBe` true
+  String.endsWith "dy" "some body" `shouldBe` true
+  ("cat" in "caterpillar") `shouldBe` true
+  ('z' in "azure") `shouldBe` true
+  String.contains "ox" "fox" `shouldBe` true
+  String.contains "ox" "fax" `shouldBe` false
+  String.containsChar 'o' "fox" `shouldBe` true
+  String.containsChar 'o' "fax" `shouldBe` false
+  String.join " " ["the", "lazy", "fox"] `shouldBe` "the lazy fox"
+  String.strip "  string    " `shouldBe` "string"
+  String.stripl "  string    " `shouldBe` "string    "
+  String.stript "  string    " `shouldBe` "  string"
+  String.repeat 3 "nein!" `shouldBe` "nein!nein!nein!"
+  String.capitalize "nAMe" `shouldBe` "Name"
+  String.lines "the\nlazy\r\nfox" `shouldBe` ["the", "lazy", "fox"]
+  String.nth 3 "exquisite" `shouldBe` Some 'u'
+  String.nth 9 "exquisite" `shouldBe` None
+  String.charAt 3 "exquisite" `shouldBe` 'u'
+  String.charAt 6 "exquisite" `shouldBe` 'i'
+  ("exquisite" ! 3) `shouldBe` 'u'
+  ("exquisite" ! -2) `shouldBe` 't'
+  String.substring 2 5 "exquisite" `shouldBe` "qui"
+  String.startFrom 3 "exquisite" `shouldBe` "uisite"
+  String.split "\\d" "sum2plus2equals6" `shouldBe` ["sum", "plus", "equals"]
+  String.indexOf "x" "exquisite" `shouldBe` 1
+  String.indexOf "z" "exquisite" `shouldBe` -1
+  String.toList "fox" `shouldBe` ['f', 'o', 'x']
+  String.toStringList "fox" `shouldBe` ["f", "o", "x"]
+  String.toSet "banana" `shouldBe` #{'b', 'a', 'n'}
+  String.fromList ['f', 'o', 'x'] `shouldBe` "fox"
+  String.map (\c -> if c == 'o' then 'a' else c) "fox" `shouldBe` ['f', 'a', 'x']
+  String.mapString (\c -> if c == 'o' then 'a' else c) "fox" `shouldBe` "fax"
+  String.filter isVowel "exquisite" `shouldBe` "euiie"
+  String.remove isVowel "exquisite" `shouldBe` "xqst"
+  String.find isVowel "fox" `shouldBe` Some 'o'
+  String.find (_ == 'z') "fox" `shouldBe` None
+  String.count (_ == 'a') "banana" `shouldBe` 3
+  String.replaceChar 'a' 'o' "banana" `shouldBe` "bonono"
+  String.replace "the" "some" "the bad and the ugly" `shouldBe` "some bad and some ugly"
+  String.reverse "someone" `shouldBe` "enoemos"
+  String.indices "abcd" `shouldBe` [0, 1, 2, 3]
+  let bigStr = """
+    some Indented
+    Lines
+      Here
+  """
+  let expected = """some Indented
 Lines
   Here"""
-    String.stripIndent bigStr `shouldBe` expected
+  String.stripIndent bigStr `shouldBe` expected

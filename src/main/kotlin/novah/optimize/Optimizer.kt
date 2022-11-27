@@ -89,7 +89,10 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
             meta = d.metadata
             if (d.metadata != null) metaExpr += d.rawName() to d.metadata!!
             if (d is CTypeDecl) ds += d.convert()
-            if (d is CValDecl && !d.typeError) ds += d.convert()
+            if (d is CValDecl && !d.typeError) {
+                ds += d.convert()
+                checkTest(d)
+            }
         }
         val allDecls = if (metaExpr.isEmpty()) ds
         else ds + makeMetaExpr(metaExpr)
@@ -709,6 +712,23 @@ class Optimizer(private val ast: CModule, private val ctorCache: MutableMap<Stri
 
         val (pars, ret) = innerPeelArgs(emptyList(), type)
         return pars.map { it.convert() } to ret.convert()
+    }
+
+    private fun checkTest(decl: CValDecl) {
+        val meta = decl.metadata ?: return
+        if (meta.getMeta(Metadata.TEST) == null) return
+        val span = meta.spans[Metadata.TEST] ?: decl.name.span
+
+        val ty = decl.exp.type?.realType() ?: return
+        if (ty !is TArrow || (!ty.ret.realType().isUnit() || !ty.args[0].realType().isUnit())) {
+            val err = CompilerProblem(
+                E.TEST_TYPE,
+                span,
+                ast.sourceName,
+                ast.name.value
+            )
+            errors += err
+        }
     }
 
     private fun getReturnType(type: Clazz): Clazz =

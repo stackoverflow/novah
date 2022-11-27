@@ -2,14 +2,14 @@ module test.option
 
 import novah.test
 
-optionTests : Unit
-optionTests =
-  test "Option reading functions" \_ ->
-    Option.isSome (Some 1) `shouldBe` true
-    Option.isNone None `shouldBe` true
-    Option.maybe 3 (_ + 1) (Some 1) `shouldBe` 2
-    Option.maybe 3 (_ + 1) None `shouldBe` 3
-    (Some 1 ?: 0) `shouldBe` 1
-    (None ?: 0) `shouldBe` 0
-    Option.unwrap (Some "abc") `shouldBe` "abc"
-    Option.map (_ ++ "def") (Some "abc") `shouldBe` Some "abcdef"
+#[test: "Option reading functions"]
+optionTests : Unit -> Unit
+optionTests () =
+  Option.isSome (Some 1) `shouldBe` true
+  Option.isNone None `shouldBe` true
+  Option.maybe 3 (_ + 1) (Some 1) `shouldBe` 2
+  Option.maybe 3 (_ + 1) None `shouldBe` 3
+  (Some 1 ?: 0) `shouldBe` 1
+  (None ?: 0) `shouldBe` 0
+  Option.unwrap (Some "abc") `shouldBe` "abc"
+  Option.map (_ ++ "def") (Some "abc") `shouldBe` Some "abcdef"

@@ -2,19 +2,18 @@ module test.regex
 
 import novah.test
 
-#[noWarn]
-regexTests : Unit
-regexTests =
-  test "Regex tests" \_ ->
-    let re = Re.withFlags """\d+""" Pattern#-`CASE_INSENSITIVE`
-    Re.find re "some 123 and 890." `shouldBe` ["123"]
-    Re.find #"some (\d+) and (\d+)" "some 123 and 890." `shouldBe` ["some 123 and 890", "123", "890"]
-    Re.findAll re "some 123 and 890." `shouldBe` [["123"], ["890"]]
-    Re.matches re "some 123 and 890." `shouldBe` false
-    Re.matches re "123456" `shouldBe` true
-    Re.replaceFirst re "fox" "123 some 456" `shouldBe` "fox some 456"
-    Re.replaceAll re "fox" "123 some 456" `shouldBe` "fox some fox"
-    Re.split #":" "foo:bar" `shouldBe` ["foo", "bar"]
-    Re.canFind re "some 78 and 89" `shouldBe` true
-    Re.replaceFirstWith re (\[x] -> String.reverse x) "some 78 and 89" `shouldBe` "some 87 and 89"
-    Re.replaceAllWith re (\[x] -> String.reverse x) "some 78 and 89" `shouldBe` "some 87 and 98"
+#[noWarn, test: "Regex tests"]
+regexTests : Unit -> Unit
+regexTests () =
+  let re = Re.withFlags """\d+""" Pattern#-`CASE_INSENSITIVE`
+  Re.find re "some 123 and 890." `shouldBe` ["123"]
+  Re.find #"some (\d+) and (\d+)" "some 123 and 890." `shouldBe` ["some 123 and 890", "123", "890"]
+  Re.findAll re "some 123 and 890." `shouldBe` [["123"], ["890"]]
+  Re.matches re "some 123 and 890." `shouldBe` false
+  Re.matches re "123456" `shouldBe` true
+  Re.replaceFirst re "fox" "123 some 456" `shouldBe` "fox some 456"
+  Re.replaceAll re "fox" "123 some 456" `shouldBe` "fox some fox"
+  Re.split #":" "foo:bar" `shouldBe` ["foo", "bar"]
+  Re.canFind re "some 78 and 89" `shouldBe` true
+  Re.replaceFirstWith re (\[x] -> String.reverse x) "some 78 and 89" `shouldBe` "some 87 and 89"
+  Re.replaceAllWith re (\[x] -> String.reverse x) "some 78 and 89" `shouldBe` "some 87 and 98"

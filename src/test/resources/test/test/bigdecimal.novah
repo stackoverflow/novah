@@ -3,48 +3,54 @@ module test.bigdecimal
 import novah.bigdecimal as B
 import novah.test
 
-bigDecTests : Unit
-bigDecTests =
-  let big = 100000000000000000000000000000000000000000000000001M
-  test "BigDecimal creation functions" \_ ->
-    B.fromInt64 100L `shouldBe` 100M
-    B.fromString "100" `shouldBe` 100M
-    B.fromFloat64 100.0 `shouldBe` 100M
-    B.fromBigInt 100N `shouldBe` 100M
+big : BigDecimal
+big = 100000000000000000000000000000000000000000000000001M
 
-  test "BigDecimal conversion functions" \_ ->
-    int 100M `shouldBe` 100
-    int64 100M `shouldBe` 100L
-    float32 100.45M `shouldBe` 100.45F
-    float64 100.45M `shouldBe` 100.45
-    B.toByte 100M `shouldBe` Some (100 : Byte)
-    B.toByte big `shouldBe` None
-    B.toInt16 100M `shouldBe` Some (100 : Int16)
-    B.toInt16 big `shouldBe` None
-    B.toInt 100M `shouldBe` Some 100
-    B.toInt big `shouldBe` None
-    B.toInt64 100M `shouldBe` Some 100L
-    B.toInt64 big `shouldBe` None
-    show big `shouldBe` "100000000000000000000000000000000000000000000000001"
+#[test: "BigDecimal creation functions"]
+creationTest : Unit -> Unit
+creationTest () =
+  B.fromInt64 100L `shouldBe` 100M
+  B.fromString "100" `shouldBe` 100M
+  B.fromFloat64 100.0 `shouldBe` 100M
+  B.fromBigInt 100N `shouldBe` 100M
 
-  test "BigDecimal math functions" \_ ->
-    B.negate 100M `shouldBe` -100M
-    B.pow 2 100M `shouldBe` 10000M
-    let x = 100M
-    let y = 2M
-    (x + y) `shouldBe` 102M
-    (x - y) `shouldBe` 98M
-    (x * y) `shouldBe` 200M
-    (x / y) `shouldBe` 50M
-    (y / x) `shouldBe` 0.02M
-    (x == y) `shouldBe` false
-    (x == 100M) `shouldBe` true
-    (x > y) `shouldBe` true
-    (big <= y) `shouldBe` false
-    Math.isEven x `shouldBe` true
-    Math.isEven big `shouldBe` false
-    Math.min x y `shouldBe` y
-    Math.max x big `shouldBe` big
-    Math.abs -100M `shouldBe` x
-    (x % y) `shouldBe` 0M
-    (big % y) `shouldBe` 1M
+#[test: "BigDecimal conversion functions"]
+conversionTest : Unit -> Unit
+conversionTest () =
+  int 100M `shouldBe` 100
+  int64 100M `shouldBe` 100L
+  float32 100.45M `shouldBe` 100.45F
+  float64 100.45M `shouldBe` 100.45
+  B.toByte 100M `shouldBe` Some (100 : Byte)
+  B.toByte big `shouldBe` None
+  B.toInt16 100M `shouldBe` Some (100 : Int16)
+  B.toInt16 big `shouldBe` None
+  B.toInt 100M `shouldBe` Some 100
+  B.toInt big `shouldBe` None
+  B.toInt64 100M `shouldBe` Some 100L
+  B.toInt64 big `shouldBe` None
+  show big `shouldBe` "100000000000000000000000000000000000000000000000001"
+
+#[test: "BigDecimal math functions"]
+mathTest : Unit -> Unit
+mathTest () =
+  B.negate 100M `shouldBe` -100M
+  B.pow 2 100M `shouldBe` 10000M
+  let x = 100M
+  let y = 2M
+  (x + y) `shouldBe` 102M
+  (x - y) `shouldBe` 98M
+  (x * y) `shouldBe` 200M
+  (x / y) `shouldBe` 50M
+  (y / x) `shouldBe` 0.02M
+  (x == y) `shouldBe` false
+  (x == 100M) `shouldBe` true
+  (x > y) `shouldBe` true
+  (big <= y) `shouldBe` false
+  Math.isEven x `shouldBe` true
+  Math.isEven big `shouldBe` false
+  Math.min x y `shouldBe` y
+  Math.max x big `shouldBe` big
+  Math.abs -100M `shouldBe` x
+  (x % y) `shouldBe` 0M
+  (big % y) `shouldBe` 1M

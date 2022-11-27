@@ -10,35 +10,39 @@ a = toArray
 ia : List Int -> Array Int
 ia = toTypedArray Int#-class
 
-arrayTests : Unit
-arrayTests =
-  test "Array stream functions" \_ ->
-    let arr = a [1, 2, 3, 4]
-    let stm = Stream.from 1
-    let same = Array.stream arr |> Array.fromStream
-    Array.fromStream stm `shouldBe` a [1]
-    same `shouldBe` arr
+#[test: "Array stream functions"]
+arrayStreamTest : Unit -> Unit
+arrayStreamTest () =
+  let arr = a [1, 2, 3, 4]
+  let stm = Stream.from 1
+  let same = Array.stream arr |> Array.fromStream
+  Array.fromStream stm `shouldBe` a [1]
+  same `shouldBe` arr
 
-  test "Array writing functions" \_ ->
-    let arr = ia [1, 2, 3]
-    aget 1 arr `shouldBe` 2
-    aget -1 arr `shouldBe` 3
-    aset 1 5 arr
-    arr `shouldBe` ia [1, 5, 3]
-    aupdate 2 (_ + 5) arr
-    arr `shouldBe` ia [1, 5, 8]
+#[test: "Array writing functions"]
+arrayWriteTest : Unit -> Unit
+arrayWriteTest () =
+  let arr = ia [1, 2, 3]
+  aget 1 arr `shouldBe` 2
+  aget -1 arr `shouldBe` 3
+  aset 1 5 arr
+  arr `shouldBe` ia [1, 5, 3]
+  aupdate 2 (_ + 5) arr
+  arr `shouldBe` ia [1, 5, 8]
 
-  test "Array traversing functions" \_ ->
-    let arr = ia [1, 2, 3]
-    Array.map toString arr `shouldBe` a ["1", "2", "3"]
-    Array.filter Math.isOdd arr `shouldBe` a [1, 3]
-    Array.find Math.isEven arr `shouldBe` Some 2
-    let sarr = ia [4, 1, 3, 5, 2]
-    Array.copy sarr `shouldBe` ia [4, 1, 3, 5, 2]
-    Array.sort sarr
-    sarr `shouldBe` ia [1, 2, 3, 4, 5]
-    Array.reverse arr `shouldBe` ia [3, 2, 1]
-    let rarr = a [1, 2, 3, 4]
-    Array.reversed rarr
-    rarr `shouldBe` a [4, 3, 2, 1]
-    (3 in ia [2, 3, 4]) `shouldBe` true
+#[test: "Array writing functions"]
+arrayTraverseTest : Unit -> Unit
+arrayTraverseTest () =
+  let arr = ia [1, 2, 3]
+  Array.map toString arr `shouldBe` a ["1", "2", "3"]
+  Array.filter Math.isOdd arr `shouldBe` a [1, 3]
+  Array.find Math.isEven arr `shouldBe` Some 2
+  let sarr = ia [4, 1, 3, 5, 2]
+  Array.copy sarr `shouldBe` ia [4, 1, 3, 5, 2]
+  Array.sort sarr
+  sarr `shouldBe` ia [1, 2, 3, 4, 5]
+  Array.reverse arr `shouldBe` ia [3, 2, 1]
+  let rarr = a [1, 2, 3, 4]
+  Array.reversed rarr
+  rarr `shouldBe` a [4, 3, 2, 1]
+  (3 in ia [2, 3, 4]) `shouldBe` true

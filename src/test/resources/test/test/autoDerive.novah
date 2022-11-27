@@ -11,30 +11,30 @@ type Enum = A | B | C
 #[derive: {equalsComplex: "Equals"}]
 type Complex a = Ctor1 Int a | Ctor2 String | Ctor3
 
-autoDeriveTest : Unit
-autoDeriveTest =
-  test "Auto derive Equals" \_ ->
-    let p1 = Point 0 0
-    let p2 = Point 0 0
-    let p3 = Point 0 1
-    p1 `shouldBe` p2
-    p1 `shouldNotBe` p3
-    let e1 = A
-    let e2 = A
-    let e3 = B
-    let e4 = C
-    e1 `shouldBe` e2
-    e1 `shouldNotBe` e3
-    e1 `shouldNotBe` e4
-    e3 `shouldNotBe` e4
-    let c1 = Ctor1 1 "a"
-    let c2 = Ctor1 1 "a"
-    let c3 = Ctor1 1 "b"
-    let c4 = Ctor2 "a" : Complex Int
-    let c5 = Ctor2 "a"
-    let c6 = Ctor3
-    c1 `shouldBe` c2
-    c1 `shouldNotBe` c3
-    c4 `shouldBe` c5
-    c1 `shouldNotBe` c6
-    c4 `shouldNotBe` c6
+#[test: "Auto derive Equals"]
+autoDeriveTest : Unit -> Unit
+autoDeriveTest () =
+  let p1 = Point 0 0
+  let p2 = Point 0 0
+  let p3 = Point 0 1
+  p1 `shouldBe` p2
+  p1 `shouldNotBe` p3
+  let e1 = A
+  let e2 = A
+  let e3 = B
+  let e4 = C
+  e1 `shouldBe` e2
+  e1 `shouldNotBe` e3
+  e1 `shouldNotBe` e4
+  e3 `shouldNotBe` e4
+  let c1 = Ctor1 1 "a"
+  let c2 = Ctor1 1 "a"
+  let c3 = Ctor1 1 "b"
+  let c4 = Ctor2 "a" : Complex Int
+  let c5 = Ctor2 "a"
+  let c6 = Ctor3
+  c1 `shouldBe` c2
+  c1 `shouldNotBe` c3
+  c4 `shouldBe` c5
+  c1 `shouldNotBe` c6
+  c4 `shouldNotBe` c6

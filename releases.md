@@ -5,6 +5,21 @@
 - removed `let ... in` syntax
 - `in` can be used as an operator, and it will be desugared to `isIn`: ```1 in [1, 2, 3]```
 - `!in` can be used as an operator, and it will be desugared to `notIn`: ```0 !in [1, 2, 3]```
+- revamped test module, now uses the `test` attribute to mark functions as tests
+
+    ```novah
+    // before
+    myTest : Unit
+    myTest =
+      test "My test" \_ ->
+        1 `shouleBe` 1
+    
+    // after
+    #[test: "My test"]
+    myTest : Unit -> Unit
+    myTest () =
+      1 `shouleBe` 1
+    ```
 
 ## Changes
 
@@ -49,7 +64,7 @@
 - language formatter is usable now
 - better indentation rules for binary operators, now they don't need indentation
 
-    ```
+    ```novah
     // before
     fun x =
       value

@@ -3,57 +3,65 @@ module test.bigint
 import novah.bigint as B
 import novah.test
 
-bigIntTests : Unit
-bigIntTests =
-  let big = 100000000000000000000000000000000000000000000000001N
-  test "BigInteger creation functions" \_ ->
-    B.fromInt64 100L `shouldBe` 100N
-    B.fromString "100" `shouldBe` 100N
-    B.fromStringRadix "100" 10 `shouldBe` 100N
-    B.fromStringRadix "1100100" 2 `shouldBe` 100N
+big : BigInteger
+big = 100000000000000000000000000000000000000000000000001N
 
-  test "BigInteger conversion functions" \_ ->
-    int 100N `shouldBe` 100
-    int64 100N `shouldBe` 100L
-    float32 100N `shouldBe` 100F
-    float64 100N `shouldBe` 100.0
-    B.toByte 100N `shouldBe` Some (100 : Byte)
-    B.toByte big `shouldBe` None
-    B.toInt16 100N `shouldBe` Some (100 : Int16)
-    B.toInt16 big `shouldBe` None
-    B.toInt 100N `shouldBe` Some 100
-    B.toInt big `shouldBe` None
-    B.toInt64 100N `shouldBe` Some 100L
-    B.toInt64 big `shouldBe` None
-    show big `shouldBe` "100000000000000000000000000000000000000000000000001"
+#[test: "BigInteger creation functions"]
+creationTest : Unit -> Unit
+creationTest () =
+  B.fromInt64 100L `shouldBe` 100N
+  B.fromString "100" `shouldBe` 100N
+  B.fromStringRadix "100" 10 `shouldBe` 100N
+  B.fromStringRadix "1100100" 2 `shouldBe` 100N
 
-  test "BigInteger math functions" \_ ->
-    let x = 100N
-    let y = 2N
-    B.negate x `shouldBe` -100N
-    B.pow 2 x `shouldBe` 10000N
-    B.sqrt x `shouldBe` 10N
-    (x + y) `shouldBe` 102N
-    (x - y) `shouldBe` 98N
-    (x * y) `shouldBe` 200N
-    (x / y) `shouldBe` 50N
-    (y / x) `shouldBe` 0N
-    (x == y) `shouldBe` false
-    (x == 100N) `shouldBe` true
-    (x > y) `shouldBe` true
-    (big <= y) `shouldBe` false
-    Math.isEven x `shouldBe` true
-    Math.isEven big `shouldBe` false
-    Math.min x y `shouldBe` y
-    Math.max x big `shouldBe` big
-    Math.abs -100N `shouldBe` x
-    (x % y) `shouldBe` 0N
-    (big % y) `shouldBe` 1N
+#[test: "BigInteger conversion functions"]
+conversionTest : Unit -> Unit
+conversionTest () =
+  int 100N `shouldBe` 100
+  int64 100N `shouldBe` 100L
+  float32 100N `shouldBe` 100F
+  float64 100N `shouldBe` 100.0
+  B.toByte 100N `shouldBe` Some (100 : Byte)
+  B.toByte big `shouldBe` None
+  B.toInt16 100N `shouldBe` Some (100 : Int16)
+  B.toInt16 big `shouldBe` None
+  B.toInt 100N `shouldBe` Some 100
+  B.toInt big `shouldBe` None
+  B.toInt64 100N `shouldBe` Some 100L
+  B.toInt64 big `shouldBe` None
+  show big `shouldBe` "100000000000000000000000000000000000000000000000001"
 
-  test "BigInteger bit functions" \_ ->
-    (100N &&& 2N) `shouldBe` 0N
-    (100N ||| 2N) `shouldBe` 102N
-    (100N <<< 2N) `shouldBe` 400N
-    (100N >>> 2N) `shouldBe` 25N
-    bitNot 100N `shouldBe` -101N
-    bitNot 2N `shouldBe` -3N
+#[test: "BigInteger math functions"]
+mathTest : Unit -> Unit
+mathTest () =
+  let x = 100N
+  let y = 2N
+  B.negate x `shouldBe` -100N
+  B.pow 2 x `shouldBe` 10000N
+  B.sqrt x `shouldBe` 10N
+  (x + y) `shouldBe` 102N
+  (x - y) `shouldBe` 98N
+  (x * y) `shouldBe` 200N
+  (x / y) `shouldBe` 50N
+  (y / x) `shouldBe` 0N
+  (x == y) `shouldBe` false
+  (x == 100N) `shouldBe` true
+  (x > y) `shouldBe` true
+  (big <= y) `shouldBe` false
+  Math.isEven x `shouldBe` true
+  Math.isEven big `shouldBe` false
+  Math.min x y `shouldBe` y
+  Math.max x big `shouldBe` big
+  Math.abs -100N `shouldBe` x
+  (x % y) `shouldBe` 0N
+  (big % y) `shouldBe` 1N
+
+#[test: "BigInteger bit functions"]
+bitTest : Unit -> Unit
+bitTest () =
+  (100N &&& 2N) `shouldBe` 0N
+  (100N ||| 2N) `shouldBe` 102N
+  (100N <<< 2N) `shouldBe` 400N
+  (100N >>> 2N) `shouldBe` 25N
+  bitNot 100N `shouldBe` -101N
+  bitNot 2N `shouldBe` -3N

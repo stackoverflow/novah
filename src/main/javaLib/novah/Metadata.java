@@ -21,6 +21,7 @@ import io.lacuna.bifurcan.Set;
 import novah.collections.Record;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -29,6 +30,7 @@ import java.util.HashMap;
 public class Metadata {
 
     private static final HashMap<String, ModuleMetas> attrs = new HashMap<>();
+    private static final ArrayList<TestData> tests = new ArrayList<>();
 
     public static void registerMeta(String moduleName, String decl, String attr, Object value) {
         var mod = attrs.get(moduleName);
@@ -40,15 +42,11 @@ public class Metadata {
         attrs.put(moduleName, mod);
     }
 
-    public static void registerMeta(String moduleName, String attr, Object value) {
-        var mod = attrs.get(moduleName);
-        if (mod == null) mod = new ModuleMetas();
-        mod.moduleMeta.put(attr, value);
-        attrs.put(moduleName, mod);
-    }
-
     public static void registerMetas(String modulename, String decl, Record rec) {
-        rec.keys().stream().forEach(key -> registerMeta(modulename, decl, key, rec.unsafeGet(key)));
+        rec.keys().stream().forEach(key -> {
+            registerMeta(modulename, decl, key, rec.unsafeGet(key));
+            if (key.equals("test")) registerTest(modulename, decl, rec.unsafeGet(key));
+        });
     }
 
     public static Map<String, Object> allMetadataOf(String moduleName, String decl) {
@@ -65,14 +63,16 @@ public class Metadata {
         return Map.from(mod.moduleMeta);
     }
 
-    public static List<Map<String, Object>> findMetadata(String moduleName) {
-        var list = new List<Map<String, Object>>().linear();
+    public static Map<String, Map<String, Object>> findMetadata(String moduleName) {
+        var res = new Map<String, Map<String, Object>>().linear();
         var mod = attrs.get(moduleName);
         if (mod != null) {
-            if (mod.moduleMeta != null) list.addLast(Map.from(mod.moduleMeta));
-            mod.metas.forEach((dec, map) -> list.addLast(Map.from(map)));
+            if (mod.moduleMeta != null && !mod.moduleMeta.isEmpty()) res.put(moduleName, Map.from(mod.moduleMeta));
+            mod.metas.forEach((dec, map) -> {
+                if (!map.isEmpty()) res.put(dec, Map.from(map));
+            });
         }
-        return list.forked();
+        return res.forked();
     }
 
     public static Set<String> modulesForTag(String tag) {
@@ -130,6 +130,47 @@ public class Metadata {
         });
         return fields.forked();
     }
+
+    public static List<List<Object>> findMetadataAndDeclarationsFor(String tag) {
+        var res = new List<List<Object>>().linear();
+        attrs.forEach((mod, attr) -> {
+            try {
+                var clazz = Class.forName(mod + ".$Module");
+                attr.metas.forEach((dec, ats) -> ats.forEach((tagName, obj) -> {
+                    if (tag.equals(tagName)) {
+                        try {
+                            var f = clazz.getDeclaredField(dec);
+                            var meta = List.of(f, obj);
+                            res.addLast(meta);
+                        } catch (NoSuchFieldException ignored) {
+                        }
+                    }
+                }));
+            } catch (ClassNotFoundException ignored) {
+            }
+        });
+        return res.forked();
+    }
+
+    public static List<List<Object>> findTests() {
+        var res = new List<List<Object>>().linear();
+        for (var test : tests) {
+            String desc = test.desc instanceof String ? (String) test.desc : "";
+            res.addLast(List.of(test.module, test.decl, desc, test.field));
+        }
+        return res.forked();
+    }
+
+    private static void registerTest(String moduleName, String decl, Object desc) {
+        try {
+            var clazz = Class.forName(moduleName + ".$Module");
+            var field = clazz.getDeclaredField(decl);
+            tests.add(new TestData(moduleName, decl, desc, field));
+        } catch (ClassNotFoundException | NoSuchFieldException ignored) {
+        }
+    }
+
+    record TestData(String module, String decl, Object desc, Field field) {}
 
     static class ModuleMetas {
         // metadata of the module itself

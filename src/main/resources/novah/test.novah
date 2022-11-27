@@ -1,27 +1,16 @@
 // A lightweight test library.
-// Tests can be either automatically registered
-// with the `test` and `testWith` function
-// and ran with `runAllTests` or `runTestsFor`
-// or manually created with the `Test`, `Tests` and `Setup` constructors
-// and ran with `runTests`.
+// Test functions can be created using the `test` attribute
+// and their types have to be `Unit -> Unit`.
 module novah.test
+
+import novah.java as Java
+import novah.list as List
+import novah.meta as Meta
 
 foreign import java.lang.AssertionError
 foreign import java.lang.Exception
 foreign import java.lang.Throwable
 foreign import novah.Core
-
-import novah.list (forEach, toTypedArray)
-
-pub
-typealias TestFun = Unit -> Unit
-
-// Represents one or more tests to be run.
-pub+
-type Suite
-  = Test String TestFun
-  | Tests String (List TestFun)
-  | Setup { before : TestFun, after : TestFun, suite : Suite }
 
 // All possible results for a test suite.
 pub+
@@ -29,24 +18,6 @@ type TestResult
   = Success
   | Failure
   | Error
-
-allRegisteredtests : List Suite
-allRegisteredtests = []#linear()
-
-// Register a test function.
-pub
-test : String -> TestFun -> Unit
-test description testFun =
-  allRegisteredtests += (Test description testFun)
-  ()
-
-// Register a test function with a before and after hook.
-pub
-testWith : TestFun -> TestFun -> String -> TestFun -> Unit
-testWith before after description testFun =
-  let suite = Setup { before, after, suite: Test description testFun }
-  allRegisteredtests += suite
-  ()
 
 // Executes the function for every entry in the table.
 // Ex:
@@ -60,36 +31,106 @@ testWith before after description testFun =
 // ```
 pub
 withTable : List { | r } -> ({ | r } -> Unit) -> Unit
-withTable = forEach
+withTable = List.forEach
 
-// Run the specified tests.
+// Fails the test if x is not equals y.
 pub
-runTests : List Suite -> TestResult
-runTests suites =
+shouldBe : {{ Equals a }} -> a -> a -> Unit
+shouldBe {{_}} x y =
+  if x != y then
+    throw AssertionError#new(format "`%s` is not equals `%s`" [x, y] as Object)
+
+// Fails the test if x is equals y.
+pub
+shouldNotBe : {{ Equals a }} -> a -> a -> Unit
+shouldNotBe {{_}} x y =
+  if x == y then
+    throw AssertionError#new(format "`%s` is equals `%s`" [x, y] as Object)
+
+// Fails the test if the record r1 is not equals r2.
+pub
+recordShouldBe : {  | r } -> {  | r } -> Unit
+recordShouldBe r1 r2 =
+  if not (recordEquals r1 r2) then
+    throw AssertionError#new(format "%s is not equals %s" [r1, r2] as Object)
+
+// Fails the test if the record r1 is equals r2.
+pub
+recordShouldNotBe : {  | r } -> {  | r } -> Unit
+recordShouldNotBe r1 r2 =
+  if recordEquals r1 r2 then
+    throw AssertionError#new(format "%s is equals %s" [r1, r2] as Object)
+
+// Fails the test if the element is not inside the container.
+pub
+shouldBeIn : {{ Contained a b }} -> a -> b -> Unit
+shouldBeIn {{_}} x box =
+  if x !in box then
+    throw AssertionError#new(format "%s is not inside %s" [toString x, toString box] as Object)
+
+// Fails the test if the element is inside the container.
+pub
+shouldNotBeIn : {{ Contained a b }} -> a -> b -> Unit
+shouldNotBeIn {{_}} x box =
+  if x in box then
+    throw AssertionError#new(format "%s is inside %s" [toString x, toString box] as Object)
+
+// Fails the test if some element of the list is not inside the container.
+pub
+shouldAllBeIn : {{ Contained a b }} -> List a -> b -> Unit
+shouldAllBeIn {{_}} list set =
+  List.forEach list \x ->
+    if x !in set then
+      throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
+
+// Fails the test if this option is empty.
+pub
+shouldBeSome : Option a -> Unit
+shouldBeSome opt = case opt of
+  Some _ -> ()
+  None -> throw AssertionError#new(format "%s is not Some" [opt] as Object)
+
+// Fails the test if this option is not empty.
+pub
+shouldBeNone : Option a -> Unit
+shouldBeNone opt = case opt of
+  Some _ -> throw AssertionError#new(format "%s is not None" [opt] as Object)
+  None -> ()
+
+// Fails the test if this list is not empty.
+pub
+shouldBeEmpty : List a -> Unit
+shouldBeEmpty list = case list of
+  [] -> ()
+  _ -> throw AssertionError#new(format "list %s is not empty" [list] as Object)
+
+// Fails the test if this list is empty.
+pub
+shouldNotBeEmpty : List a -> Unit
+shouldNotBeEmpty list = case list of
+  [] -> throw AssertionError#new("list is empty" as Object)
+  _ -> ()
+
+innerRunTests : (Unit -> Unit) -> (Unit -> Unit) -> TestResult
+innerRunTests before after =
+  let tests = Meta.findTests ()
   let total = atom 0
-  let stats = toTypedArray Int#-class [0, 0, 0]
+  let stats = List.toTypedArray Int#-class [0, 0, 0]
   let addStats v =
     aupdate 0 (_ + v.[0]) stats
     aupdate 1 (_ + v.[1]) stats
     aupdate 2 (_ + v.[2]) stats
-      
-  let runSuite = case _ of
-    Test desc fun -> check desc fun |> addStats
-    Tests desc funs -> forEach funs (check desc >> addStats)
-    Setup {before, after, suite} ->
-      try
-        before ()
-        runSuite suite
-      finally after ()
 
-  forEach suites \suite ->
+  List.forEach tests \{decl, desc, function} ->
+    before ()
     swap (_ + 1) total
-    runSuite suite
+    check (if desc == "" then decl else desc) function |> addStats
+    after ()
 
   let failures = aget 1 stats
   let errors = aget 2 stats
   println "\nSummary"
-  printfln "%s/%s tests passed" [aget 0 stats, deref total]
+  printfln "%s/%s tests passed" [aget 0 stats, @total]
   printfln "%d failures" [failures]
   printfln "%d errors" [errors]
 
@@ -101,10 +142,20 @@ runTests suites =
 // Run all registered tests.
 // Tests need to be located in a root `test` package.
 pub
-runAllTests : Unit -> TestResult
-runAllTests _ =
+runTests : Unit -> TestResult
+runTests _ =
   Core#loadAllClasses("test")
-  runTests allRegisteredtests
+  innerRunTests identity identity
+
+// Run all registered tests.
+// Tests need to be located in a root `test` package.
+// The two given functions will be run before and
+// after every test.
+pub
+runTestsWith : (Unit -> Unit) -> (Unit -> Unit) -> TestResult
+runTestsWith before after =
+  Core#loadAllClasses("test")
+  innerRunTests before after
 
 // Run all registered tests.
 // Modules containing tests will be searched
@@ -113,98 +164,32 @@ pub
 runTestsFor : String -> TestResult
 runTestsFor package =
   Core#loadAllClasses(package)
-  runTests allRegisteredtests
+  innerRunTests identity identity
 
-// Fails the test if x is not equals y.
+// Run all registered tests.
+// Modules containing tests will be searched
+// in the given root package.
+// The two given functions will be run before and
+// after every test.
 pub
-shouldBe : {{ Equals a }} -> a -> a -> Unit
-shouldBe {{_}} x y =
-  if x == y then
-    ()
-  else throw AssertionError#new(format "`%s` is not equals `%s`" [x, y] as Object)
+runTestsForWith : String -> (Unit -> Unit) -> (Unit -> Unit) -> TestResult
+runTestsForWith package before after =
+  Core#loadAllClasses(package)
+  innerRunTests before after
 
-// Fails the test if x is equals y.
+// Exits the JVM.
+// The exit status will depend on the test results:
+// Success: 0
+// Failure: 1
+// Error: 2
 pub
-shouldNotBe : {{ Equals a }} -> a -> a -> Unit
-shouldNotBe {{_}} x y =
-  if x != y then
-    ()
-  else throw AssertionError#new(format "`%s` is equals `%s`" [x, y] as Object)
+exit : TestResult -> Unit
+exit = case _ of
+  Success -> Java.exit 0
+  Failure -> Java.exit 1
+  Error -> Java.exit 2
 
-// Fails the test if the record r1 is not equals r2.
-pub
-recordShouldBe : { | r } -> { | r } -> Unit
-recordShouldBe r1 r2 =
-  if recordEquals r1 r2 then
-    ()
-  else throw AssertionError#new(format "%s is not equals %s" [r1, r2] as Object)
-
-// Fails the test if the record r1 is equals r2.
-pub
-recordShouldNotBe : { | r } -> { | r } -> Unit
-recordShouldNotBe r1 r2 =
-  if not (recordEquals r1 r2) then
-    ()
-  else throw AssertionError#new(format "%s is equals %s" [r1, r2] as Object)
-
-// Fails the test if the element is not inside the container.
-pub
-shouldBeIn : {{ Contained a b }} -> a -> b -> Unit
-shouldBeIn {{_}} x box =
-  if x in box then
-    ()
-  else throw AssertionError#new(format "%s is not inside %s" [toString x, toString box] as Object)
-
-// Fails the test if the element is inside the container.
-pub
-shouldNotBeIn : {{ Contained a b }} -> a -> b -> Unit
-shouldNotBeIn {{_}} x box =
-  if x !in box then
-    ()
-  else throw AssertionError#new(format "%s is inside %s" [toString x, toString box] as Object)
-
-// Fails the test if some element of the list is not inside the container.
-pub
-shouldAllBeIn : {{ Contained a b }} -> List a -> b -> Unit
-shouldAllBeIn {{_}} list set =
-  forEach list \x ->
-    if x in set then
-      ()
-    else throw AssertionError#new(format "%s is not inside %s" [toString x, toString set] as Object)
-
-// Fails the test if this option is empty.
-pub
-shouldBeSome : Option a -> Unit
-shouldBeSome opt =
-  case opt of
-    Some _ -> ()
-    None -> throw AssertionError#new(format "%s is not Some" [opt] as Object)
-
-// Fails the test if this option is not empty.
-pub
-shouldBeNone : Option a -> Unit
-shouldBeNone opt =
-  case opt of
-    Some _ -> throw AssertionError#new(format "%s is not None" [opt] as Object)
-    None -> ()
-
-// Fails the test if this list is not empty.
-pub
-shouldBeEmpty : List a -> Unit
-shouldBeEmpty list =
-  case list of
-    [] -> ()
-    _ -> throw AssertionError#new(format "list %s is not empty" [list] as Object)
-
-// Fails the test if this list is empty.
-pub
-shouldNotBeEmpty : List a -> Unit
-shouldNotBeEmpty list =
-  case list of
-    [] -> throw AssertionError#new("list is empty" as Object)
-    _ -> ()
-
-check : String -> TestFun -> List Int
+check : String -> (Unit -> Unit) -> List Int
 check desc fun =
   try
     println ""

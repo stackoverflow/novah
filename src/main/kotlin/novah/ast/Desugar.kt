@@ -622,7 +622,7 @@ class Desugar(private val smod: SModule, private val typeChecker: Typechecker) {
     }
 
     private fun SMetadata.desugar(moduleMeta: Metadata?): Metadata {
-        val meta = Metadata(data.desugar() as Expr.RecordExtend)
+        val meta = Metadata(data.desugar() as Expr.RecordExtend, spans)
         return meta.merge(moduleMeta)
     }
 

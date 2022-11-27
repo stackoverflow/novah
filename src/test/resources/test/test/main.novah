@@ -5,7 +5,4 @@ import novah.test
 pub
 main : Array String -> Unit
 main _ =
-  case runAllTests () of
-    Success -> Java.exit 0
-    Failure -> Java.exit 1
-    Error -> Java.exit 2
+  runTests () |> exit

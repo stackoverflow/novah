@@ -1459,16 +1459,20 @@ class Parser(
         if (iter.peek().value !is MetaBracket) return null
 
         val begin = expect<MetaBracket>(noErr())
-        val rows = between<Comma, Pair<String, Expr>>(::parseMetadataRow)
+        val rows = between<Comma, Pair<Spanned<String>, Expr>>(::parseMetadataRow)
         val end = expect<RSBracket>(withError(E.rsbracketExpected("metadata")))
 
-        val exp = Expr.RecordExtend(rows, Expr.RecordEmpty())
+        val labels = rows.map { (l, v) -> l.value to v }
+        val spans = rows.associate { (l, _) -> l.value to l.span }
+
+        val exp = Expr.RecordExtend(labels, Expr.RecordEmpty())
             .withSpan(begin.span, end.span) as Expr.RecordExtend
-        return Metadata(exp)
+        return Metadata(exp, spans)
     }
 
-    private fun parseMetadataRow(): Pair<String, Expr> {
-        val (label, tk) = parseLabel()
+    private fun parseMetadataRow(): Pair<Spanned<String>, Expr> {
+        val (labelStr, tk) = parseLabel()
+        val label = Spanned(tk.span, labelStr)
         if (iter.peek().value !is Colon && tk.value is Ident) {
             return label to Expr.Bool(true).withSpanAndComment(tk)
         }
@@ -1499,9 +1503,10 @@ class Parser(
 
     private fun parseMetadataRecord(): Expr {
         val begin = expect<LBracket>(noErr())
-        val rows = between<Comma, Pair<String, Expr>>(::parseMetadataRow)
+        val rows = between<Comma, Pair<Spanned<String>, Expr>>(::parseMetadataRow)
+        val labels = rows.map { (l, v) -> l.value to v }
         val end = expect<RBracket>(withError(E.rbracketExpected("record")))
-        return Expr.RecordExtend(rows, Expr.RecordEmpty())
+        return Expr.RecordExtend(labels, Expr.RecordEmpty())
             .withSpan(begin.span, end.span)
     }
 

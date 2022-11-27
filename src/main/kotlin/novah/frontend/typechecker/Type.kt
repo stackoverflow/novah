@@ -179,6 +179,9 @@ sealed class Type {
     fun isOption(): Boolean =
         this is TApp && type is TConst && type.name == primOption
 
+    fun isUnit(): Boolean =
+        this is TConst && name == primUnit
+
     /**
      * Collects all the rows from this type.
      * Does nothing if called on a non-row type.

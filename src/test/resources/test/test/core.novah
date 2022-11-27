@@ -7,123 +7,135 @@ foreign import novah.Ref
 intArray : List Int -> Array Int
 intArray l = List.toTypedArray Int32#-class l
 
-coreTests : Unit
-coreTests =
-  test "Core base functions" \_ ->
-    not true `shouldBe` false
-    not false `shouldBe` true
-    xor true true `shouldBe` false
-    xor true false `shouldBe` true
-    xor false true `shouldBe` true
-    xor false false `shouldBe` false
-    List.map identity [2, 3, 4] `shouldBe` [2, 3, 4]
-    let minus = flip (-) : Int -> Int -> Int
-    (1 `minus` 4) `shouldBe` 3
-    const 0 1 `shouldBe` 0
-    (10 |> _ + 1 |> _ * 2) `shouldBe` 22
-    (_ * 2 <| _ + 1 <| 10) `shouldBe` 22
-    (_ + 1 >> _ * 2) 10 `shouldBe` 22
-    (_ + 1 << _ * 2) 10 `shouldBe` 21
-    let x = 1
-    (x === x) `shouldBe` true
-    ([1] === [1]) `shouldBe` false
-    (x !== x) `shouldBe` false
-    ([1] !== [1]) `shouldBe` true
-    (true && false) `shouldBe` false
-    (true && true) `shouldBe` true
-    (true || false) `shouldBe` true
-    (false || false) `shouldBe` false
-    int 125_400L `shouldBe` 125_400
-    int "999" `shouldBe` 999
-    int false `shouldBe` 0
-    int64 1_000_000 `shouldBe` 1000000L
-    float32 true `shouldBe` 1F
-    float64 "1.78" `shouldBe` 1.78
-    (Some 3)!! `shouldBe` 3
-    (Some [1, 2])!!.[0] `shouldBe` 1
-    (Some 1 |> _!!) `shouldBe` 1
-    format "%s and %s" [5, 6] `shouldBe` "5 and 6"
-    (Some 3 ?: 7) `shouldBe` 3
-    (None ?: 7) `shouldBe` 7
-    len "banana" `shouldBe` 6
-    len [] `shouldBe` 0
-    len [3, 4, 5] `shouldBe` 3
-    len #{4, 0} `shouldBe` 2
-    len (arrayOf Int32#-class 12) `shouldBe` 12
-    [1 .. 5] `shouldBe` [1, 2, 3, 4, 5]
-    [1 ... 5] `shouldBe` [1, 2, 3, 4]
-    [7 .. 3] `shouldBe` [7, 6, 5, 4, 3]
-    [7 ... 3] `shouldBe` [7, 6, 5, 4]
-    [1.0F .. 5.0F] `shouldBe` [1.0F, 2.0F, 3.0F, 4.0F, 5.0F]
-    [1.0F ... 5.0F] `shouldBe` [1.0F, 2.0F, 3.0F, 4.0F]
-    [1.0 .. 5.0] `shouldBe` [1.0, 2.0, 3.0, 4.0, 5.0]
-    [1.0 ... 5.0] `shouldBe` [1.0, 2.0, 3.0, 4.0]
-    ['a' .. 'd'] `shouldBe` ['a', 'b', 'c', 'd']
-    ['a' ... 'd'] `shouldBe` ['a', 'b', 'c']
-    [1N .. 5N] `shouldBe` [1N, 2N, 3N, 4N, 5N]
-    [1N ... 5N] `shouldBe` [1N, 2N, 3N, 4N]
-    [1M .. 5M] `shouldBe` [1M, 2M, 3M, 4M, 5M]
-    [1M ... 5M] `shouldBe` [1M, 2M, 3M, 4M]
-    #{1 .. 5} `shouldBe` #{1, 2, 3, 4, 5}
-    rangeStart (4 .. 10) `shouldBe` 4
-    rangeEnd (4 .. 10) `shouldBe` 10
-    rangeEnd (4 ... 10) `shouldBe` 9
-    (567000 in (1 .. 2000000000)) `shouldBe` true
-    (3 in (range 1 10 2)) `shouldBe` true
-    (3 !in (range 1 10 3)) `shouldBe` true
-    show (1 .. 10) `shouldBe` "(1 .. 10)"
-    show (range 1 10 2) `shouldBe` "(IntRange 1 10 2)"
-    (5 in [3, 4, 5]) `shouldBe` true
-    (1 in [3, 4, 5]) `shouldBe` false
-    ('a' in "mars") `shouldBe` true
-    ("ni" !in "banana") `shouldBe` true
+#[test: "Core base functions"]
+baseCoreTest : Unit -> Unit
+baseCoreTest () =
+  not true `shouldBe` false
+  not false `shouldBe` true
+  xor true true `shouldBe` false
+  xor true false `shouldBe` true
+  xor false true `shouldBe` true
+  xor false false `shouldBe` false
+  List.map identity [2, 3, 4] `shouldBe` [2, 3, 4]
+  let minus = flip (-) : Int -> Int -> Int
+  (1 `minus` 4) `shouldBe` 3
+  const 0 1 `shouldBe` 0
+  (10 |> _ + 1 |> _ * 2) `shouldBe` 22
+  (_ * 2 <| _ + 1 <| 10) `shouldBe` 22
+  (_ + 1 >> _ * 2) 10 `shouldBe` 22
+  (_ + 1 << _ * 2) 10 `shouldBe` 21
+  let x = 1
+  (x === x) `shouldBe` true
+  ([1] === [1]) `shouldBe` false
+  (x !== x) `shouldBe` false
+  ([1] !== [1]) `shouldBe` true
+  (true && false) `shouldBe` false
+  (true && true) `shouldBe` true
+  (true || false) `shouldBe` true
+  (false || false) `shouldBe` false
+  int 125_400L `shouldBe` 125_400
+  int "999" `shouldBe` 999
+  int false `shouldBe` 0
+  int64 1_000_000 `shouldBe` 1000000L
+  float32 true `shouldBe` 1F
+  float64 "1.78" `shouldBe` 1.78
+  (Some 3)!! `shouldBe` 3
+  (Some [1, 2])!!.[0] `shouldBe` 1
+  (Some 1 |> _!!) `shouldBe` 1
+  format "%s and %s" [5, 6] `shouldBe` "5 and 6"
+  (Some 3 ?: 7) `shouldBe` 3
+  (None ?: 7) `shouldBe` 7
+  len "banana" `shouldBe` 6
+  len [] `shouldBe` 0
+  len [3, 4, 5] `shouldBe` 3
+  len #{4, 0} `shouldBe` 2
+  len (arrayOf Int32#-class 12) `shouldBe` 12
+  [1 .. 5] `shouldBe` [1, 2, 3, 4, 5]
+  [1 ... 5] `shouldBe` [1, 2, 3, 4]
+  [7 .. 3] `shouldBe` [7, 6, 5, 4, 3]
+  [7 ... 3] `shouldBe` [7, 6, 5, 4]
+  [1.0F .. 5.0F] `shouldBe` [1.0F, 2.0F, 3.0F, 4.0F, 5.0F]
+  [1.0F ... 5.0F] `shouldBe` [1.0F, 2.0F, 3.0F, 4.0F]
+  [1.0 .. 5.0] `shouldBe` [1.0, 2.0, 3.0, 4.0, 5.0]
+  [1.0 ... 5.0] `shouldBe` [1.0, 2.0, 3.0, 4.0]
+  ['a' .. 'd'] `shouldBe` ['a', 'b', 'c', 'd']
+  ['a' ... 'd'] `shouldBe` ['a', 'b', 'c']
+  [1N .. 5N] `shouldBe` [1N, 2N, 3N, 4N, 5N]
+  [1N ... 5N] `shouldBe` [1N, 2N, 3N, 4N]
+  [1M .. 5M] `shouldBe` [1M, 2M, 3M, 4M, 5M]
+  [1M ... 5M] `shouldBe` [1M, 2M, 3M, 4M]
+  #{1 .. 5} `shouldBe` #{1, 2, 3, 4, 5}
+  rangeStart (4 .. 10) `shouldBe` 4
+  rangeEnd (4 .. 10) `shouldBe` 10
+  rangeEnd (4 ... 10) `shouldBe` 9
+  (567000 in (1 .. 2000000000)) `shouldBe` true
+  (3 in (range 1 10 2)) `shouldBe` true
+  (3 !in (range 1 10 3)) `shouldBe` true
+  show (1 .. 10) `shouldBe` "(1 .. 10)"
+  show (range 1 10 2) `shouldBe` "(IntRange 1 10 2)"
+  (5 in [3, 4, 5]) `shouldBe` true
+  (1 in [3, 4, 5]) `shouldBe` false
+  ('a' in "mars") `shouldBe` true
+  ("ni" !in "banana") `shouldBe` true
 
-  test "Core list functions" \_ ->
-    [1, 2].[1] `shouldBe` 2
-    setAt 0 6 [1] `shouldBe` [6]
-    updateAt 0 (_ + 1) [1] `shouldBe` [2]
-    (6 :: [1]) `shouldBe` [6, 1]
-    ([1] += 6) `shouldBe` [1, 6]
-    removeFirst [1, 2] `shouldBe` [2]
-    removeLast [1, 2] `shouldBe` [1]
+#[test: "Core list functions"]
+listCoreTest : Unit -> Unit
+listCoreTest () =
+  [1, 2].[1] `shouldBe` 2
+  setAt 0 6 [1] `shouldBe` [6]
+  updateAt 0 (_ + 1) [1] `shouldBe` [2]
+  (6 :: [1]) `shouldBe` [6, 1]
+  ([1] += 6) `shouldBe` [1, 6]
+  removeFirst [1, 2] `shouldBe` [2]
+  removeLast [1, 2] `shouldBe` [1]
 
-  test "Core array functions" \_ ->
-    let arr = intArray [1, 2, 3]
-    aget 1 arr `shouldBe` 2
-    aset 1 6 arr
-    arr `shouldBe` intArray [1, 6, 3]
-    aupdate 1 (_ + 10) arr
-    arr `shouldBe` intArray [1, 16, 3]
+#[test: "Core array functions"]
+arrayCoreTest : Unit -> Unit
+arrayCoreTest () =
+  let arr = intArray [1, 2, 3]
+  aget 1 arr `shouldBe` 2
+  aset 1 6 arr
+  arr `shouldBe` intArray [1, 6, 3]
+  aupdate 1 (_ + 10) arr
+  arr `shouldBe` intArray [1, 16, 3]
 
-  test "Core concat class" \_ ->
-    ("the" ++ "lazy" ++ "fox") `shouldBe` "thelazyfox"
-    ([1, 2] ++ [3, 4]) `shouldBe` [1, 2, 3, 4]
-    (#{1, 2} ++ #{3, 4}) `shouldBe` #{1, 2, 3, 4}
-    (Some "abc" ++ Some "def") `shouldBe` Some "abcdef"
-    (Some "abc" ++ None) `shouldBe` None
+#[test: "Core concat functions"]
+concatCoreTest : Unit -> Unit
+concatCoreTest () =
+  ("the" ++ "lazy" ++ "fox") `shouldBe` "thelazyfox"
+  ([1, 2] ++ [3, 4]) `shouldBe` [1, 2, 3, 4]
+  (#{1, 2} ++ #{3, 4}) `shouldBe` #{1, 2, 3, 4}
+  (Some "abc" ++ Some "def") `shouldBe` Some "abcdef"
+  (Some "abc" ++ None) `shouldBe` None
 
-  test "Core tuples" \_ ->
-    let tup = 3 ; true
-    tup `shouldBe` Tuple 3 true
-    fst tup `shouldBe` 3
-    snd tup `shouldBe` true
-    ((3 ; 56.9) + (34 ; 24.5)) `shouldBe` (37 ; 81.4)
-    ((6 ; 6.9) - (2 ; 2.5)) `shouldBe` (4 ; 4.4)
-    ((3 ; 3.2) * (5 ; 4.8)) `shouldBe` (15 ; 15.36)
-    ((16 ; 6.2) / (2 ; 2.0)) `shouldBe` (8 ; 3.1)
+#[test: "Core tuples"]
+tupleCoreTest : Unit -> Unit
+tupleCoreTest () =
+  let tup = 3 ; true
+  tup `shouldBe` Tuple 3 true
+  fst tup `shouldBe` 3
+  snd tup `shouldBe` true
+  ((3 ; 56.9) + (34 ; 24.5)) `shouldBe` (37 ; 81.4)
+  ((6 ; 6.9) - (2 ; 2.5)) `shouldBe` (4 ; 4.4)
+  ((3 ; 3.2) * (5 ; 4.8)) `shouldBe` (15 ; 15.36)
+  ((16 ; 6.2) / (2 ; 2.0)) `shouldBe` (8 ; 3.1)
 
-  test "Core java interop" \_ ->
-    let ref = Ref#new(3)
-    ref#-val <- Some 10
-    ref#-val `shouldBe` 10
-    ref#-?val `shouldBe` Some 10
-    ref#-val <- None
-    ref#-?val `shouldBe` None
+#[test: "Core java interop"]
+javaCoreTest : Unit -> Unit
+javaCoreTest () =
+  let ref = Ref#new(3)
+  ref#-val <- Some 10
+  ref#-val `shouldBe` 10
+  ref#-?val `shouldBe` Some 10
+  ref#-val <- None
+  ref#-?val `shouldBe` None
 
-  test "Core atoms" \_ ->
-    let x = atom 4
-    @x `shouldBe` 4
-    x := 50
-    @x `shouldBe` 50
-    x ::= (_ * 10)
-    @x `shouldBe` 500
+#[test: "Core atoms"]
+atomCoreTest : Unit -> Unit
+atomCoreTest () =
+  let x = atom 4
+  @x `shouldBe` 4
+  x := 50
+  @x `shouldBe` 50
+  x ::= (_ * 10)
+  @x `shouldBe` 500

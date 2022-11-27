@@ -291,14 +291,14 @@ fun LiteralPattern.show(): String = when (this) {
     is LiteralPattern.BigdecLiteral -> e.v.toString()
 }
 
-data class Metadata(val data: Expr.RecordExtend) {
+data class Metadata(val data: Expr.RecordExtend, val spans: Map<String, Span>) {
     var type: Type? = null
 
     fun merge(other: Metadata?): Metadata {
         if (other == null) return this
 
         val newMeta = data.copy(labels = other.data.labels.mergeReplace(data.labels), span = data.span)
-        return Metadata(newMeta)
+        return Metadata(newMeta, spans + other.spans)
     }
 
     fun getMeta(attr: String): Expr? {
@@ -312,6 +312,7 @@ data class Metadata(val data: Expr.RecordExtend) {
     companion object {
         const val NO_WARN = "noWarn"
         const val DERIVE = "derive"
+        const val TEST = "test"
     }
 }
 

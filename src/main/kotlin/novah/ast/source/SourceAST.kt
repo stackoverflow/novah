@@ -167,7 +167,7 @@ data class DataConstructor(
     }
 }
 
-data class Metadata(val data: Expr.RecordExtend) {
+data class Metadata(val data: Expr.RecordExtend, val spans: Map<String, Span>) {
     fun getMeta(meta: String): Expr? {
         return data.labels.find { it.first == meta }?.second
     }

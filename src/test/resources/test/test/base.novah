@@ -10,26 +10,26 @@ checkType x = case x of
   :? String as s -> len s
   _ -> 0
 
-typeTest : Unit
-typeTest =
-  test "Type testing primitives work" \_ ->
-    let intTest = case 1 of
-      :? Int32 as x -> x
-      _ -> 0
+#[test: "Type testing primitives work"]
+typeTest : Unit -> Unit
+typeTest () =
+  let intTest = case 1 of
+    :? Int32 as x -> x
+    _ -> 0
 
-    let boolTest = case true of
-      :? Boolean as b if b -> 1
-      _ -> 0
+  let boolTest = case true of
+    :? Boolean as b if b -> 1
+    _ -> 0
 
-    let longTest = case 2L of
-      :? Int64 as i -> i
-      _ -> 10L
+  let longTest = case 2L of
+    :? Int64 as i -> i
+    _ -> 10L
 
-    intTest `shouldBe` 1
-    boolTest `shouldBe` 1
-    longTest `shouldBe` 2L
-    checkType false `shouldBe` 0
-    checkType true `shouldBe` 1
-    checkType 4 `shouldBe` 4
-    checkType "fox" `shouldBe` 3
-    checkType 10L `shouldBe` 10
+  intTest `shouldBe` 1
+  boolTest `shouldBe` 1
+  longTest `shouldBe` 2L
+  checkType false `shouldBe` 0
+  checkType true `shouldBe` 1
+  checkType 4 `shouldBe` 4
+  checkType "fox" `shouldBe` 3
+  checkType 10L `shouldBe` 10

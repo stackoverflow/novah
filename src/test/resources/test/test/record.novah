@@ -2,20 +2,20 @@ module test.record
 
 import novah.test
 
-recordTests : Unit
-recordTests =
-  test "Record base syntax functions" \_ ->
-    let rec = { name: "Bill", age: 33 }
-    rec.name `shouldBe` "Bill"
-    rec.age `shouldBe` 33
-    { weight: 3.5 | rec } `recordShouldBe` { name: "Bill", age: 33, weight: 3.5 }
-    { - name | rec } `recordShouldBe` { age: 33 }
-    { .age = 12 | rec } `recordShouldBe` { name: "Bill", age: 12 }
-    { + rec, { age: 12.9, eyes: "blue" } } `recordShouldBe` { age: 33, age: 12.9, eyes: "blue", name: "Bill" }
-    (_.name rec) `shouldBe` "Bill"
-    let addWeight w = { weight: w + 1 | _ }
-    addWeight 10 rec `recordShouldBe` { name: "Bill", age: 33, weight: 11 }
-    { - name | _ } rec `recordShouldBe` { age: 33 }
-    { .age = 10 | _ } rec `recordShouldBe` { name: "Bill", age: 10 }
-    let mergeEyes color = { + _, { eyes: color : String } }
-    mergeEyes "blue" rec `recordShouldBe` { name: "Bill", age: 33, eyes: "blue" }
+#[test: "Record base syntax functions"]
+recordTests : Unit -> Unit
+recordTests () =
+  let rec = { name: "Bill", age: 33 }
+  rec.name `shouldBe` "Bill"
+  rec.age `shouldBe` 33
+  { weight: 3.5 | rec } `recordShouldBe` { name: "Bill", age: 33, weight: 3.5 }
+  { - name | rec } `recordShouldBe` { age: 33 }
+  { .age = 12 | rec } `recordShouldBe` { name: "Bill", age: 12 }
+  { + rec, { age: 12.9, eyes: "blue" } } `recordShouldBe` { age: 33, age: 12.9, eyes: "blue", name: "Bill" }
+  (_.name rec) `shouldBe` "Bill"
+  let addWeight w = { weight: w + 1 | _ }
+  addWeight 10 rec `recordShouldBe` { name: "Bill", age: 33, weight: 11 }
+  { - name | _ } rec `recordShouldBe` { age: 33 }
+  { .age = 10 | _ } rec `recordShouldBe` { name: "Bill", age: 10 }
+  let mergeEyes color = { + _, { eyes: color : String } }
+  mergeEyes "blue" rec `recordShouldBe` { name: "Bill", age: 33, eyes: "blue" }

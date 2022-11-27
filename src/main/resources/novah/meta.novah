@@ -4,6 +4,8 @@ module novah.meta
 foreign import java.lang.reflect.Field
 foreign import novah.Metadata
 
+import novah.list as List
+
 // Returns the metadata attached to this module
 // or an empty map if none.
 pub
@@ -15,6 +17,38 @@ metaForModule mod = Metadata#allMetadataOf(mod)
 pub
 metaFor : String -> String -> Map String Object
 metaFor mod decl = Metadata#allMetadataOf(mod, decl)
+
+// Returns all the metadata of this module.
+pub
+findMeta : String -> Map String (Map String Object)
+findMeta mod = Metadata#findMetadata(mod)
+
+// Returns all declarations and its metadata where the tag is defined.
+pub
+metaAndDeclarationsForTag : String -> List (Tuple Field Object)
+metaAndDeclarationsForTag tag =
+  Metadata#findMetadataAndDeclarationsFor(tag)
+  |> List.map \list ->
+    (list.[0] as Field) ; list.[1]
+
+// Returns all tests defined in loaded modules.
+// moduleName: the module in which this test resides
+// decl: the name of the declaration inside the module
+// desc: the description of the test (can be empty)
+// function: the test function
+pub
+findTests : Unit -> List { moduleName : String, decl : String, desc : String, function : Unit -> Unit }
+findTests () =
+  Metadata#findTests()
+  |> List.map \res ->
+    let field = res.[3] as Field
+    field#setAccessible(true)
+    { moduleName: res.[0] as String
+    , decl: res.[1] as String
+    , desc: res.[2] as String
+    , function: field#get(None) as Unit -> Unit
+    }
+  |> List.sortBy _.moduleName
 
 // Returns all modules where the tag is defined
 // in at least one declaration.

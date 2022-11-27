@@ -2,51 +2,57 @@ module test.map
 
 import novah.test
 
-mapTests : Unit
-mapTests =
-  test "Map reading functions" \_ ->
-    let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
-    Map.get "b" map `shouldBe` Some 2
-    Map.get "d" map `shouldBe` None
-    (map .! "b") `shouldBe` 2
-    Map.getOr "b" 0 map `shouldBe` 2
-    Map.getOr "d" 0 map `shouldBe` 0
-    Map.hasKey "c" map `shouldBe` true
-    ("c" in map) `shouldBe` true
-    Map.keys map `shouldBe` #{"a", "b", "c"}
-    Map.values map `shouldAllBeIn` #{1, 2, 3}
-    Map.entries map `shouldBe` ["b" ; 2, "c" ; 3, "a" ; 1]
-    Map.size map `shouldBe` 3L
-    Map.isEmpty map `shouldBe` false
-    Map.isNotEmpty map `shouldBe` true
-    (map ++ Map.new ["d" ; 4, "e" ; 5]) `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; 4, "e" ; 5]
+#[test: "Map reading functions"]
+readingMapTest : Unit -> Unit
+readingMapTest () =
+  let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
+  Map.get "b" map `shouldBe` Some 2
+  Map.get "d" map `shouldBe` None
+  (map .! "b") `shouldBe` 2
+  Map.getOr "b" 0 map `shouldBe` 2
+  Map.getOr "d" 0 map `shouldBe` 0
+  Map.hasKey "c" map `shouldBe` true
+  ("c" in map) `shouldBe` true
+  Map.keys map `shouldBe` #{"a", "b", "c"}
+  Map.values map `shouldAllBeIn` #{1, 2, 3}
+  Map.entries map `shouldBe` ["b" ; 2, "c" ; 3, "a" ; 1]
+  Map.size map `shouldBe` 3L
+  Map.isEmpty map `shouldBe` false
+  Map.isNotEmpty map `shouldBe` true
+  (map ++ Map.new ["d" ; 4, "e" ; 5]) `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; 4, "e" ; 5]
 
-  test "Map writing functions" \_ ->
-    let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
-    Map.put "d" 4 map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; 4]
-    Map.update "c" (_ + 3) map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 6]
-    Map.update "d" (_ + 3) map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
-    Map.updateOr "d" (_ + 3) -1 map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; -1]
-    Map.remove "b" map `shouldBe` Map.new ["a" ; 1, "c" ; 3]
+#[test: "Map writing functions"]
+writingMapTest : Unit -> Unit
+writingMapTest () =
+  let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
+  Map.put "d" 4 map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; 4]
+  Map.update "c" (_ + 3) map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 6]
+  Map.update "d" (_ + 3) map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
+  Map.updateOr "d" (_ + 3) -1 map `shouldBe` Map.new ["a" ; 1, "b" ; 2, "c" ; 3, "d" ; -1]
+  Map.remove "b" map `shouldBe` Map.new ["a" ; 1, "c" ; 3]
 
-  test "Map traversing functions" \_ ->
-    let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
-    Map.mapValues (\_ v -> v + 1) map `shouldBe` Map.new ["a" ; 2, "b" ; 3, "c" ; 4]
-    Map.filter (\_ v -> Math.isOdd v) map `shouldBe` Map.new ["a" ; 1, "c" ; 3]
-    Map.all (\_ v -> Math.isOdd v) map `shouldBe` false
-    Map.any (\_ v -> Math.isOdd v) map `shouldBe` true
-    Map.any (\k _ -> k == "t") map `shouldBe` false
-    (Map.toList map |> Set.fromList) `shouldBe` #{"a" ; 1, "b" ; 2, "c" ; 3}
-    let folder acc (k : Int) v =
-      if Math.isEven k then
-        acc + v + 0
-      else acc - v
-    Map.foldl folder 0 (Map.new [1 ; 2, 2 ; 3, 3 ; 4, 4 ; 5]) `shouldBe` 2
+#[test: "Map traversing functions"]
+traversingMapTest : Unit -> Unit
+traversingMapTest () =
+  let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
+  Map.mapValues (\_ v -> v + 1) map `shouldBe` Map.new ["a" ; 2, "b" ; 3, "c" ; 4]
+  Map.filter (\_ v -> Math.isOdd v) map `shouldBe` Map.new ["a" ; 1, "c" ; 3]
+  Map.all (\_ v -> Math.isOdd v) map `shouldBe` false
+  Map.any (\_ v -> Math.isOdd v) map `shouldBe` true
+  Map.any (\k _ -> k == "t") map `shouldBe` false
+  (Map.toList map |> Set.fromList) `shouldBe` #{"a" ; 1, "b" ; 2, "c" ; 3}
+  let folder acc (k : Int) v =
+    if Math.isEven k then
+      acc + v + 0
+    else acc - v
+  Map.foldl folder 0 (Map.new [1 ; 2, 2 ; 3, 3 ; 4, 4 ; 5]) `shouldBe` 2
 
-  test "Linear map functions" \_ ->
-    let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
-    let lin =
-      Map.withLinear map \m ->
-        Map.put "d" 4 m
-        Map.remove "b" m
-    lin `shouldBe` Map.new ["a" ; 1, "c" ; 3, "d" ; 4]
+#[test: "Linear map functions"]
+linearMapTest : Unit -> Unit
+linearMapTest () =
+  let map = Map.new ["a" ; 1, "b" ; 2, "c" ; 3]
+  let lin =
+    Map.withLinear map \m ->
+      Map.put "d" 4 m
+      Map.remove "b" m
+  lin `shouldBe` Map.new ["a" ; 1, "c" ; 3, "d" ; 4]

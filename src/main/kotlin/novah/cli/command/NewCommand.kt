@@ -94,16 +94,15 @@ class NewCommand : CliktCommand(name = "new", help = "create a Novah project") {
             
             import novah.test
             
-            myTest : Suite
-            myTest =
-              Test "A simple test" \_ ->
-                (1 + 1) `shouldBe` 2
+            #[test: "A simple test"]
+            myTest : Unit -> Unit
+            myTest () =
+              (1 + 1) `shouldBe` 2
             
             pub
             main : Array String -> Unit
             main _ =
-              runTests [myTest]
-              ()
+              runTests () |> exit
         """.trimIndent()
 
         private fun gitignore() = """

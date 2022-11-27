@@ -211,6 +211,8 @@ object Errors {
 
     const val EXPECTED_OPERAND = "Expected another operand after binary operator"
 
+    const val TEST_TYPE = "The test attribute can only be put on Unit -> Unit functions."
+
     fun opToolong(op: String) =
         "Operator $op is too long. Operators cannot contain more than 3 characters."
 
