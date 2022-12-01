@@ -311,8 +311,62 @@ lines : String -> List String
 lines str =
   str#lines() |> List.fromStream
 
+// Enlarges the string to the specified size by
+// left padding it with spaces. \
+// **Params** \
+// length: the total desired size \
+// str: the string to be padded
+pub
+padLeft : Int32 -> String -> String
+padLeft length str =
+  let form = "%" ++ (toString length) ++ "s"
+  format form [str]
+
+// Enlarges the string to the specified size by
+// left padding it with the given pad. \
+// **Params** \
+// length: the total desired size \
+// pad: the padding string \
+// str: the string to be padded
+pub
+padLeftWith : Int32 -> String -> String -> String
+padLeftWith length pad str =
+  case length - str#length() of
+    diff if diff <= 0 -> str
+    diff ->
+      let times = diff / (len pad)
+      let fullPad = repeat (times + 1) pad |> take diff
+      fullPad ++ str
+
+// Enlarges the string to the specified size by
+// right padding it with spaces. \
+// **Params** \
+// length: the total desired size \
+// str: the string to be padded
+pub
+padRight : Int32 -> String -> String
+padRight length str =
+  let form = "%-" ++ (toString length) ++ "s"
+  format form [str]
+
+// Enlarges the string to the specified size by
+// right padding it with the given pad. \
+// **Params** \
+// length: the total desired size \
+// pad: the padding string \
+// str: the string to be padded
+pub
+padRightWith : Int32 -> String -> String -> String
+padRightWith length pad str =
+  case length - str#length() of
+    diff if diff <= 0 -> str
+    diff ->
+      let times = diff / (len pad)
+      let fullPad = repeat (times + 1) pad |> take diff
+      str ++ fullPad
+
 // Finds the smallest common indentation of all lines in this string
-// and removes it.
+// and removes it. \
 // Blank lines will be removed.
 // Does not preserve line endings.
 pub

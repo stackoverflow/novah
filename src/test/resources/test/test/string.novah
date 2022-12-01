@@ -55,6 +55,16 @@ stringTests () =
   String.replace "the" "some" "the bad and the ugly" `shouldBe` "some bad and some ugly"
   String.reverse "someone" `shouldBe` "enoemos"
   String.indices "abcd" `shouldBe` [0, 1, 2, 3]
+  String.padLeft 5 "foo" `shouldBe` "  foo"
+  String.padLeft 1 "foo" `shouldBe` "foo"
+  String.padLeftWith 6 "-" "foo" `shouldBe` "---foo"
+  String.padLeftWith 6 "ba" "foo" `shouldBe` "babfoo"
+  String.padLeftWith 9 "boo" "foo" `shouldBe` "booboofoo"
+  String.padRight 5 "foo" `shouldBe` "foo  "
+  String.padRight 1 "foo" `shouldBe` "foo"
+  String.padRightWith 6 "-" "foo" `shouldBe` "foo---"
+  String.padRightWith 6 "ba" "foo" `shouldBe` "foobab"
+  String.padRightWith 9 "boo" "foo" `shouldBe` "foobooboo"
   let bigStr = """
     some Indented
     Lines
