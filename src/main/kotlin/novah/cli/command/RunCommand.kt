@@ -35,9 +35,9 @@ class RunCommand : CliktCommand(name = "run", help = "run the main module if one
         help = "use a different main function instead of the one defined in the project file"
     )
 
-    private val build by option(
-        "-b", "--build",
-        help = "build the project before running"
+    private val noBuild by option(
+        "--no-build",
+        help = "do not build the project before running"
     ).flag(default = false)
 
     private val devMode by option(
@@ -69,7 +69,7 @@ class RunCommand : CliktCommand(name = "run", help = "run the main module if one
 
         val al = alias ?: defaultAlias
 
-        if (build) {
+        if (!noBuild) {
             BuildCommand.build(al, deps, verbose = false, devMode = devMode, check = false, echo = {}, echoErr = ::echo)
         }
 

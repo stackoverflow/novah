@@ -32,6 +32,7 @@
 - added `contains` and `containsChar` to the string module
 - added `padLeft`, `padLeftWith`, `padRight` and `padRightWith` to the string module
 - added `.!` function to the core module
+- `novah run` now builds by default and requires `--no-build` otherwise
 
 ## Bug Fixes
 
