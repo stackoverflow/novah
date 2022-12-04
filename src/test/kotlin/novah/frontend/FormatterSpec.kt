@@ -13,6 +13,23 @@ class FormatterSpec : StringSpec({
         Formatter().format(mod) shouldBe output.module()
     }
 
+    "let test" {
+        expect(
+            input = """
+                foo () =
+                  let bar : Int -> Unit
+                      bar x = println x
+                  bar 1
+            """,
+            output = """
+                foo () =
+                  let bar : Int -> Unit
+                      bar x = println x
+                  bar 1
+            """
+        )
+    }
+
     "try catch test" {
         expect(
             input = """

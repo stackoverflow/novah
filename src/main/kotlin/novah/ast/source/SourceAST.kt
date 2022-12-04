@@ -271,6 +271,7 @@ sealed class LetDef(open val expr: Expr) {
         val patterns: List<Pattern>,
         override val expr: Expr,
         val isInstance: Boolean,
+        val equalsSpan: Span,
         val type: Type? = null
     ) : LetDef(expr)
 

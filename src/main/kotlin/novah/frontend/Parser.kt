@@ -840,7 +840,7 @@ class Parser(
         val vars = tryParseListOf { tryParsePattern(true) }
         val eq = expect<Equals>(withError(E.LET_EQUALS))
         val exp = if (eq.span.sameLine(iter.peek().span)) parseExpression() else parseDo()
-        return LetDef.DefBind(Binder(ident.value.v, ident.span), vars, exp, isInstance, type)
+        return LetDef.DefBind(Binder(ident.value.v, ident.span), vars, exp, isInstance, eq.span, type)
     }
 
     private fun parseLetDefPattern(isFor: Boolean = false): LetDef {

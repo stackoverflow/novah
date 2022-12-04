@@ -415,14 +415,16 @@ class Formatter {
         is LiteralPattern.BigdecPattern -> show(p.e)
     }
 
-    private fun show(l: LetDef, span: Span, isFor: Boolean = false): String {
+    private fun show(l: LetDef, span_: Span, isFor: Boolean = false): String {
         val sep = if (isFor) "in" else "="
+        var span = span_
         val prefix = when (l) {
             is LetDef.DefBind -> {
                 val typ = if (l.type != null) {
-                    withIndentKeep { "${l.name} : ${show(l.type)}" } + "\n$tab"
+                    span = l.equalsSpan
+                    withIndentKeep { "${l.name} : ${show(l.type)}" } + "\n$tab    "
                 } else ""
-                "${typ}${l.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " $sep"
+                "$typ${l.name.name}" + l.patterns.joinToStr(" ", prefix = " ") { show(it) } + " $sep"
             }
             is LetDef.DefPattern -> "${show(l.pat)} $sep"
         }
@@ -430,7 +432,7 @@ class Formatter {
         val hasLineBreak = span.startLine < l.expr.span.startLine
         val isMatchComp = (l.expr is Expr.Match || l.expr is Expr.Computation)
                 && simple.endLineLength() + tab.length + 4 < maxColumns
-        val isSimple = !simple.contains('\n') && simple.length + tab.length + 4 < maxColumns
+        val isSimple = simple.endLineLength() + tab.length + 4 < maxColumns
         return if (!hasLineBreak && (isMatchComp || isSimple)) simple
         else prefix + withIndent { tab + show(l.expr) }
     }
