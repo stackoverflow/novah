@@ -72,6 +72,7 @@ class BuildCommand : CliktCommand(name = "build", help = "compile the project de
             echo: (String) -> Unit,
             echoErr: (String, Boolean) -> Unit
         ) {
+            ensureDeps(deps, verbose, echoErr)
             val classpath = getClasspath(alias, "classpath", echoErr) ?: return
             val sourcepath = getClasspath(alias, "sourcepath", echoErr) ?: return
 
@@ -137,6 +138,14 @@ class BuildCommand : CliktCommand(name = "build", help = "compile the project de
             }
 
             return cp.readText(Charsets.UTF_8)
+        }
+
+        private fun ensureDeps(deps: Deps, verbose: Boolean, echo: (String, Boolean) -> Unit) {
+            val cp = File(".cpcache")
+            if (!cp.exists()) {
+                val processor = DepsProcessor(verbose, echo)
+                processor.run(deps)
+            }
         }
     }
 }

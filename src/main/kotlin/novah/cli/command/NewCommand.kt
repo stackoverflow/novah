@@ -59,10 +59,10 @@ class NewCommand : CliktCommand(name = "new", help = "create a Novah project") {
         val project = projectDir.resolve("novah.json")
         project.writeText(defaultProjectJson(), Charsets.UTF_8)
 
-        echo("Project created!")
-        echo("To fetch all dependencies run `novah deps` or `novah deps -a <alias>` for a specific alias")
+        echo("Project `$name` created!")
+        echo("To fetch all dependencies run `novah deps`")
         echo("To build the project run `novah build` or `novah build -a <alias>` for a specific alias")
-        echo("To run the project run `novah run` or `novah run -a test` for tests")
+        echo("To run the project run `novah run` or `novah run -a <alias>` for an alias like `test`")
     }
 
     companion object {
